@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:DominoMajlisPRO.Controls"
+    x:Class="DominoMajlisPRO.Pages.HallOfFamePage"
+    BackgroundColor="#030303"
+    NavigationPage.HasNavigationBar="False"
+    FlowDirection="RightToLeft">
+
+    <Grid
+        FlowDirection="LeftToRight"
+        RowDefinitions="Auto,*,Auto"
+        ColumnDefinitions="{OnIdiom Phone='0,*', Tablet='78,*', Desktop='84,*'}">
+
+        <!-- HEADER - محفوظ كما هو -->
+        <Grid
+            Grid.Row="0"
+            Grid.ColumnSpan="2"
+            Padding="{OnIdiom Phone='8,8,8,4', Tablet='14,10,14,6', Desktop='18,10,18,6'}"
+            ColumnDefinitions="92,*,58"
+            ColumnSpacing="10">
+
+            <Border
+                Grid.Column="0"
+                BackgroundColor="#090909"
+                Stroke="#8F6730"
+                StrokeThickness="0.9"
+                Padding="8"
+                VerticalOptions="Center"
+                StrokeShape="RoundRectangle 16">
+
+                <VerticalStackLayout Spacing="2">
+
+                    <Label
+        Text="الموسم"
+        FontFamily="Tajawal-Regular"
+        TextColor="#D4AE62"
+        FontSize="{OnIdiom Phone=13, Tablet=16, Desktop=16}"
+        FontAttributes="Bold"
+        HorizontalTextAlignment="Center"/>
+
+                    <HorizontalStackLayout
+        Spacing="6"
+        HorizontalOptions="Center"
+        FlowDirection="RightToLeft">
+
+                        <Image
+            Source="calendar_gold.png"
+            Aspect="AspectFit"
+            WidthRequest="{OnIdiom Phone=18, Tablet=22, Desktop=24}"
+            HeightRequest="{OnIdiom Phone=18, Tablet=22, Desktop=24}"
+            VerticalOptions="Center"/>
+
+                        <Label
+            x:Name="SeasonNumberLabel"
+            Text="—"
+            FontFamily="CinzelDecorative-Bold"
+            TextColor="White"
+            FontSize="{OnIdiom Phone=18, Tablet=22, Desktop=22}"
+            FontAttributes="Bold"
+            VerticalTextAlignment="Center"
+            HorizontalTextAlignment="Center"/>
+
+                    </HorizontalStackLayout>
+
+                </VerticalStackLayout>
+            </Border>
+
+            <Image
+                Grid.Column="1"
+                Source="hall_of_fame_title.png"
+                Aspect="AspectFit"
+                HeightRequest="{OnIdiom Phone=86, Tablet=112, Desktop=118}"
+                HorizontalOptions="Fill"
+                VerticalOptions="Center"/>
+
+            <Image
+                Grid.Column="2"
+                Source="back_gold.png"
+                WidthRequest="{OnIdiom Phone=44, Tablet=52, Desktop=52}"
+                HeightRequest="{OnIdiom Phone=44, Tablet=52, Desktop=52}"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+
+                <Image.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnBackTapped"/>
+                </Image.GestureRecognizers>
+            </Image>
+
+        </Grid>
+
+        <!-- SIDE MENU LEFT -->
+        <controls:HallSideMenuView
+            x:Name="SideMenu"
+            Grid.Row="1"
+            Grid.Column="0"
+            IsVisible="{OnIdiom Phone=False, Tablet=True, Desktop=True}"/>
+
+        <!-- CONTENT -->
+        <ScrollView
+            x:Name="HallScrollView"
+            Grid.Row="1"
+            Grid.Column="1">
+
+            <VerticalStackLayout
+                x:Name="HallContainer"
+                FlowDirection="RightToLeft"
+                Padding="{OnIdiom Phone='10,6,10,18', Tablet='16,8,18,28', Desktop='18,10,22,30'}"
+                Spacing="10">
+
+                <!-- HERO - الحجم محفوظ، فقط تقليل المسافات والـ Glow -->
+                <Border
+                    x:Name="HeroSection"
+                    BackgroundColor="#050505"
+                    Stroke="#765021"
+                    StrokeThickness="0.75"
+                    Padding="0"
+                    StrokeShape="RoundRectangle 26">
+
+                    <Grid
+                        HeightRequest="{OnIdiom Phone=300, Tablet=420, Desktop=440}"
+                        FlowDirection="LeftToRight">
+
+                        <Image
+                            Source="hall_of_fame_head.png"
+                            Aspect="AspectFill"
+                            HorizontalOptions="Fill"
+                            VerticalOptions="Fill"/>
+
+                        <BoxView BackgroundColor="#3D000000"/>
+
+                        <Border
+                            WidthRequest="{OnIdiom Phone=100, Tablet=200, Desktop=255}"
+                            Margin="{OnIdiom Phone='14,14,0,14', Tablet='30,28,0,28', Desktop='34,30,0,30'}"
+                            Padding="{OnIdiom Phone=5, Tablet=9, Desktop=13}"
+                            HorizontalOptions="Start"
+                            VerticalOptions="Center"
+                            BackgroundColor="#E0050505"
+                            Stroke="#C8943A"
+                            StrokeThickness="0.85"
+                            StrokeShape="RoundRectangle 26"
+                            FlowDirection="RightToLeft">
+
+                            <Border.Shadow>
+                                <Shadow Brush="#B8873C" Radius="10" Opacity="0.18"/>
+                            </Border.Shadow>
+
+                            <VerticalStackLayout Spacing="{OnIdiom Phone=5, Tablet=8, Desktop=9}">
+
+                                <Label
+                                    Text="بطل قاعة الأساطير"
+                                    FontFamily="Tajawal-Regular"
+                                    TextColor="#E0B04A"
+                                    FontSize="{OnIdiom Phone=15, Tablet=20, Desktop=25}"
+                                    FontAttributes="Bold"
+                                    HorizontalTextAlignment="Center"/>
+
+                                <Label
+                                    Text="HALL OF LEGENDS CHAMPION"
+                                    FontFamily="timesbi"
+                                    TextColor="#B8873C"
+                                    FontSize="{OnIdiom Phone=8, Tablet=10, Desktop=13}"
+                                    HorizontalTextAlignment="Center"/>
+
+                                <Image
+                                    Source="champion_gold.png"
+                                    HeightRequest="{OnIdiom Phone=50, Tablet=80, Desktop=100}"
+                                    Aspect="AspectFit"
+                                    HorizontalOptions="Center"/>
+
+                                <Label
+                                    x:Name="HeroTeamNameLabel"
+                                    Text="لا توجد أسطورة"
+                                    FontFamily="Tajawal-Regular"
+                                    TextColor="White"
+                                    FontSize="{OnIdiom Phone=12, Tablet=20, Desktop=25}"
+                                    FontAttributes="Bold"
+                                    HorizontalTextAlignment="Center"
+                                    MaxLines="1"
+                                    LineBreakMode="TailTruncation"/>
+
+                                <Label
+                                    Text="★★★★★"
+                                    TextColor="#D4AE62"
+                                    FontSize="{OnIdiom Phone=15, Tablet=25, Desktop=30}"
+                                    HorizontalTextAlignment="Center"/>
+
+                                <Label
+                                    x:Name="HeroSubtitleLabel"
+                                    Text="بانتظار فريق يحقق شروط الدستور"
+                                    FontFamily="Tajawal-Regular"
+                                    TextColor="#D8D8D8"
+                                    FontSize="{OnIdiom Phone=9, Tablet=13, Desktop=14}"
+                                    HorizontalTextAlignment="Center"
+                                    MaxLines="2"
+                                    LineBreakMode="TailTruncation"/>
+
+                                <Border
+                                    BackgroundColor="#15100A"
+                                    Stroke="#5B3B18"
+                                    StrokeThickness="0.65"
+                                    Padding="{OnIdiom Phone='5,4', Tablet='9,6', Desktop='9,7'}"
+                                    StrokeShape="RoundRectangle 14">
+
+                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="4">
+
+                                        <VerticalStackLayout Spacing="0">
+                                            <Label Text="الانتصارات" TextColor="#B8873C" FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12}" HorizontalTextAlignment="Center" FontFamily="Tajawal-Regular"/>
+                                            <Label x:Name="HeroWinsLabel" Text="0" TextColor="#E0B04A" FontSize="{OnIdiom Phone=14, Tablet=18, Desktop=18}" FontAttributes="Bold" HorizontalTextAlignment="Center" FontFamily="CinzelDecorative-Bold"/>
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Column="1" Spacing="0">
+                                            <Label Text="الفوز" TextColor="#B8873C" FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12}" HorizontalTextAlignment="Center" FontFamily="Tajawal-Regular"/>
+                                            <Label x:Name="HeroWinRateLabel" Text="0%" TextColor="#E0B04A" FontSize="{OnIdiom Phone=14, Tablet=18, Desktop=18}" FontAttributes="Bold" HorizontalTextAlignment="Center" FontFamily="CinzelDecorative-Bold"/>
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Column="2" Spacing="0">
+                                            <Label Text="Legacy" TextColor="#B8873C" FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12}" HorizontalTextAlignment="Center" FontFamily="timesbi"/>
+                                            <Label x:Name="HeroLegacyLabel" Text="0" TextColor="#E0B04A" FontSize="{OnIdiom Phone=14, Tablet=18, Desktop=18}" FontAttributes="Bold" HorizontalTextAlignment="Center" FontFamily="CinzelDecorative-Bold"/>
+                                        </VerticalStackLayout>
+
+                                    </Grid>
+                                </Border>
+
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- HALL MEMBERS - محفوظ كما طلبت -->
+                <Border
+                    x:Name="TeamsSection"
+                    BackgroundColor="#070707"
+                    Stroke="#6F461A"
+                    StrokeThickness="1"
+                    Padding="{OnIdiom Phone=12, Tablet=16, Desktop=18}"
+                    StrokeShape="RoundRectangle 26">
+
+                    <VerticalStackLayout Spacing="12">
+
+                        <Grid ColumnDefinitions="Auto,*,*" ColumnSpacing="10" FlowDirection="RightToLeft">
+
+                            <VerticalStackLayout Grid.Column="0">
+                                <Label
+                                    Text="أعضاء قاعة الأساطير"
+                                    FontFamily="Tajawal-Regular"
+                                    TextColor="#E0B04A"
+                                    FontSize="{OnIdiom Phone=14, Tablet=20, Desktop=30}"
+                                    FontAttributes="Bold"
+                                    HorizontalTextAlignment="Start"/>
+
+                                <Label
+                                    Text="HALL OF LEGENDS MEMBERS"
+                                    FontFamily="timesbi"
+                                    TextColor="#B8873C"
+                                    FontSize="{OnIdiom Phone=10, Tablet=14, Desktop=15}"
+                                    HorizontalTextAlignment="End"/>
+                            </VerticalStackLayout>
+
+                            <Button
+                                Grid.Column="2"
+                                Text="عرض الكل"
+                                FontFamily="Tajawal-Regular"
+                                BackgroundColor="#15100A"
+                                BorderColor="#8A5B27"
+                                BorderWidth="1"
+                                TextColor="#D4AE62"
+                                CornerRadius="14"
+                                HeightRequest="38"
+                                WidthRequest="{OnIdiom Phone=88, Tablet=104, Desktop=110}"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center"
+                                Clicked="OnShowAllTeamsClicked"/>
+                        </Grid>
+
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout
+                                x:Name="TopTeamsContainer"
+                                FlowDirection="RightToLeft"
+                                Spacing="{OnIdiom Phone=10, Tablet=14, Desktop=16}"
+                                Padding="2"/>
+                        </ScrollView>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- HIDDEN CANDIDATES -->
+                <Border
+                    x:Name="CandidatesSection"
+                    IsVisible="False">
+                    <VerticalStackLayout x:Name="CandidatesContainer"/>
+                </Border>
+
+                <!-- TOP PLAYERS -->
+                <Border
+                    x:Name="PlayersSection"
+                    BackgroundColor="#070707"
+                    Stroke="#5B3B18"
+                    
+                    StrokeThickness="0.75"
+                    Padding="{OnIdiom Phone=10, Tablet=12, Desktop=14}"
+                    StrokeShape="RoundRectangle 24">
+
+                    <VerticalStackLayout Spacing="8">
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" FlowDirection="RightToLeft">
+
+                            <VerticalStackLayout Grid.Column="0" HorizontalOptions="Start">
+                                <Label
+                                    Text="تصنيفات اللاعبين"
+                                    FontFamily="Tajawal-Regular"
+                                    TextColor="#E0B04A"
+                                    FontSize="{OnIdiom Phone=20, Tablet=27, Desktop=30}"
+                                    FontAttributes="Bold"
+                                    HorizontalTextAlignment="End"/>
+
+                                <Label
+                                    Text="TOP PLAYERS"
+                                    FontFamily="timesbi"
+                                    TextColor="#B8873C"
+                                    FontSize="{OnIdiom Phone=10, Tablet=14, Desktop=15}"
+                                    HorizontalTextAlignment="Start"/>
+                            </VerticalStackLayout>
+
+                            <Button
+                                Grid.Column="1"
+                                Text="عرض الكل"
+                                FontFamily="Tajawal-Regular"
+                                BackgroundColor="#15100A"
+                                BorderColor="#8A5B27"
+                                BorderWidth="0.8"
+                                TextColor="#D4AE62"
+                                CornerRadius="14"
+                                HeightRequest="40"
+                                WidthRequest="{OnIdiom Phone=86, Tablet=100, Desktop=106}"
+                                HorizontalOptions="Start"
+                                VerticalOptions="Center"
+                                Clicked="OnShowAllPlayersClicked"/>
+                        </Grid>
+
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout
+                                x:Name="TopPlayersContainer"
+                                FlowDirection="RightToLeft"
+                                Spacing="{OnIdiom Phone=8, Tablet=10, Desktop=12}"
+                                Padding="1"/>
+                        </ScrollView>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- RECORDS -->
+                <Border
+                    x:Name="RecordsSection"
+                    BackgroundColor="#060606"
+                    Stroke="#5B3B18"
+                    StrokeThickness="0.75"
+                    Padding="{OnIdiom Phone=10, Tablet=14, Desktop=16}"
+                    StrokeShape="RoundRectangle 24">
+
+                    <VerticalStackLayout Spacing="10">
+
+                        <HorizontalStackLayout
+                            FlowDirection="LeftToRight"
+                            Spacing="8"
+                            HorizontalOptions="Start">
+
+                            <Image
+                                Source="rankings_gold_icon.png"
+                                WidthRequest="{OnIdiom Phone=34, Tablet=44, Desktop=46}"
+                                HeightRequest="{OnIdiom Phone=34, Tablet=44, Desktop=46}"/>
+
+                            <Label
+                                Text="السجلات الأسطورية"
+                                FontFamily="Tajawal-Regular"
+                                TextColor="#D4AE62"
+                                FontSize="{OnIdiom Phone=24, Tablet=31, Desktop=33}"
+                                FontAttributes="Bold"
+                                VerticalTextAlignment="Center"
+                                HorizontalTextAlignment="End"/>
+                        </HorizontalStackLayout>
+
+                        <VerticalStackLayout
+                            x:Name="RecordsContainer"
+                            Spacing="8"/>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- STATS -->
+                <Border
+                    x:Name="StatsSection"
+                    BackgroundColor="#060606"
+                    Stroke="#5B3B18"
+                    StrokeThickness="0.75"
+                    Padding="{OnIdiom Phone=10, Tablet=14, Desktop=16}"
+                    StrokeShape="RoundRectangle 24">
+
+                    <VerticalStackLayout Spacing="10">
+
+                        <HorizontalStackLayout
+                            FlowDirection="LeftToRight"
+                            Spacing="8"
+                            HorizontalOptions="Start">
+
+                            <Image
+                                Source="analytics_gold.png"
+                                WidthRequest="{OnIdiom Phone=34, Tablet=44, Desktop=46}"
+                                HeightRequest="{OnIdiom Phone=34, Tablet=44, Desktop=46}"/>
+
+                            <Label
+                                Text="إحصائيات قاعة الأساطير"
+                                FontFamily="Tajawal-Regular"
+                                TextColor="#D4AE62"
+                                FontSize="{OnIdiom Phone=24, Tablet=31, Desktop=33}"
+                                FontAttributes="Bold"
+                                VerticalTextAlignment="Center"
+                                HorizontalTextAlignment="End"/>
+                        </HorizontalStackLayout>
+
+                        <Grid
+                            x:Name="StatsContainer"
+                            ColumnDefinitions="*,*,*"
+                            RowDefinitions="Auto,Auto"
+                            ColumnSpacing="8"
+                            RowSpacing="8"/>
+
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- BOTTOM NAV -->
+        <controls:HallBottomNavigationView
+            x:Name="BottomNavigation"
+            Grid.Row="2"
+            Grid.ColumnSpan="2"/>
+
+    </Grid>
+</ContentPage>

@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DominoMajlisPRO.Pages.HonorsAdminPage"
+    BackgroundColor="#050505"
+    NavigationPage.HasNavigationBar="False"
+    FlowDirection="RightToLeft">
+
+    <ScrollView>
+
+        <VerticalStackLayout
+            Padding="20"
+            Spacing="18">
+
+            <Grid>
+                <Image
+                    Source="back_gold.png"
+                    WidthRequest="34"
+                    HeightRequest="34"
+                    HorizontalOptions="Start"
+                    VerticalOptions="Start">
+
+                    <Image.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Tapped="OnBackImageTapped"/>
+                    </Image.GestureRecognizers>
+
+                </Image>
+            </Grid>
+
+            <Label
+                Text="إدارة الأوسمة الخاصة"
+                FontSize="26"
+                FontAttributes="Bold"
+                TextColor="#FFD700"
+                HorizontalTextAlignment="Center"/>
+
+            <Label
+                Text="Developer Control Center"
+                FontSize="15"
+                TextColor="#BBBBBB"
+                HorizontalTextAlignment="Center"/>
+
+            <!-- Developer Identity -->
+            <Border
+                x:Name="DeveloperIdentitySection"
+                BackgroundColor="#080808"
+                Stroke="#D4AF37"
+                StrokeThickness="2"
+                Padding="16"
+                StrokeShape="RoundRectangle 22">
+
+                <VerticalStackLayout Spacing="12">
+
+                    <Label
+                        Text="هوية المطور"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="#FFD700"/>
+
+                    <Label
+                        Text="هذه الهوية ثابتة وتُستخدم لتتبع العمليات الحساسة داخل التطبيق."
+                        FontSize="14"
+                        TextColor="#DDDDDD"
+                        LineBreakMode="WordWrap"/>
+
+                    <Label
+                        x:Name="DeveloperIdentityLabel"
+                        Text="—"
+                        FontSize="13"
+                        TextColor="White"
+                        LineBreakMode="WordWrap"/>
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="10">
+
+                        <Button
+                            Text="تحديث الهوية"
+                            Clicked="OnRefreshDeveloperIdentityClicked"
+                            BackgroundColor="#111111"
+                            TextColor="#FFD700"
+                            BorderColor="#D4AF37"
+                            BorderWidth="1"
+                            CornerRadius="14"/>
+
+                        <Button
+                            Grid.Column="1"
+                            Text="نسخ الهوية"
+                            Clicked="OnCopyDeveloperIdentityClicked"
+                            BackgroundColor="#111111"
+                            TextColor="#FFD700"
+                            BorderColor="#D4AF37"
+                            BorderWidth="1"
+                            CornerRadius="14"/>
+
+                    </Grid>
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- Generate Keys -->
+            <Border
+                x:Name="DeveloperToolsSection"
+                BackgroundColor="#080808"
+                Stroke="#D4AF37"
+                StrokeThickness="2"
+                Padding="16"
+                StrokeShape="RoundRectangle 22">
+
+                <VerticalStackLayout Spacing="12">
+
+                    <Label
+                        Text="توليد مفاتيح التفعيل"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="#FFD700"/>
+
+                    <Button
+                        Text="إنشاء Developer Key"
+                        Clicked="OnCreateDeveloperKeyClicked"
+                        BackgroundColor="#111111"
+                        TextColor="#FFD700"
+                        BorderColor="#D4AF37"
+                        BorderWidth="1"
+                        CornerRadius="14"/>
+
+                    <Button
+                        Text="إنشاء Founder Key"
+                        Clicked="OnCreateFounderKeyClicked"
+                        BackgroundColor="#111111"
+                        TextColor="#FFD700"
+                        BorderColor="#D4AF37"
+                        BorderWidth="1"
+                        CornerRadius="14"/>
+
+                    <Label
+                        x:Name="GeneratedKeyLabel"
+                        Text=""
+                        FontSize="14"
+                        TextColor="White"
+                        LineBreakMode="WordWrap"/>
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- Activate Honor -->
+            <Border
+                x:Name="FounderToolsSection"
+                BackgroundColor="#080808"
+                Stroke="#D4AF37"
+                StrokeThickness="2"
+                Padding="16"
+                StrokeShape="RoundRectangle 22">
+
+                <VerticalStackLayout Spacing="12">
+
+                    <Label
+                        Text="تفعيل وسام للاعب"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="#FFD700"/>
+
+                    <Entry
+                        x:Name="PlayerIdEntry"
+                        Placeholder="PlayerId مثال: P0001"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        BackgroundColor="#111111"/>
+
+                    <Entry
+                        x:Name="ActivationKeyEntry"
+                        Placeholder="Activation Key"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        BackgroundColor="#111111"/>
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="10">
+
+                        <Button
+                            Text="تفعيل Developer"
+                            Clicked="OnActivateDeveloperClicked"
+                            BackgroundColor="#111111"
+                            TextColor="#FFD700"
+                            BorderColor="#D4AF37"
+                            BorderWidth="1"
+                            CornerRadius="14"/>
+
+                        <Button
+                            Grid.Column="1"
+                            Text="تفعيل Founder"
+                            Clicked="OnActivateFounderClicked"
+                            BackgroundColor="#111111"
+                            TextColor="#FFD700"
+                            BorderColor="#D4AF37"
+                            BorderWidth="1"
+                            CornerRadius="14"/>
+
+                    </Grid>
+
+                    <Label
+                        x:Name="ActivationResultLabel"
+                        Text=""
+                        FontSize="14"
+                        TextColor="White"
+                        LineBreakMode="WordWrap"/>
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- Recover Honor -->
+            <Border
+                x:Name="HonorToolsSection"
+                BackgroundColor="#080808"
+                Stroke="#D4AF37"
+                StrokeThickness="2"
+                Padding="16"
+                StrokeShape="RoundRectangle 22">
+
+                <VerticalStackLayout Spacing="12">
+
+                    <Label
+                        Text="استعادة الشرف"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="#FFD700"/>
+
+                    <Entry
+                        x:Name="RecoveryPlayerIdEntry"
+                        Placeholder="PlayerId"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        BackgroundColor="#111111"/>
+
+                    <Entry
+                        x:Name="RecoveryKeyEntry"
+                        Placeholder="Recovery Key"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        BackgroundColor="#111111"/>
+
+                    <Button
+                        Text="استعادة"
+                        Clicked="OnRecoverHonorClicked"
+                        BackgroundColor="#111111"
+                        TextColor="#FFD700"
+                        BorderColor="#D4AF37"
+                        BorderWidth="1"
+                        CornerRadius="14"/>
+
+                    <Label
+                        x:Name="RecoveryResultLabel"
+                        Text=""
+                        FontSize="14"
+                        TextColor="White"
+                        LineBreakMode="WordWrap"/>
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- Developer Recovery Codes -->
+            <Border
+                x:Name="DeveloperRecoveryCodesSection"
+                BackgroundColor="#080808"
+                Stroke="#D4AF37"
+                StrokeThickness="2"
+                Padding="16"
+                StrokeShape="RoundRectangle 22">
+
+                <VerticalStackLayout Spacing="12">
+
+                    <Label
+                        Text="إدارة أكواد استرداد المطور"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="#FFD700"/>
+
+                    <Label
+                        Text="أدخل اسم مستخدم المطور وكلمة مرور المطور لتوليد 5 أكواد استرداد جديدة. سيتم إلغاء الأكواد القديمة."
+                        FontSize="14"
+                        TextColor="#DDDDDD"
+                        LineBreakMode="WordWrap"/>
+
+                    <Entry
+                        x:Name="RecoveryCodesUsernameEntry"
+                        Placeholder="Username"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        BackgroundColor="#111111"/>
+
+                    <Entry
+                        x:Name="RecoveryCodesPasswordEntry"
+                        Placeholder="Developer Password"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        IsPassword="True"
+                        BackgroundColor="#111111"/>
+
+                    <Button
+                        Text="توليد 5 أكواد استرداد جديدة"
+                        Clicked="OnGenerateDeveloperRecoveryCodesClicked"
+                        BackgroundColor="#111111"
+                        TextColor="#FFD700"
+                        BorderColor="#D4AF37"
+                        BorderWidth="1"
+                        CornerRadius="14"/>
+
+                    <Label
+                        x:Name="DeveloperRecoveryCodesResultLabel"
+                        Text=""
+                        FontSize="13"
+                        TextColor="White"
+                        LineBreakMode="WordWrap"/>
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- Developer Vault -->
+            <Border
+                x:Name="DeveloperVaultSection"
+                BackgroundColor="#080808"
+                Stroke="#D4AF37"
+                StrokeThickness="2"
+                Padding="16"
+                StrokeShape="RoundRectangle 22">
+
+                <VerticalStackLayout Spacing="12">
+
+                    <Label
+                        Text="Developer Vault"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="#FFD700"/>
+
+                    <Label
+                        Text="كلمة مرور الخزنة هي نفس كلمة مرور المطور. سيتم التحقق منها قبل التصدير."
+                        FontSize="14"
+                        TextColor="#DDDDDD"
+                        LineBreakMode="WordWrap"/>
+
+                    <Entry
+                        x:Name="DeveloperVaultPasswordEntry"
+                        Placeholder="Developer Password"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        IsPassword="True"
+                        BackgroundColor="#111111"/>
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="10">
+
+                        <Button
+                            Text="تصدير الخزنة"
+                            Clicked="OnExportDeveloperVaultClicked"
+                            BackgroundColor="#111111"
+                            TextColor="#FFD700"
+                            BorderColor="#D4AF37"
+                            BorderWidth="1"
+                            CornerRadius="14"/>
+
+                        <Button
+                            Grid.Column="1"
+                            Text="استيراد الخزنة"
+                            Clicked="OnImportDeveloperVaultClicked"
+                            BackgroundColor="#111111"
+                            TextColor="#FFD700"
+                            BorderColor="#D4AF37"
+                            BorderWidth="1"
+                            CornerRadius="14"/>
+
+                    </Grid>
+
+                    <Label
+                        x:Name="DeveloperVaultResultLabel"
+                        Text=""
+                        FontSize="13"
+                        TextColor="White"
+                        LineBreakMode="WordWrap"/>
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- Developer Full Reset -->
+            <Border
+                x:Name="DeveloperFullResetSection"
+                BackgroundColor="#160000"
+                Stroke="#FF3333"
+                StrokeThickness="2"
+                Padding="16"
+                StrokeShape="RoundRectangle 22">
+
+                <VerticalStackLayout Spacing="12">
+
+                    <Label
+                        Text="تصفير بيانات التطبيق بالكامل"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="#FF5555"/>
+
+                    <Label
+                        Text="أداة مطور فقط. سيتم إنشاء نسخة احتياطية قابلة للمشاركة ثم حذف ملفات بيانات التطبيق."
+                        FontSize="14"
+                        TextColor="#DDDDDD"
+                        LineBreakMode="WordWrap"/>
+
+                    <Button
+                        Text="حذف جميع البيانات وتصفير التطبيق"
+                        Clicked="OnDeveloperFullResetClicked"
+                        BackgroundColor="#CC0000"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        CornerRadius="14"/>
+
+                    <Label
+                        x:Name="DeveloperFullResetResultLabel"
+                        Text=""
+                        FontSize="13"
+                        TextColor="White"
+                        LineBreakMode="WordWrap"/>
+
+                </VerticalStackLayout>
+
+            </Border>
+
+        </VerticalStackLayout>
+
+    </ScrollView>
+
+</ContentPage>

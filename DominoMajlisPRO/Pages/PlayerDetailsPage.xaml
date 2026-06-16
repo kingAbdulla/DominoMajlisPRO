@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DominoMajlisPRO.Pages.PlayerDetailsPage"
+    BackgroundColor="#050505"
+    NavigationPage.HasNavigationBar="False"
+    FlowDirection="RightToLeft">
+
+    <Grid>
+
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="14">
+
+                <Grid ColumnDefinitions="42,*,42">
+                    <Image Source="back_gold.png" WidthRequest="38" HeightRequest="38">
+                        <Image.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnBackTapped"/>
+                        </Image.GestureRecognizers>
+                    </Image>
+
+                    <Label
+                        Grid.Column="1"
+                        Text="ملف اللاعب"
+                        FontSize="24"
+                        FontAttributes="Bold"
+                        TextColor="#D4AF37"
+                        HorizontalTextAlignment="Center"/>
+
+                    <Image
+                        Grid.Column="2"
+                        Source="player_card.png"
+                        WidthRequest="34"
+                        HeightRequest="34"/>
+                </Grid>
+
+                <!-- HERO -->
+                <Border
+                    x:Name="HeroBorder"
+                    BackgroundColor="#0B0B0B"
+                    Stroke="#D4AF37"
+                    StrokeThickness="2.4"
+                    Padding="16"
+                    StrokeShape="RoundRectangle 34">
+
+                    <Border.Shadow>
+                        <Shadow Brush="#D4AF37" Radius="12" Opacity="0.35"/>
+                    </Border.Shadow>
+
+                    <VerticalStackLayout Spacing="12">
+
+                        <Border
+                            x:Name="AvatarFrame"
+                            WidthRequest="{OnIdiom Phone=150, Tablet=190, Desktop=190}"
+                            HeightRequest="{OnIdiom Phone=150, Tablet=190, Desktop=190}"
+                            HorizontalOptions="Center"
+                            BackgroundColor="#151515"
+                            Stroke="#D4AF37"
+                            StrokeThickness="3"
+                            StrokeShape="RoundRectangle 999">
+
+                            <Border.Shadow>
+                                <Shadow Brush="#D4AF37" Radius="18" Opacity="0.45"/>
+                            </Border.Shadow>
+
+                            <Image
+                                x:Name="PlayerAvatarImage"
+                                Aspect="AspectFill"/>
+                        </Border>
+
+                        <Label
+                            x:Name="PlayerNameLabel"
+                            FontSize="{OnIdiom Phone=26, Tablet=34, Desktop=34}"
+                            FontAttributes="Bold"
+                            TextColor="White"
+                            HorizontalTextAlignment="Center"/>
+
+                        <Border
+                            HorizontalOptions="Center"
+                            BackgroundColor="#151515"
+                            Stroke="#8A5B27"
+                            StrokeThickness="1"
+                            Padding="14,6"
+                            StrokeShape="RoundRectangle 18">
+
+                            <Label
+                                x:Name="PlayerStatusLabel"
+                                FontSize="14"
+                                TextColor="#D4AF37"
+                                FontAttributes="Bold"
+                                HorizontalTextAlignment="Center"/>
+                        </Border>
+
+                        <Label
+                            x:Name="PlayerRankLabel"
+                            FontSize="15"
+                            TextColor="#C8B58A"
+                            FontAttributes="Bold"
+                            HorizontalTextAlignment="Center"/>
+
+                        <ProgressBar
+                            x:Name="RankProgressBar"
+                            HeightRequest="9"
+                            ProgressColor="#D4AF37"
+                            BackgroundColor="#2A2A2A"/>
+
+                        <Label
+                            x:Name="RankProgressLabel"
+                            TextColor="#AAAAAA"
+                            FontSize="12"
+                            HorizontalTextAlignment="Center"/>
+
+                        <Button
+                            Text="تغيير الصورة / Avatar"
+                            BackgroundColor="#D4AF37"
+                            TextColor="Black"
+                            FontAttributes="Bold"
+                            CornerRadius="18"
+                            HeightRequest="52"
+                            Clicked="OnOpenAvatarPicker"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- XP -->
+                <Border
+                    BackgroundColor="#0B0B0B"
+                    Stroke="#8A5B27"
+                    StrokeThickness="1.5"
+                    Padding="14"
+                    StrokeShape="RoundRectangle 24">
+
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+
+                        <VerticalStackLayout>
+                            <Label Text="Level" TextColor="#888888" FontSize="12" HorizontalTextAlignment="Center"/>
+                            <Label x:Name="LevelLabel" TextColor="#D4AF37" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Column="1">
+                            <Label Text="XP" TextColor="#888888" FontSize="12" HorizontalTextAlignment="Center"/>
+                            <Label x:Name="XpLabel" TextColor="#D4AF37" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Column="2">
+                            <Label Text="Legacy" TextColor="#888888" FontSize="12" HorizontalTextAlignment="Center"/>
+                            <Label x:Name="LegacyLabel" TextColor="#D4AF37" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+
+                    </Grid>
+                </Border>
+
+                <!-- STATS -->
+                <Border
+                    BackgroundColor="#0B0B0B"
+                    Stroke="#8A5B27"
+                    StrokeThickness="1.5"
+                    Padding="14"
+                    StrokeShape="RoundRectangle 24">
+
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label
+                            Text="إحصائيات اللاعب"
+                            TextColor="#D4AF37"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            HorizontalTextAlignment="Center"/>
+
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+
+                            <Border BackgroundColor="#151515" Padding="10" Stroke="#333333" StrokeShape="RoundRectangle 18">
+                                <VerticalStackLayout>
+                                    <Label Text="المباريات" TextColor="#888888" FontSize="12"/>
+                                    <Label x:Name="TotalMatchesLabel" TextColor="White" FontSize="19" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Grid.Column="1" BackgroundColor="#151515" Padding="10" Stroke="#333333" StrokeShape="RoundRectangle 18">
+                                <VerticalStackLayout>
+                                    <Label Text="الفوز" TextColor="#888888" FontSize="12"/>
+                                    <Label x:Name="WinsLabel" TextColor="#00C853" FontSize="19" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Grid.Row="1" BackgroundColor="#151515" Padding="10" Stroke="#333333" StrokeShape="RoundRectangle 18">
+                                <VerticalStackLayout>
+                                    <Label Text="الخسارة" TextColor="#888888" FontSize="12"/>
+                                    <Label x:Name="LossesLabel" TextColor="#FF6666" FontSize="19" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Grid.Row="1" Grid.Column="1" BackgroundColor="#151515" Padding="10" Stroke="#333333" StrokeShape="RoundRectangle 18">
+                                <VerticalStackLayout>
+                                    <Label Text="Win Rate" TextColor="#888888" FontSize="12"/>
+                                    <Label x:Name="WinRateLabel" TextColor="#D4AF37" FontSize="19" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Grid.Row="2" BackgroundColor="#151515" Padding="10" Stroke="#333333" StrokeShape="RoundRectangle 18">
+                                <VerticalStackLayout>
+                                    <Label Text="Highest Score" TextColor="#888888" FontSize="12"/>
+                                    <Label x:Name="HighestScoreLabel" TextColor="White" FontSize="19" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="1" BackgroundColor="#151515" Padding="10" Stroke="#333333" StrokeShape="RoundRectangle 18">
+                                <VerticalStackLayout>
+                                    <Label Text="Hall Of Fame" TextColor="#888888" FontSize="12"/>
+                                    <Label x:Name="HallOfFameLabel" TextColor="#D4AF37" FontSize="19" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- HONORS -->
+                <Border
+                    BackgroundColor="#0B0B0B"
+                    Stroke="#8A5B27"
+                    StrokeThickness="1.5"
+                    Padding="14"
+                    StrokeShape="RoundRectangle 24">
+
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label
+                            Text="الأوسمة والهوية"
+                            TextColor="#D4AF37"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            HorizontalTextAlignment="Center"/>
+
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout
+                                x:Name="HonorsContainer"
+                                Spacing="8"
+                                HorizontalOptions="Center"/>
+                        </ScrollView>
+
+                    </VerticalStackLayout>
+                </Border>
+                <!-- PLAYER IDENTITY HISTORY -->
+                <Border
+    BackgroundColor="#0B0B0B"
+    Stroke="#8A5B27"
+    StrokeThickness="1.5"
+    Padding="14"
+    StrokeShape="RoundRectangle 24">
+
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label
+            Text="سجل هوية اللاعب"
+            TextColor="#D4AF37"
+            FontSize="20"
+            FontAttributes="Bold"
+            HorizontalTextAlignment="Center"/>
+
+                        <Label
+            x:Name="IdentityLastUpdateLabel"
+            TextColor="#AAAAAA"
+            FontSize="13"
+            HorizontalTextAlignment="Center"/>
+
+                        <Grid
+            ColumnDefinitions="*,*"
+            RowDefinitions="Auto,Auto"
+            ColumnSpacing="10"
+            RowSpacing="10">
+
+                            <Border
+                BackgroundColor="#151515"
+                Stroke="#333333"
+                Padding="10"
+                StrokeShape="RoundRectangle 18">
+
+                                <VerticalStackLayout>
+                                    <Label Text="الفرق الحالية" TextColor="#888888" FontSize="12"/>
+                                    <Label x:Name="CurrentTeamsLabel" TextColor="White" FontSize="13" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border
+                Grid.Column="1"
+                BackgroundColor="#151515"
+                Stroke="#333333"
+                Padding="10"
+                StrokeShape="RoundRectangle 18">
+
+                                <VerticalStackLayout>
+                                    <Label Text="آخر رتبة" TextColor="#888888" FontSize="12"/>
+                                    <Label x:Name="LastRankHistoryLabel" TextColor="#D4AF37" FontSize="13" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border
+                Grid.Row="1"
+                BackgroundColor="#151515"
+                Stroke="#333333"
+                Padding="10"
+                StrokeShape="RoundRectangle 18">
+
+                                <VerticalStackLayout>
+                                    <Label Text="آخر XP" TextColor="#888888" FontSize="12"/>
+                                    <Label x:Name="LastXPHistoryLabel" TextColor="#D4AF37" FontSize="13" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border
+                Grid.Row="1"
+                Grid.Column="1"
+                BackgroundColor="#151515"
+                Stroke="#333333"
+                Padding="10"
+                StrokeShape="RoundRectangle 18">
+
+                                <VerticalStackLayout>
+                                    <Label Text="آخر إنجاز" TextColor="#888888" FontSize="12"/>
+                                    <Label x:Name="LastAchievementHistoryLabel" TextColor="#D4AF37" FontSize="13" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                        </Grid>
+
+                    </VerticalStackLayout>
+                </Border>
+                <!-- ACHIEVEMENTS -->
+                <Border
+    BackgroundColor="#0B0B0B"
+    Stroke="#8A5B27"
+    StrokeThickness="1.5"
+    Padding="14"
+    StrokeShape="RoundRectangle 24">
+
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label
+            Text="الإنجازات"
+            TextColor="#D4AF37"
+            FontSize="20"
+            FontAttributes="Bold"
+            HorizontalTextAlignment="Center"/>
+
+                        <VerticalStackLayout
+            x:Name="AchievementsContainer"
+            Spacing="8"/>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- TIMELINE -->
+
+                <Border
+BackgroundColor="#0B0B0B"
+Stroke="#8A5B27"
+StrokeThickness="1.5"
+Padding="14"
+StrokeShape="RoundRectangle 24">
+
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label
+        Text="سجل نشاط اللاعب"
+        FontSize="20"
+        FontAttributes="Bold"
+        TextColor="#D4AF37"
+        HorizontalTextAlignment="Center"/>
+
+                        <VerticalStackLayout
+        x:Name="TimelineContainer"
+        Spacing="10"/>
+
+                    </VerticalStackLayout>
+
+                </Border>
+
+
+            </VerticalStackLayout>
+        </ScrollView>
+     
+        <!-- AVATAR PICKER -->
+        <Grid
+            x:Name="AvatarPickerOverlay"
+            IsVisible="False"
+            BackgroundColor="#DD000000"
+            ZIndex="999">
+
+            <Border
+                Margin="{OnIdiom Phone='12,28,12,18', Tablet='70,44,70,44', Desktop='160,54,160,54'}"
+                Padding="14"
+                BackgroundColor="#101010"
+                Stroke="#D4AF37"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 30">
+
+                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="12">
+
+                    <Label
+                        Text="اختيار الصورة الشخصية"
+                        FontSize="22"
+                        FontAttributes="Bold"
+                        TextColor="#D4AF37"
+                        HorizontalOptions="Center"/>
+
+                    <Border
+                        Grid.Row="1"
+                        WidthRequest="{OnIdiom Phone=105, Tablet=130, Desktop=130}"
+                        HeightRequest="{OnIdiom Phone=105, Tablet=130, Desktop=130}"
+                        HorizontalOptions="Center"
+                        BackgroundColor="#151515"
+                        Stroke="#D4AF37"
+                        StrokeThickness="2"
+                        StrokeShape="RoundRectangle 999">
+
+                        <Border.Shadow>
+                            <Shadow Brush="#D4AF37" Radius="16" Opacity="0.45"/>
+                        </Border.Shadow>
+
+                        <Image
+                            x:Name="AvatarPreviewImage"
+                            Aspect="AspectFill"/>
+                    </Border>
+
+                    <ScrollView
+                        Grid.Row="2"
+                        Orientation="Horizontal"
+                        HorizontalScrollBarVisibility="Never">
+
+                        <HorizontalStackLayout
+                            x:Name="AvatarCategoryContainer"
+                            Spacing="8"/>
+                    </ScrollView>
+
+                    <CollectionView
+                        x:Name="AvatarCollection"
+                        Grid.Row="3"
+                        SelectionMode="Single"
+                        SelectionChanged="OnAvatarSelected">
+
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout
+                                Orientation="Vertical"
+                                Span="{OnIdiom Phone=3, Tablet=4, Desktop=5}"
+                                HorizontalItemSpacing="10"
+                                VerticalItemSpacing="10"/>
+                        </CollectionView.ItemsLayout>
+
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+
+                                    <Border
+                                        Padding="8"
+                                        BackgroundColor="#0B0B0B"
+                                        Stroke="#8A5B27"
+                                        StrokeThickness="1.2"
+                                        StrokeShape="RoundRectangle 20">
+
+                                        <VisualStateManager.VisualStateGroups>
+                                            <VisualStateGroup Name="CommonStates">
+                                                <VisualState Name="Normal"/>
+                                                <VisualState Name="Selected">
+                                                    <VisualState.Setters>
+                                                        <Setter Property="Stroke" Value="#FFD700"/>
+                                                        <Setter Property="StrokeThickness" Value="3"/>
+                                                    </VisualState.Setters>
+                                                </VisualState>
+                                            </VisualStateGroup>
+                                        </VisualStateManager.VisualStateGroups>
+
+                                        <VerticalStackLayout Spacing="6">
+                                            <Image
+                                                Source="{Binding Image}"
+                                                HeightRequest="{OnIdiom Phone=78, Tablet=105, Desktop=110}"
+                                                WidthRequest="{OnIdiom Phone=78, Tablet=105, Desktop=110}"
+                                                Aspect="AspectFit"
+                                                HorizontalOptions="Center"/>
+
+                                            <Label
+                                                Text="{Binding DisplayName}"
+                                                TextColor="#D4AF37"
+                                                FontSize="11"
+                                                HorizontalTextAlignment="Center"/>
+                                        </VerticalStackLayout>
+                                    </Border>
+
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Grid
+                        Grid.Row="4"
+                        ColumnDefinitions="*,*,*"
+                        ColumnSpacing="8">
+
+                        <Button
+                            Text="من الجهاز"
+                            BackgroundColor="#151515"
+                            BorderColor="#D4AF37"
+                            BorderWidth="1"
+                            TextColor="#D4AF37"
+                            FontAttributes="Bold"
+                            CornerRadius="16"
+                            Clicked="OnPickFromDeviceClicked"/>
+
+                        <Button
+                            Grid.Column="1"
+                            Text="إلغاء"
+                            BackgroundColor="#333333"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            CornerRadius="16"
+                            Clicked="OnCloseAvatarPicker"/>
+
+                        <Button
+                            Grid.Column="2"
+                            Text="اعتماد"
+                            BackgroundColor="#D4AF37"
+                            TextColor="Black"
+                            FontAttributes="Bold"
+                            CornerRadius="16"
+                            Clicked="OnSaveAvatarClicked"/>
+                    </Grid>
+
+                </Grid>
+            </Border>
+        </Grid>
+
+    </Grid>
+</ContentPage>

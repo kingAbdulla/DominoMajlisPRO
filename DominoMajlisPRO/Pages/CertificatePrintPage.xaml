@@ -1,0 +1,521 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DominoMajlisPRO.Pages.CertificatePrintPage"
+    BackgroundColor="Black">
+
+    <Grid
+    x:Name="PrintContainer"
+    WidthRequest="1654"
+    HeightRequest="2339">
+
+        <!--Fram -->
+
+            <Image
+        Source="certificate_fram_gold.png"
+        Aspect="Fill" />
+
+        
+        <!-- Watermark-->
+        <Image
+    Source="domino_gold_icon.png"
+    WidthRequest="900"
+    HeightRequest="900"
+    Aspect="AspectFit"
+    Opacity="0.05"
+    HorizontalOptions="Center"
+    VerticalOptions="Center"/>
+        
+        <!--<ContentPage -->
+        <VerticalStackLayout
+        Padding="80,180,80,120"
+        Spacing="8">
+
+                <!-- HEADER -->
+
+                <Image
+    Source="domino_logo_gold.png"
+    HeightRequest="120"
+    HorizontalOptions="Center"
+    Aspect="AspectFit"/>
+
+                <Label
+    Text="DOMINO MAJLIS PRO"
+                    FontFamily="CinzelDecorative-Bold"
+    FontSize="65"
+    FontAttributes="Bold"
+    HorizontalOptions="Center"
+    TextColor="#D4AF37"/>
+
+                <Label
+    Text="Official Match Certificate"
+                     FontFamily="CinzelDecorative-Bold"
+    FontSize="35"
+    HorizontalOptions="Center"
+    TextColor="White"/>
+                <!-- MATCH INFO -->
+
+                <Frame
+    BorderColor="#D4AF37"
+    BackgroundColor="#22000000"
+    CornerRadius="30"
+    Padding="25">
+
+                    <Grid
+        ColumnDefinitions="1.2*,1*,1*"
+        RowDefinitions="Auto,Auto">
+
+                        <!-- MATCH ID -->
+
+                        <VerticalStackLayout>
+
+                            <Label
+                                 FontFamily="CinzelDecorative-Bold"
+                Text="MATCH ID"
+                FontSize="35"
+                TextColor="#D4AF37"/>
+
+                            <Label
+                                 FontFamily="CinzelDecorative-Bold"
+                x:Name="PrintMatchId"
+                FontSize="40"
+                TextColor="White"/>
+
+                        </VerticalStackLayout>
+
+                        <!-- DATE -->
+
+                        <VerticalStackLayout
+            Grid.Column="1">
+
+                            <Label
+                                 FontFamily="CinzelDecorative-Bold"
+                Text="DATE"
+                FontSize="35"
+                TextColor="#D4AF37"/>
+
+                        <Label
+                                 FontFamily="CinzelDecorative-Bold"
+                x:Name="PrintDate"
+                FontSize="40"
+                TextColor="White"/>
+
+
+                    </VerticalStackLayout>
+
+                        <!-- DURATION -->
+
+                        <VerticalStackLayout
+            Grid.Column="2">
+
+                            <Label
+                                 FontFamily="CinzelDecorative-Bold"
+                Text="DURATION"
+                FontSize="35"
+                TextColor="#D4AF37"/>
+
+                            <Label
+                x:Name="PrintDuration"
+                FontSize="40"
+                TextColor="White"/>
+
+                        </VerticalStackLayout>
+
+                    </Grid>
+
+                </Frame>
+                <!-- TEAMS -->
+
+            <Grid
+            ColumnDefinitions="*,Auto,*">
+
+                <!-- TEAM 1 -->
+
+                <VerticalStackLayout>
+
+                        <Image
+    x:Name="PrintTeam1Emblem"
+    WidthRequest="300"
+    HeightRequest="300"
+    Aspect="AspectFit"/>
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                    x:Name="PrintTeam1Name"
+                    FontSize="50"
+                    HorizontalTextAlignment="Center"
+                    TextColor="White"/>
+
+                    <Label
+                         FontFamily="CinzelDecorative-Bold"
+                    x:Name="PrintTeam1Players"
+                    FontSize="35"
+                    HorizontalTextAlignment="Center"
+                    TextColor="White"/>
+                </VerticalStackLayout>
+
+                <!-- VS -->
+
+                <Image
+    Grid.Column="1"
+    Source="vs_gold_icon.png"
+    WidthRequest="200"
+    HeightRequest="200"
+    VerticalOptions="Center"
+    HorizontalOptions="Center"
+    Aspect="AspectFit"/>
+
+                <!-- TEAM 2 -->
+
+                <VerticalStackLayout
+                Grid.Column="2">
+                        <Image
+    x:Name="PrintTeam2Emblem"
+    WidthRequest="300"
+    HeightRequest="300"
+    Aspect="AspectFit"/>
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                    x:Name="PrintTeam2Name"
+                    FontSize="50"
+                    HorizontalTextAlignment="Center"
+                    TextColor="White"/>
+
+                    <Label
+                         FontFamily="CinzelDecorative-Bold"
+                    x:Name="PrintTeam2Players"
+                    FontSize="35"
+                    HorizontalTextAlignment="Center"
+                    TextColor="White"/>
+                </VerticalStackLayout>
+
+            </Grid>
+
+            <!-- SCORE -->
+
+            <Frame
+            BorderColor="Gold"
+            BackgroundColor="#22000000"
+            CornerRadius="30">
+
+                <VerticalStackLayout>
+
+                    <Label
+                         FontFamily="CinzelDecorative-Bold"
+                    Text="FINAL RESULT"
+                    FontSize="45"
+                    HorizontalOptions="Center"
+                    TextColor="Gold"/>
+
+                    <Label
+                         FontFamily="CinzelDecorative-Bold"
+                    x:Name="PrintScore"
+                    FontSize="90"
+                    HorizontalOptions="Center"
+                    TextColor="White"/>
+
+                    <Label
+                         FontFamily="CinzelDecorative-Bold"
+                    x:Name="PrintWinner"
+                    FontSize="70"
+                    HorizontalOptions="Center"
+                    TextColor="Lime"/>
+
+                </VerticalStackLayout>
+
+            </Frame>
+
+            <!-- HASH -->
+
+            <Frame
+            BorderColor="Gold"
+            BackgroundColor="#22000000"
+            CornerRadius="25">
+
+                <Label
+                     FontFamily="CinzelDecorative-Bold"
+                x:Name="PrintHash"
+                FontSize="20"
+                HorizontalTextAlignment="Center"
+                TextColor="White"/>
+
+            </Frame>
+
+            <!-- STATISTICS -->
+
+            <Frame
+    BorderColor="Gold"
+    BackgroundColor="#22000000"
+    CornerRadius="25"
+    Padding="20">
+
+                <Grid
+        ColumnDefinitions="*,*,*,*">
+
+                    <!-- MELES -->
+
+                    <VerticalStackLayout
+            HorizontalOptions="Center">
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                Text="MELES"
+                FontSize="25"
+                TextColor="Gold"
+                HorizontalTextAlignment="Center"/>
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                x:Name="PrintMeles"
+                FontSize="30"
+                TextColor="White"
+                HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+
+                    <!-- HIGHEST -->
+
+                    <VerticalStackLayout
+            Grid.Column="1"
+            HorizontalOptions="Center">
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                Text="HIGHEST"
+                FontSize="25"
+                TextColor="Gold"
+                HorizontalTextAlignment="Center"/>
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                x:Name="PrintHighest"
+                FontSize="30"
+                TextColor="White"
+                HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+
+                    <!-- RULES -->
+
+                    <VerticalStackLayout
+            Grid.Column="2"
+            HorizontalOptions="Center">
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                Text="RULES"
+                FontSize="25"
+                TextColor="Gold"
+                HorizontalTextAlignment="Center"/>
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                x:Name="PrintRules"
+                FontSize="30"
+                TextColor="White"
+                HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+
+                    <!-- ROUNDS -->
+
+                    <VerticalStackLayout
+            Grid.Column="3"
+            HorizontalOptions="Center">
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                Text="ROUNDS"
+                FontSize="25"
+                TextColor="Gold"
+                HorizontalTextAlignment="Center"/>
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                x:Name="PrintRounds"
+                FontSize="30"
+                TextColor="White"
+                HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+
+                </Grid>
+
+            </Frame>
+            
+            <!-- QR VERIFICATION -->
+
+            <Frame
+    BorderColor="Gold"
+    BackgroundColor="#22000000"
+    CornerRadius="25"
+    Padding="20">
+
+                <Grid
+        ColumnDefinitions="200,5,*,5,200">
+
+                    <!-- QR -->
+
+                    <Frame
+            BorderColor="Gold"
+            BackgroundColor="Black"
+            Padding="10"
+            WidthRequest="90"
+            HeightRequest="90"
+            HorizontalOptions="Center"
+            VerticalOptions="Center">
+
+                        <Image
+                Source="qr_gold.png"
+                Aspect="AspectFit"/>
+                    </Frame>
+                    <BoxView
+    Grid.Column="1"
+    WidthRequest="2"
+    BackgroundColor="Gold"
+    VerticalOptions="Fill"/>
+                    <!-- CENTER -->
+
+                    <VerticalStackLayout
+            Grid.Column="2"
+            VerticalOptions="Center"
+            Padding="10,0">
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                Text="QR Verification"
+                FontSize="35"
+                TextColor="Gold"
+                HorizontalTextAlignment="Center"/>
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                Text="Coming Soon"
+                FontSize="30"
+                TextColor="White"
+                HorizontalTextAlignment="Center"/>
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                Text="Official Match Authentication"
+                FontSize="20"
+                TextColor="#CCCCCC"
+                HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                    <BoxView
+    Grid.Column="3"
+    WidthRequest="2"
+    BackgroundColor="Gold"
+    VerticalOptions="Fill"/>
+                    <!-- RIGHT -->
+
+                    <VerticalStackLayout
+            Grid.Column="4"
+            VerticalOptions="Center"
+            HorizontalOptions="Center">
+
+                        <Image
+                Source="integrity_gold.png"
+                WidthRequest="90"
+                HeightRequest="90"
+                Aspect="AspectFit"/>
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                Text="Verify"
+                FontSize="20"
+                TextColor="Gold"
+                HorizontalTextAlignment="Center"/>
+
+                        <Label
+                             FontFamily="CinzelDecorative-Bold"
+                Text="Certificate"
+                FontSize="20"
+                TextColor="White"
+                HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+
+                </Grid>
+
+            </Frame>
+
+            <!-- FOOTER -->
+
+            <Frame
+    BorderColor="Gold"
+    BackgroundColor="#11000000"
+    CornerRadius="25"
+    Padding="20"
+    Margin="0,20,0,0">
+
+                <Grid
+        ColumnDefinitions="180,*,180">
+
+                    <!-- LEFT -->
+
+                    <Image
+            Source="laurel_gold_left.png"
+                        
+            WidthRequest="120"
+            HeightRequest="120"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            Aspect="AspectFit"/>
+
+                    <!-- CENTER -->
+
+                    <VerticalStackLayout
+            Grid.Column="1"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            Spacing="6">
+
+                        <Label
+                FontFamily="CinzelDecorative-Bold"
+                Text="Domino Majlis PRO"
+                FontSize="40"
+                HorizontalOptions="Center"
+                TextColor="Gold"/>
+
+                        <Label
+                FontFamily="CinzelDecorative-Bold"
+                Text="Official Match Certificate"
+                FontSize="25"
+                HorizontalOptions="Center"
+                TextColor="White"/>
+
+                        <Label
+                FontFamily="CinzelDecorative-Bold"
+                Text="Developer Signature"
+                FontSize="20"
+                HorizontalOptions="Center"
+                TextColor="#CCCCCC"/>
+
+                        <Label
+                FontFamily="CinzelDecorative-Bold"
+                Text="King Esmat"
+                FontSize="40"
+                HorizontalOptions="Center"
+                TextColor="Gold"/>
+                    </VerticalStackLayout>
+
+                    <!-- RIGHT -->
+
+                    <Image
+            Grid.Column="2"
+                        
+            Source="laurel_gold_right.png"
+                      
+            WidthRequest="120"
+            HeightRequest="120"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            Aspect="AspectFit"/>
+
+                </Grid>
+
+            </Frame>
+        </VerticalStackLayout>
+       
+    </Grid>
+
+</ContentPage>

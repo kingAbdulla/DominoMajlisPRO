@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DominoMajlisPRO.Pages.HistoryPage"
+    BackgroundColor="#050505"
+    FlowDirection="RightToLeft"
+    NavigationPage.HasNavigationBar="False">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Padding="15" RowSpacing="12">
+
+        <!-- HEADER -->
+        <Border Grid.Row="0" BackgroundColor="#111111" Stroke="#2A2A2A" Padding="15" StrokeShape="RoundRectangle 24">
+            <Grid ColumnDefinitions="40,*,40">
+                <Image Source="back_gold.png" WidthRequest="25" HeightRequest="25" VerticalOptions="Center">
+                    <Image.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackClicked"/>
+                    </Image.GestureRecognizers>
+                </Image>
+
+                <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="2">
+                    <Label Text="سجل المباريات" TextColor="Gold" FontAttributes="Bold" FontSize="24" HorizontalTextAlignment="Center"/>
+                    <Label Text="DOMINO MAJLIS PRO" TextColor="#777777" FontSize="11" HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+                <Image Grid.Column="2" Source="details_gold.png" WidthRequest="25" HeightRequest="25" VerticalOptions="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- SEARCH -->
+        <Border Grid.Row="1" BackgroundColor="#111111" Stroke="#2A2A2A" Padding="0" StrokeShape="RoundRectangle 18">
+            <Grid ColumnDefinitions="50,*">
+                <Image Source="search_icon.png" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" VerticalOptions="Center"/>
+                <Entry
+                    x:Name="SearchEntry"
+                    Grid.Column="1"
+                    Placeholder="ابحث عن فريق أو فائز..."
+                    PlaceholderColor="#666666"
+                    TextColor="White"
+                    BackgroundColor="Transparent"
+                    Margin="10,0"
+                    TextChanged="OnSearchTextChanged"/>
+            </Grid>
+        </Border>
+
+        <!-- DASHBOARD -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
+            <Border BackgroundColor="#111111" Stroke="#FFD700" Padding="10" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout>
+                    <Label Text="المباريات" TextColor="#999999" FontSize="11"/>
+                    <Label x:Name="TotalMatchesLabel" Text="0" TextColor="Gold" FontAttributes="Bold" FontSize="20"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Grid.Column="1" BackgroundColor="#111111" Stroke="#00C853" Padding="10" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout>
+                    <Label Text="غير مكتملة" TextColor="#999999" FontSize="11"/>
+                    <Label x:Name="UnfinishedMatchesLabel" Text="0" TextColor="#00C853" FontAttributes="Bold" FontSize="20"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Grid.Column="2" BackgroundColor="#111111" Stroke="#FF6A00" Padding="10" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout>
+                    <Label Text="الملص" TextColor="#999999" FontSize="11"/>
+                    <Label x:Name="TotalMelesLabel" Text="0" TextColor="#FF6A00" FontAttributes="Bold" FontSize="20"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Grid.Column="3" BackgroundColor="#111111" Stroke="#6A00FF" Padding="10" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout>
+                    <Label Text="المكتملة" TextColor="#999999" FontSize="11"/>
+                    <Label x:Name="CompletedMatchesLabel" Text="0" TextColor="#6A00FF" FontAttributes="Bold" FontSize="20"/>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <!-- FILTERS -->
+        <ScrollView Grid.Row="3" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+            <HorizontalStackLayout Spacing="8">
+                <Border x:Name="AllFilter" BackgroundColor="#FFD700" Padding="14,8" StrokeShape="RoundRectangle 18">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnAllFilterTapped"/>
+                    </Border.GestureRecognizers>
+                    <Label Text="الكل" TextColor="Black" FontAttributes="Bold"/>
+                </Border>
+
+                <Border x:Name="FinishedFilter" BackgroundColor="#111111" Stroke="#333333" Padding="14,8" StrokeShape="RoundRectangle 18">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnFinishedFilterTapped"/>
+                    </Border.GestureRecognizers>
+                    <Label Text="مكتملة" TextColor="White"/>
+                </Border>
+
+                <Border x:Name="UnfinishedFilter" BackgroundColor="#111111" Stroke="#333333" Padding="14,8" StrokeShape="RoundRectangle 18">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnUnfinishedFilterTapped"/>
+                    </Border.GestureRecognizers>
+                    <Label Text="غير مكتملة" TextColor="White"/>
+                </Border>
+
+                <Border x:Name="MelesFilter" BackgroundColor="#111111" Stroke="#333333" Padding="14,8" StrokeShape="RoundRectangle 18">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnMelesFilterTapped"/>
+                    </Border.GestureRecognizers>
+                    <Label Text="ملص" TextColor="White"/>
+                </Border>
+            </HorizontalStackLayout>
+        </ScrollView>
+
+        <!-- LIST -->
+        <CollectionView
+            x:Name="HistoryCollection"
+            Grid.Row="4"
+            SelectionMode="None">
+
+            <CollectionView.EmptyView>
+                <Label
+                    Text="لا توجد نتائج مطابقة"
+                    TextColor="Gray"
+                    FontSize="20"
+                    HorizontalTextAlignment="Center"
+                    VerticalTextAlignment="Center"/>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Margin="0,0,0,10" BackgroundColor="#111111" Stroke="#2A2A2A" StrokeThickness="1.5" Padding="12" StrokeShape="RoundRectangle 22">
+                        <VerticalStackLayout Spacing="10">
+
+                            <Grid ColumnDefinitions="48,*,48">
+                                <Image Source="{Binding Team1Emblem}" WidthRequest="40" HeightRequest="40"/>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="{Binding Team1Name}" TextColor="White" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation"/>
+                                    <Label Text="VS" TextColor="Gold" FontSize="12" HorizontalTextAlignment="Center"/>
+                                    <Label Text="{Binding Team2Name}" TextColor="White" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation"/>
+                                </VerticalStackLayout>
+
+                                <Image Grid.Column="2" Source="{Binding Team2Emblem}" WidthRequest="40" HeightRequest="40"/>
+                            </Grid>
+
+                            <Label
+                                Text="{Binding WinnerTeamName, StringFormat='الفائز: {0}'}"
+                                TextColor="Gold"
+                                FontSize="12"
+                                HorizontalTextAlignment="Center"/>
+
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                                <Label Text="{Binding Team1Score, StringFormat='الفريق 1: {0}'}" TextColor="White" FontSize="12"/>
+                                <Label Grid.Column="1" Text="{Binding Team2Score, StringFormat='الفريق 2: {0}'}" TextColor="White" FontSize="12"/>
+                                <Label Grid.Row="1" Text="{Binding MatchDurationMinutes, StringFormat='المدة: {0} دقيقة'}" TextColor="#BBBBBB" FontSize="12"/>
+                                <Label Grid.Row="1" Grid.Column="1" Text="{Binding MatchDate, StringFormat='{0:yyyy/MM/dd}'}" TextColor="#BBBBBB" FontSize="12"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                <Button Text="التفاصيل" Clicked="OnDetailsClicked" BackgroundColor="#1A1A1A" TextColor="White" HeightRequest="42" CornerRadius="14"/>
+                                <Button Grid.Column="1" Text="استئناف" Clicked="OnResumeClicked" BackgroundColor="#00A040" TextColor="White" HeightRequest="42" CornerRadius="14">
+                                    <Button.Triggers>
+                                        <DataTrigger TargetType="Button" Binding="{Binding IsFinished}" Value="True">
+                                            <Setter Property="IsVisible" Value="False"/>
+                                        </DataTrigger>
+                                    </Button.Triggers>
+                                </Button>
+                                <Button Grid.Column="2" Text="حذف" Clicked="OnDeleteClicked" BackgroundColor="#C62828" TextColor="White" HeightRequest="42" CornerRadius="14"/>
+                            </Grid>
+
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- BOTTOM -->
+        <Grid Grid.Row="5" ColumnDefinitions="*,*" ColumnSpacing="10">
+            <Button
+                x:Name="LoadMoreButton"
+                Text="عرض المزيد"
+                Clicked="OnLoadMoreClicked"
+                BackgroundColor="#1A1A1A"
+                TextColor="Gold"
+                HeightRequest="50"
+                CornerRadius="18"/>
+
+            <Button
+                Grid.Column="1"
+                Text="حذف جميع المباريات"
+                Clicked="OnDeleteAllClicked"
+                BackgroundColor="#C62828"
+                TextColor="White"
+                HeightRequest="50"
+                CornerRadius="18"/>
+        </Grid>
+
+    </Grid>
+</ContentPage>

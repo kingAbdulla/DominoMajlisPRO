@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:shapes="clr-namespace:Microsoft.Maui.Controls.Shapes;assembly=Microsoft.Maui.Controls"
+    x:Class="DominoMajlisPRO.Pages.StatisticsPage"
+    BackgroundColor="#0B0B0B"
+    NavigationPage.HasNavigationBar="False">
+   
+    <Grid RowDefinitions="80,*">
+
+        <!-- HEADER -->
+        <Grid
+    BackgroundColor="#5B00FF"
+    Padding="15"
+    ColumnDefinitions="Auto,*">
+
+            <Button
+        Grid.Column="0"
+        Text="←"
+        Clicked="OnBackClicked"
+        BackgroundColor="Transparent"
+        TextColor="White"
+        FontAttributes="Bold"
+        FontSize="22"
+        WidthRequest="50"
+        HorizontalOptions="Start"
+        VerticalOptions="Center" />
+
+            <Label
+        Grid.Column="1"
+        Text="📊 DOMINO ANALYTICS"
+        TextColor="White"
+        FontSize="22"
+        FontAttributes="Bold"
+        HorizontalTextAlignment="Center"
+        HorizontalOptions="Fill"
+        VerticalOptions="Center"
+        LineBreakMode="TailTruncation" />
+
+        </Grid>
+
+        <!-- CONTENT -->
+
+        <ScrollView Grid.Row="1">
+
+            <VerticalStackLayout
+                Padding="20"
+                Spacing="20">
+
+                <!-- HERO CARD -->
+
+                <Frame
+                    BackgroundColor="#121212"
+                    BorderColor="#00E5FF"
+                    CornerRadius="30"
+                    Padding="25">
+
+                    <VerticalStackLayout
+                        Spacing="12">
+
+                        <Label
+                            Text="📊 Dashboard Summary"
+                            FontSize="26"
+                            FontAttributes="Bold"
+                            TextColor="#00E5FF"/>
+
+                        <Label
+                            x:Name="DashboardSummaryLabel"
+                            FontSize="18"
+                            TextColor="White"/>
+
+                    </VerticalStackLayout>
+
+                </Frame>
+
+                <!-- QUICK STATS -->
+
+                <Grid
+                    ColumnDefinitions="*,*"
+                    ColumnSpacing="15"
+                    RowSpacing="15">
+
+                    <!-- MATCHES -->
+
+                    <Frame
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        BackgroundColor="#161616"
+                        BorderColor="Gold"
+                        CornerRadius="25"
+                        Padding="20">
+
+                        <VerticalStackLayout>
+
+                            <Label
+                                Text="📜 المباريات"
+                                TextColor="Gold"
+                                FontSize="18"/>
+
+                            <Label
+                                x:Name="TotalMatchesLabel"
+                                FontSize="34"
+                                FontAttributes="Bold"
+                                TextColor="White"/>
+
+                        </VerticalStackLayout>
+
+                    </Frame>
+
+                    <!-- MELES -->
+
+                    <Frame
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        BackgroundColor="#161616"
+                        BorderColor="OrangeRed"
+                        CornerRadius="25"
+                        Padding="20">
+
+                        <VerticalStackLayout>
+
+                            <Label
+                                Text="🔥 الملص"
+                                TextColor="Orange"
+                                FontSize="18"/>
+
+                            <Label
+                                x:Name="MelesMatchesLabel"
+                                FontSize="34"
+                                FontAttributes="Bold"
+                                TextColor="White"/>
+
+                        </VerticalStackLayout>
+
+                    </Frame>
+
+                    <!-- TOTAL POINTS -->
+
+                    <Frame
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        BackgroundColor="#161616"
+                        BorderColor="#00E5FF"
+                        CornerRadius="25"
+                        Padding="20">
+
+                        <VerticalStackLayout>
+
+                            <Label
+                                Text="🎯 إجمالي النقاط"
+                                TextColor="#00E5FF"
+                                FontSize="18"/>
+
+                            <Label
+                                x:Name="TotalPointsLabel"
+                                FontSize="30"
+                                FontAttributes="Bold"
+                                TextColor="White"/>
+
+                        </VerticalStackLayout>
+
+                    </Frame>
+
+                    <!-- AVERAGE DURATION -->
+
+                    <Frame
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        BackgroundColor="#161616"
+                        BorderColor="#7A00FF"
+                        CornerRadius="25"
+                        Padding="20">
+
+                        <VerticalStackLayout>
+
+                            <Label
+                                Text="⏱ متوسط المدة"
+                                TextColor="#B266FF"
+                                FontSize="18"/>
+
+                            <Label
+                                x:Name="AverageDurationLabel"
+                                FontSize="30"
+                                FontAttributes="Bold"
+                                TextColor="White"/>
+
+                        </VerticalStackLayout>
+
+                    </Frame>
+
+                </Grid>
+
+                <!-- BEST PLAYER -->
+
+                <Frame
+                    BackgroundColor="#121212"
+                    BorderColor="Gold"
+                    CornerRadius="30"
+                    Padding="25">
+
+                    <VerticalStackLayout
+                        Spacing="12">
+
+                        <Label
+                            Text="🏆 أفضل لاعب"
+                            FontSize="24"
+                            FontAttributes="Bold"
+                            TextColor="Gold"/>
+
+                        <Label
+                            x:Name="BestPlayerLabel"
+                            FontSize="28"
+                            FontAttributes="Bold"
+                            TextColor="White"/>
+
+                        <ProgressBar
+                            x:Name="BestPlayerProgress"
+                            Progress="0"
+                            ProgressColor="Gold"
+                            HeightRequest="10"/>
+
+                        <Label
+                            x:Name="BestPlayerWinRateLabel"
+                            FontSize="18"
+                            TextColor="#BBBBBB"/>
+
+                    </VerticalStackLayout>
+
+                </Frame>
+                <!-- MELES PERCENTAGE -->
+
+                <Frame
+                    BackgroundColor="#121212"
+                    BorderColor="OrangeRed"
+                    CornerRadius="30"
+                    Padding="25">
+
+                    <VerticalStackLayout
+                        Spacing="12">
+
+                        <Label
+                            Text="🔥 نسبة الملص"
+                            FontSize="24"
+                            FontAttributes="Bold"
+                            TextColor="Orange"/>
+
+                        <ProgressBar
+                            x:Name="MelesProgress"
+                            Progress="0"
+                            ProgressColor="OrangeRed"
+                            HeightRequest="10"/>
+
+                        <Label
+                            x:Name="MelesPercentageLabel"
+                            FontSize="18"
+                            TextColor="White"/>
+
+                    </VerticalStackLayout>
+
+                </Frame>
+
+                <!-- XP LEADER -->
+
+                <Frame
+                    BackgroundColor="#121212"
+                    BorderColor="#00E5FF"
+                    CornerRadius="30"
+                    Padding="25">
+
+                    <VerticalStackLayout
+                        Spacing="12">
+
+                        <Label
+                            Text="👑 أعلى XP"
+                            FontSize="24"
+                            FontAttributes="Bold"
+                            TextColor="#00E5FF"/>
+
+                        <Label
+                            x:Name="XpLeaderLabel"
+                            FontSize="28"
+                            FontAttributes="Bold"
+                            TextColor="White"/>
+
+                        <Label
+                            x:Name="XpLeaderXpLabel"
+                            FontSize="18"
+                            TextColor="#BBBBBB"/>
+
+                    </VerticalStackLayout>
+
+                </Frame>
+
+                <!-- HIGHEST SCORE -->
+
+                <Frame
+                    BackgroundColor="#121212"
+                    BorderColor="Lime"
+                    CornerRadius="30"
+                    Padding="25">
+
+                    <VerticalStackLayout
+                        Spacing="12">
+
+                        <Label
+                            Text="🎯 أعلى نتيجة"
+                            FontSize="24"
+                            FontAttributes="Bold"
+                            TextColor="Lime"/>
+
+                        <Label
+                            x:Name="HighestScoreLabel"
+                            FontSize="30"
+                            FontAttributes="Bold"
+                            TextColor="White"/>
+
+                    </VerticalStackLayout>
+
+                </Frame>
+
+                <!-- LONGEST MATCH -->
+
+                <Frame
+                    BackgroundColor="#121212"
+                    BorderColor="Yellow"
+                    CornerRadius="30"
+                    Padding="25">
+
+                    <VerticalStackLayout
+                        Spacing="12">
+
+                        <Label
+                            Text="⏱ أطول مباراة"
+                            FontSize="24"
+                            FontAttributes="Bold"
+                            TextColor="Yellow"/>
+
+                        <Label
+                            x:Name="LongestMatchLabel"
+                            FontSize="30"
+                            FontAttributes="Bold"
+                            TextColor="White"/>
+
+                    </VerticalStackLayout>
+
+                </Frame>
+
+            </VerticalStackLayout>
+
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>

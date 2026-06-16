@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DominoMajlisPRO.Pages.DeveloperLoginPage"
+    BackgroundColor="#050505"
+    NavigationPage.HasNavigationBar="False"
+    FlowDirection="RightToLeft">
+
+    <ScrollView>
+
+        <VerticalStackLayout
+            Padding="22"
+            Spacing="18">
+
+            <Label
+                Text="بوابة المطور"
+                FontSize="28"
+                FontAttributes="Bold"
+                TextColor="#FFD700"
+                HorizontalTextAlignment="Center"/>
+
+            <Label
+                x:Name="PageModeLabel"
+                Text="Developer Access"
+                FontSize="15"
+                TextColor="#BBBBBB"
+                HorizontalTextAlignment="Center"/>
+
+            <Border
+                BackgroundColor="#080808"
+                Stroke="#D4AF37"
+                StrokeThickness="2"
+                Padding="18"
+                StrokeShape="RoundRectangle 24">
+
+                <VerticalStackLayout Spacing="14">
+
+                    <Label
+                        x:Name="TitleLabel"
+                        Text="تسجيل دخول المطور"
+                        FontSize="21"
+                        FontAttributes="Bold"
+                        TextColor="#FFD700"
+                        HorizontalTextAlignment="Center"/>
+
+                    <Label
+                        x:Name="DescriptionLabel"
+                        Text="أدخل بيانات حساب المطور للوصول إلى أدوات الإدارة."
+                        FontSize="14"
+                        TextColor="#DDDDDD"
+                        HorizontalTextAlignment="Center"
+                        LineBreakMode="WordWrap"/>
+
+                    <Entry
+                        x:Name="UsernameEntry"
+                        Placeholder="Username"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        BackgroundColor="#111111"/>
+
+                    <Entry
+                        x:Name="PasswordEntry"
+                        Placeholder="Password"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        IsPassword="True"
+                        BackgroundColor="#111111"/>
+
+                    <Entry
+                        x:Name="ConfirmPasswordEntry"
+                        Placeholder="Confirm Password"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        IsPassword="True"
+                        BackgroundColor="#111111"
+                        IsVisible="False"/>
+
+                    <Entry
+                        x:Name="RecoveryCodeEntry"
+                        Placeholder="Recovery Code"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        BackgroundColor="#111111"
+                        IsVisible="False"/>
+
+                    <Button
+                        x:Name="PrimaryActionButton"
+                        Text="دخول"
+                        Clicked="OnPrimaryActionClicked"
+                        BackgroundColor="#D4AF37"
+                        TextColor="Black"
+                        FontAttributes="Bold"
+                        CornerRadius="16"/>
+
+                    <Button
+                        x:Name="RecoveryButton"
+                        Text="نسيت كلمة المرور"
+                        Clicked="OnRecoveryModeClicked"
+                        BackgroundColor="#111111"
+                        TextColor="#FFD700"
+                        BorderColor="#D4AF37"
+                        BorderWidth="1"
+                        CornerRadius="16"/>
+
+                    <Button
+                        x:Name="BackToLoginButton"
+                        Text="العودة لتسجيل الدخول"
+                        Clicked="OnBackToLoginClicked"
+                        BackgroundColor="#1E293B"
+                        TextColor="White"
+                        CornerRadius="16"
+                        IsVisible="False"/>
+
+                    <Label
+                        x:Name="ResultLabel"
+                        Text=""
+                        FontSize="13"
+                        TextColor="White"
+                        LineBreakMode="WordWrap"/>
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <Border
+                x:Name="AuthenticatedToolsSection"
+                BackgroundColor="#080808"
+                Stroke="#D4AF37"
+                StrokeThickness="2"
+                Padding="16"
+                StrokeShape="RoundRectangle 22"
+                IsVisible="False">
+
+                <VerticalStackLayout Spacing="12">
+
+                    <Label
+                        Text="أدوات المطور المؤكدة"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="#FFD700"
+                        HorizontalTextAlignment="Center"/>
+
+                    <Button
+                        Text="توليد 5 أكواد استرداد جديدة"
+                        Clicked="OnGenerateRecoveryCodesClicked"
+                        BackgroundColor="#111111"
+                        TextColor="#FFD700"
+                        BorderColor="#D4AF37"
+                        BorderWidth="1"
+                        CornerRadius="16"/>
+
+                    <Button
+                        Text="فتح أدوات المطور"
+                        Clicked="OnContinueToAdminClicked"
+                        BackgroundColor="#D4AF37"
+                        TextColor="Black"
+                        FontAttributes="Bold"
+                        CornerRadius="16"/>
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <Border
+                x:Name="RecoveryCodesSection"
+                BackgroundColor="#111111"
+                Stroke="#D4AF37"
+                StrokeThickness="2"
+                Padding="16"
+                StrokeShape="RoundRectangle 22"
+                IsVisible="False">
+
+                <VerticalStackLayout Spacing="12">
+
+                    <Label
+                        Text="أكواد الاسترداد"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="#FFD700"
+                        HorizontalTextAlignment="Center"/>
+
+                    <Label
+                        Text="سيتم مشاركتها كملف TXT. احفظ الملف خارج التطبيق."
+                        FontSize="14"
+                        TextColor="#FFFFFF"
+                        HorizontalTextAlignment="Center"
+                        LineBreakMode="WordWrap"/>
+
+                    <Label
+                        x:Name="RecoveryCodesLabel"
+                        Text=""
+                        FontSize="13"
+                        TextColor="#DDDDDD"
+                        LineBreakMode="WordWrap"/>
+
+                    <Button
+                        Text="مشاركة أكواد الاسترداد كملف TXT"
+                        Clicked="OnShareRecoveryCodesFileClicked"
+                        BackgroundColor="#D4AF37"
+                        TextColor="Black"
+                        FontAttributes="Bold"
+                        CornerRadius="16"/>
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <Border
+                BackgroundColor="#080808"
+                Stroke="#D4AF37"
+                StrokeThickness="2"
+                Padding="16"
+                StrokeShape="RoundRectangle 22">
+
+                <VerticalStackLayout Spacing="12">
+
+                    <Label
+                        Text="استيراد Developer Vault"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="#FFD700"
+                        HorizontalTextAlignment="Center"/>
+
+                    <Label
+                        Text="استخدم هذا الخيار بعد تصفير التطبيق أو فقدان صلاحية المطور."
+                        FontSize="14"
+                        TextColor="#DDDDDD"
+                        HorizontalTextAlignment="Center"
+                        LineBreakMode="WordWrap"/>
+
+                    <Entry
+                        x:Name="VaultPasswordEntry"
+                        Placeholder="كلمة مرور الخزنة"
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        IsPassword="True"
+                        BackgroundColor="#111111"/>
+
+                    <Button
+                        Text="استيراد الخزنة"
+                        Clicked="OnImportVaultClicked"
+                        BackgroundColor="#111111"
+                        TextColor="#FFD700"
+                        BorderColor="#D4AF37"
+                        BorderWidth="1"
+                        CornerRadius="16"/>
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <Button
+                Text="رجوع"
+                Clicked="OnBackClicked"
+                BackgroundColor="#1E293B"
+                TextColor="White"
+                CornerRadius="16"/>
+
+        </VerticalStackLayout>
+
+    </ScrollView>
+
+</ContentPage>

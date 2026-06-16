@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DominoMajlisPRO.Pages.PlayerProfilesPage"
+    BackgroundColor="#050505"
+    NavigationPage.HasNavigationBar="False"
+    FlowDirection="RightToLeft">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!-- HEADER -->
+        <Grid
+            Grid.Row="0"
+            Padding="16,12"
+            ColumnDefinitions="Auto,*,Auto"
+            BackgroundColor="#050505">
+
+            <Image
+                Source="back_gold.png"
+                WidthRequest="38"
+                HeightRequest="38"
+                Aspect="AspectFit"
+                VerticalOptions="Center">
+
+                <Image.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnBackTapped"/>
+                </Image.GestureRecognizers>
+
+            </Image>
+
+            <VerticalStackLayout
+                Grid.Column="1"
+                Spacing="2"
+                VerticalOptions="Center">
+
+                <Label
+                    Text="ملفات اللاعبين"
+                    FontSize="24"
+                    FontAttributes="Bold"
+                    TextColor="#D4AF37"
+                    HorizontalTextAlignment="Center"/>
+
+                <Label
+                    Text="Player Profiles"
+                    FontSize="13"
+                    TextColor="#B8873C"
+                    HorizontalTextAlignment="Center"/>
+
+            </VerticalStackLayout>
+
+            <Image
+                Grid.Column="2"
+                Source="player_card.png"
+                WidthRequest="40"
+                HeightRequest="40"
+                Aspect="AspectFit"
+                VerticalOptions="Center"/>
+
+        </Grid>
+
+        <!-- SEARCH -->
+        <Border
+            Grid.Row="1"
+            Margin="16,4,16,10"
+            BackgroundColor="#101010"
+            Stroke="#8A5B27"
+            StrokeThickness="1"
+            Padding="10"
+            StrokeShape="RoundRectangle 18">
+
+            <Entry
+                x:Name="SearchEntry"
+                Placeholder="ابحث عن لاعب..."
+                PlaceholderColor="#777777"
+                TextColor="White"
+                BackgroundColor="Transparent"
+                TextChanged="OnSearchChanged"/>
+
+        </Border>
+
+        <!-- PLAYERS -->
+        <ScrollView Grid.Row="2">
+
+            <VerticalStackLayout
+                x:Name="PlayersContainer"
+                Padding="16,4,16,24"
+                Spacing="12"/>
+
+        </ScrollView>
+     
+
+    </Grid>
+
+</ContentPage>

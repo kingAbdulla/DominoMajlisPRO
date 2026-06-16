@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentView
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DominoMajlisPRO.Controls.HallSideMenuView"
+    FlowDirection="RightToLeft">
+
+    <Border
+        Margin="{OnIdiom Phone='4,8,0,8', Tablet='6,12,0,12', Desktop='6,14,0,14'}"
+        Padding="{OnIdiom Phone='3,8', Tablet='4,10', Desktop='4,12'}"
+        BackgroundColor="#070707"
+        Stroke="#6F461A"
+        StrokeThickness="0.9"
+        StrokeShape="RoundRectangle 30"
+        IsVisible="{OnIdiom Phone=False, Tablet=True, Desktop=True}">
+
+        <VerticalStackLayout
+            Spacing="{OnIdiom Phone=10, Tablet=13, Desktop=14}"
+            VerticalOptions="Center">
+
+            <!-- HOME -->
+            <Border
+                x:Name="HomeItem"
+                BackgroundColor="#251806"
+                Stroke="#D4AE62"
+                StrokeThickness="1.1"
+                Padding="4"
+                StrokeShape="RoundRectangle 18">
+
+                <VerticalStackLayout Spacing="3">
+                    <ImageButton
+                        Source="trophy_3d.png"
+                        BackgroundColor="Transparent"
+                        WidthRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        HeightRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        Clicked="OnHomeClicked"/>
+
+                    <Label
+                        Text="الرئيسية"
+                        TextColor="#D4AE62"
+                        FontSize="{OnIdiom Phone=9, Tablet=11, Desktop=11}"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- TEAMS -->
+            <Border
+                x:Name="TeamsItem"
+                BackgroundColor="Transparent"
+                Stroke="Transparent"
+                StrokeThickness="1.1"
+                Padding="4"
+                StrokeShape="RoundRectangle 18">
+
+                <VerticalStackLayout Spacing="3">
+                    <ImageButton
+                        Source="players_card.png"
+                        BackgroundColor="Transparent"
+                        WidthRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        HeightRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        Clicked="OnTeamsClicked"/>
+
+                    <Label
+                        Text="الفرق"
+                        TextColor="#C8B58A"
+                        FontSize="{OnIdiom Phone=9, Tablet=11, Desktop=11}"
+                        HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- PLAYERS -->
+            <Border
+                x:Name="PlayersItem"
+                BackgroundColor="Transparent"
+                Stroke="Transparent"
+                StrokeThickness="1.1"
+                Padding="4"
+                StrokeShape="RoundRectangle 18">
+
+                <VerticalStackLayout Spacing="3">
+                    <ImageButton
+                        Source="player_card.png"
+                        BackgroundColor="Transparent"
+                        WidthRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        HeightRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        Clicked="OnPlayersClicked"/>
+
+                    <Label
+                        Text="اللاعبين"
+                        TextColor="#C8B58A"
+                        FontSize="{OnIdiom Phone=9, Tablet=11, Desktop=11}"
+                        HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- ACHIEVEMENTS -->
+            <Border
+                x:Name="AchievementsItem"
+                BackgroundColor="Transparent"
+                Stroke="Transparent"
+                StrokeThickness="1.1"
+                Padding="4"
+                StrokeShape="RoundRectangle 18">
+
+                <VerticalStackLayout Spacing="3">
+                    <ImageButton
+                        Source="trophy_3d.png"
+                        BackgroundColor="Transparent"
+                        WidthRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        HeightRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        Clicked="OnAchievementsClicked"/>
+
+                    <Label
+                        Text="الإنجازات"
+                        TextColor="#C8B58A"
+                        FontSize="{OnIdiom Phone=9, Tablet=11, Desktop=11}"
+                        HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- HISTORY -->
+            <Border
+                x:Name="HistoryItem"
+                BackgroundColor="Transparent"
+                Stroke="Transparent"
+                StrokeThickness="1.1"
+                Padding="4"
+                StrokeShape="RoundRectangle 18">
+
+                <VerticalStackLayout Spacing="3">
+                    <ImageButton
+                        Source="history_gold.png"
+                        BackgroundColor="Transparent"
+                        WidthRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        HeightRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        Clicked="OnHistoryClicked"/>
+
+                    <Label
+                        Text="التاريخ"
+                        TextColor="#C8B58A"
+                        FontSize="{OnIdiom Phone=9, Tablet=11, Desktop=11}"
+                        HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- STATS -->
+            <Border
+                x:Name="StatsItem"
+                BackgroundColor="Transparent"
+                Stroke="Transparent"
+                StrokeThickness="1.1"
+                Padding="4"
+                StrokeShape="RoundRectangle 18">
+
+                <VerticalStackLayout Spacing="3">
+                    <ImageButton
+                        Source="analytics_gold.png"
+                        BackgroundColor="Transparent"
+                        WidthRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        HeightRequest="{OnIdiom Phone=38, Tablet=46, Desktop=48}"
+                        Clicked="OnStatsClicked"/>
+
+                    <Label
+                        Text="الإحصائيات"
+                        TextColor="#C8B58A"
+                        FontSize="{OnIdiom Phone=9, Tablet=11, Desktop=11}"
+                        HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+            </Border>
+
+        </VerticalStackLayout>
+
+    </Border>
+
+</ContentView>

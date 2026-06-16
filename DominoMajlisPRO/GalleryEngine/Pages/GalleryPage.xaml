@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    x:Class="DominoMajlisPRO.GalleryEngine.Pages.GalleryPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:components="clr-namespace:DominoMajlisPRO.GalleryEngine.Components"
+    BackgroundColor="#101010"
+    NavigationPage.HasNavigationBar="False">
+
+    <Grid>
+
+        <ScrollView>
+
+            <VerticalStackLayout
+                Padding="18,18,18,40"
+                Spacing="20">
+
+                <!-- Hero Banner -->
+
+                <components:HeroBannerView
+                    x:Name="HeroBanner"/>
+
+                <!-- Wallet -->
+
+                <Grid
+                    ColumnDefinitions="*,*"
+                    ColumnSpacing="12">
+
+                </Grid>
+
+                <!-- Categories -->
+
+                <VerticalStackLayout
+                    x:Name="CategoriesContainer"/>
+
+                <!-- Featured Products -->
+
+                <VerticalStackLayout
+                    x:Name="FeaturedProductsContainer"/>
+
+            </VerticalStackLayout>
+
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>

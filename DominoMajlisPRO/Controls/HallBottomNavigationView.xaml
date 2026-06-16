@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentView
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DominoMajlisPRO.Controls.HallBottomNavigationView"
+    FlowDirection="RightToLeft">
+
+    <Grid
+        Margin="{OnIdiom Phone='8,0,8,8', Tablet='40,0,40,12', Desktop='80,0,80,14'}"
+        HeightRequest="{OnIdiom Phone=88, Tablet=112, Desktop=112}">
+
+        <Border
+            Margin="{OnIdiom Phone='0,18,0,0', Tablet='0,24,0,0', Desktop='0,24,0,0'}"
+            Padding="{OnIdiom Phone='8,8', Tablet='16,10', Desktop='18,10'}"
+            BackgroundColor="#070707"
+            Stroke="#6F461A"
+            StrokeThickness="0.9"
+            StrokeShape="RoundRectangle 32">
+
+            <Grid
+                ColumnDefinitions="*,*,1.55*,*,*"
+                ColumnSpacing="{OnIdiom Phone=4, Tablet=14, Desktop=18}">
+
+                <VerticalStackLayout
+                    Grid.Column="0"
+                    Spacing="2"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+
+                    <Image
+                        Source="settings_gold.png"
+                        WidthRequest="{OnIdiom Phone=26, Tablet=34, Desktop=36}"
+                        HeightRequest="{OnIdiom Phone=26, Tablet=34, Desktop=36}"
+                        Aspect="AspectFit"/>
+
+                    <Label
+                        Text="الإعدادات"
+                        TextColor="#C8B58A"
+                        FontSize="{OnIdiom Phone=10, Tablet=13, Desktop=13}"
+                        HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout
+                    Grid.Column="1"
+                    Spacing="2"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+
+                    <Image
+                        Source="players_card.png"
+                        WidthRequest="{OnIdiom Phone=26, Tablet=34, Desktop=36}"
+                        HeightRequest="{OnIdiom Phone=26, Tablet=34, Desktop=36}"
+                        Aspect="AspectFit"/>
+
+                    <Label
+                        Text="الأصدقاء"
+                        TextColor="#C8B58A"
+                        FontSize="{OnIdiom Phone=10, Tablet=13, Desktop=13}"
+                        HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout
+                    Grid.Column="3"
+                    Spacing="2"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+
+                    <Image
+                        Source="joystick_gold.png"
+                        WidthRequest="{OnIdiom Phone=28, Tablet=36, Desktop=38}"
+                        HeightRequest="{OnIdiom Phone=28, Tablet=36, Desktop=38}"
+                        Aspect="AspectFit"/>
+
+                    <Label
+                        Text="اللعب"
+                        TextColor="#C8B58A"
+                        FontSize="{OnIdiom Phone=10, Tablet=13, Desktop=13}"
+                        HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout
+                    Grid.Column="4"
+                    Spacing="2"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+
+                    <Image
+                        Source="shop_gold.png"
+                        WidthRequest="{OnIdiom Phone=26, Tablet=34, Desktop=36}"
+                        HeightRequest="{OnIdiom Phone=26, Tablet=34, Desktop=36}"
+                        Aspect="AspectFit"/>
+
+                    <Label
+                        Text="المتجر"
+                        TextColor="#C8B58A"
+                        FontSize="{OnIdiom Phone=10, Tablet=13, Desktop=13}"
+                        HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+            </Grid>
+        </Border>
+
+        <Border
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            WidthRequest="{OnIdiom Phone=96, Tablet=100, Desktop=138}"
+            HeightRequest="{OnIdiom Phone=62, Tablet=70, Desktop=82}"
+            BackgroundColor="#231706"
+            Stroke="#D4AE62"
+            StrokeThickness="1.2"
+            Padding="{OnIdiom Phone='8,5', Tablet='12,7', Desktop='14,8'}"
+            StrokeShape="RoundRectangle 30">
+
+            <Border.Shadow>
+                <Shadow
+                    Brush="#D4AE62"
+                    Radius="18"
+                    Opacity="0.42"/>
+            </Border.Shadow>
+
+            <VerticalStackLayout
+                Spacing="1"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+
+                <Image
+                    Source="halloffame_gold.png"
+                    WidthRequest="{OnIdiom Phone=32, Tablet=42, Desktop=46}"
+                    HeightRequest="{OnIdiom Phone=32, Tablet=42, Desktop=46}"
+                    Aspect="AspectFit"/>
+
+                <Label
+                    Text="Hall Of Legends"
+                    TextColor="#E0B04A"
+                    FontSize="{OnIdiom Phone=10, Tablet=10, Desktop=14}"
+                    FontAttributes="Bold"
+                    HorizontalTextAlignment="Center"
+                    MaxLines="1"/>
+
+            </VerticalStackLayout>
+        </Border>
+
+    </Grid>
+</ContentView>
