@@ -360,5 +360,24 @@ MigrationBackup/
 .ionide/
 
 # Fody - auto-generated XML schema
-FodyWeavers.xsderrorlog.txt
+FodyWeavers.xsd
+
+# Domino Majlis PRO logs
 errorlog.txt
+*.log
+*.txt.log
+
+# .NET MAUI build/package outputs
+*.apk
+*.aab
+*.ipa
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+
+# Android signing / sensitive files
+*.keystore
+*.jks
+*.p12
+*.pfx
