@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "generated_from": "DominoMajlisPROCopy.zip",
+  "service_count": 38,
+  "page_count": 87,
+  "model_count": 56,
+  "files": [
+    "docs/00_READ_FIRST.md",
+    "docs/01_PROJECT_MISSION.md",
+    "docs/02_AI_ENGINEERING_CONSTITUTION.md",
+    "docs/03_ARCHITECTURE_CONSTITUTION.md",
+    "docs/04_LAYOUT_PROTECTION_POLICY.md",
+    "docs/05_EXECUTION_CONTRACT.md",
+    "docs/06_IDENTITY_ARCHITECTURE.md",
+    "docs/07_STORE_GALLERY_ARCHITECTURE.md",
+    "docs/08_APP_EVENTS_AND_SYNC.md",
+    "docs/09_PROJECT_MAP.md",
+    "docs/10_SERVICE_REFERENCE.md",
+    "docs/11_PAGE_REFERENCE.md",
+    "docs/12_PHASE_2_8_STATUS_AND_BUGS.md",
+    "docs/13_RUNTIME_VERIFICATION_GUIDE.md",
+    "docs/14_AI_PROMPTS.md",
+    ".github/copilot-instructions.md",
+    "README_ENGINEERING_DOCS.md"
+  ]
+}
