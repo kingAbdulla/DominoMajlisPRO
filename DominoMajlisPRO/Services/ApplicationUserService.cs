@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using DominoMajlisPRO.Models;
 
 namespace DominoMajlisPRO.Services;
@@ -258,10 +258,10 @@ public static class ApplicationUserService
             AppEvents.RaiseCurrentUserChanged();
 
             // If player/account changed, trigger refreshes for inventory and store views
-            if (!string.Equals(previousPlayerId, state.Session.CurrentPlayerId, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(previousPlayerId))
+            if (!string.Equals(previousPlayerId, state.Session?.CurrentPlayerId, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(previousPlayerId))
                 AppEvents.RaiseStoreEconomyChanged(previousPlayerId);
 
-            if (!string.Equals(previousAccountId, state.Session.CurrentAccountId, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(previousAccountId))
+            if (!string.Equals(previousAccountId, state.Session?.CurrentAccountId, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(previousAccountId))
                 AppEvents.RaisePlayerProfileChanged();
         }
         finally
@@ -744,14 +744,14 @@ public static class ApplicationUserService
         var canonicalCurrent = FindCurrentUser(state);
         bool hasCanonicalIdentity =
             canonicalCurrent != null &&
-            !string.IsNullOrWhiteSpace(state.Session.CurrentAccountId) &&
-            !string.IsNullOrWhiteSpace(state.Session.CurrentPlayerId) &&
+            !string.IsNullOrWhiteSpace(state.Session?.CurrentAccountId) &&
+            !string.IsNullOrWhiteSpace(state.Session?.CurrentPlayerId) &&
             Same(
                 canonicalCurrent.ApplicationUserId,
-                state.Session.CurrentAccountId) &&
+                state.Session?.CurrentAccountId) &&
             Same(
                 canonicalCurrent.PlayerId,
-                state.Session.CurrentPlayerId);
+                state.Session?.CurrentPlayerId);
 
         if (user == null && hasCanonicalIdentity)
             user = canonicalCurrent;
@@ -919,7 +919,7 @@ public static class ApplicationUserService
         ApplicationUserState state)
     {
         string accountId = FirstNonEmpty(
-            state.Session.CurrentAccountId,
+            state.Session?.CurrentAccountId,
             state.Session.ApplicationUserId);
 
         if (string.IsNullOrWhiteSpace(accountId))
@@ -1058,9 +1058,9 @@ public static class ApplicationUserService
             changed = true;
         }
 
-        if (!Same(state.Session.CurrentAccountId, user.ApplicationUserId))
+        if (!Same(state.Session?.CurrentAccountId, user.ApplicationUserId))
         {
-            state.Session.CurrentAccountId = user.ApplicationUserId;
+            state.Session?.CurrentAccountId = user.ApplicationUserId;
             changed = true;
         }
 
@@ -1074,11 +1074,11 @@ public static class ApplicationUserService
         }
 
         if (!string.Equals(
-                state.Session.CurrentPlayerId?.Trim(),
+                state.Session?.CurrentPlayerId?.Trim(),
                 user.PlayerId?.Trim(),
                 StringComparison.OrdinalIgnoreCase))
         {
-            state.Session.CurrentPlayerId = user.PlayerId?.Trim() ?? "";
+            state.Session?.CurrentPlayerId = user.PlayerId?.Trim() ?? "";
             changed = true;
         }
 
@@ -1220,3 +1220,5 @@ public static class ApplicationUserService
         string LegacyIdentityId,
         string Source);
 }
+
+
