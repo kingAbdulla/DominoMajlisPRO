@@ -171,61 +171,26 @@ public static class InventoryRouter
         var changed = false;
         if (before.Route.OwnerScope == InventoryOwnerScope.Team)
         {
-            // For team-scoped assets, persist to the team inventory and raise team events.
-            // Resolve active team id for the player.
-            string? teamId = null;
-            if (!string.IsNullOrWhiteSpace(before.PlayerId))
+            if (!before.IsOwned)
             {
-                var player = await PlayerProfileService.GetPlayerByIdAsync(before.PlayerId);
-                var currentTeamIds = (player?.CurrentTeamIds ?? string.Empty)
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .Take(2)
-                    .ToList();
-                if (currentTeamIds.Count == 1)
-                    teamId = currentTeamIds[0];
-                else if (currentTeamIds.Count == 0)
-                {
-                    var team = await TeamProfileService.GetTeamByPlayerIdAsync(before.PlayerId);
-                    if (team != null && !string.IsNullOrWhiteSpace(team.TeamId))
-                        teamId = team.TeamId.Trim();
-                }
+                wasAdded = await PlayerInventoryService.AddOwnedItemWithoutNotificationAsync(
+                    before.PlayerId!,
+                    product.AssetId,
+                    before.Route.StoreTypeId,
+                    "FreeAcquire",
+                    seasonId: product.SeasonId,
+                    collectionId: product.CollectionId);
             }
 
-            if (!string.IsNullOrWhiteSpace(teamId))
-            {
-                if (!before.IsOwned)
-                {
-                    wasAdded = await TeamAssetInventoryService.AddOwnedAssetAsync(
-                        teamId!,
-                        product.AssetId,
-                        before.Route.StoreTypeId,
-                        "StoreFree",
-                        seasonId: product.SeasonId,
-                        collectionId: product.CollectionId);
-                }
+            var acquired = before.IsOwned || wasAdded ||
+                await PlayerInventoryService.IsOwnedAsync(
+                    before.PlayerId!,
+                    product.AssetId);
 
-                var acquired = before.IsOwned || wasAdded ||
-                    await TeamAssetInventoryService.IsOwnedAsync(teamId!, product.AssetId, before.Route.StoreTypeId);
-                changed = acquired && wasAdded;
+            changed = wasAdded;
 
-                if (!string.IsNullOrWhiteSpace(teamId))
-                                {
-                                    // Raise team events only after persistence completed to avoid refresh loops.
-                                    // TeamAssetInventoryService.AddOwnedAssetAsync already raises the event after save,
-                                    // so avoid double-raising here. Instead, raise player economy change after persistence.
-                                }
-
-                                // Also notify player-level store economy for UI that depends on player context.
-                                if (!string.IsNullOrWhiteSpace(before.PlayerId))
-                                    AppEvents.RaiseStoreEconomyChanged(before.PlayerId!);
-            }
-            else
-            {
-                // No active team resolved; fall back to signaling requires team.
-                return new InventoryActionResult(before, wasAdded, changed, true);
-            }
-
+            if (acquired)
+                AppEvents.RaiseStoreEconomyChanged(before.PlayerId!);
         }
         else
         {

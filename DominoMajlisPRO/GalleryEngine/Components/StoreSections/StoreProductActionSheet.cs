@@ -426,18 +426,19 @@ internal sealed class StoreProductActionSheet : Grid
 
         var owner =
             await ApplicationUserService.GetCurrentStoreOwnerAsync();
-        var teamId = owner.IsGhost
-            ? null
-            : await ResolveActiveTeamIdAsync(owner.PlayerId);
-        TeamOwnedAssetItem? owned = null;
-        if (!string.IsNullOrWhiteSpace(teamId))
+        PlayerOwnedStoreItem? owned = null;
+
+        if (!owner.IsGhost &&
+            owner.HasPlayerProfile &&
+            !string.IsNullOrWhiteSpace(owner.PlayerId))
         {
             var inventory =
-                await TeamAssetInventoryService.GetInventoryForTeamAsync(teamId);
+                await PlayerInventoryService.GetInventoryForPlayerAsync(owner.PlayerId);
             owned = inventory.FirstOrDefault(item =>
                 item.IsOwned &&
-                SameId(item.TeamAssetId, payload.TeamAssetId) &&
-                SameId(item.TeamAssetTypeId, payload.TeamAssetTypeId));
+                !item.IsExpired &&
+                SameId(item.AssetId, payload.TeamAssetId) &&
+                SameId(item.StoreTypeId, payload.TeamAssetTypeId));
         }
 
         if (version != _animationVersion || !IsVisible || _isClosing)
@@ -455,15 +456,13 @@ internal sealed class StoreProductActionSheet : Grid
                         ? "إنشاء هوية لاعب"
                         : "شراء",
                     true);
-            else if (string.IsNullOrWhiteSpace(teamId))
+            else if (!owner.HasPlayerProfile || string.IsNullOrWhiteSpace(owner.PlayerId))
                 SetResolvedActionState(
                     "يرجى اختيار أو إنشاء فريق أولاً",
                     _inventoryIsFree == true ? "اقتناء" : "شراء",
                     true);
-            else if (owned?.IsEquipped == true)
-                SetResolvedActionState("مجهز", "مجهز ✓", false);
             else if (owned != null)
-                SetResolvedActionState("مملوك", "تجهيز", true);
+                SetResolvedActionState("\u0645\u0645\u0644\u0648\u0643", "\u0645\u0645\u0644\u0648\u0643 \u2713", false);
             else if (_inventoryIsFree == true)
                 SetResolvedActionState("غير مملوك", "اقتناء", true);
             else
@@ -824,19 +823,10 @@ internal sealed class StoreProductActionSheet : Grid
             return;
         }
 
-        // Resolve active team id once and reuse.
-        var teamId = await ResolveActiveTeamIdAsync(owner.PlayerId);
-        if (string.IsNullOrWhiteSpace(teamId))
-        {
-            await ShowMessageAsync("يرجى اختيار أو إنشاء فريق أولاً");
-            return;
-        }
-
-        // For team assets, use TeamAssetInventoryService and scope by current ApplicationUserId.
-        var owned = await TeamAssetInventoryService.IsOwnedAsync(teamId, payload.TeamAssetId, payload.TeamAssetTypeId);
+        var owned = await PlayerInventoryService.IsOwnedAsync(owner.PlayerId, payload.TeamAssetId);
         if (owned)
         {
-            AppEvents.RaiseTeamAssetsChanged(teamId);
+            AppEvents.RaiseStoreEconomyChanged(owner.PlayerId);
             return;
         }
 
@@ -862,19 +852,19 @@ internal sealed class StoreProductActionSheet : Grid
             return;
         }
 
-        var added = await TeamAssetInventoryService.AddOwnedAssetAsync(
-            teamId,
+        var added = await PlayerInventoryService.AddOwnedItemWithoutNotificationAsync(
+            owner.PlayerId,
             payload.TeamAssetId,
             payload.TeamAssetTypeId,
-            "StoreFree",
+            "FreeAcquire",
             seasonId: _inventorySeasonId,
             collectionId: _inventoryCollectionId);
 
-        bool acquired = added || await TeamAssetInventoryService.IsOwnedAsync(teamId, payload.TeamAssetId, payload.TeamAssetTypeId);
+        bool acquired = added || await PlayerInventoryService.IsOwnedAsync(owner.PlayerId, payload.TeamAssetId);
         if (acquired)
         {
             // Ensure UI and other systems refresh after persistence completes.
-            AppEvents.RaiseTeamAssetsChanged(teamId);
+            AppEvents.RaiseStoreEconomyChanged(owner.PlayerId);
             AppEvents.RaiseStoreEconomyChanged(owner.PlayerId);
         }
     }

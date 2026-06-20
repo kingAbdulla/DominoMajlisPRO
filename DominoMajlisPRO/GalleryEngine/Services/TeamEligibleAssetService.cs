@@ -50,14 +50,6 @@ public static class TeamEligibleAssetService
                 }));
         }
 
-        if (!string.IsNullOrWhiteSpace(teamId))
-        {
-            var legacy =
-                await TeamAssetInventoryService.GetInventoryForTeamAsync(teamId);
-            result.AddRange(legacy.Where(item =>
-                item.IsOwned &&
-                !TeamAssetPayloadCatalog.IsDefaultTeamAsset(item.TeamAssetId)));
-        }
 
         return result
             .GroupBy(
