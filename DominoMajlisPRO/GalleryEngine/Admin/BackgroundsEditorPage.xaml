@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DominoMajlisPRO.GalleryEngine.Admin.BackgroundsEditorPage"
+ xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+ xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+ BackgroundColor="#030303"
+ NavigationPage.HasNavigationBar="False"
+ FlowDirection="RightToLeft">
+ <Grid>
+  <ScrollView VerticalScrollBarVisibility="Never">
+   <VerticalStackLayout Padding="16,18,16,28" Spacing="14">
+    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+     <Button Text="‹" Clicked="OnCancelClicked" />
+     <VerticalStackLayout Grid.Column="1" Spacing="1">
+      <Label x:Name="TitleLabel" Text="إدارة الخلفيات" FontSize="25" FontAttributes="Bold" HorizontalTextAlignment="End" />
+      <Label x:Name="SubtitleLabel" Text="إدارة خلفيات اللاعبين والمتجر" FontSize="12" HorizontalTextAlignment="End" />
+     </VerticalStackLayout>
+    </Grid>
+
+    <Border x:Name="ModeCard" Padding="12" StrokeThickness="1">
+     <Border.StrokeShape><RoundRectangle CornerRadius="18" /></Border.StrokeShape>
+     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+      <BoxView x:Name="ModeDot" WidthRequest="12" HeightRequest="12" CornerRadius="6" VerticalOptions="Center" />
+      <VerticalStackLayout Grid.Column="1">
+       <Label x:Name="ModeTitleLabel" FontAttributes="Bold" HorizontalTextAlignment="End" />
+       <Label x:Name="ModeSubtitleLabel" FontSize="11" HorizontalTextAlignment="End" />
+      </VerticalStackLayout>
+     </Grid>
+    </Border>
+
+    <Border x:Name="FormPanel" Padding="12" StrokeThickness="1">
+     <Border.StrokeShape><RoundRectangle CornerRadius="18" /></Border.StrokeShape>
+     <VerticalStackLayout Spacing="10">
+      <Entry x:Name="NameArEntry" Placeholder="الاسم بالعربية" />
+      <Entry x:Name="NameEnEntry" Placeholder="English name" />
+      <Editor x:Name="DescriptionEditor" Placeholder="الوصف" HeightRequest="78" />
+
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+       <Entry x:Name="ImagePathEntry" Placeholder="صورة الخلفية" IsReadOnly="True" />
+       <Button Grid.Column="1" Text="اختيار صورة" Clicked="OnPickImageClicked" />
+      </Grid>
+      <Image x:Name="ImagePreview" HeightRequest="150" Aspect="AspectFill" IsVisible="False" />
+
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+       <Entry x:Name="ThumbnailPathEntry" Placeholder="الصورة المصغرة" IsReadOnly="True" />
+       <Button Grid.Column="1" Text="اختيار مصغرة" Clicked="OnPickThumbnailClicked" />
+      </Grid>
+      <Image x:Name="ThumbnailPreview" HeightRequest="82" Aspect="AspectFill" IsVisible="False" />
+
+      <Picker x:Name="CategoryPicker" Title="التصنيف" />
+      <Picker x:Name="CollectionPicker" Title="المجموعة" />
+      <Picker x:Name="RarityPicker" Title="الندرة" />
+
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+       <Entry x:Name="PriceEntry" Placeholder="السعر" Keyboard="Numeric" />
+       <Picker x:Name="CurrencyPicker" Grid.Column="1" Title="العملة" />
+      </Grid>
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+       <Picker x:Name="UnlockTypePicker" Title="نوع الفتح" />
+       <HorizontalStackLayout Grid.Column="1" Spacing="6">
+        <Label x:Name="FreeLabel" Text="مجاني" VerticalTextAlignment="Center" />
+        <Switch x:Name="FreeSwitch" Toggled="OnFreeToggled" />
+       </HorizontalStackLayout>
+      </Grid>
+
+      <Picker x:Name="UnlockRequirementPicker" Title="متطلب الفتح" />
+      <Picker x:Name="TagPicker" Title="الوسم" />
+      <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+       <HorizontalStackLayout><Label x:Name="AnimatedLabel" Text="متحركة" /><Switch x:Name="AnimatedSwitch" /></HorizontalStackLayout>
+       <HorizontalStackLayout Grid.Column="1"><Label x:Name="LimitedLabel" Text="محدودة" /><Switch x:Name="LimitedSwitch" /></HorizontalStackLayout>
+       <HorizontalStackLayout Grid.Column="2"><Label x:Name="FeaturedLabel" Text="مميزة" /><Switch x:Name="FeaturedSwitch" /></HorizontalStackLayout>
+      </Grid>
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+       <Entry x:Name="FeaturedPriorityEntry" Placeholder="أولوية التمييز" Keyboard="Numeric" />
+       <Entry x:Name="SortOrderEntry" Grid.Column="1" Placeholder="ترتيب العرض" Keyboard="Numeric" />
+      </Grid>
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+       <Picker x:Name="SeasonIdPicker" Title="SeasonId" />
+       <Picker x:Name="EventIdPicker" Grid.Column="1" Title="EventId" />
+      </Grid>
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+       <Picker x:Name="CollectionIdPicker" Title="CollectionId" />
+       <Picker x:Name="VersionPicker" Grid.Column="1" Title="الإصدار" />
+      </Grid>
+      <Picker x:Name="StatusPicker" Title="الحالة" IsEnabled="False" />
+      <Label x:Name="ValidationLabel" IsVisible="False" HorizontalTextAlignment="End" />
+     </VerticalStackLayout>
+    </Border>
+
+    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+     <Button x:Name="SaveDraftButton" Text="حفظ كمسودة" Clicked="OnSaveDraftClicked" />
+     <Button x:Name="PublishButton" Grid.Column="1" Text="نشر" Clicked="OnPublishClicked" />
+     <Button Grid.Row="1" Text="إلغاء" Clicked="OnCancelClicked" />
+     <Button Grid.Row="1" Grid.Column="1" Text="المسودات" Clicked="OnDraftsClicked" />
+     <Button Grid.Row="2" Grid.ColumnSpan="2" Text="الخلفيات المنشورة" Clicked="OnPublishedClicked" />
+    </Grid>
+   </VerticalStackLayout>
+  </ScrollView>
+
+  <Grid x:Name="SheetOverlay" IsVisible="False" BackgroundColor="#99000000">
+   <Border x:Name="SheetPanel" Padding="14" StrokeThickness="1" VerticalOptions="End">
+    <Border.StrokeShape><RoundRectangle CornerRadius="24,24,0,0" /></Border.StrokeShape>
+    <VerticalStackLayout Spacing="10">
+     <Grid ColumnDefinitions="*,Auto">
+      <Label x:Name="SheetTitleLabel" FontSize="20" FontAttributes="Bold" />
+      <Button Grid.Column="1" Text="إغلاق" Clicked="OnCloseSheetClicked" />
+     </Grid>
+     <ScrollView MaximumHeightRequest="470">
+      <VerticalStackLayout x:Name="SheetList" Spacing="10" />
+     </ScrollView>
+    </VerticalStackLayout>
+   </Border>
+  </Grid>
+ </Grid>
+</ContentPage>

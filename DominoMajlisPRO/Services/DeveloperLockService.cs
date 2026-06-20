@@ -158,8 +158,12 @@ public static class DeveloperLockService
 
         await SaveAsync(model);
 
+        var activeUser = await ApplicationUserService.SetCurrentRoleAsync(
+            ApplicationUserRole.Developer,
+            legacyDeveloperId: model.DeveloperId);
+
         await EnsureDeveloperHonorIdentityAsync(
-            model.Username,
+            activeUser.DisplayName,
             "DEVELOPER_ACCOUNT_SETUP");
 
         await SecurityLogService.AddAsync(
@@ -215,8 +219,12 @@ public static class DeveloperLockService
 
         await SaveAsync(model);
 
+        var activeUser = await ApplicationUserService.SetCurrentRoleAsync(
+            ApplicationUserRole.Developer,
+            legacyDeveloperId: model.DeveloperId);
+
         await EnsureDeveloperHonorIdentityAsync(
-            model.Username,
+            activeUser.DisplayName,
             "DEVELOPER_ACCOUNT_LOGIN");
 
         await SecurityLogService.AddAsync(
@@ -386,8 +394,12 @@ public static class DeveloperLockService
 
         await SaveAsync(model);
 
+        var activeUser = await ApplicationUserService.SetCurrentRoleAsync(
+            ApplicationUserRole.Developer,
+            legacyDeveloperId: model.DeveloperId);
+
         await EnsureDeveloperHonorIdentityAsync(
-            model.Username,
+            activeUser.DisplayName,
             "DEVELOPER_RECOVERY_CODE");
 
         await SecurityLogService.AddAsync(
@@ -558,8 +570,12 @@ public static class DeveloperLockService
 
         await SaveAsync(model);
 
+        var activeUser = await ApplicationUserService.SetCurrentRoleAsync(
+            ApplicationUserRole.Developer,
+            legacyDeveloperId: model.DeveloperId);
+
         await EnsureDeveloperHonorIdentityAsync(
-            model.Username,
+            activeUser.DisplayName,
             "DEVELOPER_PASSWORD_SET");
 
         await SecurityLogService.AddAsync(

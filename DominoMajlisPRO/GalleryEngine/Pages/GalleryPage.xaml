@@ -1,47 +1,180 @@
-<?xml version="1.0" encoding="utf-8" ?>
-
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="DominoMajlisPRO.GalleryEngine.Pages.GalleryPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:components="clr-namespace:DominoMajlisPRO.GalleryEngine.Components"
-    BackgroundColor="#101010"
-    NavigationPage.HasNavigationBar="False">
+    xmlns:sections="clr-namespace:DominoMajlisPRO.GalleryEngine.Components.StoreSections"
+    BackgroundColor="#030303"
+    NavigationPage.HasNavigationBar="False"
+    FlowDirection="RightToLeft">
 
-    <Grid>
+    <Grid RowDefinitions="*,Auto">
 
-        <ScrollView>
+        <ScrollView Grid.Row="0"
+                    VerticalScrollBarVisibility="Never">
 
             <VerticalStackLayout
-                Padding="18,18,18,40"
-                Spacing="20">
+                Padding="12,12,12,108"
+                Spacing="12">
 
-                <!-- Hero Banner -->
-
-                <components:HeroBannerView
-                    x:Name="HeroBanner"/>
-
-                <!-- Wallet -->
-
-                <Grid
-                    ColumnDefinitions="*,*"
-                    ColumnSpacing="12">
-
-                </Grid>
-
-                <!-- Categories -->
+                <sections:PremiumStoreHeaderView
+                    x:Name="StoreHeader"
+                    SeasonSwitchRequested="OnSeasonSwitchTestClicked"
+                    CartRequested="OnCartRequested"
+                    CoinsRequested="OnCoinsRequested"
+                    GemsRequested="OnGemsRequested"
+                    IdentityRequested="OnIdentityRequested" />
 
                 <VerticalStackLayout
-                    x:Name="CategoriesContainer"/>
+                    x:Name="HomeTopContent"
+                    Spacing="12">
+                    <sections:HeroSliderView
+                        x:Name="HeroSlider" />
 
-                <!-- Featured Products -->
+                    <sections:QuickActionsView
+                        x:Name="QuickActions"
+                        ActionRequested="OnQuickActionRequested" />
+                </VerticalStackLayout>
+
+                <sections:CategoriesSectionView
+                    x:Name="CategoriesSection"
+                    CategorySelected="OnCategorySelected"
+                    ShowAllRequested="OnBrowseCategoriesShowAllRequested" />
 
                 <VerticalStackLayout
-                    x:Name="FeaturedProductsContainer"/>
+                    x:Name="HomeContent"
+                    Spacing="12">
+                    <sections:NewArrivalsSectionView
+                        x:Name="NewArrivalsSection"
+                        ShowAllRequested="OnNewArrivalsShowAllRequested" />
+
+                    <sections:LimitedOffersSectionView
+                        x:Name="LimitedOffersSection"
+                        ShowAllRequested="OnLimitedOffersShowAllRequested" />
+
+                    <sections:BrowseCategoriesSectionView
+                        x:Name="BrowseCategoriesSection"
+                        ShowAllRequested="OnBrowseCategoriesShowAllRequested"
+                        CategorySelected="OnBrowseCategorySelected" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout
+                    x:Name="SectionContentRoot"
+                    IsVisible="False"
+                    Opacity="0"
+                    Spacing="12">
+
+                    <ContentView x:Name="SelectedSectionHost" />
+
+                    <Border
+                        x:Name="SectionMessageCard"
+                        IsVisible="False"
+                        Padding="20"
+                        Background="#15120D"
+                        Stroke="#B98A3A"
+                        StrokeThickness="1">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <Label
+                            x:Name="SectionMessageLabel"
+                            FontFamily="Tajawal-Regular"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            TextColor="#E7C979"
+                            HorizontalTextAlignment="Center" />
+                    </Border>
+
+                    <Button
+                        x:Name="ShowMoreButton"
+                        IsVisible="False"
+                        Text="عرض المزيد"
+                        Clicked="OnShowMoreClicked"
+                        FontFamily="Tajawal-Regular"
+                        FontAttributes="Bold"
+                        TextColor="#E7C979"
+                        BackgroundColor="#15120D"
+                        BorderColor="#B98A3A"
+                        BorderWidth="1"
+                        CornerRadius="16"
+                        HeightRequest="44" />
+                </VerticalStackLayout>
+
+                <sections:StoreFooterView />
 
             </VerticalStackLayout>
 
         </ScrollView>
+
+        <sections:StoreBottomNavigationView
+            x:Name="BottomNavigation"
+            TabRequested="OnBottomTabRequested"
+            Grid.Row="1" />
+
+        <Grid
+            x:Name="PlaceholderOverlay"
+            Grid.RowSpan="2"
+            ZIndex="100"
+            IsVisible="False"
+            Opacity="0"
+            Padding="18"
+            BackgroundColor="#D9000000"
+            InputTransparent="False"
+            CascadeInputTransparent="False"
+            FlowDirection="RightToLeft">
+
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnPlaceholderBackdropTapped" />
+            </Grid.GestureRecognizers>
+
+            <Border
+                VerticalOptions="Center"
+                HorizontalOptions="Fill"
+                MaximumWidthRequest="520"
+                Padding="22"
+                Background="#0D0B08"
+                Stroke="#C89B45"
+                StrokeThickness="1.2">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="22" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="14">
+                    <Label
+                        x:Name="PlaceholderTitleLabel"
+                        FontFamily="Tajawal-Regular"
+                        FontSize="21"
+                        FontAttributes="Bold"
+                        TextColor="#E7C979"
+                        HorizontalTextAlignment="Center" />
+
+                    <Label
+                        x:Name="PlaceholderBalanceLabel"
+                        IsVisible="False"
+                        FontFamily="Tajawal-Regular"
+                        FontSize="15"
+                        TextColor="#F3E5BD"
+                        HorizontalTextAlignment="Center" />
+
+                    <Label
+                        x:Name="PlaceholderMessageLabel"
+                        FontFamily="Tajawal-Regular"
+                        FontSize="15"
+                        TextColor="#D8D0C2"
+                        HorizontalTextAlignment="Center" />
+
+                    <Button
+                        Text="إغلاق"
+                        Clicked="OnClosePlaceholderClicked"
+                        FontFamily="Tajawal-Regular"
+                        FontAttributes="Bold"
+                        TextColor="#090806"
+                        BackgroundColor="#D4AF5A"
+                        CornerRadius="16"
+                        HeightRequest="46" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
 
     </Grid>
 

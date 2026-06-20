@@ -1,0 +1,264 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DominoMajlisPRO.GalleryEngine.Admin.CurrentSeasonEditorPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    BackgroundColor="#030303"
+    NavigationPage.HasNavigationBar="False"
+    FlowDirection="RightToLeft">
+
+    <Grid>
+        <ScrollView VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout Padding="16,18,16,28" Spacing="14">
+
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <Border
+                        x:Name="BackButtonFrame"
+                        WidthRequest="42"
+                        HeightRequest="42"
+                        StrokeThickness="1">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnCancelTapped" />
+                        </Border.GestureRecognizers>
+                        <Label
+                            x:Name="BackButtonLabel"
+                            Text="‹"
+                            FontSize="28"
+                            FontAttributes="Bold"
+                            HorizontalTextAlignment="Center"
+                            VerticalTextAlignment="Center" />
+                    </Border>
+
+                    <VerticalStackLayout Grid.Column="1" Spacing="1">
+                        <Label
+                            x:Name="TitleLabel"
+                            Text="إدارة الموسم الحالي"
+                            FontFamily="Tajawal-Regular"
+                            FontSize="25"
+                            FontAttributes="Bold"
+                            HorizontalTextAlignment="End" />
+                        <Label
+                            x:Name="SubtitleLabel"
+                            Text="قالب Season Hero مع حدود نص وصورة آمنة"
+                            FontFamily="Tajawal-Regular"
+                            FontSize="12"
+                            HorizontalTextAlignment="End" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <Border x:Name="ModeCard" Padding="12" StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <BoxView
+                            x:Name="ModeDot"
+                            WidthRequest="12"
+                            HeightRequest="12"
+                            CornerRadius="6"
+                            VerticalOptions="Center" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="1">
+                            <Label
+                                x:Name="ModeTitleLabel"
+                                FontFamily="Tajawal-Regular"
+                                FontSize="14"
+                                FontAttributes="Bold"
+                                HorizontalTextAlignment="End" />
+                            <Label
+                                x:Name="ModeSubtitleLabel"
+                                FontFamily="Tajawal-Regular"
+                                FontSize="11"
+                                HorizontalTextAlignment="End" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="PublishedCard" Padding="12" StrokeThickness="1" IsVisible="False">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="86,*" ColumnSpacing="12">
+                        <Border StrokeThickness="1" HeightRequest="70" WidthRequest="86">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Image x:Name="PublishedImage" Aspect="AspectFill" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label
+                                x:Name="PublishedStatusLabel"
+                                Text="Published"
+                                FontFamily="Tajawal-Regular"
+                                FontSize="11"
+                                FontAttributes="Bold"
+                                HorizontalTextAlignment="End" />
+                            <Label
+                                x:Name="PublishedTitleLabel"
+                                FontFamily="Tajawal-Regular"
+                                FontSize="16"
+                                FontAttributes="Bold"
+                                MaxLines="1"
+                                LineBreakMode="TailTruncation"
+                                HorizontalTextAlignment="End" />
+                            <Label
+                                x:Name="PublishedDateLabel"
+                                FontFamily="Tajawal-Regular"
+                                FontSize="11"
+                                HorizontalTextAlignment="End" />
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                <Button Text="تعديل" Clicked="OnEditPublishedClicked" />
+                                <Button Grid.Column="1" Text="إخفاء" Clicked="OnHidePublishedClicked" />
+                                <Button Grid.Column="2" Text="حذف النشر" Clicked="OnDeletePublishedClicked" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="PreviewCard" Padding="0" StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Grid HeightRequest="170">
+                        <Image
+                            x:Name="SeasonImagePreview"
+                            Aspect="AspectFill"
+                            IsVisible="False" />
+                        <BoxView x:Name="PreviewOverlay" Opacity="0.72" />
+                        <VerticalStackLayout
+                            Padding="14"
+                            Spacing="4"
+                            VerticalOptions="Center">
+                            <Label
+                                x:Name="PreviewTitleLabel"
+                                Text="اسم الموسم"
+                                FontFamily="Tajawal-Regular"
+                                FontSize="22"
+                                FontAttributes="Bold"
+                                MaxLines="1"
+                                LineBreakMode="TailTruncation"
+                                HorizontalTextAlignment="End" />
+                            <Label
+                                x:Name="PreviewSubtitleLabel"
+                                Text="العنوان"
+                                FontFamily="Tajawal-Regular"
+                                FontSize="14"
+                                MaxLines="1"
+                                LineBreakMode="TailTruncation"
+                                HorizontalTextAlignment="End" />
+                            <Label
+                                x:Name="PreviewDescriptionLabel"
+                                Text="الوصف"
+                                FontFamily="Tajawal-Regular"
+                                FontSize="11"
+                                MaxLines="2"
+                                LineBreakMode="TailTruncation"
+                                HorizontalTextAlignment="End" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="FormPanel" Padding="12" StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <Entry x:Name="SeasonNameEntry" Placeholder="اسم الموسم" TextChanged="OnTextFieldChanged" />
+                        <Label x:Name="SeasonNameCounterLabel" FontSize="10" HorizontalTextAlignment="End" />
+
+                        <Entry x:Name="SeasonTitleEntry" Placeholder="العنوان" TextChanged="OnTextFieldChanged" />
+                        <Label x:Name="SeasonTitleCounterLabel" FontSize="10" HorizontalTextAlignment="End" />
+
+                        <Editor x:Name="DescriptionEditor" Placeholder="الوصف" AutoSize="TextChanges" HeightRequest="86" TextChanged="OnTextFieldChanged" />
+                        <Label x:Name="DescriptionCounterLabel" FontSize="10" HorizontalTextAlignment="End" />
+
+                        <Entry x:Name="ButtonTextEntry" Placeholder="نص الزر" TextChanged="OnTextFieldChanged" />
+                        <Label x:Name="ButtonTextCounterLabel" FontSize="10" HorizontalTextAlignment="End" />
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Entry x:Name="ImagePathEntry" Placeholder="صورة الموسم" IsReadOnly="True" />
+                            <Button Grid.Column="1" Text="اختيار صورة" Clicked="OnPickImageClicked" />
+                        </Grid>
+
+                        <Picker x:Name="StatusPicker" Title="الحالة: Draft / Published / Hidden" IsEnabled="False" />
+
+                        <Label x:Name="ValidationLabel" FontSize="11" IsVisible="False" HorizontalTextAlignment="End" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                    <Button Text="حفظ كمسودة" Clicked="OnSaveDraftClicked" />
+                    <Button x:Name="PublishButton" Grid.Column="1" Text="نشر" Clicked="OnPublishClicked" />
+                    <Button Grid.Row="1" Text="إلغاء" Clicked="OnCancelTapped" />
+                    <Button Grid.Row="1" Grid.Column="1" Text="المسودات" Clicked="OnOpenDraftsClicked" />
+                    <Button x:Name="SaveChangesButton" Grid.Row="2" Text="حفظ التعديل" IsVisible="False" Clicked="OnSaveChangesClicked" />
+                    <Button Grid.Row="2" Grid.Column="1" Text="المواسم المنشورة" Clicked="OnOpenPublishedSeasonsClicked" />
+                    <Button Grid.Row="3" Grid.ColumnSpan="2" Text="موسم جديد" Clicked="OnNewSeasonClicked" />
+                </Grid>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid x:Name="DraftsSheetOverlay" IsVisible="False" BackgroundColor="#99000000">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnCloseDraftsSheetTapped" />
+            </Grid.GestureRecognizers>
+            <Border
+                x:Name="DraftsSheet"
+                Padding="14"
+                StrokeThickness="1"
+                VerticalOptions="End">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="24,24,0,0" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label
+                            x:Name="DraftsSheetTitleLabel"
+                            Text="المسودات"
+                            FontFamily="Tajawal-Regular"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            HorizontalTextAlignment="End" />
+                        <Button Grid.Column="1" Text="إغلاق" Clicked="OnCloseDraftsSheetClicked" />
+                    </Grid>
+                    <ScrollView MaximumHeightRequest="430">
+                        <VerticalStackLayout x:Name="DraftsList" Spacing="10" />
+                    </ScrollView>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <Grid x:Name="PublishedSeasonsSheetOverlay" IsVisible="False" BackgroundColor="#99000000">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnClosePublishedSeasonsSheetTapped" />
+            </Grid.GestureRecognizers>
+            <Border
+                x:Name="PublishedSeasonsSheet"
+                Padding="14"
+                StrokeThickness="1"
+                VerticalOptions="End">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="24,24,0,0" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label
+                            x:Name="PublishedSeasonsSheetTitleLabel"
+                            Text="المواسم المنشورة"
+                            FontFamily="Tajawal-Regular"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            HorizontalTextAlignment="End" />
+                        <Button Grid.Column="1" Text="إغلاق" Clicked="OnClosePublishedSeasonsSheetClicked" />
+                    </Grid>
+                    <ScrollView MaximumHeightRequest="430">
+                        <VerticalStackLayout x:Name="PublishedSeasonsList" Spacing="10" />
+                    </ScrollView>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

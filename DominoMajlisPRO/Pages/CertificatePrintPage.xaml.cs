@@ -1,5 +1,6 @@
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
+using DominoMajlisPRO.GalleryEngine.Services;
 using PdfSharpCore.Drawing;
 using PdfSharpCore.Pdf;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
@@ -89,22 +90,26 @@ public partial class CertificatePrintPage : ContentPage
 
         var team1 =
             await TeamProfileService
-                .GetTeamAsync(match.Team1Name);
+                .GetTeamAsync(match.Team1Id);
 
         var team2 =
             await TeamProfileService
-                .GetTeamAsync(match.Team2Name);
+                .GetTeamAsync(match.Team2Id);
 
         if (team1 != null)
         {
             PrintTeam1Emblem.Source =
-                team1.Emblem;
+                InventoryDisplayResolver.ResolveImageSource(
+                    team1.Emblem,
+                    "shield_3d.png");
         }
 
         if (team2 != null)
         {
             PrintTeam2Emblem.Source =
-                team2.Emblem;
+                InventoryDisplayResolver.ResolveImageSource(
+                    team2.Emblem,
+                    "shield_3d.png");
         }
        
     }

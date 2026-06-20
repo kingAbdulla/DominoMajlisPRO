@@ -8,7 +8,7 @@
     NavigationPage.HasNavigationBar="False"
     FlowDirection="RightToLeft">
 
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid RowDefinitions="Auto,*">
 
         <!-- HEADER -->
         <Grid
@@ -60,36 +60,385 @@
 
         </Grid>
 
-        <!-- SEARCH -->
-        <Border
-            Grid.Row="1"
-            Margin="16,4,16,10"
-            BackgroundColor="#101010"
-            Stroke="#8A5B27"
-            StrokeThickness="1"
-            Padding="10"
-            StrokeShape="RoundRectangle 18">
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16,4,16,24" Spacing="12">
 
-            <Entry
-                x:Name="SearchEntry"
-                Placeholder="ابحث عن لاعب..."
-                PlaceholderColor="#777777"
-                TextColor="White"
-                BackgroundColor="Transparent"
-                TextChanged="OnSearchChanged"/>
+                <!-- ACCOUNT HUB -->
+                <Border
+                    x:Name="AccountHubBorder"
+                    BackgroundColor="#0D0D0D"
+                    Stroke="#D4AF37"
+                    StrokeThickness="1.4"
+                    Padding="0"
+                    StrokeShape="RoundRectangle 26">
 
-        </Border>
+                    <VerticalStackLayout Spacing="0">
+                        <Grid
+                            x:Name="AccountHubHeaderSurface"
+                            Padding="14"
+                            ColumnDefinitions="Auto,*,Auto"
+                            BackgroundColor="#15120B">
+                            <Image
+                                x:Name="AccountProfileBackgroundImage"
+                                Grid.ColumnSpan="3"
+                                Aspect="AspectFill"
+                                Opacity="0.34"
+                                InputTransparent="True"
+                                IsVisible="False"/>
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnAccountHubHeaderTapped"/>
+                            </Grid.GestureRecognizers>
 
-        <!-- PLAYERS -->
-        <ScrollView Grid.Row="2">
+                            <Border
+                                x:Name="AccountAvatarFrame"
+                                WidthRequest="68"
+                                HeightRequest="68"
+                                BackgroundColor="#181818"
+                                Stroke="#D4AF37"
+                                StrokeThickness="2"
+                                StrokeShape="RoundRectangle 34">
+                                <Grid>
+                                    <Image
+                                        x:Name="AccountAvatarImage"
+                                        Source="normal_avatar_1.png"
+                                        Aspect="AspectFill"/>
+                                    <Image
+                                        x:Name="AccountAvatarFrameOverlay"
+                                        Aspect="AspectFit"
+                                        InputTransparent="True"
+                                        IsVisible="False"/>
+                                    <Image
+                                        x:Name="AccountAvatarEffectOverlay"
+                                        Aspect="AspectFit"
+                                        InputTransparent="True"
+                                        IsVisible="False"/>
+                                </Grid>
+                            </Border>
 
-            <VerticalStackLayout
-                x:Name="PlayersContainer"
-                Padding="16,4,16,24"
-                Spacing="12"/>
+                            <VerticalStackLayout
+                                Grid.Column="1"
+                                Margin="12,0"
+                                Spacing="3"
+                                VerticalOptions="Center">
+                                <Label
+                                    Text="ACCOUNT HUB"
+                                    TextColor="#D4AF37"
+                                    FontSize="11"
+                                    FontAttributes="Bold"/>
+                                <Label
+                                    x:Name="AccountDisplayNameLabel"
+                                    Text="Guest"
+                                    TextColor="White"
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    LineBreakMode="TailTruncation"/>
+                                <Label
+                                    x:Name="AccountRoleSessionLabel"
+                                    Text="Ghost • ضيف"
+                                    TextColor="#C8B58A"
+                                    FontSize="12"/>
+                            </VerticalStackLayout>
 
+                            <Label
+                                x:Name="AccountHubArrowLabel"
+                                Grid.Column="2"
+                                Text="⌃"
+                                TextColor="#D4AF37"
+                                FontSize="20"
+                                VerticalOptions="Center"/>
+                        </Grid>
+
+                        <VerticalStackLayout
+                            x:Name="AccountHubContent"
+                            Padding="14,12,14,14"
+                            Spacing="10">
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Border
+                                    BackgroundColor="#151515"
+                                    Stroke="#343434"
+                                    Padding="10"
+                                    StrokeShape="RoundRectangle 14">
+                                    <VerticalStackLayout Spacing="3">
+                                        <Label Text="ApplicationUserId" TextColor="#8E8E8E" FontSize="10"/>
+                                        <Label x:Name="IdentityUserIdLabel" Text="—" TextColor="White" FontSize="12"/>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <Border
+                                    Grid.Column="1"
+                                    BackgroundColor="#151515"
+                                    Stroke="#343434"
+                                    Padding="10"
+                                    StrokeShape="RoundRectangle 14">
+                                    <VerticalStackLayout Spacing="3">
+                                        <Label Text="PlayerId" TextColor="#8E8E8E" FontSize="10"/>
+                                        <Label x:Name="IdentityPlayerIdLabel" Text="—" TextColor="White" FontSize="12"/>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+
+                            <Label
+                                Text="إدارة الحساب"
+                                TextColor="#D4AF37"
+                                FontSize="13"
+                                FontAttributes="Bold"/>
+
+                            <FlexLayout
+                                x:Name="RegisteredAccountControls"
+                                Direction="Row"
+                                Wrap="Wrap"
+                                JustifyContent="Start"
+                                AlignItems="Center">
+                                <Button
+                                    x:Name="ViewProfileButton"
+                                    Text="عرض الملف الشخصي"
+                                    Clicked="OnViewProfileClicked"
+                                    Margin="0,0,6,6"
+                                    BackgroundColor="#1D1D1D"
+                                    TextColor="#D4AF37"/>
+                                <Button
+                                    x:Name="SwitchIdentityButton"
+                                    Text="تبديل الحساب"
+                                    Clicked="OnSwitchIdentityClicked"
+                                    Margin="0,0,6,6"
+                                    BackgroundColor="#292929"
+                                    TextColor="#D4AF37"/>
+                                <Button
+                                    x:Name="LogoutIdentityButton"
+                                    Text="تسجيل الخروج"
+                                    Clicked="OnLogoutIdentityClicked"
+                                    Margin="0,0,6,6"
+                                    BackgroundColor="#7A1F1F"
+                                    TextColor="White"/>
+                            </FlexLayout>
+
+                            <FlexLayout
+                                x:Name="GuestAccountControls"
+                                Direction="Row"
+                                Wrap="Wrap"
+                                JustifyContent="Start"
+                                AlignItems="Center">
+                                <Button
+                                    x:Name="LoginIdentityButton"
+                                    Text="تسجيل الدخول"
+                                    Clicked="OnLoginIdentityClicked"
+                                    Margin="0,0,6,6"
+                                    BackgroundColor="#D4AF37"
+                                    TextColor="Black"
+                                    FontAttributes="Bold"/>
+                                <Button
+                                    x:Name="CreateIdentityButton"
+                                    Text="إنشاء حساب جديد"
+                                    Clicked="OnCreateIdentityClicked"
+                                    Margin="0,0,6,6"
+                                    BackgroundColor="#292929"
+                                    TextColor="#D4AF37"/>
+                                <Button
+                                    x:Name="ContinueGuestButton"
+                                    Text="الدخول كضيف"
+                                    Clicked="OnContinueGuestClicked"
+                                    Margin="0,0,6,6"
+                                    BackgroundColor="#1D1D1D"
+                                    TextColor="White"/>
+                            </FlexLayout>
+
+                            <Label
+                                x:Name="MissingPlayerIdLabel"
+                                Text="لا يوجد ملف لاعب مرتبط بهذا الحساب بعد."
+                                IsVisible="False"
+                                TextColor="#C8B58A"
+                                FontSize="12"/>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- COLLECTION PROGRESS -->
+                <Border
+                    BackgroundColor="#0D0D0D"
+                    Stroke="#8A5B27"
+                    StrokeThickness="1.2"
+                    Padding="0"
+                    StrokeShape="RoundRectangle 24">
+                    <VerticalStackLayout Spacing="0">
+                        <Grid
+                            Padding="14"
+                            ColumnDefinitions="*,Auto"
+                            BackgroundColor="#12100C">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnCollectionHeaderTapped"/>
+                            </Grid.GestureRecognizers>
+                            <VerticalStackLayout Spacing="2">
+                                <Label
+                                    Text="المقتنيات"
+                                    TextColor="#D4AF37"
+                                    FontSize="18"
+                                    FontAttributes="Bold"/>
+                                <Label
+                                    Text="Collection Progress"
+                                    TextColor="#8E7B50"
+                                    FontSize="11"/>
+                            </VerticalStackLayout>
+                            <Label
+                                x:Name="CollectionArrowLabel"
+                                Grid.Column="1"
+                                Text="⌃"
+                                TextColor="#D4AF37"
+                                FontSize="20"
+                                VerticalOptions="Center"/>
+                        </Grid>
+
+                        <VerticalStackLayout
+                            x:Name="CollectionContent"
+                            Padding="14,10,14,14"
+                            Spacing="10">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                <Label
+                                    x:Name="CollectionTotalLabel"
+                                    Text="0 / 0"
+                                    TextColor="White"
+                                    FontSize="26"
+                                    FontAttributes="Bold"/>
+                                <Label
+                                    x:Name="CollectionPercentLabel"
+                                    Grid.Column="1"
+                                    Text="0%"
+                                    TextColor="#D4AF37"
+                                    FontSize="25"
+                                    FontAttributes="Bold"/>
+                                <Label
+                                    x:Name="CollectionRemainingLabel"
+                                    Grid.Row="1"
+                                    Grid.ColumnSpan="2"
+                                    Text="المتبقي: 0"
+                                    TextColor="#B8B8B8"
+                                    FontSize="12"/>
+                            </Grid>
+
+                            <ProgressBar
+                                x:Name="CollectionProgressBar"
+                                Progress="0"
+                                ProgressColor="#D4AF37"
+                                BackgroundColor="#292929"
+                                HeightRequest="9"/>
+
+                            <Grid
+                                x:Name="CollectionBreakdownGrid"
+                                ColumnDefinitions="*,*"
+                                RowDefinitions="Auto,Auto,Auto"
+                                ColumnSpacing="8"
+                                RowSpacing="8">
+                                <Label x:Name="AvatarsProgressLabel" Text="Avatars 0/0" TextColor="White"/>
+                                <Label x:Name="BackgroundsProgressLabel" Grid.Column="1" Text="Profile Backgrounds 0/0" TextColor="White"/>
+                                <Label x:Name="EmblemsProgressLabel" Grid.Row="1" Text="Emblems 0/0" TextColor="White"/>
+                                <Label x:Name="TeamColorsProgressLabel" Grid.Row="1" Grid.Column="1" Text="Team Colors 0/0" TextColor="White"/>
+                                <Label x:Name="EmblemBackgroundsProgressLabel" Grid.Row="2" Text="Emblem Backgrounds 0/0" TextColor="White"/>
+                                <Label x:Name="FramesEffectsProgressLabel" Grid.Row="2" Grid.Column="1" Text="Frames / Effects 0/0" TextColor="#8E8E8E"/>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- INVENTORY / MY ITEMS -->
+                <Border
+                    BackgroundColor="#11100D"
+                    Stroke="#D4AF37"
+                    StrokeThickness="1.2"
+                    Padding="14"
+                    StrokeShape="RoundRectangle 22">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnMyItemsTapped"/>
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                        <Label
+                            Text="🎒"
+                            FontSize="28"
+                            VerticalOptions="Center"/>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label
+                                Text="مقتنياتي"
+                                TextColor="#D4AF37"
+                                FontSize="18"
+                                FontAttributes="Bold"/>
+                            <Label
+                                Text="العناصر المملوكة والتجهيز"
+                                TextColor="#999999"
+                                FontSize="11"/>
+                        </VerticalStackLayout>
+                        <Label
+                            Grid.Column="2"
+                            Text="‹"
+                            TextColor="#D4AF37"
+                            FontSize="26"
+                            VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- SEARCH -->
+                <Border
+                    BackgroundColor="#101010"
+                    Stroke="#8A5B27"
+                    StrokeThickness="1"
+                    Padding="10"
+                    StrokeShape="RoundRectangle 18">
+                    <Entry
+                        x:Name="SearchEntry"
+                        Placeholder="ابحث عن لاعب..."
+                        PlaceholderColor="#777777"
+                        TextColor="White"
+                        BackgroundColor="Transparent"
+                        TextChanged="OnSearchChanged"/>
+                </Border>
+
+                <VerticalStackLayout
+                    x:Name="PlayersContainer"
+                    Spacing="12"/>
+            </VerticalStackLayout>
         </ScrollView>
-     
+
+        <Grid
+            x:Name="InventoryOverlay"
+            Grid.RowSpan="2"
+            IsVisible="False"
+            BackgroundColor="#B3000000">
+            <Border
+                VerticalOptions="End"
+                MaximumHeightRequest="650"
+                BackgroundColor="#0D0D0D"
+                Stroke="#D4AF37"
+                StrokeThickness="1.4"
+                Padding="16,14,16,22"
+                StrokeShape="RoundRectangle 26,26,0,0">
+                <Grid RowDefinitions="Auto,*" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="2">
+                            <Label
+                                Text="🎒 مقتنياتي"
+                                TextColor="#D4AF37"
+                                FontSize="22"
+                                FontAttributes="Bold"/>
+                            <Label
+                                x:Name="InventoryOwnerLabel"
+                                Text="العناصر المملوكة فقط"
+                                TextColor="#999999"
+                                FontSize="11"/>
+                        </VerticalStackLayout>
+                        <Button
+                            Grid.Column="1"
+                            Text="إغلاق"
+                            Clicked="OnCloseInventoryClicked"
+                            BackgroundColor="#242424"
+                            TextColor="White"/>
+                    </Grid>
+
+                    <ScrollView Grid.Row="1">
+                        <VerticalStackLayout
+                            x:Name="InventoryItemsContainer"
+                            Spacing="12"/>
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </Grid>
 
     </Grid>
 

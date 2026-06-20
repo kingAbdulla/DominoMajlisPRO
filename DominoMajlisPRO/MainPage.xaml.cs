@@ -1,4 +1,7 @@
 ﻿using DominoMajlisPRO.Models;
+using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Pages;
+using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -8,6 +11,7 @@ namespace DominoMajlisPRO;
 
 public partial class MainPage : ContentPage
 {
+    const string DefaultHeaderAvatar = "normal_avatar_1.png";
 
 
     List<TeamProfileModel> allTeams = new();
@@ -15,6 +19,19 @@ public partial class MainPage : ContentPage
     const int MaxRecentTeams = 5;
     TeamProfileModel? selectedTeam1;
     TeamProfileModel? selectedTeam2;
+    readonly Dictionary<string, TeamIdentityModel> liveTeamIdentities =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    sealed class TeamPickerVisualItem
+    {
+        public required TeamProfileModel Team { get; init; }
+        public ImageSource Emblem { get; init; } =
+            InventoryDisplayResolver.ResolveImageSource(
+                "shield_3d.png");
+        public string TeamName => Team.TeamName;
+        public string Player1 => Team.Player1;
+        public string Player2 => Team.Player2;
+    }
 
     bool isSelectingTeam1 = true;
 
@@ -33,7 +50,7 @@ public partial class MainPage : ContentPage
 
 
 
-    string selectedRules = "عالــــــمي";
+    string selectedRules = "عالمي";
 
 
     // =========================
@@ -41,6 +58,8 @@ public partial class MainPage : ContentPage
     // =========================
     CancellationTokenSource? logoPressToken;
     bool logoPressed = false;
+    bool identityChoiceShowing;
+    int headerRefreshVersion;
 
 
     public MainPage()
@@ -67,12 +86,21 @@ public partial class MainPage : ContentPage
         AppEvents.TeamsChanged -= OnAppDataChanged;
         AppEvents.MatchesChanged -= OnAppDataChanged;
         AppEvents.RankingsChanged -= OnAppDataChanged;
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.StoreEconomyChanged -= OnStoreEconomyChanged;
+        AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
 
         AppEvents.DataChanged += OnAppDataChanged;
         AppEvents.PlayerProfileChanged += OnMainProfileChanged;
         AppEvents.TeamsChanged += OnAppDataChanged;
         AppEvents.MatchesChanged += OnAppDataChanged;
         AppEvents.RankingsChanged += OnAppDataChanged;
+        AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
+        AppEvents.StoreEconomyChanged += OnStoreEconomyChanged;
+        AppEvents.CurrentUserChanged += OnCurrentUserChanged;
+
+        if (await ApplicationUserService.RequiresIdentityChoiceAsync())
+            await ShowIdentityLoginRegisterFlowAsync();
 
         UpdateMainSeasonCard();
 
@@ -81,9 +109,11 @@ public partial class MainPage : ContentPage
 
         await RefreshSelectedTeamsFromIds();
 
+        await RefreshLiveTeamVisualsAsync();
         UpdateMatchPreview();
 
         await RefreshProfileStatus();
+        await RefreshHeaderPlayerAsync();
     }
     // =========================
     // PAGE LIFECYCLE - DISAPPEARING
@@ -97,6 +127,9 @@ public partial class MainPage : ContentPage
         AppEvents.TeamsChanged -= OnAppDataChanged;
         AppEvents.MatchesChanged -= OnAppDataChanged;
         AppEvents.RankingsChanged -= OnAppDataChanged;
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.StoreEconomyChanged -= OnStoreEconomyChanged;
+        AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
     }
     // =========================
     // PAGE LIFECYCLE - PROFILE STATUS
@@ -119,17 +152,17 @@ public partial class MainPage : ContentPage
         if (allTeams.Count >= 1)
         {
             selectedTeam1 = allTeams[0];
-            UpdateTeam1Card();
+            await UpdateTeam1Card();
         }
 
         if (allTeams.Count >= 2)
         {
             selectedTeam2 = allTeams[1];
-            UpdateTeam2Card();
+            await UpdateTeam2Card();
         }
     }
     //Team Card1
-    void UpdateTeam1Card()
+    async Task UpdateTeam1Card()
     {
         if (selectedTeam1 == null)
             return;
@@ -138,10 +171,11 @@ public partial class MainPage : ContentPage
         PreviewTeam1PlayersLabel.Text =
             $"{selectedTeam1.Player1} - {selectedTeam1.Player2}";
 
+        await RefreshLiveTeamIdentityAsync(selectedTeam1);
         PreviewTeam1Logo.Source =
-     selectedTeam1.Emblem;
+            ResolveStoredImage(GetLiveEmblem(selectedTeam1));
         var color =
-      GetTeamColor(selectedTeam1.ColorHex);
+            GetTeamColor(GetLiveTeamColor(selectedTeam1));
 
         PreviewTeam1NameLabel.TextColor = Colors.Gold;
         PreviewTeam1PlayersLabel.TextColor = Colors.Gold;
@@ -186,8 +220,7 @@ public partial class MainPage : ContentPage
                         r.TeamId == x.TeamId)))
             .ToList();
 
-        TeamPickerCollection.ItemsSource =
-            filteredTeams;
+        await SetTeamPickerItemsAsync(filteredTeams);
 
         TeamPickerSearchEntry.Text = "";
         NoSearchResultsLabel.IsVisible = false;
@@ -225,8 +258,7 @@ public partial class MainPage : ContentPage
                  r.TeamId == x.TeamId)))
      .ToList();
 
-        TeamPickerCollection.ItemsSource =
-            filteredTeams;
+        await SetTeamPickerItemsAsync(filteredTeams);
 
         TeamPickerSearchEntry.Text = "";
         NoSearchResultsLabel.IsVisible = false;
@@ -235,7 +267,7 @@ public partial class MainPage : ContentPage
 
     //Team Card2
 
-    void UpdateTeam2Card()
+    async Task UpdateTeam2Card()
     {
         if (selectedTeam2 == null)
             return;
@@ -246,8 +278,9 @@ public partial class MainPage : ContentPage
         PreviewTeam2PlayersLabel.Text =
             $"{selectedTeam2.Player1} - {selectedTeam2.Player2}";
 
+        await RefreshLiveTeamIdentityAsync(selectedTeam2);
         PreviewTeam2Logo.Source =
-            selectedTeam2.Emblem;
+            ResolveStoredImage(GetLiveEmblem(selectedTeam2));
 
         UpdateMatchPreview();
     }
@@ -263,10 +296,10 @@ public partial class MainPage : ContentPage
             $"{selectedTeam1.TeamName} VS {selectedTeam2.TeamName}";
 
         PreviewTeam1Logo.Source =
-            selectedTeam1.Emblem;
+            ResolveStoredImage(GetLiveEmblem(selectedTeam1));
 
         PreviewTeam2Logo.Source =
-            selectedTeam2.Emblem;
+            ResolveStoredImage(GetLiveEmblem(selectedTeam2));
 
         PreviewTeam1NameLabel.Text =
             FormatTeamName(
@@ -499,7 +532,7 @@ public partial class MainPage : ContentPage
     }
 
 
-    void OnTeamPickerSearchChanged(
+    async void OnTeamPickerSearchChanged(
 object sender,
 TextChangedEventArgs e)
     {
@@ -537,28 +570,34 @@ TextChangedEventArgs e)
                 .ToList();
         }
 
-        TeamPickerCollection.ItemsSource = results;
+        await SetTeamPickerItemsAsync(results);
 
         NoSearchResultsLabel.IsVisible =
             results.Count == 0;
     }
 
-    void OnTeamPicked(
+    async void OnTeamPicked(
     object sender,
     TappedEventArgs e)
     {
         if (sender is not Border border)
             return;
 
-        if (border.BindingContext
-            is not TeamProfileModel team)
+        var team = border.BindingContext switch
+        {
+            TeamPickerVisualItem visualItem => visualItem.Team,
+            TeamProfileModel profile => profile,
+            _ => null
+        };
+
+        if (team == null)
             return;
 
         if (isPickingTeam1)
         {
             selectedTeam1 = team;
             AddToRecentTeams(team);
-            UpdateTeam1Card();
+            await UpdateTeam1Card();
 
             if (selectedTeam2 != null &&
      selectedTeam2.TeamId == selectedTeam1.TeamId)
@@ -576,7 +615,7 @@ TextChangedEventArgs e)
         {
             selectedTeam2 = team;
             AddToRecentTeams(selectedTeam2);
-            UpdateTeam2Card();
+            await UpdateTeam2Card();
         }
 
         TeamPickerOverlay.IsVisible = false;
@@ -598,10 +637,10 @@ TextChangedEventArgs e)
     object sender,
     TappedEventArgs e)
     {
-        selectedRules = "محلـــــــــي";
+        selectedRules = "محلي";
 
         PreviewRulesLabel.Text =
-            "محلـــــــــي";
+            "محلي";
 
         RulesDropdownBorder.IsVisible = false;
 
@@ -612,10 +651,10 @@ TextChangedEventArgs e)
     object sender,
     TappedEventArgs e)
     {
-        selectedRules = "عالــــــــمي";
+        selectedRules = "عالمي";
 
         PreviewRulesLabel.Text =
-            "عالــــــــمي";
+            "عالمي";
 
         RulesDropdownBorder.IsVisible = false;
 
@@ -770,8 +809,9 @@ TextChangedEventArgs e)
                     ? freshTeam1.Player1
                     : $"{freshTeam1.Player1} - {freshTeam1.Player2}";
 
+                await RefreshLiveTeamIdentityAsync(freshTeam1);
                 PreviewTeam1Logo.Source =
-                    freshTeam1.Emblem;
+                    ResolveStoredImage(GetLiveEmblem(freshTeam1));
             }
         }
 
@@ -811,8 +851,9 @@ TextChangedEventArgs e)
                     ? freshTeam2.Player1
                     : $"{freshTeam2.Player1} - {freshTeam2.Player2}";
 
+                await RefreshLiveTeamIdentityAsync(freshTeam2);
                 PreviewTeam2Logo.Source =
-                    freshTeam2.Emblem;
+                    ResolveStoredImage(GetLiveEmblem(freshTeam2));
             }
         }
 
@@ -849,8 +890,7 @@ TextChangedEventArgs e)
 
                 await RefreshSelectedTeamsFromIds();
 
-                TeamPickerCollection.ItemsSource =
-                    allTeams;
+                await SetTeamPickerItemsAsync(allTeams);
 
                 UpdateMatchPreview();
                 UpdateMainSeasonCard();
@@ -867,9 +907,141 @@ TextChangedEventArgs e)
             async () =>
             {
                 await RefreshProfileStatus();
+                await RefreshHeaderPlayerAsync();
                 UpdateMainSeasonCard();
             });
     }
+
+    async void OnStoreEconomyChanged(string playerId)
+    {
+        var devicePlayerId =
+            await PlayerStoreIdentityService.GetDeviceIdentityPlayerIdAsync();
+
+        if (!string.Equals(
+                playerId,
+                devicePlayerId,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        await RefreshHeaderPlayerAsync();
+    }
+
+    async void OnCurrentUserChanged()
+    {
+        await MainThread.InvokeOnMainThreadAsync(
+            RefreshHeaderPlayerAsync);
+    }
+
+    async void OnTeamAssetsChanged(string teamId)
+    {
+        if (string.IsNullOrWhiteSpace(teamId))
+            return;
+
+        var selectedTeam = new[] { selectedTeam1, selectedTeam2 }
+            .FirstOrDefault(team =>
+                string.Equals(
+                    team?.TeamId,
+                    teamId,
+                    StringComparison.OrdinalIgnoreCase));
+
+        var pickerContainsTeam =
+            TeamPickerOverlay.IsVisible &&
+            filteredTeams.Any(team =>
+                string.Equals(
+                    team.TeamId,
+                    teamId,
+                    StringComparison.OrdinalIgnoreCase));
+
+        if (selectedTeam == null && !pickerContainsTeam)
+            return;
+
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            liveTeamIdentities.Remove(teamId);
+            if (selectedTeam != null)
+                await RefreshLiveTeamIdentityAsync(selectedTeam);
+            if (pickerContainsTeam)
+                await SetTeamPickerItemsAsync(filteredTeams);
+            UpdateMatchPreview();
+        });
+    }
+
+    async Task RefreshLiveTeamVisualsAsync()
+    {
+        var selectedTeams = new[] { selectedTeam1, selectedTeam2 }
+            .Where(team => team != null)
+            .Cast<TeamProfileModel>();
+
+        foreach (var team in selectedTeams)
+            await RefreshLiveTeamIdentityAsync(team);
+    }
+
+    async Task RefreshLiveTeamIdentityAsync(TeamProfileModel team)
+    {
+        if (string.IsNullOrWhiteSpace(team.TeamId))
+            return;
+
+        try
+        {
+            liveTeamIdentities[team.TeamId] =
+                await TeamIdentityResolver.ResolveAsync(team.TeamId);
+        }
+        catch
+        {
+            liveTeamIdentities[team.TeamId] = LegacyIdentity(team);
+        }
+    }
+
+    async Task SetTeamPickerItemsAsync(IEnumerable<TeamProfileModel> teams)
+    {
+        var teamList = teams.ToList();
+        foreach (var team in teamList)
+            await RefreshLiveTeamIdentityAsync(team);
+
+        TeamPickerCollection.ItemsSource = teamList
+            .Select(team => new TeamPickerVisualItem
+            {
+                Team = team,
+                Emblem = ResolveStoredImage(GetLiveEmblem(team))
+            })
+            .ToList();
+    }
+
+    string GetLiveEmblem(TeamProfileModel team) =>
+        liveTeamIdentities.TryGetValue(team.TeamId, out var identity) &&
+        !string.IsNullOrWhiteSpace(identity.EmblemImagePath)
+            ? identity.EmblemImagePath
+            : LegacyIdentity(team).EmblemImagePath;
+
+    static ImageSource ResolveStoredImage(
+        string? imagePath,
+        string fallback = "shield_3d.png") =>
+        InventoryDisplayResolver.ResolveImageSource(
+            imagePath,
+            fallback);
+
+    string GetLiveTeamColor(TeamProfileModel team) =>
+        liveTeamIdentities.TryGetValue(team.TeamId, out var identity) &&
+        !string.IsNullOrWhiteSpace(identity.TeamColorHex)
+            ? identity.TeamColorHex
+            : LegacyIdentity(team).TeamColorHex;
+
+    static TeamIdentityModel LegacyIdentity(TeamProfileModel team) =>
+        new()
+        {
+            TeamId = team.TeamId,
+            TeamName = team.TeamName,
+            EmblemImagePath = string.IsNullOrWhiteSpace(team.Emblem)
+                ? "shield_3d.png"
+                : team.Emblem,
+            EmblemBackgroundSource = "Transparent",
+            TeamColorHex = string.IsNullOrWhiteSpace(team.ColorHex)
+                ? "#FFD700"
+                : team.ColorHex,
+            ResolvedAt = DateTime.UtcNow
+        };
 
     // =========================
     // SECRET HONORS ACCESS - LONG PRESS LOGO
@@ -920,6 +1092,156 @@ TextChangedEventArgs e)
             sender,
             EventArgs.Empty);
     }
+
+    async void OnStoreTapped(
+        object? sender,
+        TappedEventArgs e)
+    {
+        await Navigation.PushAsync(
+            new GalleryPage());
+    }
+
+    async Task RefreshHeaderPlayerAsync()
+    {
+        int refreshVersion =
+            Interlocked.Increment(ref headerRefreshVersion);
+
+        try
+        {
+            var currentUser =
+                await ApplicationUserService.GetCurrentUserAsync();
+
+            if (refreshVersion != headerRefreshVersion)
+                return;
+
+            string playerId = currentUser.PlayerId;
+
+            if (string.IsNullOrWhiteSpace(playerId))
+            {
+                HeaderPlayerAvatar.Source = DefaultHeaderAvatar;
+                HeaderAvatarFrameOverlay.IsVisible = false;
+                HeaderAvatarEffectOverlay.IsVisible = false;
+                HeaderProfileBackgroundImage.IsVisible = false;
+                HeaderPlayerNameLabel.Text =
+                    string.IsNullOrWhiteSpace(currentUser.DisplayName)
+                        ? "اللاعب"
+                        : currentUser.DisplayName;
+                MemberLevelLabel.Text =
+                    ResolveHeaderRoleLabel(currentUser.Role);
+                return;
+            }
+
+            var profile =
+                await PlayerProfileService.GetPlayerByIdAsync(playerId);
+            var visualIdentity =
+                await PlayerVisualIdentityResolver.ResolveAsync(playerId);
+
+            if (refreshVersion != headerRefreshVersion)
+                return;
+            string avatarPath =
+                visualIdentity.Avatar?.PreviewImage ?? string.Empty;
+            HeaderProfileBackgroundImage.Source = null;
+            HeaderProfileBackgroundImage.IsVisible = false;
+            ApplyHeaderOverlay(
+                HeaderAvatarFrameOverlay,
+                visualIdentity.Frame?.PreviewImage);
+            ApplyHeaderOverlay(
+                HeaderAvatarEffectOverlay,
+                visualIdentity.Effect?.PreviewImage);
+
+            if (string.IsNullOrWhiteSpace(avatarPath))
+                avatarPath = ResolveHeaderAvatarFallback(profile);
+
+            HeaderPlayerAvatar.Source =
+                InventoryDisplayResolver.ResolveImageSource(
+                    avatarPath,
+                    DefaultHeaderAvatar);
+
+            HeaderPlayerNameLabel.Text =
+                string.IsNullOrWhiteSpace(profile?.PlayerName)
+                ? string.IsNullOrWhiteSpace(currentUser.DisplayName)
+                    ? "اللاعب"
+                    : currentUser.DisplayName
+                : profile.PlayerName;
+            MemberLevelLabel.Text =
+                visualIdentity.Title != null
+                    ? $"{ResolveHeaderRoleLabel(currentUser.Role)} • {visualIdentity.Title.DisplayName}"
+                    : ResolveHeaderRoleLabel(currentUser.Role);
+        }
+        catch
+        {
+            HeaderPlayerAvatar.Source = DefaultHeaderAvatar;
+            HeaderAvatarFrameOverlay.IsVisible = false;
+            HeaderAvatarEffectOverlay.IsVisible = false;
+            HeaderProfileBackgroundImage.IsVisible = false;
+            HeaderPlayerNameLabel.Text = "اللاعب";
+            MemberLevelLabel.Text = "Guest";
+        }
+    }
+
+    static void ApplyHeaderOverlay(Image image, string? imagePath)
+    {
+        image.Source = ToHeaderImageSource(imagePath);
+        image.IsVisible = !string.IsNullOrWhiteSpace(imagePath);
+    }
+
+    static ImageSource? ToHeaderImageSource(string? imagePath) =>
+        InventoryDisplayResolver.ResolveOptionalImageSource(
+            imagePath);
+
+    static string ResolveHeaderAvatarFallback(
+        PlayerProfileModel? profile)
+    {
+        if (profile == null)
+            return DefaultHeaderAvatar;
+
+        if (profile.UseCustomAvatar &&
+            !string.IsNullOrWhiteSpace(profile.AvatarPath))
+        {
+            return profile.AvatarPath;
+        }
+
+        if (!string.IsNullOrWhiteSpace(profile.ProfileImagePath))
+            return profile.ProfileImagePath;
+
+        if (!string.IsNullOrWhiteSpace(profile.AvatarImage) &&
+            !string.Equals(
+                profile.AvatarImage,
+                "player_card.png",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return profile.AvatarImage;
+        }
+
+        return string.IsNullOrWhiteSpace(profile.BuiltInAvatar) ||
+               string.Equals(
+                   profile.BuiltInAvatar,
+                   "player_card.png",
+                   StringComparison.OrdinalIgnoreCase)
+            ? DefaultHeaderAvatar
+            : profile.BuiltInAvatar;
+    }
+
+    static string ResolveHeaderRoleLabel(ApplicationUserRole role) =>
+        role switch
+        {
+            ApplicationUserRole.Developer => "Developer",
+            ApplicationUserRole.Founder => "Founder",
+            ApplicationUserRole.Honor => "Honor",
+            ApplicationUserRole.Member => "Member",
+            _ => "Guest"
+        };
+
+    static string ResolveProfileRoleLabel(PlayerProfileModel? profile) =>
+        profile?.ProfileStatus switch
+        {
+            PlayerProfileStatus.Developer => "Developer",
+            PlayerProfileStatus.Founder => "Founder",
+            PlayerProfileStatus.Honor => "Honor",
+            PlayerProfileStatus.Normal => "Member",
+            _ => "Guest"
+        };
+
     // =========================
     // SETTINGS SHEET
     // =========================
@@ -1837,23 +2159,171 @@ TextChangedEventArgs e)
     object sender,
     TappedEventArgs e)
     {
+        var currentUser =
+            await ApplicationUserService.EnsureCurrentSessionAsync();
+
+        if (currentUser.Role == ApplicationUserRole.Ghost)
+        {
+            await Navigation.PushAsync(new PlayerProfilesPage());
+            return;
+        }
+
         var profile =
-            await UserPrivacyProfileService.LoadAsync();
+            await ApplicationUserService
+                .EnsureCurrentUserPlayerProfileAsync();
 
-        AgeGroupPicker.SelectedItem =
-            string.IsNullOrWhiteSpace(profile.AgeGroup)
-            ? null
-            : profile.AgeGroup;
+        if (profile != null &&
+            !string.IsNullOrWhiteSpace(profile.PlayerId))
+        {
+            await Navigation.PushAsync(
+                new PlayerDetailsPage(profile.PlayerId));
+            return;
+        }
 
-        GenderPicker.SelectedItem =
-            string.IsNullOrWhiteSpace(profile.Gender)
-            ? null
-            : profile.Gender;
+        await Navigation.PushAsync(new PlayerProfilesPage());
+    }
 
-        GovernorateEntry.Text =
-            profile.Governorate;
+    async Task ShowIdentityLoginRegisterFlowAsync()
+    {
+        if (identityChoiceShowing)
+            return;
 
-        PrivacyProfileOverlay.IsVisible = true;
+        identityChoiceShowing = true;
+
+        try
+        {
+            string? choice = await DisplayActionSheetAsync(
+                "الهوية المحلية",
+                "الاستمرار كضيف",
+                null,
+                "تسجيل الدخول",
+                "إنشاء حساب");
+
+            switch (choice)
+            {
+                case "تسجيل الدخول":
+                    await ShowLocalUserSwitcherAsync();
+                    break;
+
+                case "إنشاء حساب":
+                    await ApplicationUserService.EnsureGhostUserAsync();
+                    await UpgradeCurrentGhostAsync();
+                    break;
+
+                default:
+                    await ApplicationUserService.EnsureGhostUserAsync();
+                    break;
+            }
+        }
+        finally
+        {
+            identityChoiceShowing = false;
+        }
+    }
+
+    async Task UpgradeCurrentGhostAsync()
+    {
+        string? playerName = await DisplayPromptAsync(
+            "إنشاء هوية لاعب",
+            "أدخل اسم اللاعب الذي سيُربط بهذه الهوية المحلية:",
+            "إنشاء",
+            "إلغاء",
+            maxLength: 40);
+
+        if (string.IsNullOrWhiteSpace(playerName))
+            return;
+
+        try
+        {
+            await ApplicationUserService
+                .UpgradeGhostToMemberAsync(playerName);
+
+            await DisplayAlertAsync(
+                "تم",
+                "تم إنشاء هوية اللاعب وربطها بالجلسة الحالية.",
+                "حسناً");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync(
+                "تعذر إنشاء الهوية",
+                ex.Message,
+                "حسناً");
+        }
+    }
+
+    async Task ShowLocalUserSwitcherAsync()
+    {
+        var currentUser =
+            await ApplicationUserService.EnsureCurrentSessionAsync();
+        var users =
+            await ApplicationUserService.GetAllUsersAsync();
+
+        var choices = users
+            .Where(user =>
+                !string.Equals(
+                    user.ApplicationUserId,
+                    currentUser.ApplicationUserId,
+                    StringComparison.OrdinalIgnoreCase))
+            .Select(user => new
+            {
+                User = user,
+                Label =
+                    $"{user.DisplayName} • {ResolveHeaderRoleLabel(user.Role)} • {ShortUserId(user.ApplicationUserId)}"
+            })
+            .ToList();
+
+        if (choices.Count == 0)
+        {
+            await DisplayAlertAsync(
+                "تبديل الحساب",
+                "لا توجد هويات محلية أخرى على هذا الجهاز.",
+                "حسناً");
+            return;
+        }
+
+        string? selected = await DisplayActionSheetAsync(
+            "اختر الهوية المحلية",
+            "إلغاء",
+            null,
+            choices.Select(item => item.Label).ToArray());
+
+        var selection = choices.FirstOrDefault(item =>
+            string.Equals(
+                item.Label,
+                selected,
+                StringComparison.Ordinal));
+
+        if (selection == null)
+            return;
+
+        await ApplicationUserService.SwitchUserAsync(
+            selection.User.ApplicationUserId);
+    }
+
+    async Task LogoutCurrentUserAsync()
+    {
+        bool confirm = await DisplayAlertAsync(
+            "تسجيل الخروج",
+            "سيتم إنهاء الجلسة المحلية فقط. لن تُحذف الهوية أو بيانات اللاعب.",
+            "تسجيل الخروج",
+            "إلغاء");
+
+        if (!confirm)
+            return;
+
+        await ApplicationUserService.LogoutAsync();
+        await ShowIdentityLoginRegisterFlowAsync();
+    }
+
+    static string ShortUserId(string applicationUserId)
+    {
+        if (string.IsNullOrWhiteSpace(applicationUserId))
+            return "—";
+
+        return applicationUserId.Length <= 10
+            ? applicationUserId
+            : applicationUserId[..10];
     }
 
     void OnClosePrivacyProfile(
@@ -1945,17 +2415,11 @@ TextChangedEventArgs e)
         {
             ProfileStatusBadge.BackgroundColor =
                 Colors.Gold;
-
-            MemberLevelLabel.Text =
-                "Member";
         }
         else
         {
             ProfileStatusBadge.BackgroundColor =
                 Colors.Red;
-
-            MemberLevelLabel.Text =
-                "Guest";
         }
     }
 

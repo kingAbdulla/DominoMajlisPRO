@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DominoMajlisPRO.GalleryEngine.Admin.DeveloperStoreManagerPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    BackgroundColor="#030303"
+    NavigationPage.HasNavigationBar="False"
+    FlowDirection="RightToLeft">
+
+    <ScrollView VerticalScrollBarVisibility="Never">
+        <VerticalStackLayout Padding="16,18,16,28" Spacing="14">
+
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <Border
+                    WidthRequest="42"
+                    HeightRequest="42"
+                    StrokeThickness="1"
+                    x:Name="BackButtonFrame">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackTapped" />
+                    </Border.GestureRecognizers>
+                    <Label
+                        Text="‹"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        VerticalTextAlignment="Center"
+                        x:Name="BackButtonLabel" />
+                </Border>
+
+                <VerticalStackLayout Grid.Column="1" Spacing="1">
+                    <Label
+                        Text="إدارة متجر دومينو"
+                        FontFamily="Tajawal-Regular"
+                        FontSize="25"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="End"
+                        x:Name="TitleLabel" />
+                    <Label
+                        Text="مركز إدارة المحتوى والأسعار والقوالب"
+                        FontFamily="Tajawal-Regular"
+                        FontSize="12"
+                        HorizontalTextAlignment="End"
+                        x:Name="SubtitleLabel" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <Border Padding="12" StrokeThickness="1" x:Name="InfoPanel">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+                <Label
+                    Text="هذه الصفحة هي نقطة الدخول الرسمية لإدارة محتوى المتجر. كل قسم يستخدم قواعد الصور والنصوص الخاصة بالقالب حتى تبقى المعاينات بنفس حدود المتجر العام."
+                    FontFamily="Tajawal-Regular"
+                    FontSize="12"
+                    LineBreakMode="WordWrap"
+                    x:Name="InfoLabel" />
+            </Border>
+
+            <FlexLayout
+                x:Name="SectionsContainer"
+                Direction="Row"
+                Wrap="Wrap"
+                JustifyContent="SpaceBetween"
+                AlignItems="Stretch" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

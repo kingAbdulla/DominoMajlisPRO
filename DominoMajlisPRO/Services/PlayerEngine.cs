@@ -293,16 +293,13 @@ public static class PlayerEngine
     public static ImageSource GetImageSource(
         PlayerProfileModel player)
     {
-        if (!string.IsNullOrWhiteSpace(player.ProfileImagePath) &&
-            File.Exists(player.ProfileImagePath))
-        {
-            return ImageSource.FromFile(
-                player.ProfileImagePath);
-        }
-
-        if (!string.IsNullOrWhiteSpace(player.AvatarImage))
-            return player.AvatarImage;
-
-        return "player_card.png";
+        var imagePath =
+            !string.IsNullOrWhiteSpace(player.ProfileImagePath)
+                ? player.ProfileImagePath
+                : player.AvatarImage;
+        return global::DominoMajlisPRO.GalleryEngine.Services
+            .InventoryDisplayResolver.ResolveImageSource(
+                imagePath,
+                "player_card.png");
     }
 }

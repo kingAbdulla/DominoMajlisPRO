@@ -1,5 +1,6 @@
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
+using DominoMajlisPRO.GalleryEngine.Services;
 using Microsoft.Maui.Graphics;
 namespace DominoMajlisPRO.Pages;
 using Microsoft.Maui.ApplicationModel;
@@ -47,7 +48,9 @@ public partial class CertificatePage : ContentPage
         if (team1 != null)
         {
             CertificateTeam1Emblem.Source =
-                team1.Emblem;
+                InventoryDisplayResolver.ResolveImageSource(
+                    team1.Emblem,
+                    "shield_3d.png");
 
             match.Team1Emblem =
                 team1.Emblem;
@@ -58,7 +61,9 @@ public partial class CertificatePage : ContentPage
         if (team2 != null)
         {
             CertificateTeam2Emblem.Source =
-                team2.Emblem;
+                InventoryDisplayResolver.ResolveImageSource(
+                    team2.Emblem,
+                    "shield_3d.png");
 
             match.Team2Emblem =
                 team2.Emblem;

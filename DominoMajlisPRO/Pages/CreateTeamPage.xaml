@@ -3,6 +3,7 @@
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:pages="clr-namespace:DominoMajlisPRO.Pages"
     xmlns:shapes="clr-namespace:Microsoft.Maui.Controls.Shapes;assembly=Microsoft.Maui.Controls"
     x:Class="DominoMajlisPRO.Pages.CreateTeamPage"
     BackgroundColor="#050505"
@@ -286,323 +287,96 @@
     HorizontalOptions="Center"
     TextColor="Gold"/>
 
-            <Grid
-    ColumnDefinitions="*,*,*,*,*,*"
-    ColumnSpacing="50"
-             
-    HorizontalOptions="Center">
+            <CollectionView
+                x:Name="EmblemCarousel"
+                HeightRequest="54"
+                HorizontalOptions="Fill"
+                SelectionMode="Single"
+                SelectionChanged="OnEmblemSelectionChanged"
+                ItemsUpdatingScrollMode="KeepScrollOffset">
 
-                <!-- Shield -->
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout
+                        Orientation="Horizontal"
+                        ItemSpacing="10"
+                        SnapPointsAlignment="Center"
+                        SnapPointsType="MandatorySingle"/>
+                </CollectionView.ItemsLayout>
 
-                <Grid Grid.Column="0"
-          WidthRequest="54"
-                   
-                      HorizontalOptions="Center"
-                      Margin="2"
-          HeightRequest="54">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="pages:EmblemCarouselItem">
+                        <Grid
+                            WidthRequest="54"
+                            HeightRequest="54"
+                            HorizontalOptions="Center">
 
-                    <Image
-            Source="ss.png"
-                        
-            WidthRequest="54"
-            HeightRequest="54"
-                        Opacity="0.8"
-            Aspect="Fill"/>
+                            <Border
+                                IsVisible="{Binding IsSelected}"
+                                Margin="2"
+                                BackgroundColor="#332B2100"
+                                Stroke="Gold"
+                                StrokeThickness="1.5"
+                                StrokeShape="RoundRectangle 25">
+                                <Border.Shadow>
+                                    <Shadow
+                                        Brush="Gold"
+                                        Opacity="0.75"
+                                        Radius="10"
+                                        Offset="0,0"/>
+                                </Border.Shadow>
+                            </Border>
 
-                    <ImageButton
-            x:Name="ShieldButton"
-            Source="shield_3d.png"
-            Clicked="OnShieldClicked"
-            BackgroundColor="Transparent"
-            WidthRequest="38"
-            HeightRequest="38"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"/>
+                            <Image
+                                Source="ss.png"
+                                WidthRequest="54"
+                                HeightRequest="54"
+                                Opacity="0.8"
+                                Aspect="Fill"/>
 
-                    <Border
-            x:Name="ShieldSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            StrokeThickness="1"
-            HorizontalOptions="Start"
-            VerticalOptions="Start"
-           TranslationX="4"
-                        TranslationY="-4"
-            ZIndex="999"
-            StrokeShape="RoundRectangle 9">
+                            <Image
+                                Source="{Binding ImageSource}"
+                                WidthRequest="38"
+                                HeightRequest="38"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center">
+                                <Image.Triggers>
+                                    <DataTrigger
+                                        TargetType="Image"
+                                        Binding="{Binding IsSelected}"
+                                        Value="True">
+                                        <Setter Property="Scale" Value="1.15"/>
+                                    </DataTrigger>
+                                </Image.Triggers>
+                            </Image>
 
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
+                            <Border
+                                IsVisible="{Binding IsSelected}"
+                                WidthRequest="18"
+                                HeightRequest="18"
+                                BackgroundColor="Gold"
+                                Stroke="Black"
+                                StrokeThickness="1"
+                                HorizontalOptions="Start"
+                                VerticalOptions="Start"
+                                TranslationX="4"
+                                TranslationY="-4"
+                                ZIndex="999"
+                                StrokeShape="RoundRectangle 9">
 
-                    </Border>
+                                <Label
+                                    Text="✓"
+                                    FontSize="10"
+                                    TextColor="Black"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"/>
 
-                </Grid>
+                            </Border>
 
-                <!-- Crown -->
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
 
-                <Grid Grid.Column="1"
-                       
-  HorizontalOptions="Center"
-                      Margin="2"
-          WidthRequest="54"
-          HeightRequest="54">
-
-                    <Image
-            Source="ss.png"
-            WidthRequest="54"
-                        Opacity="0.8"
-            HeightRequest="54"
-            Aspect="Fill"/>
-
-                    <ImageButton
-            x:Name="CrownButton"
-            Source="crown_3d.png"
-            Clicked="OnCrownClicked"
-            BackgroundColor="Transparent"
-            WidthRequest="38"
-            HeightRequest="38"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"/>
-
-                    <Border
-            x:Name="CrownSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            HorizontalOptions="Start"
- VerticalOptions="Start"
-TranslationX="4"
-             TranslationY="-4"
-            ZIndex="999"
-            StrokeShape="RoundRectangle 9">
-
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
-
-                    </Border>
-
-                </Grid>
-
-                <!-- Dragon -->
-
-                <Grid Grid.Column="2"
-                           
-HorizontalOptions="Center"
-                    Margin="2"
-        WidthRequest="54"
-        HeightRequest="54">
-
-                    <Image
-            Source="ss.png"
-            WidthRequest="54"
-                        Opacity="0.8"
-            HeightRequest="54"
-            Aspect="Fill"/>
-
-                    <ImageButton
-            x:Name="DragonButton"
-            Source="dragon_3d.png"
-            Clicked="OnDragonClicked"
-            BackgroundColor="Transparent"
-            WidthRequest="38"
-            HeightRequest="38"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"/>
-
-                    <Border
-            x:Name="DragonSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            StrokeThickness="1"
-            HorizontalOptions="Start"
- VerticalOptions="Start"
-TranslationX="4"
-             TranslationY="-4"
-            ZIndex="999"
-            StrokeShape="RoundRectangle 9">
-
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
-
-                    </Border>
-
-                </Grid>
-
-                <!-- Lion -->
-
-                <Grid Grid.Column="3"
-                             
-HorizontalOptions="Center"
-                    Margin="2"
-        WidthRequest="54"
-        HeightRequest="54">
-
-                    <Image
-            Source="ss.png"
-            WidthRequest="54"
-                        Opacity="0.8"
-            HeightRequest="54"
-            Aspect="Fill"/>
-
-                    <ImageButton
-            x:Name="LionButton"
-            Source="lion_3d.png"
-            Clicked="OnLionClicked"
-            BackgroundColor="Transparent"
-            WidthRequest="38"
-            HeightRequest="38"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"/>
-
-                    <Border
-            x:Name="LionSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            StrokeThickness="1"
-             HorizontalOptions="Start"
- VerticalOptions="Start"
-TranslationX="4"
-             TranslationY="-4"
-            ZIndex="999"
-            StrokeShape="RoundRectangle 9">
-
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
-
-                    </Border>
-
-                </Grid>
-
-                <!-- Wolf -->
-
-                <Grid Grid.Column="4"
-                              
-HorizontalOptions="Center"
-                    Margin="2"
-        WidthRequest="54"
-        HeightRequest="54">
-
-                    <Image
-            Source="ss.png"
-            WidthRequest="54"
-                        Opacity="0.8"
-            HeightRequest="54"
-            Aspect="Fill"/>
-
-                    <ImageButton
-            x:Name="WolfButton"
-            Source="wolf_3d.png"
-            Clicked="OnWolfClicked"
-            BackgroundColor="Transparent"
-            WidthRequest="38"
-            HeightRequest="38"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"/>
-
-                    <Border
-            x:Name="WolfSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            StrokeThickness="1"
- HorizontalOptions="Start"
- VerticalOptions="Start"
-TranslationX="4"
-             TranslationY="-4"            ZIndex="999"
-            StrokeShape="RoundRectangle 9">
-
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
-
-                    </Border>
-
-                </Grid>
-
-                <!-- Eagle -->
-
-                <Grid Grid.Column="5"
-                            
-HorizontalOptions="Center"
-                    Margin="2"
-        WidthRequest="54"
-        HeightRequest="54">
-
-                    <Image
-            Source="ss.png"
-            WidthRequest="54"
-                        Opacity="0.8"
-            HeightRequest="54"
-            Aspect="Fill"/>
-
-                    <ImageButton
-            x:Name="EagleButton"
-            Source="eagle_3d.png"
-            Clicked="OnEagleClicked"
-            BackgroundColor="Transparent"
-            WidthRequest="38"
-            HeightRequest="38"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"/>
-
-                    <Border
-            x:Name="EagleSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            StrokeThickness="1"
- HorizontalOptions="Start"
- VerticalOptions="Start"
-TranslationX="4"
-             TranslationY="-4"            ZIndex="999"
-            StrokeShape="RoundRectangle 9">
-
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
-
-                    </Border>
-
-                </Grid>
-
-            </Grid>
+            </CollectionView>
 
 
             <!-- Team Color -->
@@ -614,305 +388,95 @@ TranslationX="4"
     TextColor="Gold"
     HorizontalOptions="Center"/>
 
-            <HorizontalStackLayout
-    Spacing="10"
-    HorizontalOptions="Center">
+            <CollectionView
+                x:Name="ColorCarousel"
+                HeightRequest="40"
+                HorizontalOptions="Fill"
+                SelectionMode="Single"
+                SelectionChanged="OnColorSelectionChanged"
+                ItemsUpdatingScrollMode="KeepScrollOffset">
 
-                <!-- Gold -->
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout
+                        Orientation="Horizontal"
+                        ItemSpacing="10"
+                        SnapPointsAlignment="Center"
+                        SnapPointsType="MandatorySingle"/>
+                </CollectionView.ItemsLayout>
 
-                <Grid WidthRequest="40" HeightRequest="40">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="pages:TeamColorCarouselItem">
+                        <Grid
+                            WidthRequest="40"
+                            HeightRequest="40"
+                            HorizontalOptions="Center">
 
-                    <Image
-            Source="ss.png"
-                        Opacity="0.8"
-            Aspect="Fill"/>
+                            <Border
+                                IsVisible="{Binding IsSelected}"
+                                Margin="1"
+                                BackgroundColor="#332B2100"
+                                Stroke="Gold"
+                                StrokeThickness="1.5"
+                                StrokeShape="RoundRectangle 19">
+                                <Border.Shadow>
+                                    <Shadow
+                                        Brush="Gold"
+                                        Opacity="0.75"
+                                        Radius="8"
+                                        Offset="0,0"/>
+                                </Border.Shadow>
+                            </Border>
 
-                    <Image
-            x:Name="GoldColorButton"
-            Source="gold_color.png"
-            WidthRequest="30"
-            HeightRequest="30"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"
-            Aspect="AspectFit">
+                            <Image
+                                Source="ss.png"
+                                WidthRequest="40"
+                                HeightRequest="40"
+                                Opacity="0.8"
+                                Aspect="Fill"/>
 
-                        <Image.GestureRecognizers>
-                            <TapGestureRecognizer
-                    Tapped="OnGoldColorClicked"/>
-                        </Image.GestureRecognizers>
+                            <Image
+                                Source="{Binding ImageSource}"
+                                WidthRequest="30"
+                                HeightRequest="30"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                Aspect="AspectFit">
+                                <Image.Triggers>
+                                    <DataTrigger
+                                        TargetType="Image"
+                                        Binding="{Binding IsSelected}"
+                                        Value="True">
+                                        <Setter Property="Scale" Value="1.12"/>
+                                    </DataTrigger>
+                                </Image.Triggers>
+                            </Image>
 
-                    </Image>
+                            <Border
+                                IsVisible="{Binding IsSelected}"
+                                WidthRequest="18"
+                                HeightRequest="18"
+                                BackgroundColor="Gold"
+                                Stroke="Black"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 9"
+                                HorizontalOptions="Start"
+                                VerticalOptions="Start"
+                                ZIndex="999">
 
-                    <Border
-            x:Name="GoldSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            StrokeThickness="1"
-            StrokeShape="RoundRectangle 9"
-            HorizontalOptions="Start"
-            VerticalOptions="Start"
-            ZIndex="999">
+                                <Label
+                                    Text="✓"
+                                    FontSize="10"
+                                    TextColor="Black"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"/>
 
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
+                            </Border>
 
-                    </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
 
-                </Grid>
-
-                <!-- Blue -->
-
-                <Grid WidthRequest="40" HeightRequest="40">
-
-                    <Image
-            Source="ss.png"
-                        Opacity="0.8"
-            Aspect="Fill"/>
-
-                    <Image
-            x:Name="BlueColorButton"
-            Source="blue_color.png"
-            WidthRequest="30"
-            HeightRequest="30"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"
-            Aspect="AspectFit">
-
-                        <Image.GestureRecognizers>
-                            <TapGestureRecognizer
-                    Tapped="OnBlueColorClicked"/>
-                        </Image.GestureRecognizers>
-
-                    </Image>
-
-                    <Border
-            x:Name="BlueSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            StrokeThickness="1"
-            StrokeShape="RoundRectangle 9"
-            HorizontalOptions="Start"
-            VerticalOptions="Start"
-            ZIndex="999">
-
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
-
-                    </Border>
-
-                </Grid>
-
-                <!-- Green -->
-
-                <Grid WidthRequest="40" HeightRequest="40">
-
-                    <Image
-            Source="ss.png"
-                        Opacity="0.8"
-            Aspect="Fill"/>
-
-                    <Image
-            x:Name="GreenColorButton"
-            Source="green_color.png"
-            WidthRequest="30"
-            HeightRequest="30"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"
-            Aspect="AspectFit">
-
-                        <Image.GestureRecognizers>
-                            <TapGestureRecognizer
-                    Tapped="OnGreenColorClicked"/>
-                        </Image.GestureRecognizers>
-
-                    </Image>
-
-                    <Border
-            x:Name="GreenSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            StrokeThickness="1"
-            StrokeShape="RoundRectangle 9"
-            HorizontalOptions="Start"
-            VerticalOptions="Start"
-            ZIndex="999">
-
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
-
-                    </Border>
-
-                </Grid>
-
-                <!-- Red -->
-
-                <Grid WidthRequest="40" HeightRequest="40">
-
-                    <Image
-            Source="ss.png"
-                        Opacity="0.8"
-            Aspect="Fill"/>
-
-                    <Image
-            x:Name="RedColorButton"
-            Source="red_color.png"
-            WidthRequest="30"
-            HeightRequest="30"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"
-            Aspect="AspectFit">
-
-                        <Image.GestureRecognizers>
-                            <TapGestureRecognizer
-                    Tapped="OnRedColorClicked"/>
-                        </Image.GestureRecognizers>
-
-                    </Image>
-
-                    <Border
-            x:Name="RedSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            StrokeThickness="1"
-            StrokeShape="RoundRectangle 9"
-            HorizontalOptions="Start"
-            VerticalOptions="Start"
-            ZIndex="999">
-
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
-
-                    </Border>
-
-                </Grid>
-
-                <!-- Purple -->
-
-                <Grid WidthRequest="40" HeightRequest="40">
-
-                    <Image
-            Source="ss.png"
-                        Opacity="0.8"
-            Aspect="Fill"/>
-
-                    <Image
-            x:Name="PurpleColorButton"
-            Source="purple_color.png"
-            WidthRequest="30"
-            HeightRequest="30"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"
-            Aspect="AspectFit">
-
-                        <Image.GestureRecognizers>
-                            <TapGestureRecognizer
-                    Tapped="OnPurpleColorClicked"/>
-                        </Image.GestureRecognizers>
-
-                    </Image>
-
-                    <Border
-            x:Name="PurpleSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            StrokeThickness="1"
-            StrokeShape="RoundRectangle 9"
-            HorizontalOptions="Start"
-            VerticalOptions="Start"
-            ZIndex="999">
-
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
-
-                    </Border>
-
-                </Grid>
-
-                <!-- Black -->
-
-                <Grid WidthRequest="40" HeightRequest="40">
-
-                    <Image
-            Source="ss.png"
-                        Opacity="0.8"
-            Aspect="Fill"/>
-
-                    <Image
-            x:Name="BlackColorButton"
-            Source="black_color.png"
-            WidthRequest="30"
-            HeightRequest="30"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"
-            Aspect="AspectFit">
-
-                        <Image.GestureRecognizers>
-                            <TapGestureRecognizer
-                    Tapped="OnBlackColorClicked"/>
-                        </Image.GestureRecognizers>
-
-                    </Image>
-
-                    <Border
-            x:Name="BlackSelected"
-            IsVisible="False"
-            WidthRequest="18"
-            HeightRequest="18"
-            BackgroundColor="Gold"
-            Stroke="Black"
-            StrokeThickness="1"
-            StrokeShape="RoundRectangle 9"
-            HorizontalOptions="Start"
-            VerticalOptions="Start"
-            ZIndex="999">
-
-                        <Label
-                Text="✓"
-                FontSize="10"
-                TextColor="Black"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"/>
-
-                    </Border>
-
-                </Grid>
-
-            </HorizontalStackLayout>
+            </CollectionView>
 
             <Grid
     Margin="0,10,0,-15"
@@ -943,6 +507,15 @@ TranslationX="4"
     Margin="0,-10,0,0"
     HeightRequest="260">
 
+                <Picker
+                    x:Name="EmblemBackgroundPicker"
+                    Title="خلفية الشعار"
+                    ItemDisplayBinding="{Binding DisplayName}"
+                    SelectedIndexChanged="OnEmblemBackgroundSelectionChanged"
+                    HorizontalOptions="Center"
+                    VerticalOptions="End"
+                    ZIndex="1000"/>
+
                 <!-- الإطار الذهبي -->
 
                 <Image
@@ -968,6 +541,19 @@ TranslationX="4"
                 ColumnDefinitions="1.4*,1,1.6*">
 
                             <!-- الشعار -->
+
+                            <Border
+                    x:Name="PreviewEmblemBackground"
+                    Grid.Column="2"
+                    BackgroundColor="Transparent"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 999"
+                    WidthRequest="125"
+                    HeightRequest="125"
+                    MaximumWidthRequest="170"
+                    MaximumHeightRequest="170"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"/>
 
                             <Image
                     x:Name="PreviewEmblem"
@@ -1225,7 +811,7 @@ ZIndex="999">
                                         <!-- الشعار -->
 
                                         <Image
-                        Source="{Binding Emblem}"
+                        Source="{Binding EmblemSource}"
                         WidthRequest="45"
                         HeightRequest="45"/>
 

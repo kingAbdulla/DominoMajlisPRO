@@ -64,6 +64,19 @@ public static class PlayerProfileService
     {
         var players = await LoadPlayersAsync();
 
+        if (string.IsNullOrWhiteSpace(playerName))
+            return null;
+
+        string trimmed = playerName.Trim();
+
+        // ID-first: if the input looks like a PlayerId, try that first.
+        if (trimmed.StartsWith("P", StringComparison.OrdinalIgnoreCase))
+        {
+            var byId = players.FirstOrDefault(x => string.Equals(x.PlayerId, trimmed, StringComparison.OrdinalIgnoreCase));
+            if (byId != null)
+                return byId;
+        }
+
         string normalizedName =
             PlayerIdentityService.NormalizePlayerName(playerName);
 
@@ -80,19 +93,31 @@ public static class PlayerProfileService
 
         var players = await LoadPlayersAsync();
 
-        string normalizedName =
-            PlayerIdentityService.NormalizePlayerName(playerName);
+            string trimmed = playerName.Trim();
 
-        var player =
-            players.FirstOrDefault(x =>
-                PlayerIdentityService.NormalizePlayerName(x.PlayerName) == normalizedName);
+            PlayerProfileModel? player = null;
 
-        if (player == null)
-            return;
+            // If caller passed a PlayerId, resolve by id first.
+            if (trimmed.StartsWith("P", StringComparison.OrdinalIgnoreCase))
+            {
+                player = players.FirstOrDefault(x => string.Equals(x.PlayerId, trimmed, StringComparison.OrdinalIgnoreCase));
+            }
 
-        PlayerEngine.ApplyMatchResult(player, wonMatch);
+            if (player == null)
+            {
+                string normalizedName =
+                    PlayerIdentityService.NormalizePlayerName(playerName);
 
-        await SavePlayersAsync(players);
+                player = players.FirstOrDefault(x =>
+                    PlayerIdentityService.NormalizePlayerName(x.PlayerName) == normalizedName);
+            }
+
+            if (player == null)
+                return;
+
+            PlayerEngine.ApplyMatchResult(player, wonMatch);
+
+            await SavePlayersAsync(players);
     }
 
     public static async Task UpdatePlayerProfileAsync(PlayerProfileModel updatedPlayer)

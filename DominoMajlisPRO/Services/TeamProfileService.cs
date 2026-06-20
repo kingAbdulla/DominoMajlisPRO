@@ -69,11 +69,20 @@ public static class TeamProfileService
     public static async Task<TeamProfileModel?> GetTeamAsync(
     string teamName)
     {
+        if (string.IsNullOrWhiteSpace(teamName))
+            return null;
+
         var teams =
             await LoadTeamsAsync();
 
+        // Prefer matching by TeamId when the provided identifier looks like an ID
+        var byId = teams.FirstOrDefault(x => string.Equals(x.TeamId, teamName.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (byId != null)
+            return byId;
+
+        // Fallback to matching by TeamName for legacy data
         return teams.FirstOrDefault(
-            x => x.TeamName == teamName);
+            x => string.Equals(x.TeamName, teamName.Trim(), StringComparison.OrdinalIgnoreCase));
     }
     public static async Task<TeamProfileModel?> GetTeamByIdAsync(
     string teamId)

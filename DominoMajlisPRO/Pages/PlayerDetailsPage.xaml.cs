@@ -1,5 +1,8 @@
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
+using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
+using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.GalleryEngine.Models;
 
 namespace DominoMajlisPRO.Pages;
 
@@ -10,6 +13,14 @@ public partial class PlayerDetailsPage : ContentPage
     PlayerProfileModel? currentPlayer;
     AvatarItemModel? selectedAvatar;
     string selectedCategory = "All";
+    List<AvatarItemModel> availableAvatars = new();
+    HashSet<string> ownedStoreAvatarIds =
+        new(StringComparer.OrdinalIgnoreCase);
+    string equippedStoreAvatarId = "";
+    const int TimelinePageSize = 10;
+    int timelineVisibleCount = TimelinePageSize;
+    IReadOnlyList<PlayerTimelineItemModel> timelineItems =
+        Array.Empty<PlayerTimelineItemModel>();
 
     public PlayerDetailsPage(string playerId)
     {
@@ -166,7 +177,76 @@ public partial class PlayerDetailsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
+        AppEvents.CurrentUserChanged += OnCurrentUserChanged;
+        AppEvents.StoreProgressChanged -= OnStoreProgressChanged;
+        AppEvents.StoreProgressChanged += OnStoreProgressChanged;
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
+        StoreAssetQueryService.PublishedContentChanged -= OnPublishedContentChanged;
+        StoreAssetQueryService.PublishedContentChanged += OnPublishedContentChanged;
+
         await LoadPlayerAsync();
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
+        AppEvents.StoreProgressChanged -= OnStoreProgressChanged;
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        StoreAssetQueryService.PublishedContentChanged -= OnPublishedContentChanged;
+    }
+
+    async void OnCurrentUserChanged()
+    {
+        await MainThread.InvokeOnMainThreadAsync(LoadPlayerAsync);
+    }
+
+    async void OnStoreProgressChanged(string playerId)
+    {
+        if (!SameId(playerId, _playerId))
+            return;
+
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            await LoadPlayerAsync();
+            if (AvatarPickerOverlay.IsVisible)
+            {
+                await LoadAvailableAvatarsAsync();
+                BuildAvatarCategories();
+                LoadAvatars(selectedCategory);
+            }
+        });
+    }
+
+    async void OnTeamAssetsChanged(string teamId)
+    {
+        if (currentPlayer == null)
+            return;
+
+        var team =
+            await TeamProfileService.GetTeamByPlayerIdAsync(
+                currentPlayer.PlayerId);
+        if (!SameId(team?.TeamId, teamId))
+            return;
+
+        await MainThread.InvokeOnMainThreadAsync(LoadPlayerAsync);
+    }
+
+    async void OnPublishedContentChanged()
+    {
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            await LoadPlayerAsync();
+            if (AvatarPickerOverlay.IsVisible)
+            {
+                await LoadAvailableAvatarsAsync();
+                BuildAvatarCategories();
+                LoadAvatars(selectedCategory);
+            }
+        });
     }
 
     async Task LoadPlayerAsync()
@@ -183,20 +263,32 @@ public partial class PlayerDetailsPage : ContentPage
         }
 
         PlayerEngine.Normalize(currentPlayer);
+        var visualIdentity =
+            await PlayerVisualIdentityResolver.ResolveAsync(
+                currentPlayer.PlayerId);
+        await ApplyEquippedProfileBackgroundAsync(
+            currentPlayer.PlayerId,
+            visualIdentity);
 
         var rank =
             PlayerRankService.Calculate(currentPlayer.PlayerXP);
 
         PlayerAvatarImage.Source =
+            ResolveAvatarSource(visualIdentity) ??
             PlayerProfileService.GetPlayerImageSource(currentPlayer);
 
         AvatarPreviewImage.Source =
+            ResolveAvatarSource(visualIdentity) ??
             PlayerProfileService.GetPlayerImageSource(currentPlayer);
 
         PlayerNameLabel.Text = currentPlayer.PlayerName;
 
-        PlayerStatusLabel.Text =
-            PlayerEngine.GetStatusDisplayName(currentPlayer.ProfileStatus);
+        string identityRole =
+            await ResolveIdentityRoleAsync(currentPlayer);
+        PlayerStatusLabel.Text = visualIdentity.Title == null
+            ? identityRole
+            : $"{identityRole} • {visualIdentity.Title.DisplayName}";
+        ApplyAvatarIdentityVisuals(visualIdentity);
 
         PlayerRankLabel.Text =
             rank.DisplayName;
@@ -234,21 +326,84 @@ public partial class PlayerDetailsPage : ContentPage
         HallOfFameLabel.Text =
             currentPlayer.HallOfFameCount.ToString();
 
-        BuildHonors(currentPlayer);
+        BuildHonors(currentPlayer, identityRole);
         BuildAchievements(currentPlayer);
         await PlayerProfileService.UpdatePlayerProfileAsync(currentPlayer);
         await BuildIdentityHistoryAsync(currentPlayer);
         await BuildTimeline(currentPlayer);
     }
+
+    async Task ApplyEquippedProfileBackgroundAsync(
+        string playerId,
+        PlayerVisualIdentity? identity = null)
+    {
+        identity ??=
+            await PlayerVisualIdentityResolver.ResolveAsync(playerId);
+        var background = identity.ProfileBackground;
+        if (background == null)
+        {
+            HeroProfileBackgroundImage.Source = null;
+            HeroProfileBackgroundImage.IsVisible = false;
+            return;
+        }
+
+        var imagePath = background.PreviewImage;
+        HeroProfileBackgroundImage.Source =
+            ToImageSource(imagePath);
+        HeroProfileBackgroundImage.IsVisible =
+            !string.IsNullOrWhiteSpace(imagePath);
+    }
+
+    void ApplyAvatarIdentityVisuals(PlayerVisualIdentity identity)
+    {
+        var frameSource =
+            ToImageSource(identity.Frame?.PreviewImage);
+        AvatarFrameOverlay.Source = frameSource;
+        AvatarFrameOverlay.IsVisible = frameSource != null;
+        var effectSource =
+            ToImageSource(identity.Effect?.PreviewImage);
+        AvatarEffectOverlay.Source = effectSource;
+        AvatarEffectOverlay.IsVisible = effectSource != null;
+        AvatarFrame.Stroke = identity.Frame == null
+            ? Color.FromArgb("#D4AF37")
+            : Colors.Transparent;
+        AvatarFrame.Shadow = new Shadow
+        {
+            Brush = new SolidColorBrush(
+                identity.Effect == null
+                    ? Color.FromArgb("#D4AF37")
+                    : Color.FromArgb("#F2C14E")),
+            Radius = identity.Effect == null ? 18 : 24,
+            Opacity = identity.Effect == null ? 0.45f : 0.65f
+        };
+    }
+
+    static ImageSource? ResolveAvatarSource(
+        PlayerVisualIdentity identity)
+    {
+        var path = identity.Avatar?.PreviewImage;
+        return ToImageSource(path);
+    }
+
+    static ImageSource? ToImageSource(string? path) =>
+        InventoryDisplayResolver.ResolveOptionalImageSource(path);
+
     // Build timeline based on player properties
     async Task BuildTimeline(PlayerProfileModel player)
     {
-        TimelineContainer.Children.Clear();
-
-        var items =
+        timelineVisibleCount = TimelinePageSize;
+        timelineItems =
             await PlayerTimelineService.BuildTimelineAsync(player);
+        RenderTimeline();
+    }
 
-        if (items.Count == 0)
+    void RenderTimeline()
+    {
+        TimelineContainer.Children.Clear();
+        DeleteAllTimelineButton.IsVisible =
+            timelineItems.Any(item => item.IsIdentityEvent);
+
+        if (timelineItems.Count == 0)
         {
             TimelineContainer.Children.Add(
                 new Label
@@ -262,15 +417,78 @@ public partial class PlayerDetailsPage : ContentPage
             return;
         }
 
-        foreach (var item in items)
+        foreach (var item in timelineItems.Take(timelineVisibleCount))
         {
             TimelineContainer.Children.Add(
                 CreateTimelineCard(item));
         }
+
+        int remaining = Math.Max(
+            0,
+            timelineItems.Count - timelineVisibleCount);
+        if (remaining <= 0)
+            return;
+
+        var showMore = new Button
+        {
+            Text = $"عرض المزيد ({remaining})",
+            BackgroundColor = Color.FromArgb("#1A1A1A"),
+            TextColor = Color.FromArgb("#D4AF37"),
+            BorderColor = Color.FromArgb("#8A5B27"),
+            BorderWidth = 1,
+            CornerRadius = 14,
+            HeightRequest = 44,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        showMore.Clicked += (_, _) =>
+        {
+            timelineVisibleCount += TimelinePageSize;
+            RenderTimeline();
+        };
+        TimelineContainer.Children.Add(showMore);
     }
 
     View CreateTimelineCard(PlayerTimelineItemModel item)
     {
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = 42 },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 10
+        };
+        grid.Add(
+            new Label
+            {
+                Text = item.Icon,
+                FontSize = 22,
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center
+            },
+            0,
+            0);
+        grid.Add(CreateTimelineTextBlock(item), 1, 0);
+        if (item.IsIdentityEvent)
+        {
+            var deleteButton = new Button
+            {
+                Text = "✕",
+                BackgroundColor = Colors.Transparent,
+                TextColor = Color.FromArgb("#FF7777"),
+                FontSize = 13,
+                Padding = new Thickness(6, 2),
+                MinimumWidthRequest = 30,
+                MinimumHeightRequest = 30,
+                VerticalOptions = LayoutOptions.Center
+            };
+            deleteButton.Clicked += async (_, _) =>
+                await DeleteTimelineEventAsync(item);
+            grid.Add(deleteButton, 2, 0);
+        }
+
         return new Border
         {
             BackgroundColor = Color.FromArgb("#151515"),
@@ -283,28 +501,7 @@ public partial class PlayerDetailsPage : ContentPage
                     CornerRadius = 18
                 },
 
-            Content =
-                new Grid
-                {
-                    ColumnDefinitions =
-                    {
-                    new ColumnDefinition { Width = 42 },
-                    new ColumnDefinition { Width = GridLength.Star }
-                    },
-                    ColumnSpacing = 10,
-                    Children =
-                    {
-                    new Label
-                    {
-                        Text = item.Icon,
-                        FontSize = 22,
-                        HorizontalTextAlignment = TextAlignment.Center,
-                        VerticalTextAlignment = TextAlignment.Center
-                    },
-
-                    CreateTimelineTextBlock(item)
-                    }
-                }
+            Content = grid
         };
     }
 
@@ -346,20 +543,61 @@ public partial class PlayerDetailsPage : ContentPage
                 HorizontalTextAlignment = TextAlignment.End
             });
 
-        Grid.SetColumn(layout, 1);
-
         return layout;
     }
+
+    async Task DeleteTimelineEventAsync(PlayerTimelineItemModel item)
+    {
+        if (currentPlayer == null || !item.IsIdentityEvent)
+            return;
+
+        bool confirmed = await DisplayAlertAsync(
+            "حذف الحدث",
+            "هل تريد حذف هذا الحدث فقط؟",
+            "حذف",
+            "إلغاء");
+        if (!confirmed ||
+            !PlayerTimelineService.DeleteIdentityEvent(
+                currentPlayer,
+                item.EventId))
+        {
+            return;
+        }
+
+        await PlayerProfileService.UpdatePlayerProfileAsync(currentPlayer);
+        await BuildTimeline(currentPlayer);
+    }
+
+    async void OnDeleteAllTimelineClicked(
+        object? sender,
+        EventArgs e)
+    {
+        if (currentPlayer == null)
+            return;
+
+        bool confirmed = await DisplayAlertAsync(
+            "حذف سجل الأحداث",
+            "هل تريد حذف جميع أحداث هوية اللاعب؟",
+            "حذف الكل",
+            "إلغاء");
+        if (!confirmed ||
+            !PlayerTimelineService.DeleteAllIdentityEvents(currentPlayer))
+        {
+            return;
+        }
+
+        await PlayerProfileService.UpdatePlayerProfileAsync(currentPlayer);
+        await BuildTimeline(currentPlayer);
+    }
     // Build honors based on player properties
-    void BuildHonors(PlayerProfileModel player)
+    void BuildHonors(
+        PlayerProfileModel player,
+        string identityRole)
     {
         HonorsContainer.Children.Clear();
 
-        if (player.IsDeveloper)
-            HonorsContainer.Children.Add(CreateHonorChip("Developer"));
-
-        if (player.IsFounder)
-            HonorsContainer.Children.Add(CreateHonorChip("Founder"));
+        HonorsContainer.Children.Add(
+            CreateHonorChip(identityRole));
 
         if (player.IsEarlyAdopter)
             HonorsContainer.Children.Add(CreateHonorChip("Early"));
@@ -367,9 +605,58 @@ public partial class PlayerDetailsPage : ContentPage
         if (player.IsSeasonVeteran)
             HonorsContainer.Children.Add(CreateHonorChip("Veteran"));
 
-        if (HonorsContainer.Children.Count == 0)
-            HonorsContainer.Children.Add(CreateHonorChip("Normal"));
     }
+
+    static async Task<string> ResolveIdentityRoleAsync(
+        PlayerProfileModel player)
+    {
+        try
+        {
+            var user =
+                await ApplicationUserService.GetCurrentUserAsync();
+            if (user.Role != ApplicationUserRole.Ghost &&
+                SameId(user.PlayerId, player.PlayerId))
+            {
+                return user.Role switch
+                {
+                    ApplicationUserRole.Developer => "Developer",
+                    ApplicationUserRole.Founder => "Founder",
+                    ApplicationUserRole.Honor => "Honor",
+                    ApplicationUserRole.Member => "Member",
+                    _ => "Member"
+                };
+            }
+        }
+        catch
+        {
+            // Fall back to the existing player profile role.
+        }
+
+        return PlayerEngine.GetStatusDisplayName(
+            player.ProfileStatus);
+    }
+
+    async void OnAccountHubTapped(
+        object? sender,
+        TappedEventArgs e)
+    {
+        if (Navigation.NavigationStack.Count >= 2 &&
+            Navigation.NavigationStack[^2] is PlayerProfilesPage)
+        {
+            await Navigation.PopAsync();
+            return;
+        }
+
+        await Navigation.PushAsync(new PlayerProfilesPage());
+    }
+
+    static bool SameId(string? left, string? right) =>
+        !string.IsNullOrWhiteSpace(left) &&
+        !string.IsNullOrWhiteSpace(right) &&
+        string.Equals(
+            left.Trim(),
+            right.Trim(),
+            StringComparison.OrdinalIgnoreCase);
 
     View CreateHonorChip(string text)
     {
@@ -395,11 +682,12 @@ public partial class PlayerDetailsPage : ContentPage
         };
     }
 
-    void OnOpenAvatarPicker(object sender, EventArgs e)
+    async void OnOpenAvatarPicker(object sender, EventArgs e)
     {
         selectedAvatar = null;
         selectedCategory = "All";
 
+        await LoadAvailableAvatarsAsync();
         BuildAvatarCategories();
         LoadAvatars("All");
 
@@ -415,7 +703,14 @@ public partial class PlayerDetailsPage : ContentPage
     {
         AvatarCategoryContainer.Children.Clear();
 
-        foreach (string category in AvatarService.GetCategories())
+        var categories = AvatarService.GetCategories();
+        if (ownedStoreAvatarIds.Count > 0)
+        {
+            categories.Add(
+                OwnedAssetCategoryCatalog.Get("Avatar").DisplayName);
+        }
+
+        foreach (string category in categories)
         {
             Button button =
                 new()
@@ -453,8 +748,116 @@ public partial class PlayerDetailsPage : ContentPage
     {
         AvatarCollection.SelectedItem = null;
 
-        AvatarCollection.ItemsSource =
-            AvatarService.GetByCategory(category);
+        var filtered =
+            string.IsNullOrWhiteSpace(category) || category == "All"
+                ? availableAvatars
+                : availableAvatars
+                    .Where(item => item.Category == category)
+                    .ToList();
+
+        AvatarCollection.ItemsSource = filtered;
+
+        var equipped = filtered.FirstOrDefault(item =>
+            string.Equals(
+                item.Id,
+                equippedStoreAvatarId,
+                StringComparison.OrdinalIgnoreCase));
+        if (equipped != null)
+        {
+            AvatarCollection.SelectedItem = equipped;
+            selectedAvatar = equipped;
+        }
+    }
+
+    async Task LoadAvailableAvatarsAsync()
+    {
+        var ownedCategory =
+            OwnedAssetCategoryCatalog.Get("Avatar");
+        var byId = AvatarService.GetAll()
+            .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+            .ToDictionary(
+                item => item.Id,
+                item => item,
+                StringComparer.OrdinalIgnoreCase);
+
+        ownedStoreAvatarIds.Clear();
+        equippedStoreAvatarId = "";
+
+        if (currentPlayer != null &&
+            !string.IsNullOrWhiteSpace(currentPlayer.PlayerId))
+        {
+            var owned =
+                (await PlayerInventoryService.LoadOwnedAsync(
+                    currentPlayer.PlayerId))
+                .Where(item =>
+                    string.Equals(
+                        StoreAssetCatalogService.CanonicalTypeId(
+                            item.StoreTypeId),
+                        ownedCategory.AssetType,
+                        StringComparison.OrdinalIgnoreCase) &&
+                    !string.IsNullOrWhiteSpace(item.AssetId))
+                .GroupBy(
+                    item => item.AssetId,
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(group => group
+                    .OrderByDescending(item => item.IsEquipped)
+                    .ThenByDescending(item => item.PurchasedAt)
+                    .First())
+                .ToList();
+
+            var catalog = await StoreAssetQueryService.LoadAvatarsAsync();
+            var catalogById = catalog
+                .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+                .ToDictionary(
+                    item => item.Id,
+                    item => item,
+                    StringComparer.OrdinalIgnoreCase);
+
+            foreach (var inventoryItem in owned)
+            {
+                if (!catalogById.TryGetValue(
+                        inventoryItem.AssetId,
+                        out var asset))
+                {
+                    byId[inventoryItem.AssetId] = new AvatarItemModel
+                    {
+                        Id = inventoryItem.AssetId,
+                        Category = ownedCategory.DisplayName,
+                        DisplayName =
+                            StoreAssetCatalogService.IncompleteDisplayName,
+                        Image = string.Empty,
+                        IsUnlocked = true
+                    };
+                    continue;
+                }
+
+                ownedStoreAvatarIds.Add(asset.Id);
+                if (inventoryItem.IsEquipped)
+                    equippedStoreAvatarId = asset.Id;
+
+                byId[asset.Id] = new AvatarItemModel
+                {
+                    Id = asset.Id,
+                    Category = ownedCategory.DisplayName,
+                    DisplayName =
+                        string.IsNullOrWhiteSpace(asset.NameAr)
+                            ? asset.NameEn
+                            : asset.NameAr,
+                    Image =
+                        string.IsNullOrWhiteSpace(asset.ThumbnailPath)
+                            ? asset.ImagePath
+                            : asset.ThumbnailPath,
+                    IsUnlocked = true
+                };
+            }
+        }
+
+        availableAvatars = byId.Values
+            .OrderBy(item =>
+                item.Category == ownedCategory.DisplayName ? 0 : 1)
+            .ThenBy(item => item.Category)
+            .ThenBy(item => item.DisplayName)
+            .ToList();
     }
 
     void OnAvatarSelected(
@@ -469,7 +872,7 @@ public partial class PlayerDetailsPage : ContentPage
         if (selectedAvatar != null)
         {
             AvatarPreviewImage.Source =
-                selectedAvatar.Image;
+                selectedAvatar.ImageSource;
         }
     }
 
@@ -490,16 +893,48 @@ public partial class PlayerDetailsPage : ContentPage
             return;
         }
 
-        await PlayerProfileService.SetBuiltInAvatarAsync(
-            currentPlayer.PlayerId,
-            selectedAvatar.Image);
+        var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(15));
+        try
+        {
+            if (ownedStoreAvatarIds.Contains(selectedAvatar.Id))
+            {
+                var equipTask = StoreEquipService.EquipAsync(
+                    currentPlayer.PlayerId,
+                    selectedAvatar.Id);
+                var completed = await Task.WhenAny(equipTask, Task.Delay(-1, cts.Token));
+                if (completed != equipTask)
+                    throw new OperationCanceledException("Equip timed out.");
+                await equipTask;
+            }
+            else
+            {
+                var setTask = PlayerProfileService.SetBuiltInAvatarAsync(
+                    currentPlayer.PlayerId,
+                    selectedAvatar.Image);
+                var completed = await Task.WhenAny(setTask, Task.Delay(-1, cts.Token));
+                if (completed != setTask)
+                    throw new OperationCanceledException("Set avatar timed out.");
+                await setTask;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            await DisplayAlert("تنبيه", "تم إلغاء العملية أو انتهى الوقت المسموح.", "حسناً");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("خطأ", $"حدث خطأ أثناء تنفيذ العملية: {ex.Message}", "حسناً");
+        }
+        finally
+        {
+            // Trigger profile/data refresh only after persistence completed to avoid loops.
+            AppEvents.RaisePlayerProfileChanged();
+            AppEvents.RaiseDataChanged();
 
-        AppEvents.RaisePlayerProfileChanged();
-        AppEvents.RaiseDataChanged();
+            AvatarPickerOverlay.IsVisible = false;
 
-        AvatarPickerOverlay.IsVisible = false;
-
-        await LoadPlayerAsync();
+            await LoadPlayerAsync();
+        }
     }
 
     async void OnPickFromDeviceClicked(

@@ -166,9 +166,10 @@ LoadRivalriesAsync()
 
         if (team1Profile == null)
         {
+            // Prefer resolving by TeamId for authoritative binding; fall back handled inside GetTeamAsync
             team1Profile =
                 await TeamProfileService.GetTeamAsync(
-                    match.Team1Name);
+                    match.Team1Id);
 
             if (team1Profile == null)
             {
@@ -191,9 +192,10 @@ LoadRivalriesAsync()
                 x => x.TeamId == match.Team2Id);
         if (team2Profile == null)
         {
+            // Prefer resolving by TeamId for authoritative binding; fall back handled inside GetTeamAsync
             team2Profile =
                 await TeamProfileService.GetTeamAsync(
-                    match.Team2Name);
+                    match.Team2Id);
 
             if (team2Profile == null)
             {

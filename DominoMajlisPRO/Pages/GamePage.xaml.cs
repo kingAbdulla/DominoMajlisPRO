@@ -1,4 +1,6 @@
 using DominoMajlisPRO.Models;
+using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls;
 namespace DominoMajlisPRO.Pages;
@@ -30,6 +32,8 @@ public partial class GamePage : ContentPage
         new();
     TeamProfileModel? team1Profile;
     TeamProfileModel? team2Profile;
+    TeamIdentityModel? team1Identity;
+    TeamIdentityModel? team2Identity;
     // =========================
     // NEW MATCH
     // =========================
@@ -70,7 +74,7 @@ public partial class GamePage : ContentPage
             $"القوانين: {rules}";
 
         isLocalRules =
-            rules.Contains("محلـــــــــي");
+            rules.Contains("محلي");
 
         // MATCH DATA
         currentMatch.Team1Name =
@@ -173,12 +177,29 @@ public partial class GamePage : ContentPage
 
         RulesLabel.Text =
             match.IsLocalRules
-            ? "القوانين: محلـــــــــي"
-            : "القوانين: عالــــــــمي";
+            ? "القوانين: محلي"
+            : "القوانين: عالمي";
         SetupGestures();
         SetupScoreCardGestures();
         SelectTeam(1);
         UpdateLeaderUI();
+        _ = RefreshLiveTeamVisualsAsync();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
+
+        await RefreshLiveTeamVisualsAsync();
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
     }
     // =========================
     // GESTURES
@@ -288,9 +309,6 @@ public partial class GamePage : ContentPage
 
         if (team1Profile != null)
         {
-            Team1Emblem.Source =
-                team1Profile.Emblem;
-
             currentMatch.Team1Emblem =
                 team1Profile.Emblem;
 
@@ -305,9 +323,6 @@ public partial class GamePage : ContentPage
 
         if (team2Profile != null)
         {
-            Team2Emblem.Source =
-                team2Profile.Emblem;
-
             currentMatch.Team2Emblem =
                 team2Profile.Emblem;
 
@@ -319,7 +334,123 @@ public partial class GamePage : ContentPage
                 players,
                 Team2SpecialHonorIcon);
         }
+
+        await RefreshLiveTeamVisualsAsync();
     }
+
+    async void OnTeamAssetsChanged(string changedTeamId)
+    {
+        if (!string.Equals(
+                changedTeamId,
+                team1Id,
+                StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(
+                changedTeamId,
+                team2Id,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        await MainThread.InvokeOnMainThreadAsync(RefreshLiveTeamVisualsAsync);
+    }
+
+    async Task RefreshLiveTeamVisualsAsync()
+    {
+        team1Identity = await ResolveLiveIdentityAsync(
+            team1Id,
+            team1Profile,
+            currentMatch.Team1Emblem,
+            currentMatch.Team1ColorHex);
+        team2Identity = await ResolveLiveIdentityAsync(
+            team2Id,
+            team2Profile,
+            currentMatch.Team2Emblem,
+            currentMatch.Team2ColorHex);
+
+        Team1Emblem.Source =
+            InventoryDisplayResolver.ResolveImageSource(
+                team1Identity.EmblemImagePath,
+                "shield_3d.png");
+        Team2Emblem.Source =
+            InventoryDisplayResolver.ResolveImageSource(
+                team2Identity.EmblemImagePath,
+                "shield_3d.png");
+        ApplyTeamIdentityVisual(Team1Card, team1Identity);
+        ApplyTeamIdentityVisual(Team2Card, team2Identity);
+    }
+
+    static void ApplyTeamIdentityVisual(
+        VisualElement card,
+        TeamIdentityModel identity)
+    {
+        if (card is not Layout layout)
+            return;
+        layout.BackgroundColor = ResolveIdentityBackground(identity);
+    }
+
+    static Color ResolveIdentityBackground(TeamIdentityModel identity)
+    {
+        var source = identity.EmblemBackgroundSource;
+        if (!string.IsNullOrWhiteSpace(source) &&
+            source.StartsWith('#'))
+        {
+            try { return Color.FromArgb(source); }
+            catch { }
+        }
+
+        try
+        {
+            var color = Color.FromArgb(identity.TeamColorHex);
+            return new Color(color.Red, color.Green, color.Blue, 0.12f);
+        }
+        catch
+        {
+            return Colors.Transparent;
+        }
+    }
+
+    static async Task<TeamIdentityModel> ResolveLiveIdentityAsync(
+        string teamId,
+        TeamProfileModel? legacyProfile,
+        string? snapshotEmblem,
+        string? snapshotColor)
+    {
+        try
+        {
+            return await TeamIdentityResolver.ResolveAsync(teamId);
+        }
+        catch
+        {
+            return new TeamIdentityModel
+            {
+                TeamId = teamId,
+                TeamName = legacyProfile?.TeamName ?? string.Empty,
+                EmblemImagePath =
+                    FirstPayload(
+                        legacyProfile?.Emblem,
+                        snapshotEmblem,
+                        "shield_3d.png"),
+                EmblemBackgroundSource = "Transparent",
+                TeamColorHex =
+                    FirstPayload(
+                        legacyProfile?.ColorHex,
+                        snapshotColor,
+                        "#FFD700"),
+                ResolvedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    static string FirstPayload(
+        string? primary,
+        string? secondary,
+        string fallback) =>
+        !string.IsNullOrWhiteSpace(primary)
+            ? primary
+            : !string.IsNullOrWhiteSpace(secondary)
+                ? secondary
+                : fallback;
 
     // =========================
     //Animation +
@@ -363,29 +494,37 @@ public partial class GamePage : ContentPage
         var cardPulse =
             Task.Run(async () =>
             {
-                await targetCard.ScaleTo(
-                    1.12,
-                    120,
-                    Easing.CubicOut);
+                try
+                {
+                    await targetCard.ScaleTo(
+                        1.12,
+                        120,
+                        Easing.CubicOut);
 
-                await targetCard.ScaleTo(
-                    1.08,
-                    120,
-                    Easing.CubicIn);
+                    await targetCard.ScaleTo(
+                        1.08,
+                        120,
+                        Easing.CubicIn);
+                }
+                catch { }
             });
 
         var scorePulse =
             Task.Run(async () =>
             {
-                await targetScore.ScaleTo(
-                    1.20,
-                    120,
-                    Easing.CubicOut);
+                try
+                {
+                    await targetScore.ScaleTo(
+                        1.20,
+                        120,
+                        Easing.CubicOut);
 
-                await targetScore.ScaleTo(
-                    1.00,
-                    120,
-                    Easing.CubicIn);
+                    await targetScore.ScaleTo(
+                        1.00,
+                        120,
+                        Easing.CubicIn);
+                }
+                catch { }
             });
 
         await Task.WhenAll(

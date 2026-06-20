@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DominoMajlisPRO.GalleryEngine.Admin.NewArrivalsEditorPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    BackgroundColor="#030303"
+    NavigationPage.HasNavigationBar="False"
+    FlowDirection="RightToLeft">
+
+    <Grid>
+        <ScrollView VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout Padding="16,18,16,28" Spacing="14">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <Border x:Name="BackButtonFrame" WidthRequest="42" HeightRequest="42" StrokeThickness="1">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="16" /></Border.StrokeShape>
+                        <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnCancelTapped" /></Border.GestureRecognizers>
+                        <Label x:Name="BackButtonLabel" Text="‹" FontSize="28" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                    </Border>
+                    <VerticalStackLayout Grid.Column="1" Spacing="1">
+                        <Label x:Name="TitleLabel" Text="وصل حديثاً" FontFamily="Tajawal-Regular" FontSize="25" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                        <Label x:Name="SubtitleLabel" Text="إدارة عناصر المتجر الجديدة" FontFamily="Tajawal-Regular" FontSize="12" HorizontalTextAlignment="End" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <Border x:Name="ModeCard" Padding="12" StrokeThickness="1">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="18" /></Border.StrokeShape>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <BoxView x:Name="ModeDot" WidthRequest="12" HeightRequest="12" CornerRadius="6" VerticalOptions="Center" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="1">
+                            <Label x:Name="ModeTitleLabel" FontFamily="Tajawal-Regular" FontSize="14" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                            <Label x:Name="ModeSubtitleLabel" FontFamily="Tajawal-Regular" FontSize="11" HorizontalTextAlignment="End" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="FormPanel" Padding="12" StrokeThickness="1">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="18" /></Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <Entry x:Name="TitleEntry" Placeholder="العنوان" TextChanged="OnTextChanged" />
+                        <Entry x:Name="SubtitleEntry" Placeholder="العنوان الفرعي" TextChanged="OnTextChanged" />
+                        <Editor x:Name="DescriptionEditor" Placeholder="الوصف" AutoSize="TextChanges" HeightRequest="82" TextChanged="OnTextChanged" />
+                        <Entry x:Name="ButtonTextEntry" Placeholder="نص الزر" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Entry x:Name="ImagePathEntry" Placeholder="الصورة" IsReadOnly="True" />
+                            <Button Grid.Column="1" Text="اختيار صورة" Clicked="OnPickImageClicked" />
+                        </Grid>
+                        <Image x:Name="PreviewImage" HeightRequest="130" Aspect="AspectFit" IsVisible="False" />
+                        <Picker x:Name="AssetIdPicker" Title="معرّف الأصل AssetId" />
+                        <Picker x:Name="AssetTypePicker" Title="Asset Type / نوع الأصل" SelectedIndexChanged="OnAssetTypeChanged" />
+                        <Picker x:Name="OwnerScopePicker" Title="نطاق المالك" IsEnabled="False" />
+                        <Entry x:Name="ColorHexEntry" Placeholder="ColorHex (مطلوب للون الفريق)" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Entry x:Name="PriceEntry" Placeholder="السعر" Keyboard="Numeric" />
+                            <Picker x:Name="CurrencyPicker" Grid.Column="1" Title="العملة" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Entry x:Name="SortOrderEntry" Placeholder="ترتيب العرض" Keyboard="Numeric" />
+                            <HorizontalStackLayout Grid.Column="1" Spacing="8" HorizontalOptions="End" VerticalOptions="Center">
+                                <Label x:Name="FeaturedLabel" Text="مميز" VerticalTextAlignment="Center" />
+                                <Switch x:Name="FeaturedSwitch" />
+                            </HorizontalStackLayout>
+                        </Grid>
+                        <Picker x:Name="StatusPicker" Title="الحالة" IsEnabled="False" />
+                        <Label x:Name="ValidationLabel" FontSize="11" IsVisible="False" HorizontalTextAlignment="End" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                    <Button x:Name="SaveDraftButton" Text="حفظ كمسودة" Clicked="OnSaveDraftClicked" />
+                    <Button x:Name="PublishButton" Grid.Column="1" Text="نشر" Clicked="OnPublishClicked" />
+                    <Button Grid.Row="1" Text="إلغاء" Clicked="OnCancelTapped" />
+                    <Button Grid.Row="1" Grid.Column="1" Text="المسودات" Clicked="OnOpenDraftsClicked" />
+                    <Button Grid.Row="2" Grid.ColumnSpan="2" Text="العناصر المنشورة" Clicked="OnOpenPublishedClicked" />
+                    <Button Grid.Row="3" Grid.ColumnSpan="2" Text="تدقيق المنتجات غير الصالحة" Clicked="OnAuditMalformedClicked" />
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid x:Name="SheetOverlay" IsVisible="False" BackgroundColor="#99000000">
+            <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnCloseSheetTapped" /></Grid.GestureRecognizers>
+            <Border x:Name="SheetPanel" Padding="14" StrokeThickness="1" VerticalOptions="End">
+                <Border.StrokeShape><RoundRectangle CornerRadius="24,24,0,0" /></Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label x:Name="SheetTitleLabel" FontFamily="Tajawal-Regular" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                        <Button Grid.Column="1" Text="إغلاق" Clicked="OnCloseSheetClicked" />
+                    </Grid>
+                    <ScrollView MaximumHeightRequest="430">
+                        <VerticalStackLayout x:Name="SheetList" Spacing="10" />
+                    </ScrollView>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

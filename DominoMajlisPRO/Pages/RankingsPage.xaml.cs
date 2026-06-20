@@ -2,6 +2,8 @@
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
+using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.GalleryEngine.Models;
 namespace DominoMajlisPRO.Pages;
 
 public partial class RankingsPage : ContentPage
@@ -11,6 +13,10 @@ public partial class RankingsPage : ContentPage
 
     List<TeamProfileModel> filteredTeams =
         new();
+
+    IReadOnlyDictionary<string, TeamIdentityModel> teamIdentities =
+        new Dictionary<string, TeamIdentityModel>(
+            StringComparer.OrdinalIgnoreCase);
 
     public RankingsPage()
     {
@@ -33,6 +39,8 @@ public partial class RankingsPage : ContentPage
     {
         allTeams =
             await RankingService.LoadTeamsAsync();
+        teamIdentities = await TeamIdentityResolver.ResolveManyAsync(
+            allTeams.Select(team => team.TeamId));
         SeasonManager.EnsureSeason(allTeams);
         var players =
     await PlayerProfileService.LoadPlayersAsync();
@@ -855,8 +863,7 @@ public partial class RankingsPage : ContentPage
             new Image
             {
                 Source =
-                    GetRankIcon(
-                        team.Rank),
+                    GetRankIcon(team.Rank),
 
                 WidthRequest =
     position switch
@@ -1677,6 +1684,7 @@ public partial class RankingsPage : ContentPage
         AppEvents.PlayerProfileChanged -= LoadRankings;
         AppEvents.DataChanged -= LoadRankings;
         AppEvents.TeamsChanged -= LoadRankings;
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.MatchesChanged -= LoadRankings;
     }
     // Appearing
@@ -1688,16 +1696,20 @@ public partial class RankingsPage : ContentPage
         AppEvents.PlayerProfileChanged -= LoadRankings;
         AppEvents.DataChanged -= LoadRankings;
         AppEvents.TeamsChanged -= LoadRankings;
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.MatchesChanged -= LoadRankings;
 
         AppEvents.RankingsChanged += LoadRankings;
         AppEvents.PlayerProfileChanged += LoadRankings;
         AppEvents.DataChanged += LoadRankings;
         AppEvents.TeamsChanged += LoadRankings;
+        AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
         AppEvents.MatchesChanged += LoadRankings;
 
         LoadRankings();
     }
+
+    void OnTeamAssetsChanged(string teamId) => LoadRankings();
     // Reset filter styles
     void ResetFilterStyles()
     {

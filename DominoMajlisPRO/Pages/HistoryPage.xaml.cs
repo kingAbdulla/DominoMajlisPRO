@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
+using DominoMajlisPRO.GalleryEngine.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.Pages;
@@ -35,11 +36,13 @@ public partial class HistoryPage : ContentPage
         AppEvents.MatchesChanged -= OnHistoryDataChanged;
         AppEvents.TeamsChanged -= OnHistoryDataChanged;
         AppEvents.PlayerProfileChanged -= OnHistoryDataChanged;
+        AppEvents.TeamAssetsChanged -= OnHistoryTeamAssetsChanged;
 
         AppEvents.DataChanged += OnHistoryDataChanged;
         AppEvents.MatchesChanged += OnHistoryDataChanged;
         AppEvents.TeamsChanged += OnHistoryDataChanged;
         AppEvents.PlayerProfileChanged += OnHistoryDataChanged;
+        AppEvents.TeamAssetsChanged += OnHistoryTeamAssetsChanged;
 
         await LoadHistoryAsync();
     }
@@ -52,6 +55,7 @@ public partial class HistoryPage : ContentPage
         AppEvents.MatchesChanged -= OnHistoryDataChanged;
         AppEvents.TeamsChanged -= OnHistoryDataChanged;
         AppEvents.PlayerProfileChanged -= OnHistoryDataChanged;
+        AppEvents.TeamAssetsChanged -= OnHistoryTeamAssetsChanged;
     }
 
     async void OnHistoryDataChanged()
@@ -69,13 +73,16 @@ public partial class HistoryPage : ContentPage
         allMatches =
             await GameService.LoadMatchesAsync();
 
-        NormalizeMatches(allMatches);
+        await NormalizeMatchesAsync(allMatches);
         UpdateDashboard();
         ApplyFilters(reset: true);
     }
 
-    void NormalizeMatches(List<SavedMatch> matches)
+    async Task NormalizeMatchesAsync(List<SavedMatch> matches)
     {
+        var identities = await TeamIdentityResolver.ResolveManyAsync(
+            matches.SelectMany(match =>
+                new[] { match.Team1Id, match.Team2Id }));
         foreach (var match in matches)
         {
             match.Team1Name ??= "الفريق الأول";
@@ -83,17 +90,26 @@ public partial class HistoryPage : ContentPage
             match.WinnerTeamName ??= "بدون فائز";
             match.Team1Players ??= "";
             match.Team2Players ??= "";
+            identities.TryGetValue(match.Team1Id, out var team1);
+            identities.TryGetValue(match.Team2Id, out var team2);
             match.Team1Emblem =
-                string.IsNullOrWhiteSpace(match.Team1Emblem)
+                team1?.EmblemImagePath ??
+                (string.IsNullOrWhiteSpace(match.Team1Emblem)
                     ? "shield_3d.png"
-                    : match.Team1Emblem;
-
+                    : match.Team1Emblem);
             match.Team2Emblem =
-                string.IsNullOrWhiteSpace(match.Team2Emblem)
+                team2?.EmblemImagePath ??
+                (string.IsNullOrWhiteSpace(match.Team2Emblem)
                     ? "shield_3d.png"
-                    : match.Team2Emblem;
+                    : match.Team2Emblem);
+            match.Team1ColorHex =
+                team1?.TeamColorHex ?? match.Team1ColorHex;
+            match.Team2ColorHex =
+                team2?.TeamColorHex ?? match.Team2ColorHex;
         }
     }
+
+    void OnHistoryTeamAssetsChanged(string teamId) => OnHistoryDataChanged();
 
     void UpdateDashboard()
     {

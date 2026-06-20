@@ -48,8 +48,15 @@
                         <Shadow Brush="#D4AF37" Radius="12" Opacity="0.35"/>
                     </Border.Shadow>
 
-                    <VerticalStackLayout Spacing="12">
+                    <Grid>
+                        <Image
+                            x:Name="HeroProfileBackgroundImage"
+                            Aspect="AspectFill"
+                            Opacity="0.34"
+                            InputTransparent="True"
+                            IsVisible="False"/>
 
+                    <VerticalStackLayout Spacing="12">
                         <Border
                             x:Name="AvatarFrame"
                             WidthRequest="{OnIdiom Phone=150, Tablet=190, Desktop=190}"
@@ -64,9 +71,21 @@
                                 <Shadow Brush="#D4AF37" Radius="18" Opacity="0.45"/>
                             </Border.Shadow>
 
-                            <Image
-                                x:Name="PlayerAvatarImage"
-                                Aspect="AspectFill"/>
+                            <Grid>
+                                <Image
+                                    x:Name="PlayerAvatarImage"
+                                    Aspect="AspectFill"/>
+                                <Image
+                                    x:Name="AvatarFrameOverlay"
+                                    Aspect="AspectFit"
+                                    InputTransparent="True"
+                                    IsVisible="False"/>
+                                <Image
+                                    x:Name="AvatarEffectOverlay"
+                                    Aspect="AspectFit"
+                                    InputTransparent="True"
+                                    IsVisible="False"/>
+                            </Grid>
                         </Border>
 
                         <Label
@@ -120,6 +139,42 @@
                             HeightRequest="52"
                             Clicked="OnOpenAvatarPicker"/>
                     </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <!-- ACCOUNT HUB ACCESS -->
+                <Border
+                    BackgroundColor="#11100D"
+                    Stroke="#D4AF37"
+                    StrokeThickness="1.2"
+                    Padding="14"
+                    StrokeShape="RoundRectangle 22">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnAccountHubTapped"/>
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                        <Label
+                            Text="👤"
+                            FontSize="26"
+                            VerticalOptions="Center"/>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label
+                                Text="حسابي"
+                                TextColor="#D4AF37"
+                                FontSize="18"
+                                FontAttributes="Bold"/>
+                            <Label
+                                Text="Account Hub وإدارة الهوية"
+                                TextColor="#999999"
+                                FontSize="11"/>
+                        </VerticalStackLayout>
+                        <Label
+                            Grid.Column="2"
+                            Text="‹"
+                            TextColor="#D4AF37"
+                            FontSize="26"
+                            VerticalOptions="Center"/>
+                    </Grid>
                 </Border>
 
                 <!-- XP -->
@@ -368,6 +423,18 @@ StrokeShape="RoundRectangle 24">
         TextColor="#D4AF37"
         HorizontalTextAlignment="Center"/>
 
+                        <Button
+                            x:Name="DeleteAllTimelineButton"
+                            Text="حذف الكل"
+                            BackgroundColor="#8B1E1E"
+                            TextColor="White"
+                            FontSize="11"
+                            Padding="10,5"
+                            CornerRadius="12"
+                            HorizontalOptions="End"
+                            IsVisible="False"
+                            Clicked="OnDeleteAllTimelineClicked"/>
+
                         <VerticalStackLayout
         x:Name="TimelineContainer"
         Spacing="10"/>
@@ -472,7 +539,7 @@ StrokeShape="RoundRectangle 24">
 
                                         <VerticalStackLayout Spacing="6">
                                             <Image
-                                                Source="{Binding Image}"
+                                                Source="{Binding ImageSource}"
                                                 HeightRequest="{OnIdiom Phone=78, Tablet=105, Desktop=110}"
                                                 WidthRequest="{OnIdiom Phone=78, Tablet=105, Desktop=110}"
                                                 Aspect="AspectFit"

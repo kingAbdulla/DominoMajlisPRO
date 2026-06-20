@@ -21,13 +21,21 @@ public static class PlayerTeamSyncService
                     player.PlayerName);
 
             var playerTeams =
-                teams
-                .Where(t =>
-                    t.Player1Id == player.PlayerId ||
-                    t.Player2Id == player.PlayerId ||
-                    PlayerIdentityService.NormalizePlayerName(t.Player1) == playerName ||
-                    PlayerIdentityService.NormalizePlayerName(t.Player2) == playerName)
-                .ToList();
+            teams
+            .Where(t =>
+                t.Player1Id == player.PlayerId ||
+                t.Player2Id == player.PlayerId ||
+                ( !string.IsNullOrWhiteSpace(t.Player1Id) && PlayerIdentityService.NormalizePlayerName(t.Player1) == playerName ) ||
+                ( !string.IsNullOrWhiteSpace(t.Player2Id) && PlayerIdentityService.NormalizePlayerName(t.Player2) == playerName ))
+            .ToList();
+
+            // Prefer ID-first associations: filter out name-only matches when an explicit PlayerId exists that doesn't match.
+            playerTeams = playerTeams.Where(t =>
+                t.Player1Id == player.PlayerId ||
+                t.Player2Id == player.PlayerId ||
+                (string.IsNullOrWhiteSpace(t.Player1Id) && PlayerIdentityService.NormalizePlayerName(t.Player1) == playerName) ||
+                (string.IsNullOrWhiteSpace(t.Player2Id) && PlayerIdentityService.NormalizePlayerName(t.Player2) == playerName)
+            ).ToList();
 
             if (playerTeams.Count == 0)
                 continue;

@@ -129,7 +129,7 @@
                         <VerticalStackLayout Spacing="10">
 
                             <Grid ColumnDefinitions="48,*,48">
-                                <Image Source="{Binding Team1Emblem}" WidthRequest="40" HeightRequest="40"/>
+                                <Image Source="{Binding Team1EmblemSource}" WidthRequest="40" HeightRequest="40"/>
 
                                 <VerticalStackLayout Grid.Column="1" Spacing="2">
                                     <Label Text="{Binding Team1Name}" TextColor="White" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation"/>
@@ -137,7 +137,7 @@
                                     <Label Text="{Binding Team2Name}" TextColor="White" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation"/>
                                 </VerticalStackLayout>
 
-                                <Image Grid.Column="2" Source="{Binding Team2Emblem}" WidthRequest="40" HeightRequest="40"/>
+                                <Image Grid.Column="2" Source="{Binding Team2EmblemSource}" WidthRequest="40" HeightRequest="40"/>
                             </Grid>
 
                             <Label

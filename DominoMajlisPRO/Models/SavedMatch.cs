@@ -62,7 +62,21 @@ public class SavedMatch
     public string WinnerTeamId { get; set; } = "";
     public string Team1Emblem { get; set; } = "";
 
+    [System.Text.Json.Serialization.JsonIgnore]
+    public ImageSource Team1EmblemSource =>
+        global::DominoMajlisPRO.GalleryEngine.Services
+            .InventoryDisplayResolver.ResolveImageSource(
+                Team1Emblem,
+                "shield_3d.png");
+
     public string Team2Emblem { get; set; } = "";
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public ImageSource Team2EmblemSource =>
+        global::DominoMajlisPRO.GalleryEngine.Services
+            .InventoryDisplayResolver.ResolveImageSource(
+                Team2Emblem,
+                "shield_3d.png");
 
     public string Team1ColorHex { get; set; } = "#FFD700";
 

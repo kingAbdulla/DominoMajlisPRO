@@ -2,6 +2,8 @@ using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 using System.Reflection;
+using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.GalleryEngine.Models;
 
 namespace DominoMajlisPRO.Pages;
 
@@ -10,6 +12,9 @@ public partial class HallOfFamePage : ContentPage
     List<SavedMatch> matches = new();
     List<TeamProfileModel> teams = new();
     List<PlayerProfileModel> players = new();
+    IReadOnlyDictionary<string, TeamIdentityModel> teamIdentities =
+        new Dictionary<string, TeamIdentityModel>(
+            StringComparer.OrdinalIgnoreCase);
 
     const string CardGlass = "#151515";
     const string BronzeStroke = "#5B3B18";
@@ -32,12 +37,14 @@ public partial class HallOfFamePage : ContentPage
         AppEvents.MatchesChanged -= OnHallDataChanged;
         AppEvents.TeamsChanged -= OnHallDataChanged;
         AppEvents.RankingsChanged -= OnHallDataChanged;
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
 
         AppEvents.DataChanged += OnHallDataChanged;
         AppEvents.PlayerProfileChanged += OnHallDataChanged;
         AppEvents.MatchesChanged += OnHallDataChanged;
         AppEvents.TeamsChanged += OnHallDataChanged;
         AppEvents.RankingsChanged += OnHallDataChanged;
+        AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
 
         await LoadHallOfFameAsync();
     }
@@ -51,6 +58,7 @@ public partial class HallOfFamePage : ContentPage
         AppEvents.MatchesChanged -= OnHallDataChanged;
         AppEvents.TeamsChanged -= OnHallDataChanged;
         AppEvents.RankingsChanged -= OnHallDataChanged;
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
     }
 
     async void OnHallDataChanged()
@@ -62,10 +70,14 @@ public partial class HallOfFamePage : ContentPage
             });
     }
 
+    void OnTeamAssetsChanged(string teamId) => OnHallDataChanged();
+
     async Task LoadHallOfFameAsync()
     {
         matches = await GameService.LoadMatchesAsync();
         teams = await TeamProfileService.LoadTeamsAsync();
+        teamIdentities = await TeamIdentityResolver.ResolveManyAsync(
+            teams.Select(team => team.TeamId));
         players = await PlayerProfileService.LoadPlayersAsync();
 
         HallContainer.Opacity = 0;
@@ -171,9 +183,7 @@ public partial class HallOfFamePage : ContentPage
             TopTeamsContainer.Children.Add(
                 CreateTeamLegendCard(
                     rank,
-                    team.DisplayName,
-                    team.Wins,
-                    team.LegacyScore));
+                    team));
 
             rank++;
         }
@@ -203,12 +213,18 @@ public partial class HallOfFamePage : ContentPage
             return;
         }
 
+        var identities =
+            await PlayerVisualIdentityResolver.ResolveManyAsync(
+                topPlayers.Select(player => player.PlayerId));
         int rank = 1;
 
         foreach (var player in topPlayers)
         {
+            identities.TryGetValue(
+                player.PlayerId,
+                out var identity);
             TopPlayersContainer.Children.Add(
-                CreatePlayerLegendCard(rank, player));
+                CreatePlayerLegendCard(rank, player, identity));
 
             rank++;
         }
@@ -372,9 +388,7 @@ public partial class HallOfFamePage : ContentPage
 
     View CreateTeamLegendCard(
         int rank,
-        string teamName,
-        int wins,
-        int legacy)
+        TeamLegendResult team)
     {
         string borderColor =
             rank == 1 ? "#D4AE62" :
@@ -382,16 +396,7 @@ public partial class HallOfFamePage : ContentPage
             rank == 3 ? "#B87333" :
             "#765021";
 
-        string shield =
-            rank switch
-            {
-                1 => "crown_3d.png",
-                2 => "wolf_3d.png",
-                3 => "eagle_3d.png",
-                4 => "lion_3d.png",
-                5 => "horse_3d.png",
-                _ => "shield_3d.png"
-            };
+        string shield = GetTeamRankIcon(team);
 
         Border card =
             new()
@@ -443,7 +448,7 @@ public partial class HallOfFamePage : ContentPage
         layout.Children.Add(
             new Label
             {
-                Text = teamName,
+                Text = team.DisplayName,
                 TextColor = Colors.White,
                 FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 15 : 19,
                 FontAttributes = FontAttributes.Bold,
@@ -455,7 +460,7 @@ public partial class HallOfFamePage : ContentPage
         layout.Children.Add(
             new Label
             {
-                Text = $"{wins} انتصار",
+                Text = $"{team.Wins} انتصار",
                 TextColor = Color.FromArgb("#C8B58A"),
                 FontSize = 11,
                 HorizontalTextAlignment = TextAlignment.Center
@@ -464,7 +469,7 @@ public partial class HallOfFamePage : ContentPage
         layout.Children.Add(
             new Label
             {
-                Text = $"Legacy {legacy}",
+                Text = $"Legacy {team.LegacyScore}",
                 TextColor = Color.FromArgb("#D4AE62"),
                 FontSize = 12,
                 FontAttributes = FontAttributes.Bold,
@@ -483,6 +488,22 @@ public partial class HallOfFamePage : ContentPage
         card.Content = layout;
 
         return card;
+    }
+
+    string GetTeamRankIcon(TeamLegendResult result)
+    {
+        var team = teams.FirstOrDefault(item =>
+            string.Equals(item.TeamId, result.Key, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.TeamName, result.DisplayName, StringComparison.OrdinalIgnoreCase));
+        var rank = team?.Rank ?? "Unranked";
+        if (rank.StartsWith("Bronze", StringComparison.OrdinalIgnoreCase)) return "bronze.png";
+        if (rank.StartsWith("Silver", StringComparison.OrdinalIgnoreCase)) return "silver.png";
+        if (rank.StartsWith("Gold", StringComparison.OrdinalIgnoreCase)) return "gold.png";
+        if (rank.StartsWith("Platinum", StringComparison.OrdinalIgnoreCase)) return "platinum.png";
+        if (rank.StartsWith("Diamond", StringComparison.OrdinalIgnoreCase)) return "diamond.png";
+        if (string.Equals(rank, "Majlis Master", StringComparison.OrdinalIgnoreCase)) return "majlis_master.png";
+        if (string.Equals(rank, "Majlis Legend", StringComparison.OrdinalIgnoreCase)) return "majlis_legend.png";
+        return "unranked.png";
     }
 
     View CreatePlayerLegendCard(
@@ -516,7 +537,8 @@ public partial class HallOfFamePage : ContentPage
 
     View CreatePlayerLegendCard(
         int rank,
-        PlayerProfileModel player)
+        PlayerProfileModel player,
+        PlayerVisualIdentity? identity)
     {
         PlayerEngine.Normalize(player);
 
@@ -536,12 +558,24 @@ public partial class HallOfFamePage : ContentPage
             CreatePlayerCardLayout(
                 rank,
                 borderColor,
+                ToOptionalImageSource(
+                    identity?.Avatar?.PreviewImage) ??
                 PlayerProfileService.GetPlayerImageSource(player),
                 player.PlayerName,
-                rankResult.DisplayName,
-                player.LegacyScore.ToString());
+                identity?.Title == null
+                    ? rankResult.DisplayName
+                    : $"{rankResult.DisplayName} • {identity.Title.DisplayName}",
+                player.LegacyScore.ToString(),
+                identity);
 
-        card.Content = layout;
+        var surface = new Grid();
+        var background =
+            CreatePlayerBackgroundImage(
+                identity?.ProfileBackground?.PreviewImage);
+        if (background != null)
+            surface.Add(background);
+        surface.Add(layout);
+        card.Content = surface;
 
         var tap = new TapGestureRecognizer();
 
@@ -580,13 +614,47 @@ public partial class HallOfFamePage : ContentPage
         };
     }
 
+    static Image? CreatePlayerBackgroundImage(string? imagePath)
+    {
+        var source = ToOptionalImageSource(imagePath);
+        return source == null
+            ? null
+            : new Image
+            {
+                Source = source,
+                Aspect = Aspect.AspectFill,
+                Opacity = 0.34,
+                InputTransparent = true
+            };
+    }
+
+    static ImageSource? ToOptionalImageSource(string? imagePath) =>
+        InventoryDisplayResolver.ResolveOptionalImageSource(
+            imagePath);
+
+    static void AddPlayerOverlay(Grid container, string? imagePath)
+    {
+        var source = ToOptionalImageSource(imagePath);
+        if (source == null)
+            return;
+
+        container.Add(
+            new Image
+            {
+                Source = source,
+                Aspect = Aspect.AspectFit,
+                InputTransparent = true
+            });
+    }
+
     VerticalStackLayout CreatePlayerCardLayout(
         int rank,
         string borderColor,
         ImageSource avatarSource,
         string playerName,
         string rankText,
-        string score)
+        string score,
+        PlayerVisualIdentity? identity = null)
     {
         VerticalStackLayout layout =
             new()
@@ -607,21 +675,40 @@ public partial class HallOfFamePage : ContentPage
                 HorizontalTextAlignment = TextAlignment.Center
             });
 
+        var avatar = new Grid();
+        avatar.Add(
+            new Image
+            {
+                Source = avatarSource,
+                Aspect = Aspect.AspectFill
+            });
+        AddPlayerOverlay(avatar, identity?.Frame?.PreviewImage);
+        AddPlayerOverlay(avatar, identity?.Effect?.PreviewImage);
+
         layout.Children.Add(
             new Border
             {
-                WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 70 : 96,
-                HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 70 : 96,
+                WidthRequest =
+                    DeviceInfo.Idiom == DeviceIdiom.Phone ? 70 : 96,
+                HeightRequest =
+                    DeviceInfo.Idiom == DeviceIdiom.Phone ? 70 : 96,
                 BackgroundColor = Color.FromArgb("#151515"),
-                Stroke = Color.FromArgb(borderColor),
+                Stroke = identity?.Frame == null
+                    ? Color.FromArgb(borderColor)
+                    : Colors.Transparent,
                 StrokeThickness = 1.2,
-                StrokeShape = new RoundRectangle { CornerRadius = 999 },
-                Content =
-                    new Image
+                StrokeShape =
+                    new RoundRectangle { CornerRadius = 999 },
+                Shadow = identity?.Effect == null
+                    ? null
+                    : new Shadow
                     {
-                        Source = avatarSource,
-                        Aspect = Aspect.AspectFill
-                    }
+                        Brush = new SolidColorBrush(
+                            Color.FromArgb("#F2C14E")),
+                        Radius = 16,
+                        Opacity = 0.5f
+                    },
+                Content = avatar
             });
 
         layout.Children.Add(

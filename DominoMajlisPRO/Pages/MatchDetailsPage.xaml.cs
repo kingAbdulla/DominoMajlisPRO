@@ -1,5 +1,6 @@
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
+using DominoMajlisPRO.GalleryEngine.Services;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
 namespace DominoMajlisPRO.Pages;
@@ -28,11 +29,13 @@ public partial class MatchDetailsPage : ContentPage
         AppEvents.DataChanged -= OnMatchDetailsDataChanged;
         AppEvents.MatchesChanged -= OnMatchDetailsDataChanged;
         AppEvents.TeamsChanged -= OnMatchDetailsDataChanged;
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.PlayerProfileChanged -= OnMatchDetailsDataChanged;
 
         AppEvents.DataChanged += OnMatchDetailsDataChanged;
         AppEvents.MatchesChanged += OnMatchDetailsDataChanged;
         AppEvents.TeamsChanged += OnMatchDetailsDataChanged;
+        AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
         AppEvents.PlayerProfileChanged += OnMatchDetailsDataChanged;
 
         await LoadMatchData();
@@ -45,6 +48,7 @@ public partial class MatchDetailsPage : ContentPage
         AppEvents.DataChanged -= OnMatchDetailsDataChanged;
         AppEvents.MatchesChanged -= OnMatchDetailsDataChanged;
         AppEvents.TeamsChanged -= OnMatchDetailsDataChanged;
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.PlayerProfileChanged -= OnMatchDetailsDataChanged;
     }
 
@@ -69,6 +73,8 @@ public partial class MatchDetailsPage : ContentPage
         var team2 =
             await TeamProfileService
                 .GetTeamByIdAsync(match.Team2Id);
+        var identities = await TeamIdentityResolver.ResolveManyAsync(
+            new[] { match.Team1Id, match.Team2Id });
         // Team 1
 
         Team1NameLabel.Text =
@@ -94,10 +100,20 @@ public partial class MatchDetailsPage : ContentPage
                     $"{team1.Player2} ({team1.Player2Id})";
             }
 
+            identities.TryGetValue(
+                match.Team1Id,
+                out var team1Identity);
             Team1Emblem.Source =
-                team1.Emblem;
+                InventoryDisplayResolver.ResolveImageSource(
+                    team1Identity?.EmblemImagePath ?? team1.Emblem,
+                    "shield_3d.png");
             Team1Border.Stroke =
-    Color.FromArgb(team1.ColorHex);
+                SafeColor(
+                    team1Identity?.TeamColorHex,
+                    team1.ColorHex);
+            Team1Border.BackgroundColor =
+                SafeBackground(
+                    team1Identity?.EmblemBackgroundSource);
         }
 
         // Team 2
@@ -125,10 +141,20 @@ public partial class MatchDetailsPage : ContentPage
                     $"{team2.Player2} ({team2.Player2Id})";
             }
 
+            identities.TryGetValue(
+                match.Team2Id,
+                out var team2Identity);
             Team2Emblem.Source =
-                team2.Emblem;
+                InventoryDisplayResolver.ResolveImageSource(
+                    team2Identity?.EmblemImagePath ?? team2.Emblem,
+                    "shield_3d.png");
             Team2Border.Stroke =
-    Color.FromArgb(team2.ColorHex);
+                SafeColor(
+                    team2Identity?.TeamColorHex,
+                    team2.ColorHex);
+            Team2Border.BackgroundColor =
+                SafeBackground(
+                    team2Identity?.EmblemBackgroundSource);
         }
         RoundsCountLabel.Text =
     match.RoundsHistory.Count.ToString();
@@ -174,6 +200,48 @@ public partial class MatchDetailsPage : ContentPage
             ?match.WinnerTeam
             : match.WinnerTeamName;
 
+    }
+
+    void OnTeamAssetsChanged(string teamId)
+    {
+        if (match == null ||
+            (!string.Equals(teamId, match.Team1Id, StringComparison.OrdinalIgnoreCase) &&
+             !string.Equals(teamId, match.Team2Id, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        OnMatchDetailsDataChanged();
+    }
+
+    static Color SafeColor(string? preferred, string fallback)
+    {
+        try
+        {
+            return Color.FromArgb(
+                string.IsNullOrWhiteSpace(preferred)
+                    ? fallback
+                    : preferred);
+        }
+        catch
+        {
+            return Color.FromArgb("#FFD700");
+        }
+    }
+
+    static Color SafeBackground(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) ||
+            value.Equals(
+                "Transparent",
+                StringComparison.OrdinalIgnoreCase) ||
+            !value.StartsWith('#'))
+        {
+            return Color.FromArgb("#111111");
+        }
+
+        try { return Color.FromArgb(value); }
+        catch { return Color.FromArgb("#111111"); }
     }
 
     // This method builds
@@ -274,7 +342,10 @@ public partial class MatchDetailsPage : ContentPage
             winnerPanel.Children.Add(
                 new Image
                 {
-                    Source = round.WinnerTeamEmblem,
+                    Source =
+                        InventoryDisplayResolver.ResolveImageSource(
+                            round.WinnerTeamEmblem,
+                            "shield_3d.png"),
                     WidthRequest = 22,
                     HeightRequest = 22
                 });
@@ -333,7 +404,10 @@ public partial class MatchDetailsPage : ContentPage
             loserPanel.Children.Add(
                 new Image
                 {
-                    Source = round.LoserTeamEmblem,
+                    Source =
+                        InventoryDisplayResolver.ResolveImageSource(
+                            round.LoserTeamEmblem,
+                            "shield_3d.png"),
                     WidthRequest = 22,
                     HeightRequest = 22
                 });

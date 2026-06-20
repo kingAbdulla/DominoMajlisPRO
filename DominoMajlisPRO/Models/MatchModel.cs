@@ -16,5 +16,5 @@ public class MatchModel
 
     public DateTime MatchDate { get; set; } = DateTime.Now;
 
-    public string RuleMode { get; set; } = "محلــــــــي";
+    public string RuleMode { get; set; } = "محلي";
 }

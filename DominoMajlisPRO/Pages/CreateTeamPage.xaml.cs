@@ -1,307 +1,482 @@
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Services;
+using System.ComponentModel;
 
 namespace DominoMajlisPRO.Pages;
 
+public abstract class SelectableCarouselItem : INotifyPropertyChanged
+{
+    private bool _isSelected;
+
+    protected SelectableCarouselItem(string imagePath) => ImagePath = imagePath;
+
+    public string ImagePath { get; }
+    public ImageSource ImageSource =>
+        InventoryDisplayResolver.ResolveImageSource(ImagePath);
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value)
+                return;
+
+            _isSelected = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+}
+
+public sealed class EmblemCarouselItem(string assetId, string imagePath, string displayName) : SelectableCarouselItem(imagePath)
+{
+    public string AssetId { get; } = assetId;
+    public string DisplayName { get; } = displayName;
+}
+
+public sealed class TeamColorCarouselItem(string assetId, string colorHex, string imagePath, string displayName) : SelectableCarouselItem(imagePath)
+{
+    public string AssetId { get; } = assetId;
+    public string ColorHex { get; } = colorHex;
+    public string DisplayName { get; } = displayName;
+}
+
+public sealed record EmblemBackgroundPickerItem(string AssetId, string Background, string DisplayName);
+
 public partial class CreateTeamPage : ContentPage
 {
+    private List<EmblemCarouselItem> emblemItems = new();
+    private List<TeamColorCarouselItem> colorItems = new();
+    private List<EmblemBackgroundPickerItem> backgroundItems = new();
+
     List<PlayerProfileModel> allPlayers = new();
     private bool IsEditMode = false;
-   
-    string selectedEmblem =
-    "shield_3d.png";
+
+    string selectedEmblem = "shield_3d.png";
+    string selectedEmblemAssetId = "default_emblem_shield";
+
     bool isTeamMode = true;
 
     string selectedColor = "#FFD700";
-  
+    string selectedColorAssetId = "default_color_gold";
+
+    string selectedEmblemBackground = "Transparent";
+    string selectedEmblemBackgroundAssetId = "default_background_transparent";
 
     private TeamProfileModel? CurrentTeam = null;
+    private bool _suppressSelectionHandlers = false;
     private List<TeamProfileModel> LoadedTeams = new();
+
     public CreateTeamPage()
     {
         InitializeComponent();
-      
-         
-        OnGoldColorClicked(this, EventArgs.Empty);
-        ResetEmblemSelection();
 
-        ShieldButton.Scale = 1.15;
-        ShieldButton.Opacity = 1;
-        OnTeamClicked(
-           this,
-           EventArgs.Empty);
-        TeamNameEntry.TextChanged +=
-  TeamNameChanged;
+        EmblemCarousel.ItemsSource = emblemItems;
+        ColorCarousel.ItemsSource = colorItems;
+        EmblemBackgroundPicker.ItemsSource = backgroundItems;
 
-        Player1Entry.TextChanged +=
-            TeamPlayersChanged;
+        OnTeamClicked(this, EventArgs.Empty);
 
-        Player2Entry.TextChanged +=
-            TeamPlayersChanged;
-       
-
+        TeamNameEntry.TextChanged += TeamNameChanged;
+        Player1Entry.TextChanged += TeamPlayersChanged;
+        Player2Entry.TextChanged += TeamPlayersChanged;
     }
 
-
-
-
-    void OnSingleClicked(
-    object sender,
-    EventArgs e)
+    protected override async void OnAppearing()
     {
-        PreviewMode.Text =
-     "فردي";
+        base.OnAppearing();
+
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
+
+        await LoadOwnedTeamAssetsAsync();
+    }
+
+    protected override void OnDisappearing()
+    {
+        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        base.OnDisappearing();
+    }
+
+    async void OnTeamAssetsChanged(string teamId)
+    {
+        _ = teamId;
+        await LoadOwnedTeamAssetsAsync();
+    }
+
+    async Task LoadOwnedTeamAssetsAsync()
+    {
+        var ownerTeam = CurrentTeam;
+
+        // Prefer PlayerId-first resolution: try to interpret the entry text as a PlayerId,
+        // then fall back to name-based lookup for legacy data.
+        string p1Text = Player1Entry.Text?.Trim() ?? string.Empty;
+        PlayerProfileModel? player1 = null;
+        if (!string.IsNullOrWhiteSpace(p1Text))
+        {
+            player1 = await PlayerProfileService.GetPlayerByIdAsync(p1Text);
+            if (player1 == null)
+                player1 = await PlayerProfileService.GetPlayerByNameAsync(p1Text);
+        }
+
+        PlayerProfileModel? player2 = null;
+        if (isTeamMode)
+        {
+            string p2Text = Player2Entry.Text?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(p2Text))
+            {
+                player2 = await PlayerProfileService.GetPlayerByIdAsync(p2Text);
+                if (player2 == null)
+                    player2 = await PlayerProfileService.GetPlayerByNameAsync(p2Text);
+            }
+        }
+
+        var inventory = (await TeamEligibleAssetService.GetEligibleAsync(
+                ownerTeam?.TeamId,
+                player1?.PlayerId ?? ownerTeam?.Player1Id,
+                player2?.PlayerId ??
+                (isTeamMode ? ownerTeam?.Player2Id : null)))
+            .Where(item => item.IsOwned || item.Source == "Default")
+            .ToList();
+
+        emblemItems.Clear();
+        colorItems.Clear();
+        backgroundItems.Clear();
+
+        var catalog = await StoreAssetCatalogService.LoadAsync();
+
+        foreach (var item in inventory)
+        {
+            var payload =
+                TeamAssetPayloadCatalog.Resolve(item.TeamAssetId, item.TeamAssetTypeId)
+                ?? TeamAssetPayloadCatalog.Resolve(item.TeamAssetId);
+
+            var effectiveTypeId = StoreAssetCatalogService.CanonicalTypeId(
+                payload?.TeamAssetTypeId ?? item.TeamAssetTypeId);
+
+            var catalogAsset = StoreAssetCatalogService.Resolve(
+                catalog, item.TeamAssetId, effectiveTypeId);
+
+            var displayName = catalogAsset?.DisplayName ?? (payload == null
+                ? StoreAssetCatalogService.IncompleteDisplayName
+                : !string.IsNullOrWhiteSpace(payload.ArabicDisplayName)
+                    ? payload.ArabicDisplayName
+                    : payload.EnglishDisplayName ?? StoreAssetCatalogService.IncompleteDisplayName);
+
+            if (string.Equals(effectiveTypeId, StoreProductAssetType.Emblem.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                AddEmblemIfMissing(
+                    item.TeamAssetId,
+                    catalogAsset?.PreviewImage ?? payload?.ImagePath ?? "ss.png",
+                    displayName);
+            }
+            else if (string.Equals(effectiveTypeId, StoreProductAssetType.TeamColor.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                AddColorIfMissing(
+                    item.TeamAssetId,
+                    catalogAsset?.ColorHex ?? payload?.ColorHex ?? "#181818",
+                    catalogAsset?.PreviewImage ?? payload?.ImagePath ?? "ss.png",
+                    displayName);
+            }
+            else if (string.Equals(effectiveTypeId, StoreProductAssetType.EmblemBackground.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                AddBackgroundIfMissing(
+                    item.TeamAssetId,
+                    catalogAsset?.PreviewImage
+                    ?? catalogAsset?.ColorHex
+                    ?? payload?.BackgroundImagePath
+                    ?? payload?.BackgroundColorHex
+                    ?? "Transparent",
+                    displayName);
+            }
+        }
+
+        AddDefaultVisualAssets();
+        if (IsEditMode && ownerTeam != null)
+            AddSavedIdentityIfMissing(ownerTeam);
+
+        // Build new lists and assign atomically on the UI thread to avoid RecyclerView mutation during layout.
+        var newEmblems = emblemItems.ToList();
+        var newColors = colorItems.ToList();
+        var newBackgrounds = backgroundItems.ToList();
+
+        // Suppress selection handlers while we replace ItemsSource.
+        bool prevSuppress = _suppressSelectionHandlers;
+        _suppressSelectionHandlers = true;
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            EmblemCarousel.ItemsSource = newEmblems;
+            ColorCarousel.ItemsSource = newColors;
+            EmblemBackgroundPicker.ItemsSource = newBackgrounds;
+            emblemItems = newEmblems;
+            colorItems = newColors;
+            backgroundItems = newBackgrounds;
+        });
+        // Restore selection handling after a short dispatch to avoid immediate selection events while RecyclerView updates.
+        await Task.Delay(50);
+        _suppressSelectionHandlers = prevSuppress;
+
+        if (!SelectEmblemByAssetId(selectedEmblemAssetId, animate: false))
+            SelectEmblemByImagePath(selectedEmblem, animate: false);
+
+        if (!SelectColorByAssetId(selectedColorAssetId, animate: false))
+            SelectColorByHex(selectedColor, animate: false);
+
+        if (!SelectEmblemBackground(selectedEmblemBackgroundAssetId))
+            SelectEmblemBackground("default_background_transparent");
+    }
+
+    void AddDefaultVisualAssets()
+    {
+        AddEmblemIfMissing("default_emblem_dragon", "dragon_3d.png", "Dragon");
+        AddEmblemIfMissing("default_emblem_crown", "crown_3d.png", "Crown");
+        AddEmblemIfMissing("default_emblem_wolf", "wolf_3d.png", "Wolf");
+        AddEmblemIfMissing("default_emblem_shield", "shield_3d.png", "Shield");
+        AddEmblemIfMissing("default_emblem_lion", "lion_3d.png", "Lion");
+        AddEmblemIfMissing("default_emblem_eagle", "eagle_3d.png", "Eagle");
+
+        AddColorIfMissing("default_color_black", "#111111", "black_color.png", "Black");
+        AddColorIfMissing("default_color_purple", "#7B1FFF", "purple_color.png", "Purple");
+        AddColorIfMissing("default_color_red", "#E50000", "red_color.png", "Red");
+        AddColorIfMissing("default_color_green", "#00A000", "green_color.png", "Green");
+        AddColorIfMissing("default_color_blue", "#006DFF", "blue_color.png", "Blue");
+        AddColorIfMissing("default_color_gold", "#FFD700", "gold_color.png", "Gold");
+
+        AddBackgroundIfMissing("default_background_transparent", "Transparent", "بدون خلفية");
+    }
+
+    void AddSavedIdentityIfMissing(TeamProfileModel team)
+    {
+        if (!string.IsNullOrWhiteSpace(team.EmblemAssetId))
+            AddEmblemIfMissing(
+                team.EmblemAssetId,
+                team.Emblem,
+                "Current saved emblem");
+        if (!string.IsNullOrWhiteSpace(team.TeamColorAssetId))
+            AddColorIfMissing(
+                team.TeamColorAssetId,
+                team.ColorHex,
+                "ss.png",
+                "Current saved color");
+        if (!string.IsNullOrWhiteSpace(team.EmblemBackgroundAssetId))
+            AddBackgroundIfMissing(
+                team.EmblemBackgroundAssetId,
+                team.EmblemBackground,
+                "Current saved background");
+    }
+
+    void AddEmblemIfMissing(string assetId, string imagePath, string displayName)
+    {
+        bool exists =
+            emblemItems.Any(item =>
+                string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(item.ImagePath, imagePath, StringComparison.OrdinalIgnoreCase));
+
+        if (!exists)
+            emblemItems.Add(new EmblemCarouselItem(assetId, imagePath, displayName));
+    }
+
+    void AddColorIfMissing(string assetId, string colorHex, string imagePath, string displayName)
+    {
+        bool exists =
+            colorItems.Any(item =>
+                string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(item.ImagePath, imagePath, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(item.ColorHex, colorHex, StringComparison.OrdinalIgnoreCase));
+
+        if (!exists)
+            colorItems.Add(new TeamColorCarouselItem(assetId, colorHex, imagePath, displayName));
+    }
+
+    void AddBackgroundIfMissing(string assetId, string background, string displayName)
+    {
+        bool exists =
+            backgroundItems.Any(item =>
+                string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(item.Background, background, StringComparison.OrdinalIgnoreCase));
+
+        if (!exists)
+            backgroundItems.Add(new EmblemBackgroundPickerItem(assetId, background, displayName));
+    }
+
+    void OnSingleClicked(object sender, EventArgs e)
+    {
+        PreviewMode.Text = "فردي";
         isTeamMode = false;
 
         Player2Layout.IsVisible = false;
         PreviewPlayer2.IsVisible = false;
-        string player1 =
-    string.IsNullOrWhiteSpace(
-        Player1Entry.Text)
-    ? "اللاعب الأول"
-    : Player1Entry.Text;
 
+        string player1 = string.IsNullOrWhiteSpace(Player1Entry.Text)
+            ? "اللاعب الأول"
+            : Player1Entry.Text;
 
         PreviewPlayer1.Text = player1;
         PreviewPlayer2.Text = "";
-        SingleCard.Stroke =
-            Color.FromArgb("#FFD700");
 
-        SingleCard.BackgroundColor =
-            Color.FromArgb("#1A1A00");
+        SingleCard.Stroke = Color.FromArgb("#FFD700");
+        SingleCard.BackgroundColor = Color.FromArgb("#1A1A00");
 
-        TeamCard.Stroke =
-            Color.FromArgb("#404040");
-
-        TeamCard.BackgroundColor =
-            Color.FromArgb("#151515");
+        TeamCard.Stroke = Color.FromArgb("#404040");
+        TeamCard.BackgroundColor = Color.FromArgb("#151515");
 
         SingleCard.ScaleTo(1.05, 150);
         TeamCard.ScaleTo(1.00, 150);
     }
 
-    void OnTeamClicked(
-        object sender,
-        EventArgs e)
+    void OnTeamClicked(object sender, EventArgs e)
     {
-        PreviewMode.Text =
-    "فريق";
+        PreviewMode.Text = "فريق";
         isTeamMode = true;
 
         Player2Layout.IsVisible = true;
-        TeamPlayersChanged(
-    this,
-    null);
+        TeamPlayersChanged(this, null);
         PreviewPlayer2.IsVisible = true;
-        TeamCard.Stroke =
-            Color.FromArgb("#FFD700");
 
-        TeamCard.BackgroundColor =
-            Color.FromArgb("#1A1A00");
+        TeamCard.Stroke = Color.FromArgb("#FFD700");
+        TeamCard.BackgroundColor = Color.FromArgb("#1A1A00");
 
-        SingleCard.Stroke =
-            Color.FromArgb("#404040");
-
-        SingleCard.BackgroundColor =
-            Color.FromArgb("#151515");
+        SingleCard.Stroke = Color.FromArgb("#404040");
+        SingleCard.BackgroundColor = Color.FromArgb("#151515");
 
         TeamCard.ScaleTo(1.05, 150);
         SingleCard.ScaleTo(1.00, 150);
     }
-    void OnEagleClicked(
-     object sender,
-     EventArgs e)
-    {
-        ResetEmblemSelection();
-       
-        EagleButton.Scale = 1.15;
-        EagleButton.Opacity = 1;
-        EagleSelected.IsVisible = true;
-        selectedEmblem =
-            "eagle_3d.png";
 
-        
-        PreviewEmblem.Source =
-    selectedEmblem;
+    void OnEmblemSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is EmblemCarouselItem selected)
+            SelectEmblemByAssetId(selected.AssetId, animate: true);
     }
 
-    void OnLionClicked(
-  object sender,
-  EventArgs e)
+    bool SelectEmblemByAssetId(string assetId, bool animate)
     {
-        ResetEmblemSelection();
-       
-       LionButton.Scale = 1.15;
-        LionButton.Opacity = 1;
-        LionSelected.IsVisible = true;
-        selectedEmblem =
-            "lion_3d.png";
+        var selected = emblemItems.FirstOrDefault(item =>
+            string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase));
 
-    
-        PreviewEmblem.Source =
-    selectedEmblem;
+        if (selected == null)
+            return false;
+
+        ApplySelectedEmblem(selected, animate);
+        return true;
     }
 
-    void OnWolfClicked(
-     object sender,
-     EventArgs e)
+    bool SelectEmblemByImagePath(string imagePath, bool animate)
     {
-        ResetEmblemSelection();
-       
-        WolfButton.Scale = 1.15;
-        WolfButton.Opacity = 1;
-        WolfSelected.IsVisible = true;
-        selectedEmblem =
-            "wolf_3d.png";
+        var selected = emblemItems.FirstOrDefault(item =>
+            string.Equals(item.ImagePath, imagePath, StringComparison.OrdinalIgnoreCase));
+
+        if (selected == null)
+            return false;
+
+        ApplySelectedEmblem(selected, animate);
+        return true;
+    }
+
+    void ApplySelectedEmblem(EmblemCarouselItem selected, bool animate)
+    {
+        foreach (var item in emblemItems)
+            item.IsSelected = ReferenceEquals(item, selected);
+
+        selectedEmblemAssetId = selected.AssetId;
+        selectedEmblem = selected.ImagePath;
 
         PreviewEmblem.Source =
-    selectedEmblem;
+            InventoryDisplayResolver.ResolveImageSource(
+                selectedEmblem,
+                "shield_3d.png");
+
+        if (!ReferenceEquals(EmblemCarousel.SelectedItem, selected))
+            EmblemCarousel.SelectedItem = selected;
+
+        Dispatcher.Dispatch(() =>
+            EmblemCarousel.ScrollTo(selected, position: ScrollToPosition.Center, animate: animate));
     }
 
-    void OnDragonClicked(
-      object sender,
-      EventArgs e)
+    void OnColorSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        ResetEmblemSelection();
-      
-       DragonButton.Scale = 1.15;
-        DragonButton.Opacity = 1;
-        DragonSelected.IsVisible = true;
-        selectedEmblem =
-            "dragon_3d.png";
-
-        PreviewEmblem.Source =
-    selectedEmblem;
+        if (e.CurrentSelection.FirstOrDefault() is TeamColorCarouselItem selected)
+            SelectColorByAssetId(selected.AssetId, animate: true);
     }
 
-    void OnCrownClicked(
-      object sender,
-      EventArgs e)
+    bool SelectColorByAssetId(string assetId, bool animate)
     {
-        ResetEmblemSelection();
-       
-      CrownButton.Scale = 1.15;
-        CrownButton.Opacity = 1;
-        CrownSelected.IsVisible = true;
-        selectedEmblem =
-            "crown_3d.png";
+        var selected = colorItems.FirstOrDefault(item =>
+            string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase));
 
-        PreviewEmblem.Source =
-    selectedEmblem;
+        if (selected == null)
+            return false;
+
+        ApplySelectedColor(selected, animate);
+        return true;
     }
 
-    void OnShieldClicked(
-     object sender,
-     EventArgs e)
+    bool SelectColorByHex(string colorHex, bool animate)
     {
-        ResetEmblemSelection();
-       
-        ShieldButton.Scale = 1.15;
-        ShieldButton.Opacity = 1;
-        ShieldSelected.IsVisible = true;
-        selectedEmblem =
-            "shield_3d.png";
+        var selected = colorItems.FirstOrDefault(item =>
+            string.Equals(item.ColorHex, colorHex, StringComparison.OrdinalIgnoreCase));
 
-        PreviewEmblem.Source =
-    selectedEmblem;
+        if (selected == null)
+            return false;
+
+        ApplySelectedColor(selected, animate);
+        return true;
     }
 
-    // Color Selection
-
-    void OnGoldColorClicked(object sender, EventArgs e)
+    void ApplySelectedColor(TeamColorCarouselItem selected, bool animate)
     {
-        ResetColorSelection();
+        foreach (var item in colorItems)
+            item.IsSelected = ReferenceEquals(item, selected);
 
-        GoldSelected.IsVisible = true;
-      
+        selectedColorAssetId = selected.AssetId;
+        selectedColor = selected.ColorHex;
 
-        selectedColor = "#FFD700";
+        PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
 
-        PreviewColorDot.BackgroundColor =
-            Color.FromArgb(selectedColor);
+        if (!ReferenceEquals(ColorCarousel.SelectedItem, selected))
+            ColorCarousel.SelectedItem = selected;
+
+        Dispatcher.Dispatch(() =>
+            ColorCarousel.ScrollTo(selected, position: ScrollToPosition.Center, animate: animate));
     }
 
-    void OnBlueColorClicked(
-object sender,
-EventArgs e)
+    void OnEmblemBackgroundSelectionChanged(object? sender, EventArgs e)
     {
-        ResetColorSelection();
-
-        BlueSelected.IsVisible = true;
-      
-
-        selectedColor = "#0066FF";
-
-        PreviewColorDot.BackgroundColor =
-            Color.FromArgb(selectedColor);
+        if (EmblemBackgroundPicker.SelectedItem is EmblemBackgroundPickerItem selected)
+            SelectEmblemBackground(selected.AssetId);
     }
 
-    void OnGreenColorClicked(
-    object sender,
-    EventArgs e)
+    bool SelectEmblemBackground(string assetId)
     {
-        ResetColorSelection();
+        var selected = backgroundItems.FirstOrDefault(item =>
+            string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase));
 
-        GreenSelected.IsVisible = true;
-        
+        if (selected == null)
+            return false;
 
-        selectedColor = "#00C853";
+        selectedEmblemBackgroundAssetId = selected.AssetId;
+        selectedEmblemBackground = selected.Background;
 
-        PreviewColorDot.BackgroundColor =
-            Color.FromArgb(selectedColor);
+        EmblemBackgroundPicker.SelectedItem = selected;
+        PreviewEmblemBackground.BackgroundColor = SafeColor(selected.Background);
+
+        return true;
     }
 
-    void OnRedColorClicked(
-    object sender,
-    EventArgs e)
+    static Color SafeColor(string? value) =>
+        string.IsNullOrWhiteSpace(value) ||
+        (!value.StartsWith('#') && !string.Equals(value, "Transparent", StringComparison.OrdinalIgnoreCase))
+            ? Colors.Transparent
+            : Color.FromArgb(value);
+
+    private string BuildTeamSignature(string player1Id, string player2Id)
     {
-        ResetColorSelection();
-
-        RedSelected.IsVisible = true;
-       
-
-        selectedColor = "#FF1744";
-
-        PreviewColorDot.BackgroundColor =
-            Color.FromArgb(selectedColor);
-    }
-
-    void OnPurpleColorClicked(
-    object sender,
-    EventArgs e)
-    {
-        ResetColorSelection();
-
-        PurpleSelected.IsVisible = true;
-      
-
-        selectedColor = "#AA00FF";
-
-        PreviewColorDot.BackgroundColor =
-            Color.FromArgb(selectedColor);
-    }
-
-    void OnBlackColorClicked(
-    object sender,
-    EventArgs e)
-    {
-        ResetColorSelection();
-
-        BlackSelected.IsVisible = true;
-     
-
-        selectedColor = "#111111";
-
-        PreviewColorDot.BackgroundColor =
-            Color.FromArgb(selectedColor);
-    }
-    // Condition 
-    private string BuildTeamSignature(
-       string player1Id,
-       string player2Id)
-    {
-        var players =
-            new List<string>();
+        var players = new List<string>();
 
         if (!string.IsNullOrWhiteSpace(player1Id))
             players.Add(player1Id);
@@ -314,236 +489,162 @@ EventArgs e)
         return string.Join("|", players);
     }
 
-    private bool TeamCompositionExists(
-      List<TeamProfileModel> teams,
-      string player1Id,
-      string player2Id)
+    private bool TeamCompositionExists(List<TeamProfileModel> teams, string player1Id, string player2Id)
     {
-        string newSignature =
-            BuildTeamSignature(
-                player1Id,
-                player2Id);
+        string newSignature = BuildTeamSignature(player1Id, player2Id);
 
         foreach (var team in teams)
         {
-            if (CurrentTeam != null &&
-                team.TeamId ==
-                CurrentTeam.TeamId)
+            if (CurrentTeam != null && team.TeamId == CurrentTeam.TeamId)
                 continue;
 
-            string existingSignature =
-                BuildTeamSignature(
-                    team.Player1Id,
-                    team.Player2Id);
+            string existingSignature = BuildTeamSignature(team.Player1Id, team.Player2Id);
 
-            if (existingSignature ==
-                newSignature)
-            {
+            if (existingSignature == newSignature)
                 return true;
-            }
         }
 
         return false;
     }
-    async void OnSaveClicked(
-       object sender,
-       EventArgs e)
-    {
-        if (string.IsNullOrWhiteSpace(
-            TeamNameEntry.Text))
-        {
-            await DisplayAlert(
-                "تنبيه",
-                "أدخل اسم الفريق",
-                "حسناً");
 
+    async void OnSaveClicked(object sender, EventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(TeamNameEntry.Text))
+        {
+            await DisplayAlert("تنبيه", "أدخل اسم الفريق", "حسناً");
             return;
         }
 
-        var teams =
-            await TeamProfileService.LoadTeamsAsync();
-        string player1 =
-    Player1Entry.Text?.Trim() ?? "";
+        var teams = await TeamProfileService.LoadTeamsAsync();
 
-        string player2 =
-            Player2Entry.Text?.Trim() ?? "";
+        string player1 = Player1Entry.Text?.Trim() ?? "";
+        string player2 = Player2Entry.Text?.Trim() ?? "";
+
         if (!isTeamMode)
         {
             player2 = "";
             Player2Entry.Text = "";
         }
 
+        string normalizedPlayer1 = PlayerIdentityService.NormalizePlayerName(player1);
+        string normalizedPlayer2 = PlayerIdentityService.NormalizePlayerName(player2);
 
-        string normalizedPlayer1 =
-   PlayerIdentityService.NormalizePlayerName(player1);
-
-        string normalizedPlayer2 =
-          PlayerIdentityService.NormalizePlayerName(player2);
-
-        if (!string.IsNullOrWhiteSpace(player2)
-            &&
-            normalizedPlayer1 ==
-            normalizedPlayer2)
+        if (!string.IsNullOrWhiteSpace(player2) && normalizedPlayer1 == normalizedPlayer2)
         {
-            await DisplayAlert(
-                "لا يمكن إنشاء الفريق",
-                "لا يمكن إضافة نفس اللاعب مرتين داخل الفريق",
-                "حسناً");
-
+            await DisplayAlert("لا يمكن إنشاء الفريق", "لا يمكن إضافة نفس اللاعب مرتين داخل الفريق", "حسناً");
             return;
         }
+
         var duplicateName =
-    teams.Any(x =>
-        x.TeamName.Trim()
-        .Equals(
-            TeamNameEntry.Text.Trim(),
-            StringComparison.OrdinalIgnoreCase)
-        &&
-        (CurrentTeam == null ||
-         x.TeamId != CurrentTeam.TeamId)); ;
+            teams.Any(x =>
+                x.TeamName.Trim().Equals(TeamNameEntry.Text.Trim(), StringComparison.OrdinalIgnoreCase)
+                &&
+                (CurrentTeam == null || x.TeamId != CurrentTeam.TeamId));
 
         if (duplicateName)
         {
-            await DisplayAlert(
-                "تنبيه",
-                "اسم الفريق مستخدم مسبقاً",
-                "حسناً");
-
+            await DisplayAlert("تنبيه", "اسم الفريق مستخدم مسبقاً", "حسناً");
             return;
         }
 
+        string player1Id = await GetOrCreatePlayerIdAsync(player1);
+        string player2Id = await GetOrCreatePlayerIdAsync(player2);
 
-        string player1Id =
-        await GetOrCreatePlayerIdAsync(
-            player1);
-
-        string player2Id =
-            await GetOrCreatePlayerIdAsync(
-                player2);
-
-        if (TeamCompositionExists(
-                teams,
-                player1Id,
-                player2Id))
+        if (TeamCompositionExists(teams, player1Id, player2Id))
         {
-            await DisplayAlert(
-                "تنبيه",
-                "هذه التشكيلة تمتلك فريقاً مسبقاً",
-                "حسناً");
-
+            await DisplayAlert("تنبيه", "هذه التشكيلة تمتلك فريقاً مسبقاً", "حسناً");
             return;
         }
 
-        // إنشاء جديد
-       
         if (!IsEditMode)
         {
-            string nextTeamId =
-           GenerateNextTeamId(
-               teams);
+            string nextTeamId = GenerateNextTeamId(teams);
 
-            TeamProfileModel team =
-                new()
-                {
-                    TeamId = nextTeamId,
+            TeamProfileModel team = new()
+            {
+                TeamId = nextTeamId,
+                TeamName = TeamNameEntry.Text,
 
-                    TeamName = TeamNameEntry.Text,
+                Player1 = player1,
+                Player2 = player2,
 
-                    Player1 = player1,
-                    Player2 = player2,
+                Player1Id = player1Id,
+                Player2Id = player2Id,
 
-                    Player1Id = player1Id,
-                    Player2Id = player2Id,
+                IsSinglePlayer = !isTeamMode,
 
-                    IsSinglePlayer = !isTeamMode,
+                Emblem = selectedEmblem,
+                EmblemAssetId = selectedEmblemAssetId,
 
-                    Emblem = selectedEmblem,
-                    ColorHex = selectedColor
-                };
+                ColorHex = selectedColor,
+                TeamColorAssetId = selectedColorAssetId,
+
+                EmblemBackground = selectedEmblemBackground,
+                EmblemBackgroundAssetId = selectedEmblemBackgroundAssetId
+            };
 
             teams.Add(team);
 
-            await TeamProfileService
-                .SaveTeamsAsync(teams);
-            AppEvents.RaiseDataChanged();
+            await TeamProfileService.SaveTeamsAsync(teams);
 
-            await DisplayAlert(
-                "تم",
-                "تم إنشاء الفريق",
-                "ممتاز");
+            AppEvents.RaiseDataChanged();
+            AppEvents.RaiseTeamAssetsChanged(team.TeamId);
+
+            await DisplayAlert("تم", "تم إنشاء الفريق", "ممتاز");
 
             ResetForm();
 
             return;
         }
 
-        // تحديث فريق موجود
-        var existing =
-            teams.FirstOrDefault(
-                x => x.TeamId ==
-                CurrentTeam?.TeamId);
+        var existing = teams.FirstOrDefault(x => x.TeamId == CurrentTeam?.TeamId);
 
         if (existing == null)
             return;
 
-        existing.TeamName =
-            TeamNameEntry.Text;
+        existing.TeamName = TeamNameEntry.Text;
 
-        existing.Player1 =
-            Player1Entry.Text ?? "";
+        existing.Player1 = Player1Entry.Text ?? "";
+        existing.Player2 = isTeamMode ? Player2Entry.Text ?? "" : "";
 
-        existing.Player2 =
-            Player2Entry.Text ?? "";
+        existing.Player1Id = player1Id;
+        existing.Player2Id = player2Id;
 
-        existing.Player1Id =
-            player1Id;
+        existing.IsSinglePlayer = !isTeamMode;
 
-        existing.Player2Id =
-            player2Id;
+        existing.Emblem = selectedEmblem;
+        existing.EmblemAssetId = selectedEmblemAssetId;
 
-        existing.IsSinglePlayer =
-    !isTeamMode;
+        existing.ColorHex = selectedColor;
+        existing.TeamColorAssetId = selectedColorAssetId;
 
-        existing.Emblem =
-            selectedEmblem;
+        existing.EmblemBackground = selectedEmblemBackground;
+        existing.EmblemBackgroundAssetId = selectedEmblemBackgroundAssetId;
 
-        existing.ColorHex =
-            selectedColor;
+        var rankings = await RankingService.LoadTeamsAsync();
 
-        var rankings =
-    await RankingService.LoadTeamsAsync();
-
-        var rankingTeam =
-            rankings.FirstOrDefault(
-                x => x.TeamId ==
-                existing.TeamId);
+        var rankingTeam = rankings.FirstOrDefault(x => x.TeamId == existing.TeamId);
 
         if (rankingTeam != null)
         {
-            rankingTeam.TeamName =
-                existing.TeamName;
+            rankingTeam.TeamName = existing.TeamName;
 
-            rankingTeam.Player1 =
-                existing.Player1;
+            rankingTeam.Player1 = existing.Player1;
+            rankingTeam.Player2 = existing.Player2;
 
-            rankingTeam.Player2 =
-                existing.Player2;
+            rankingTeam.Player1Id = existing.Player1Id;
+            rankingTeam.Player2Id = existing.Player2Id;
 
-            rankingTeam.Player1Id =
-                existing.Player1Id;
+            rankingTeam.IsSinglePlayer = existing.IsSinglePlayer;
 
-            rankingTeam.Player2Id =
-                existing.Player2Id;
+            rankingTeam.Emblem = existing.Emblem;
+            rankingTeam.EmblemAssetId = existing.EmblemAssetId;
 
-            rankingTeam.IsSinglePlayer =
-    existing.IsSinglePlayer;
+            rankingTeam.ColorHex = existing.ColorHex;
+            rankingTeam.TeamColorAssetId = existing.TeamColorAssetId;
 
-
-            rankingTeam.Emblem =
-                existing.Emblem;
-
-            rankingTeam.ColorHex =
-                existing.ColorHex;
+            rankingTeam.EmblemBackground = existing.EmblemBackground;
+            rankingTeam.EmblemBackgroundAssetId = existing.EmblemBackgroundAssetId;
 
             string json =
                 System.Text.Json.JsonSerializer.Serialize(
@@ -553,125 +654,60 @@ EventArgs e)
                         WriteIndented = true
                     });
 
-            string rankingFile =
-                Path.Combine(
-                    FileSystem.AppDataDirectory,
-                    "rankings.json");
+            string rankingFile = Path.Combine(FileSystem.AppDataDirectory, "rankings.json");
 
-            await File.WriteAllTextAsync(
-                rankingFile,
-                json);
+            await File.WriteAllTextAsync(rankingFile, json);
         }
 
-
-        await TeamProfileService
-            .SaveTeamsAsync(teams);
+        await TeamProfileService.SaveTeamsAsync(teams);
 
         AppEvents.RaiseDataChanged();
-        await DisplayAlert(
-            "تم",
-            "تم تحديث الفريق",
-            "ممتاز");
+        AppEvents.RaiseTeamAssetsChanged(existing.TeamId);
+
+        await DisplayAlert("تم", "تم تحديث الفريق", "ممتاز");
 
         ResetForm();
 
-        LoadedTeams =
-            await TeamProfileService.LoadTeamsAsync();
+        LoadedTeams = await TeamProfileService.LoadTeamsAsync();
 
         TeamsCollection.ItemsSource = null;
         TeamsCollection.ItemsSource = LoadedTeams;
     }
-    async void OnBackClicked(
-    object sender,
-    EventArgs e)
+
+    async void OnBackClicked(object sender, EventArgs e)
     {
         await Navigation.PopAsync();
     }
-    void ResetEmblemSelection()
-    {
-        WolfButton.Scale = 1;
-        EagleButton.Scale = 1;
-        LionButton.Scale = 1;
-        DragonButton.Scale = 1;
-        CrownButton.Scale = 1;
-        ShieldButton.Scale = 1;
 
-        WolfButton.Opacity = 0.75;
-        EagleButton.Opacity = 0.75;
-        LionButton.Opacity = 0.75;
-        DragonButton.Opacity = 0.75;
-        CrownButton.Opacity = 0.75;
-        ShieldButton.Opacity = 0.75;
-
-        EagleSelected.IsVisible = false;
-        WolfSelected.IsVisible = false;
-        LionSelected.IsVisible = false;
-        DragonSelected.IsVisible = false;
-        CrownSelected.IsVisible = false;
-        ShieldSelected.IsVisible = false;
-
-
-    }
-
-    //Color
-    void ResetColorSelection()
-    {
-        GoldSelected.IsVisible = false;
-        BlueSelected.IsVisible = false;
-        GreenSelected.IsVisible = false;
-        RedSelected.IsVisible = false;
-        PurpleSelected.IsVisible = false;
-        BlackSelected.IsVisible = false;
-
-      
-    }
-
-    void TeamNameChanged(
-    object sender,
-    TextChangedEventArgs e)
+    void TeamNameChanged(object sender, TextChangedEventArgs e)
     {
         PreviewTeamName.Text =
-            string.IsNullOrWhiteSpace(
-                TeamNameEntry.Text)
-            ? "اسم الفريق"
-            : TeamNameEntry.Text;
+            string.IsNullOrWhiteSpace(TeamNameEntry.Text)
+                ? "اسم الفريق"
+                : TeamNameEntry.Text;
     }
 
-    void TeamPlayersChanged(
-        object sender,
-        TextChangedEventArgs e)
+    void TeamPlayersChanged(object sender, TextChangedEventArgs? e)
     {
         string player1 =
-            string.IsNullOrWhiteSpace(
-                Player1Entry.Text)
-            ? "اللاعب الأول"
-            : Player1Entry.Text;
+            string.IsNullOrWhiteSpace(Player1Entry.Text)
+                ? "اللاعب الأول"
+                : Player1Entry.Text;
 
         string player2 =
-            string.IsNullOrWhiteSpace(
-                Player2Entry.Text)
-            ? "اللاعب الثاني"
-            : Player2Entry.Text;
+            string.IsNullOrWhiteSpace(Player2Entry.Text)
+                ? "اللاعب الثاني"
+                : Player2Entry.Text;
 
         PreviewPlayer1.Text = player1;
-
-        PreviewPlayer2.Text =
-            isTeamMode
-            ? player2
-            : "";
+        PreviewPlayer2.Text = isTeamMode ? player2 : "";
+        _ = LoadOwnedTeamAssetsAsync();
     }
 
-
-    //Delet 
-    async void OnDeleteTeamClicked(
-      object sender,
-      TappedEventArgs e)
+    async void OnDeleteTeamClicked(object sender, TappedEventArgs e)
     {
         var image = sender as Image;
-
-        var team =
-            image?.BindingContext
-            as TeamProfileModel;
+        var team = image?.BindingContext as TeamProfileModel;
 
         if (team == null)
             return;
@@ -686,23 +722,17 @@ EventArgs e)
         if (!confirm)
             return;
 
-        var teams =
-            await TeamProfileService.LoadTeamsAsync();
+        var teams = await TeamProfileService.LoadTeamsAsync();
 
+        teams.RemoveAll(x => x.TeamId == team.TeamId);
 
-        teams.RemoveAll(
-            x => x.TeamId == team.TeamId);
+        await TeamProfileService.SaveTeamsAsync(teams);
 
-        await TeamProfileService.SaveTeamsAsync(
-            teams);
         AppEvents.RaiseDataChanged();
 
-        var rankings =
-    await RankingService.LoadTeamsAsync();
+        var rankings = await RankingService.LoadTeamsAsync();
 
-        rankings.RemoveAll(
-            x => x.TeamId ==
-            team.TeamId);
+        rankings.RemoveAll(x => x.TeamId == team.TeamId);
 
         string rankingsJson =
             System.Text.Json.JsonSerializer.Serialize(
@@ -712,30 +742,19 @@ EventArgs e)
                     WriteIndented = true
                 });
 
-        string rankingsFile =
-            Path.Combine(
-                FileSystem.AppDataDirectory,
-                "rankings.json");
+        string rankingsFile = Path.Combine(FileSystem.AppDataDirectory, "rankings.json");
 
-        await File.WriteAllTextAsync(
-            rankingsFile,
-            rankingsJson);
+        await File.WriteAllTextAsync(rankingsFile, rankingsJson);
+
         AppEvents.RaiseDataChanged();
 
-        LoadedTeams =
-            await TeamProfileService.LoadTeamsAsync();
+        LoadedTeams = await TeamProfileService.LoadTeamsAsync();
 
         TeamsCollection.ItemsSource = null;
         TeamsCollection.ItemsSource = LoadedTeams;
     }
 
-    
-
-    // Delete All
-
-    async void OnDeleteAllTeamsClicked(
-    object sender,
-    EventArgs e)
+    async void OnDeleteAllTeamsClicked(object sender, EventArgs e)
     {
         bool confirm =
             await DisplayAlert(
@@ -747,55 +766,38 @@ EventArgs e)
         if (!confirm)
             return;
 
-        await TeamProfileService.SaveTeamsAsync(
-            new List<TeamProfileModel>());
+        await TeamProfileService.SaveTeamsAsync(new List<TeamProfileModel>());
+
         AppEvents.RaiseDataChanged();
 
-        string rankingsFile =
-    Path.Combine(
-        FileSystem.AppDataDirectory,
-        "rankings.json");
+        string rankingsFile = Path.Combine(FileSystem.AppDataDirectory, "rankings.json");
 
         if (File.Exists(rankingsFile))
-        {
             File.Delete(rankingsFile);
-        }
+
         AppEvents.RaiseDataChanged();
+
         LoadedTeams.Clear();
 
         TeamsCollection.ItemsSource = null;
+        TeamsCollection.ItemsSource = LoadedTeams;
 
-        TeamsCollection.ItemsSource =
-            LoadedTeams;
         CurrentTeam = null;
-
         IsEditMode = false;
 
         TeamNameEntry.Text = "";
         Player1Entry.Text = "";
         Player2Entry.Text = "";
 
-        
-        await DisplayAlert(
-            "تم",
-            "تم حذف جميع الفرق",
-            "ممتاز");
+        await DisplayAlert("تم", "تم حذف جميع الفرق", "ممتاز");
     }
 
-
-
-    // Select Team To Edit 
-    async void OnSelectTeamClicked(
-       object sender,
-       EventArgs e)
+    async void OnSelectTeamClicked(object sender, EventArgs e)
     {
-        LoadedTeams =
-            await TeamProfileService.LoadTeamsAsync();
+        LoadedTeams = await TeamProfileService.LoadTeamsAsync();
 
         TeamsCollection.ItemsSource = null;
-
-        TeamsCollection.ItemsSource =
-            LoadedTeams;
+        TeamsCollection.ItemsSource = LoadedTeams;
 
         TeamsOverlay.IsVisible = true;
 
@@ -804,14 +806,10 @@ EventArgs e)
         await MainThread.InvokeOnMainThreadAsync(
             async () =>
             {
-                await TeamsOverlay.FadeTo(
-                    1,
-                    180);
+                await TeamsOverlay.FadeTo(1, 180);
             });
-     
     }
 
-    // Delete All
     async Task OnDeleteAllTeamsDirect()
     {
         bool confirm =
@@ -824,220 +822,146 @@ EventArgs e)
         if (!confirm)
             return;
 
-        await TeamProfileService.SaveTeamsAsync(
-            new List<TeamProfileModel>());
+        await TeamProfileService.SaveTeamsAsync(new List<TeamProfileModel>());
+
         AppEvents.RaiseDataChanged();
 
         CurrentTeam = null;
-
         IsEditMode = false;
 
         TeamNameEntry.Text = "";
         Player1Entry.Text = "";
         Player2Entry.Text = "";
 
-       
-       
-
-        await DisplayAlert(
-            "تم",
-            "تم حذف جميع الفرق",
-            "ممتاز");
+        await DisplayAlert("تم", "تم حذف جميع الفرق", "ممتاز");
     }
 
-    void LoadTeam(
-    TeamProfileModel team)
+    void LoadTeam(TeamProfileModel team)
     {
-
         SaveButtonIcon.Source = "edit_card.png";
-        CurrentTeam = team;
 
+        CurrentTeam = team;
         IsEditMode = true;
 
         if (team.IsSinglePlayer)
-        {
             OnSingleClicked(this, EventArgs.Empty);
-        }
         else
-        {
             OnTeamClicked(this, EventArgs.Empty);
-        }
 
+        TeamNameEntry.Text = team.TeamName;
+        Player1Entry.Text = team.Player1;
+        Player2Entry.Text = team.Player2;
 
-        TeamNameEntry.Text =
-            team.TeamName;
+        selectedEmblem = string.IsNullOrWhiteSpace(team.Emblem)
+            ? "shield_3d.png"
+            : team.Emblem;
 
-        Player1Entry.Text =
-            team.Player1;
+        selectedEmblemAssetId = !string.IsNullOrWhiteSpace(team.EmblemAssetId)
+            ? team.EmblemAssetId
+            : emblemItems.FirstOrDefault(item =>
+                string.Equals(item.ImagePath, selectedEmblem, StringComparison.OrdinalIgnoreCase))?.AssetId
+              ?? "default_emblem_shield";
 
-        Player2Entry.Text =
-            team.Player2;
+        selectedColor = string.IsNullOrWhiteSpace(team.ColorHex)
+            ? "#FFD700"
+            : team.ColorHex;
 
-        selectedEmblem =
-            team.Emblem;
+        selectedColorAssetId = !string.IsNullOrWhiteSpace(team.TeamColorAssetId)
+            ? team.TeamColorAssetId
+            : colorItems.FirstOrDefault(item =>
+                string.Equals(item.ColorHex, selectedColor, StringComparison.OrdinalIgnoreCase))?.AssetId
+              ?? "default_color_gold";
 
-        selectedColor =
-            team.ColorHex;
+        selectedEmblemBackground = string.IsNullOrWhiteSpace(team.EmblemBackground)
+            ? "Transparent"
+            : team.EmblemBackground;
+
+        selectedEmblemBackgroundAssetId = string.IsNullOrWhiteSpace(team.EmblemBackgroundAssetId)
+            ? "default_background_transparent"
+            : team.EmblemBackgroundAssetId;
 
         PreviewEmblem.Source =
-            selectedEmblem;
+            InventoryDisplayResolver.ResolveImageSource(
+                selectedEmblem,
+                "shield_3d.png");
+        PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
+        PreviewEmblemBackground.BackgroundColor = SafeColor(selectedEmblemBackground);
 
-        PreviewColorDot.BackgroundColor =
-            Color.FromArgb(selectedColor);
+        SaveButtonText.Text = "تحديث الفريق";
 
-
-       
-        SaveButtonText.Text =
-    "تحديث الفريق";
         ApplyLoadedEmblem();
-
         ApplyLoadedColor();
+        _ = LoadOwnedTeamAssetsAsync();
     }
 
     void ApplyLoadedEmblem()
     {
-        ResetEmblemSelection();
-
-        switch (selectedEmblem)
-        {
-            case "shield_3d.png":
-                ShieldSelected.IsVisible = true;
-                ShieldButton.Scale = 1.15;
-                break;
-
-            case "crown_3d.png":
-                CrownSelected.IsVisible = true;
-                CrownButton.Scale = 1.15;
-                break;
-
-            case "dragon_3d.png":
-                DragonSelected.IsVisible = true;
-                DragonButton.Scale = 1.15;
-                break;
-
-            case "lion_3d.png":
-                LionSelected.IsVisible = true;
-                LionButton.Scale = 1.15;
-                break;
-
-            case "wolf_3d.png":
-                WolfSelected.IsVisible = true;
-                WolfButton.Scale = 1.15;
-                break;
-
-            case "eagle_3d.png":
-                EagleSelected.IsVisible = true;
-                EagleButton.Scale = 1.15;
-                break;
-        }
-
+        if (!SelectEmblemByAssetId(selectedEmblemAssetId, animate: true))
+            SelectEmblemByImagePath(selectedEmblem, animate: true);
     }
 
     void ApplyLoadedColor()
     {
-        ResetColorSelection();
+        if (!SelectColorByAssetId(selectedColorAssetId, animate: true))
+            SelectColorByHex(selectedColor, animate: true);
 
-        switch (selectedColor)
-        {
-            case "#FFD700":
-                GoldSelected.IsVisible = true;
-                break;
-
-            case "#0066FF":
-                BlueSelected.IsVisible = true;
-                break;
-
-            case "#00C853":
-                GreenSelected.IsVisible = true;
-                break;
-
-            case "#FF1744":
-                RedSelected.IsVisible = true;
-                break;
-
-            case "#AA00FF":
-                PurpleSelected.IsVisible = true;
-                break;
-
-            case "#111111":
-                BlackSelected.IsVisible = true;
-                break;
-        }
+        if (!SelectEmblemBackground(selectedEmblemBackgroundAssetId))
+            SelectEmblemBackground("default_background_transparent");
     }
 
-    // Reset Form For New Team Creation
     void ResetForm()
     {
         SaveButtonIcon.Source = "save_card.png";
-        CurrentTeam = null;
 
+        CurrentTeam = null;
         IsEditMode = false;
 
         TeamNameEntry.Text = "";
-
         Player1Entry.Text = "";
-
         Player2Entry.Text = "";
 
         selectedEmblem = "shield_3d.png";
+        selectedEmblemAssetId = "default_emblem_shield";
 
         selectedColor = "#FFD700";
+        selectedColorAssetId = "default_color_gold";
+
+        selectedEmblemBackground = "Transparent";
+        selectedEmblemBackgroundAssetId = "default_background_transparent";
 
         PreviewEmblem.Source =
-            selectedEmblem;
+            InventoryDisplayResolver.ResolveImageSource(
+                selectedEmblem,
+                "shield_3d.png");
+        PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
+        PreviewEmblemBackground.BackgroundColor = Colors.Transparent;
 
-        PreviewColorDot.BackgroundColor =
-            Color.FromArgb(selectedColor);
+        SaveButtonText.Text = "إنشاء الفريق";
 
-        SaveButtonText.Text =
-            "إنشاء الفريق";
-
-       
-          
-
-        ResetEmblemSelection();
-
-        ShieldSelected.IsVisible = true;
-
-        ShieldButton.Scale = 1.15;
-
-        ResetColorSelection();
-
-        GoldSelected.IsVisible = true;
+        _ = LoadOwnedTeamAssetsAsync();
     }
 
-
-    void OnTeamSelected(
-    object sender,
-    SelectionChangedEventArgs e)
+    void OnTeamSelected(object sender, SelectionChangedEventArgs e)
     {
         if (e.CurrentSelection.Count == 0)
             return;
 
-        var team =
-            e.CurrentSelection[0]
-            as TeamProfileModel;
+        var team = e.CurrentSelection[0] as TeamProfileModel;
 
         if (team == null)
             return;
 
         LoadTeam(team);
-        TeamSearchEntry.Text = "";
 
+        TeamSearchEntry.Text = "";
         NoResultsLabel.IsVisible = false;
         TeamsOverlay.IsVisible = false;
-
-       
     }
-    async void OnEditTeamClicked(
-    object sender,
-    TappedEventArgs e)
+
+    async void OnEditTeamClicked(object sender, TappedEventArgs e)
     {
         var image = sender as Image;
-
-        var team =
-            image?.BindingContext
-            as TeamProfileModel;
+        var team = image?.BindingContext as TeamProfileModel;
 
         if (team == null)
             return;
@@ -1045,111 +969,79 @@ EventArgs e)
         LoadTeam(team);
 
         TeamsOverlay.IsVisible = false;
+
         await Task.Delay(100);
         await MainScroll.ScrollToAsync(0, 0, true);
-        TeamNameEntry.Focus();
 
-       
+        TeamNameEntry.Focus();
     }
 
-
-    //Search 
-    void OnTeamSearchTextChanged(
-    object sender,
-    TextChangedEventArgs e)
+    void OnTeamSearchTextChanged(object sender, TextChangedEventArgs e)
     {
         if (LoadedTeams == null)
             return;
 
-        string searchText =
-            e.NewTextValue?
-            .Trim()
-            .ToLower() ?? "";
+        string searchText = e.NewTextValue?.Trim().ToLower() ?? "";
 
-        // عرض الكل عند عدم وجود نص
         if (string.IsNullOrWhiteSpace(searchText))
         {
             TeamsCollection.ItemsSource = LoadedTeams;
-
             NoResultsLabel.IsVisible = false;
-
             return;
         }
 
         var filtered =
             LoadedTeams
-            .Where(x =>
-                (!string.IsNullOrWhiteSpace(x.TeamName)
-                    && x.TeamName.ToLower()
-                    .Contains(searchText))
-
-                ||
-
-                (!string.IsNullOrWhiteSpace(x.Player1)
-                    && x.Player1.ToLower()
-                    .Contains(searchText))
-
-                ||
-
-                (!string.IsNullOrWhiteSpace(x.Player2)
-                    && x.Player2.ToLower()
-                    .Contains(searchText))
-            )
-            .ToList();
+                .Where(x =>
+                    (!string.IsNullOrWhiteSpace(x.TeamName) && x.TeamName.ToLower().Contains(searchText))
+                    ||
+                    (!string.IsNullOrWhiteSpace(x.Player1) && x.Player1.ToLower().Contains(searchText))
+                    ||
+                    (!string.IsNullOrWhiteSpace(x.Player2) && x.Player2.ToLower().Contains(searchText)))
+                .ToList();
 
         TeamsCollection.ItemsSource = filtered;
-
-        NoResultsLabel.IsVisible =
-            filtered.Count == 0;
+        NoResultsLabel.IsVisible = filtered.Count == 0;
     }
-    // Search Bar Cleen
-    void OnCloseTeamsOverlay(
-     object sender,
-     EventArgs e)
+
+    void OnCloseTeamsOverlay(object sender, EventArgs e)
     {
         TeamSearchEntry.Text = "";
 
-        TeamsCollection.ItemsSource =
-            LoadedTeams;
+        TeamsCollection.ItemsSource = LoadedTeams;
 
         NoResultsLabel.IsVisible = false;
-
         TeamsOverlay.IsVisible = false;
     }
 
-
-
-
-
-    async Task<string> GetOrCreatePlayerIdAsync(
-        string playerName)
+    async Task<string> GetOrCreatePlayerIdAsync(string playerName)
     {
-
         if (string.IsNullOrWhiteSpace(playerName))
             return "";
 
-        var players =
-            await PlayerProfileService
-            .LoadPlayersAsync();
+        var players = await PlayerProfileService.LoadPlayersAsync();
 
-        string normalized =
-            PlayerIdentityService
-            .NormalizePlayerName(playerName);
+        // If input looks like a PlayerId, prefer it first (ID-first policy)
+        string trimmed = playerName.Trim();
+        if (trimmed.StartsWith("P", StringComparison.OrdinalIgnoreCase) && trimmed.Length <= 8)
+        {
+            var byId = players.FirstOrDefault(p => string.Equals(p.PlayerId, trimmed, StringComparison.OrdinalIgnoreCase));
+            if (byId != null)
+                return byId.PlayerId;
+        }
+
+        string normalized = PlayerIdentityService.NormalizePlayerName(playerName);
 
         var existing =
             players.FirstOrDefault(x =>
-                PlayerIdentityService
-                .NormalizePlayerName(
-                    x.PlayerName) == normalized);
+                PlayerIdentityService.NormalizePlayerName(x.PlayerName) == normalized);
 
         if (existing != null)
             return existing.PlayerId;
 
         var similarPlayer =
             players.FirstOrDefault(x =>
-                IsVerySimilarName(
-                    x.PlayerName,
-                    playerName));
+                IsVerySimilarName(x.PlayerName, playerName));
 
         if (similarPlayer != null)
         {
@@ -1161,13 +1053,10 @@ EventArgs e)
                     "لا");
 
             if (useExisting)
-            {
                 return similarPlayer.PlayerId;
-            }
         }
 
-        string nextId =
-            $"P{(players.Count + 1):0000}";
+        string nextId = $"P{(players.Count + 1):0000}";
 
         players.Add(
             new PlayerProfileModel
@@ -1177,65 +1066,47 @@ EventArgs e)
                 CreatedAt = DateTime.Now
             });
 
-        await PlayerProfileService
-            .SavePlayersAsync(players);
+        await PlayerProfileService.SavePlayersAsync(players);
 
         return nextId;
     }
-    string GenerateNextTeamId(
-    List<TeamProfileModel> teams)
+
+    string GenerateNextTeamId(List<TeamProfileModel> teams)
     {
         if (teams.Count == 0)
             return "T0001";
 
         int maxId =
             teams
-            .Where(x =>
-                !string.IsNullOrWhiteSpace(
-                    x.TeamId))
-            .Select(x =>
-            {
-                string numericPart =
-                    x.TeamId.Replace("T", "");
+                .Where(x => !string.IsNullOrWhiteSpace(x.TeamId))
+                .Select(x =>
+                {
+                    string numericPart = x.TeamId.Replace("T", "");
 
-                return int.TryParse(
-                    numericPart,
-                    out int id)
-                    ? id
-                    : 0;
-            })
-            .DefaultIfEmpty(0)
-            .Max();
+                    return int.TryParse(numericPart, out int id)
+                        ? id
+                        : 0;
+                })
+                .DefaultIfEmpty(0)
+                .Max();
 
         return $"T{(maxId + 1):0000}";
     }
 
-    bool IsVerySimilarName(
-    string name1,
-    string name2)
+    bool IsVerySimilarName(string name1, string name2)
     {
-        name1 =
-            PlayerIdentityService
-            .NormalizePlayerName(name1);
-
-        name2 =
-            PlayerIdentityService
-            .NormalizePlayerName(name2);
+        name1 = PlayerIdentityService.NormalizePlayerName(name1);
+        name2 = PlayerIdentityService.NormalizePlayerName(name2);
 
         if (name1 == name2)
             return true;
 
-        if (Math.Abs(
-                name1.Length -
-                name2.Length) > 1)
+        if (Math.Abs(name1.Length - name2.Length) > 1)
             return false;
 
         int differences = 0;
 
-        int minLength =
-            Math.Min(
-                name1.Length,
-                name2.Length);
+        int minLength = Math.Min(name1.Length, name2.Length);
 
         for (int i = 0; i < minLength; i++)
         {
@@ -1243,42 +1114,28 @@ EventArgs e)
                 differences++;
         }
 
-        differences +=
-            Math.Abs(
-                name1.Length -
-                name2.Length);
+        differences += Math.Abs(name1.Length - name2.Length);
 
         return differences <= 1;
-
     }
 
-    // Normalize Player Name For Comparison
-
-    // Register Player If Not Exists
-    async Task RegisterPlayerAsync(
-    string playerName)
+    async Task RegisterPlayerAsync(string playerName)
     {
         if (string.IsNullOrWhiteSpace(playerName))
             return;
 
-        var players =
-            await PlayerProfileService
-            .LoadPlayersAsync();
+        var players = await PlayerProfileService.LoadPlayersAsync();
 
-        string normalized =
-           PlayerIdentityService.NormalizePlayerName(playerName);
+        string normalized = PlayerIdentityService.NormalizePlayerName(playerName);
 
         bool exists =
-     players.Any(x =>
-         PlayerIdentityService
-             .NormalizePlayerName(
-                 x.PlayerName) == normalized);
+            players.Any(x =>
+                PlayerIdentityService.NormalizePlayerName(x.PlayerName) == normalized);
 
         if (exists)
             return;
 
-        string nextId =
-            $"P{(players.Count + 1):0000}";
+        string nextId = $"P{(players.Count + 1):0000}";
 
         players.Add(
             new PlayerProfileModel
@@ -1288,7 +1145,6 @@ EventArgs e)
                 CreatedAt = DateTime.Now
             });
 
-        await PlayerProfileService
-            .SavePlayersAsync(players);
+        await PlayerProfileService.SavePlayersAsync(players);
     }
 }

@@ -10,6 +10,6 @@ public partial class App : Application
 
         MainPage =
             new NavigationPage(
-                new GalleryPage());
+                new MainPage());
     }
 }

@@ -16,31 +16,30 @@ public static class PlayerTimelineService
         AddHistory(items, player.AchievementHistory, "إنجاز جديد", "تم فتح إنجاز", "🏆", "#00C853");
         AddHistory(items, player.HonorHistory, "وسام جديد", "تم منح وسام", "👑", "#B887FF");
         if (!string.IsNullOrWhiteSpace(player.TimelineHistory))
-{
-    var lines =
-        player.TimelineHistory.Split(
-            Environment.NewLine,
-            StringSplitOptions.RemoveEmptyEntries);
-
-    foreach (var line in lines)
-    {
-        var parts = line.Split('|');
-
-        if (parts.Length < 5)
-            continue;
-
-        DateTime.TryParse(parts[0], out DateTime date);
-
-        items.Add(new PlayerTimelineItemModel
         {
-            Date = date,
-            Title = parts[1],
-            Details = parts[2],
-            Icon = parts[3],
-            ColorHex = parts[4]
-        });
-    }
-}
+            var lines = SplitTimeline(player.TimelineHistory);
+
+            foreach (var line in lines)
+            {
+                var parts = line.Split('|');
+
+                if (parts.Length < 5)
+                    continue;
+
+                DateTime.TryParse(parts[0], out DateTime date);
+
+                items.Add(new PlayerTimelineItemModel
+                {
+                    EventId = line,
+                    IsIdentityEvent = true,
+                    Date = date,
+                    Title = parts[1],
+                    Details = parts[2],
+                    Icon = parts[3],
+                    ColorHex = parts[4]
+                });
+            }
+        }
         string teamNames =
             await GetTeamNamesAsync(player.CurrentTeamIds);
 
@@ -59,7 +58,6 @@ public static class PlayerTimelineService
 
         return items
             .OrderByDescending(x => x.Date)
-            .Take(12)
             .ToList();
     }
 
@@ -131,13 +129,34 @@ public static class PlayerTimelineService
 
     // This method can be called whenever a significant event occurs for the player
     public static void AddEvent(
-    PlayerProfileModel player,
-    string title,
-    string details,
-    string icon = "⭐",
-    string colorHex = "#D4AF37")
+        PlayerProfileModel player,
+        string title,
+        string details,
+        string icon = "⭐",
+        string colorHex = "#D4AF37")
     {
         if (player == null)
+            return;
+
+        title = title?.Trim() ?? string.Empty;
+        details = details?.Trim() ?? string.Empty;
+        icon = icon?.Trim() ?? string.Empty;
+        colorHex = colorHex?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(title) ||
+            string.IsNullOrWhiteSpace(details))
+        {
+            return;
+        }
+
+        bool duplicateExists = SplitTimeline(player.TimelineHistory)
+            .Select(line => line.Split('|'))
+            .Any(parts =>
+                parts.Length >= 5 &&
+                Same(parts[1], title) &&
+                Same(parts[2], details) &&
+                Same(parts[3], icon) &&
+                Same(parts[4], colorHex));
+        if (duplicateExists)
             return;
 
         string line =
@@ -155,4 +174,48 @@ public static class PlayerTimelineService
 
         player.LastUpdatedAt = DateTime.Now;
     }
+
+    public static bool DeleteIdentityEvent(
+        PlayerProfileModel player,
+        string eventId)
+    {
+        if (player == null || string.IsNullOrWhiteSpace(eventId))
+            return false;
+
+        var lines = SplitTimeline(player.TimelineHistory).ToList();
+        int index = lines.FindIndex(line =>
+            string.Equals(line, eventId, StringComparison.Ordinal));
+        if (index < 0)
+            return false;
+
+        lines.RemoveAt(index);
+        player.TimelineHistory = string.Join(Environment.NewLine, lines);
+        player.LastUpdatedAt = DateTime.Now;
+        return true;
+    }
+
+    public static bool DeleteAllIdentityEvents(PlayerProfileModel player)
+    {
+        if (player == null ||
+            string.IsNullOrWhiteSpace(player.TimelineHistory))
+        {
+            return false;
+        }
+
+        player.TimelineHistory = string.Empty;
+        player.LastUpdatedAt = DateTime.Now;
+        return true;
+    }
+
+    private static IEnumerable<string> SplitTimeline(string? history) =>
+        (history ?? string.Empty).Split(
+            new[] { "\r\n", "\n", "\r" },
+            StringSplitOptions.RemoveEmptyEntries |
+            StringSplitOptions.TrimEntries);
+
+    private static bool Same(string? left, string? right) =>
+        string.Equals(
+            left?.Trim(),
+            right?.Trim(),
+            StringComparison.OrdinalIgnoreCase);
 }

@@ -1,6 +1,8 @@
 ﻿using DominoMajlisPRO.GalleryEngine.Helpers;
 using DominoMajlisPRO.GalleryEngine.Models;
 
+using DominoMajlisPRO.GalleryEngine.Services;
+
 namespace DominoMajlisPRO.GalleryEngine.Components;
 
 public class HeroBannerView : ContentView
@@ -194,19 +196,19 @@ public class HeroBannerView : ContentView
             ? theme.BackgroundImage
             : season.BackgroundImage;
 
-        _optionalBackgroundImage.Source = string.IsNullOrWhiteSpace(backgroundImage)
-            ? null
-            : ImageSource.FromFile(backgroundImage);
-
-        _optionalBackgroundImage.IsVisible = !string.IsNullOrWhiteSpace(backgroundImage);
+        _optionalBackgroundImage.Source =
+            InventoryDisplayResolver.ResolveOptionalImageSource(
+                backgroundImage);
+        _optionalBackgroundImage.IsVisible =
+            _optionalBackgroundImage.Source != null;
 
         var characterImage = !string.IsNullOrWhiteSpace(theme.CharacterImage)
             ? theme.CharacterImage
             : season.CharacterImage;
 
-        _characterImage.Source = string.IsNullOrWhiteSpace(characterImage)
-            ? null
-            : ImageSource.FromFile(characterImage);
+        _characterImage.Source =
+            InventoryDisplayResolver.ResolveOptionalImageSource(
+                characterImage);
 
         _rightGlow.Background = CreateRightGlowBrush(
             ParseColor(theme.GlowColor, "#FFB84A"));

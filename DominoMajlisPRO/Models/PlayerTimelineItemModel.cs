@@ -2,6 +2,10 @@
 
 public class PlayerTimelineItemModel
 {
+    public string EventId { get; set; } = "";
+
+    public bool IsIdentityEvent { get; set; }
+
     public DateTime Date { get; set; }
 
     public string Title { get; set; } = "";

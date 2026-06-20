@@ -70,7 +70,22 @@ public class TeamProfileModel
 
     public string Emblem { get; set; } = "🛡️";
 
+    [System.Text.Json.Serialization.JsonIgnore]
+    public ImageSource EmblemSource =>
+        global::DominoMajlisPRO.GalleryEngine.Services
+            .InventoryDisplayResolver.ResolveImageSource(
+                Emblem,
+                "shield_3d.png");
+
+    public string EmblemAssetId { get; set; } = "";
+
     public string ColorHex { get; set; } = "#FFD700";
+
+    public string TeamColorAssetId { get; set; } = "";
+
+    public string EmblemBackground { get; set; } = "Transparent";
+
+    public string EmblemBackgroundAssetId { get; set; } = "";
 
     public bool IsSinglePlayer { get; set; }
 

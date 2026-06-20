@@ -83,9 +83,9 @@ public class HeroBackgroundView : ContentView
 
     public void SetBackground(string image)
     {
-        _backgroundImage.Source = string.IsNullOrWhiteSpace(image)
-            ? null
-            : ImageSource.FromFile(image);
+        _backgroundImage.Source =
+            global::DominoMajlisPRO.GalleryEngine.Services.InventoryDisplayResolver
+                .ResolveOptionalImageSource(image);
     }
 
     public void SetCharacter(string image)

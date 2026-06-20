@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>net10.0-android</TargetFrameworks>
@@ -42,13 +42,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<MauiIcon Include="Resources\AppIcon\appicon.svg"
-				  ForegroundFile="Resources\AppIcon\appiconfg.svg"
-				  Color="#512BD4" />
+		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
 
-		<MauiSplashScreen Include="Resources\Splash\splash.svg"
-						  Color="#512BD4"
-						  BaseSize="128,128" />
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
 
 		<MauiImage Include="Resources\Images\**\*.png" />
 		<MauiImage Include="Resources\Images\**\*.jpg" />
@@ -65,8 +61,7 @@
 		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
 		<MauiFont Include="Resources\Fonts\*" />
 
-		<MauiAsset Include="Resources\Raw\**"
-				   LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -88,6 +83,8 @@
 		<Folder Include="GalleryEngine\Catalogs\Products\" />
 		<Folder Include="GalleryEngine\Catalogs\Seasons\" />
 		<Folder Include="GalleryEngine\CreatorStudio\" />
+		<Folder Include="GalleryEngine\Admin\Models\" />
+		<Folder Include="GalleryEngine\Admin\Services\" />
 		<Folder Include="Localization\" />
 		<Folder Include="Themes\" />
 		<Folder Include="ViewModels\" />
@@ -107,6 +104,27 @@
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Controls\MatchTeamCard.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="GalleryEngine\Admin\CurrentSeasonEditorPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="GalleryEngine\Admin\LimitedOffersEditorPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="GalleryEngine\Admin\NewArrivalsEditorPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="GalleryEngine\Admin\StoreCategoriesEditorPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="GalleryEngine\Admin\AvatarsEditorPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="GalleryEngine\Admin\BackgroundsEditorPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="GalleryEngine\Admin\DeveloperStoreManagerPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="GalleryEngine\Pages\GalleryPage.xaml">
@@ -157,3 +175,8 @@
 	</ItemGroup>
 
 </Project>
+
+
+
+
+
