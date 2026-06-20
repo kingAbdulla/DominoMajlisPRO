@@ -865,7 +865,6 @@ internal sealed class StoreProductActionSheet : Grid
         {
             // Ensure UI and other systems refresh after persistence completes.
             AppEvents.RaiseStoreEconomyChanged(owner.PlayerId);
-            AppEvents.RaiseStoreEconomyChanged(owner.PlayerId);
         }
     }
 
