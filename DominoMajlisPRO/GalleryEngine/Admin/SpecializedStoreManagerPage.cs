@@ -277,16 +277,14 @@ public class SpecializedStoreManagerPage : ContentPage
             return;
         }
 
-        var labels = scoped
-            .Select(record => $"{record.Title} • {record.AssetId} • {record.Status}")
-            .ToArray();
+        var record =
+            await DominoMajlisPRO.GalleryEngine.Admin.Components.AdminAssetPickerSheet.ShowAsync(
+                this,
+                scoped,
+                _definition.Title);
 
-        var selected = await DisplayActionSheetAsync(_definition.Title, "إلغاء", null, labels);
-        var index = Array.IndexOf(labels, selected);
-        if (index < 0)
+        if (record == null)
             return;
-
-        var record = scoped[index];
         var action =
             await DominoMajlisPRO.GalleryEngine.Admin.Components.AdminAssetDetailsSheet.ShowAsync(
                 this,

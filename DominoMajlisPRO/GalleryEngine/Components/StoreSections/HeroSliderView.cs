@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Admin;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
@@ -128,7 +128,7 @@ public class HeroSliderView : ContentView
     {
         _testButtonLabel = new Label
         {
-            Text = "ï¼‹",
+            Text = "+",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
             TextColor = GalleryThemeEngine.Current.Gold,
@@ -148,7 +148,7 @@ public class HeroSliderView : ContentView
             StrokeThickness = 1,
             StrokeShape = new RoundRectangle { CornerRadius = 13 },
             Background = GalleryThemeEngine.Current.CardBackground,
-            IsVisible = true,
+            IsVisible = false,
             Content = _testButtonLabel
         };
 
@@ -177,8 +177,9 @@ public class HeroSliderView : ContentView
 
     private async Task RefreshDeveloperAdminButtonVisibilityAsync()
     {
+        var isDeveloper = await IsDeveloperAsync();
         await MainThread.InvokeOnMainThreadAsync(() =>
-            _testButton.IsVisible = true);
+            _testButton.IsVisible = isDeveloper);
     }
 
     private static async Task<bool> IsDeveloperAsync()
