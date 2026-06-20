@@ -1,0 +1,410 @@
+# Domino Majlis PRO — Official Engineering Manual v1.0
+
+Status: Official project reference for AI agents and developers.
+Source basis: uploaded DominoMajlisPRO repository snapshot.
+
+---
+# 06 — Project Map
+
+## High-level file inventory
+
+### Services
+
+- `Services/AchievementsInfoService.cs`
+- `Services/AppEvents.cs`
+- `Services/AppVersionService.cs`
+- `Services/ApplicationUserService.cs`
+- `Services/AvatarService.cs`
+- `Services/BackupService.cs`
+- `Services/BadgeEngine.cs`
+- `Services/CertificateExportService.cs`
+- `Services/DataMaintenanceService.cs`
+- `Services/DataStatusService.cs`
+- `Services/DeveloperLockService.cs`
+- `Services/DeveloperVaultService.cs`
+- `Services/DiagnosticService.cs`
+- `Services/GameService.cs`
+- `Services/HallOfLegendsConstitutionService.cs`
+- `Services/HonorActivationSevice.cs`
+- `Services/HonorIdentityService.cs`
+- `Services/HonorKeyGeneratorService.cs`
+- `Services/PlayerAchievementService.cs`
+- `Services/PlayerEngine.cs`
+- `Services/PlayerIdentityHistoryService.cs`
+- `Services/PlayerIdentityService.cs`
+- `Services/PlayerManagementService.cs`
+- `Services/PlayerProfileService.cs`
+- `Services/PlayerRankService.cs`
+- `Services/PlayerTeamSyncService.cs`
+- `Services/PlayerTimelineService.cs`
+- `Services/RankThemeService.cs`
+- `Services/RankingService.cs`
+- `Services/SeasonManager.cs`
+- `Services/SecurityLogService.cs`
+- `Services/SpecialHonorsService.cs`
+- `Services/SupportReportService.cs`
+- `Services/TeamProfileService.cs`
+- `Services/TrustRingDrawable.cs`
+- `Services/UpdateLogService.cs`
+- `Services/UserGuideService.cs`
+- `Services/UserPrivacyProfileService.cs`
+
+### Pages
+
+- `Pages/CertificatePage.xaml`
+- `Pages/CertificatePage.xaml.cs`
+- `Pages/CertificatePrintPage.xaml`
+- `Pages/CertificatePrintPage.xaml.cs`
+- `Pages/CreateTeamPage.xaml`
+- `Pages/CreateTeamPage.xaml.cs`
+- `Pages/DeveloperLoginPage.xaml`
+- `Pages/DeveloperLoginPage.xaml.cs`
+- `Pages/GamePage.xaml`
+- `Pages/GamePage.xaml.cs`
+- `Pages/HallOfFamePage.xaml`
+- `Pages/HallOfFamePage.xaml.cs`
+- `Pages/HistoryPage.xaml`
+- `Pages/HistoryPage.xaml.cs`
+- `Pages/HonorsAdminPage.xaml`
+- `Pages/HonorsAdminPage.xaml.cs`
+- `Pages/MatchDetailsPage.xaml`
+- `Pages/MatchDetailsPage.xaml.cs`
+- `Pages/PlayerDetailsPage.xaml`
+- `Pages/PlayerDetailsPage.xaml.cs`
+- `Pages/PlayerProfilesPage.xaml`
+- `Pages/PlayerProfilesPage.xaml.cs`
+- `Pages/RankingsPage.xaml`
+- `Pages/RankingsPage.xaml.cs`
+- `Pages/RulesPage.xaml`
+- `Pages/RulesPage.xaml.cs`
+- `Pages/StatisticsPage.xaml`
+- `Pages/StatisticsPage.xaml.cs`
+
+### Models
+
+- `Models/AppVersionInfoModel.cs`
+- `Models/ApplicationUserModel.cs`
+- `Models/AvatarItemModel.cs`
+- `Models/CurrentUserSessionModel.cs`
+- `Models/DeveloperLockModel.cs`
+- `Models/GameRules.cs`
+- `Models/HonorIdentityModel.cs`
+- `Models/HonorKeyRecord.cs`
+- `Models/HonorRoleType.cs`
+- `Models/InfoSectionModel.cs`
+- `Models/MatchModel.cs`
+- `Models/Player.cs`
+- `Models/PlayerAchievementModel.cs`
+- `Models/PlayerProfileModel.cs`
+- `Models/PlayerTimelineItemModel.cs`
+- `Models/RivalryRecord.cs`
+- `Models/RoundModel.cs`
+- `Models/SavedMatch.cs`
+- `Models/SecurityLogModel.cs`
+- `Models/SpecialHonorKeyModel.cs`
+- `Models/Team.cs`
+- `Models/TeamProfileModel.cs`
+- `Models/UpdateLogModel.cs`
+- `Models/UserGuideSectionModel.cs`
+- `Models/UserPrivacyProfileModel.cs`
+
+### GalleryEngine/Services
+
+- `GalleryEngine/Services/GalleryService.cs`
+- `GalleryEngine/Services/GalleryThemeEngine.cs`
+- `GalleryEngine/Services/ImageColorExtractor.cs`
+- `GalleryEngine/Services/InventoryDisplayResolver.cs`
+- `GalleryEngine/Services/InventoryRouter.cs`
+- `GalleryEngine/Services/OwnedAssetCategoryCatalog.cs`
+- `GalleryEngine/Services/PlayerAssetInventoryService.cs`
+- `GalleryEngine/Services/PlayerInventoryService.cs`
+- `GalleryEngine/Services/PlayerStoreIdentityService.cs`
+- `GalleryEngine/Services/PlayerStoreProgressService.cs`
+- `GalleryEngine/Services/PlayerVisualIdentityResolver.cs`
+- `GalleryEngine/Services/PlayerWalletService.cs`
+- `GalleryEngine/Services/StoreAssetCatalogService.cs`
+- `GalleryEngine/Services/StoreAssetQueryService.cs`
+- `GalleryEngine/Services/StoreCheckoutService.cs`
+- `GalleryEngine/Services/StoreEquipService.cs`
+- `GalleryEngine/Services/StorePurchaseService.cs`
+- `GalleryEngine/Services/TeamAssetInventoryService.cs`
+- `GalleryEngine/Services/TeamAssetPayloadCatalog.cs`
+- `GalleryEngine/Services/TeamEligibleAssetService.cs`
+- `GalleryEngine/Services/TeamIdentityResolver.cs`
+
+### GalleryEngine/Admin
+
+- `GalleryEngine/Admin/AvatarsEditorPage.xaml`
+- `GalleryEngine/Admin/AvatarsEditorPage.xaml.cs`
+- `GalleryEngine/Admin/BackgroundsEditorPage.xaml`
+- `GalleryEngine/Admin/BackgroundsEditorPage.xaml.cs`
+- `GalleryEngine/Admin/Canonical/CanonicalOption.cs`
+- `GalleryEngine/Admin/Canonical/CanonicalPickerExtensions.cs`
+- `GalleryEngine/Admin/Canonical/CanonicalStoreCatalog.cs`
+- `GalleryEngine/Admin/Core/StoreCmsAssetPickerService.cs`
+- `GalleryEngine/Admin/Core/StoreCmsJsonRepository.cs`
+- `GalleryEngine/Admin/Core/StoreCmsOrderingEngine.cs`
+- `GalleryEngine/Admin/Core/StoreCmsPreviewEngine.cs`
+- `GalleryEngine/Admin/Core/StoreCmsPricingEngine.cs`
+- `GalleryEngine/Admin/Core/StoreCmsPublishEngine.cs`
+- `GalleryEngine/Admin/Core/StoreCmsRecordBase.cs`
+- `GalleryEngine/Admin/Core/StoreCmsSearchEngine.cs`
+- `GalleryEngine/Admin/Core/StoreCmsStatistics.cs`
+- `GalleryEngine/Admin/Core/StoreCmsValidationEngine.cs`
+- `GalleryEngine/Admin/CurrencyPricingManagerPage.cs`
+- `GalleryEngine/Admin/CurrentSeasonEditorPage.xaml`
+- `GalleryEngine/Admin/CurrentSeasonEditorPage.xaml.cs`
+- `GalleryEngine/Admin/DeveloperStoreManagerPage.xaml`
+- `GalleryEngine/Admin/DeveloperStoreManagerPage.xaml.cs`
+- `GalleryEngine/Admin/InventoryAuditPage.cs`
+- `GalleryEngine/Admin/LimitedOffersEditorPage.xaml`
+- `GalleryEngine/Admin/LimitedOffersEditorPage.xaml.cs`
+- `GalleryEngine/Admin/Models/AvatarRecord.cs`
+- `GalleryEngine/Admin/Models/BackgroundRecord.cs`
+- `GalleryEngine/Admin/Models/CurrentSeasonRecord.cs`
+- `GalleryEngine/Admin/Models/InventoryAuditModels.cs`
+- `GalleryEngine/Admin/Models/LimitedOfferRecord.cs`
+- `GalleryEngine/Admin/Models/NewArrivalRecord.cs`
+- `GalleryEngine/Admin/Models/SeasonHeroDraftModel.cs`
+- `GalleryEngine/Admin/Models/StoreAdminSection.cs`
+- `GalleryEngine/Admin/Models/StoreCardTemplateType.cs`
+- `GalleryEngine/Admin/Models/StoreCategoryRecord.cs`
+- `GalleryEngine/Admin/Models/StoreContentStatus.cs`
+- `GalleryEngine/Admin/Models/StoreImageRule.cs`
+- `GalleryEngine/Admin/Models/StorePricingConfiguration.cs`
+- `GalleryEngine/Admin/Models/StoreProductAssetType.cs`
+- `GalleryEngine/Admin/Models/StoreRuntimeConfiguration.cs`
+- `GalleryEngine/Admin/Models/StoreTextLimitRule.cs`
+- `GalleryEngine/Admin/NewArrivalsEditorPage.xaml`
+- `GalleryEngine/Admin/NewArrivalsEditorPage.xaml.cs`
+- `GalleryEngine/Admin/Services/AvatarsAdminService.cs`
+- `GalleryEngine/Admin/Services/BackgroundsAdminService.cs`
+- `GalleryEngine/Admin/Services/CurrentSeasonAdminService.cs`
+- `GalleryEngine/Admin/Services/InventoryAuditService.cs`
+- `GalleryEngine/Admin/Services/LimitedOffersAdminService.cs`
+- `GalleryEngine/Admin/Services/NewArrivalsAdminService.cs`
+- `GalleryEngine/Admin/Services/StoreAdminService.cs`
+- `GalleryEngine/Admin/Services/StoreCategoriesAdminService.cs`
+- `GalleryEngine/Admin/Services/StorePricingAdminService.cs`
+- `GalleryEngine/Admin/Services/StoreRuntimeConfigurationService.cs`
+- `GalleryEngine/Admin/SpecializedStoreManagerPage.cs`
+- `GalleryEngine/Admin/StoreCategoriesEditorPage.xaml`
+- `GalleryEngine/Admin/StoreCategoriesEditorPage.xaml.cs`
+- `GalleryEngine/Admin/StoreSettingsManagerPage.cs`
+
+### GalleryEngine/Models
+
+- `GalleryEngine/Models/GalleryCatalog.cs`
+- `GalleryEngine/Models/GalleryItem.cs`
+- `GalleryEngine/Models/GallerySeason.cs`
+- `GalleryEngine/Models/GalleryTheme.cs`
+- `GalleryEngine/Models/HeroLayout.cs`
+- `GalleryEngine/Models/InventoryDisplayModels.cs`
+- `GalleryEngine/Models/PlayerOwnedStoreItem.cs`
+- `GalleryEngine/Models/PlayerStoreProgressModel.cs`
+- `GalleryEngine/Models/PlayerWalletModel.cs`
+- `GalleryEngine/Models/StorePurchaseRecord.cs`
+- `GalleryEngine/Models/StorePurchaseResult.cs`
+- `GalleryEngine/Models/TeamAssetPayloadModel.cs`
+- `GalleryEngine/Models/TeamAssetTypes.cs`
+- `GalleryEngine/Models/TeamIdentityModel.cs`
+- `GalleryEngine/Models/TeamOwnedAssetItem.cs`
+
+### GalleryEngine/Pages
+
+- `GalleryEngine/Pages/GalleryPage.xaml`
+- `GalleryEngine/Pages/GalleryPage.xaml.cs`
+
+### GalleryEngine/Components
+
+- `GalleryEngine/Components/CountdownView.cs`
+- `GalleryEngine/Components/HeroBackgroundView .cs`
+- `GalleryEngine/Components/HeroBannerView .cs`
+- `GalleryEngine/Components/HeroContentView .cs`
+- `GalleryEngine/Components/PremiumButton .cs`
+- `GalleryEngine/Components/PremiumCard .cs`
+- `GalleryEngine/Components/PremiumGalleryCard.cs`
+- `GalleryEngine/Components/StoreSections/AvatarsSectionView.cs`
+- `GalleryEngine/Components/StoreSections/BackgroundsSectionView.cs`
+- `GalleryEngine/Components/StoreSections/BrowseCategoriesSectionView.cs`
+- `GalleryEngine/Components/StoreSections/CategoriesSectionView.cs`
+- `GalleryEngine/Components/StoreSections/HeroSliderView.cs`
+- `GalleryEngine/Components/StoreSections/LimitedOffersSectionView.cs`
+- `GalleryEngine/Components/StoreSections/NewArrivalsSectionView.cs`
+- `GalleryEngine/Components/StoreSections/PremiumHeaderView.cs`
+- `GalleryEngine/Components/StoreSections/PremiumStoreHeaderView.cs`
+- `GalleryEngine/Components/StoreSections/QuickActionsView.cs`
+- `GalleryEngine/Components/StoreSections/StoreBottomNavigationView .cs`
+- `GalleryEngine/Components/StoreSections/StoreFooterView.cs`
+- `GalleryEngine/Components/StoreSections/StoreInventoryRouteResolver.cs`
+- `GalleryEngine/Components/StoreSections/StoreNavigationState.cs`
+- `GalleryEngine/Components/StoreSections/StoreProductActionSheet.cs`
+- `GalleryEngine/Components/StoreSections/StoreProductPreviewOverlay.cs`
+- `GalleryEngine/Components/StoreSections/StoreProductsSectionBase .cs`
+- `GalleryEngine/Components/StoreSections/StoreTypeRegistry.cs`
+
+## Key class declarations observed
+
+- `GalleryEngine/Admin/AvatarsEditorPage.xaml.cs`: AvatarsEditorPage, EditorMode, in
+- `GalleryEngine/Admin/BackgroundsEditorPage.xaml.cs`: BackgroundsEditorPage, EditorMode, in
+- `GalleryEngine/Admin/Canonical/CanonicalOption.cs`: CanonicalOption
+- `GalleryEngine/Admin/Canonical/CanonicalPickerExtensions.cs`: CanonicalPickerExtensions
+- `GalleryEngine/Admin/Canonical/CanonicalStoreCatalog.cs`: CanonicalStoreCatalog
+- `GalleryEngine/Admin/Core/StoreCmsAssetPickerService.cs`: StoreCmsAssetSection, StoreCmsAssetPickerService
+- `GalleryEngine/Admin/Core/StoreCmsJsonRepository.cs`: StoreCmsJsonRepository
+- `GalleryEngine/Admin/Core/StoreCmsOrderingEngine.cs`: StoreCmsOrderingEngine
+- `GalleryEngine/Admin/Core/StoreCmsPreviewEngine.cs`: StoreCmsPreviewData, StoreCmsPreviewEngine
+- `GalleryEngine/Admin/Core/StoreCmsPricingEngine.cs`: StoreCmsCurrency, StoreCmsPricing, StoreCmsPricingEngine
+- `GalleryEngine/Admin/Core/StoreCmsPublishEngine.cs`: StoreCmsPublishEngine, is, is
+- `GalleryEngine/Admin/Core/StoreCmsRecordBase.cs`: StoreCmsStatus, StoreCmsRecordBase
+- `GalleryEngine/Admin/Core/StoreCmsSearchEngine.cs`: StoreCmsSearchEngine
+- `GalleryEngine/Admin/Core/StoreCmsStatistics.cs`: StoreCmsStatistics
+- `GalleryEngine/Admin/Core/StoreCmsValidationEngine.cs`: StoreCmsValidationError, StoreCmsValidationResult, StoreCmsValidationEngine
+- `GalleryEngine/Admin/CurrencyPricingManagerPage.cs`: CurrencyPricingManagerPage
+- `GalleryEngine/Admin/CurrentSeasonEditorPage.xaml.cs`: CurrentSeasonEditorPage
+- `GalleryEngine/Admin/DeveloperStoreManagerPage.xaml.cs`: DeveloperStoreManagerPage, AdminSectionCardTarget
+- `GalleryEngine/Admin/InventoryAuditPage.cs`: InventoryAuditPage
+- `GalleryEngine/Admin/LimitedOffersEditorPage.xaml.cs`: LimitedOffersEditorPage, EditorMode
+- `GalleryEngine/Admin/Models/AvatarRecord.cs`: AvatarStatus, AvatarRarity, AvatarCurrencyType, AvatarUnlockType, AvatarRecord
+- `GalleryEngine/Admin/Models/BackgroundRecord.cs`: BackgroundStatus, BackgroundRarity, BackgroundCurrencyType, BackgroundUnlockType, BackgroundRecord
+- `GalleryEngine/Admin/Models/CurrentSeasonRecord.cs`: CurrentSeasonRecord
+- `GalleryEngine/Admin/Models/InventoryAuditModels.cs`: InventoryAuditStatus, InventoryAuditProductSource, RegisteredStoreAsset, InventoryAuditItem, CatalogHealthSummary, InventoryAuditReport
+- `GalleryEngine/Admin/Models/LimitedOfferRecord.cs`: LimitedOfferStatus, LimitedOfferCurrencyType, LimitedOfferRecord
+- `GalleryEngine/Admin/Models/NewArrivalRecord.cs`: NewArrivalStatus, NewArrivalCurrencyType, NewArrivalRecord
+- `GalleryEngine/Admin/Models/SeasonHeroDraftModel.cs`: SeasonHeroDraftModel
+- `GalleryEngine/Admin/Models/StoreAdminSection.cs`: StoreAdminSection, StoreAdminContentItem
+- `GalleryEngine/Admin/Models/StoreCardTemplateType.cs`: StoreCardTemplateType
+- `GalleryEngine/Admin/Models/StoreCategoryRecord.cs`: StoreCategoryStatus, StoreCategoryRecord
+- `GalleryEngine/Admin/Models/StoreContentStatus.cs`: StoreContentStatus
+- `GalleryEngine/Admin/Models/StoreImageRule.cs`: StoreImageRule
+- `GalleryEngine/Admin/Models/StorePricingConfiguration.cs`: StorePricingConfiguration
+- `GalleryEngine/Admin/Models/StoreProductAssetType.cs`: StoreProductAssetType, StoreProductOwnerScope, StoreProductAssetTypeCatalog, StoreManagerAssetTypeScopes
+- `GalleryEngine/Admin/Models/StoreRuntimeConfiguration.cs`: StoreRuntimeConfiguration
+- `GalleryEngine/Admin/Models/StoreTextLimitRule.cs`: StoreTextLimitRule
+- `GalleryEngine/Admin/NewArrivalsEditorPage.xaml.cs`: NewArrivalsEditorPage, EditorMode, in
+- `GalleryEngine/Admin/Services/AvatarsAdminService.cs`: AvatarsAdminService, in
+- `GalleryEngine/Admin/Services/BackgroundsAdminService.cs`: BackgroundsAdminService, in
+- `GalleryEngine/Admin/Services/CurrentSeasonAdminService.cs`: CurrentSeasonAdminService, in
+- `GalleryEngine/Admin/Services/InventoryAuditService.cs`: InventoryAuditService, ProductSnapshot
+- `GalleryEngine/Admin/Services/LimitedOffersAdminService.cs`: LimitedOffersAdminService, in
+- `GalleryEngine/Admin/Services/NewArrivalsAdminService.cs`: NewArrivalsAdminService, in
+- `GalleryEngine/Admin/Services/StoreAdminService.cs`: StoreAdminService
+- `GalleryEngine/Admin/Services/StoreCategoriesAdminService.cs`: StoreCategoriesAdminService, in
+- `GalleryEngine/Admin/Services/StorePricingAdminService.cs`: StorePricingAdminService
+- `GalleryEngine/Admin/Services/StoreRuntimeConfigurationService.cs`: StoreRuntimeConfigurationService
+- `GalleryEngine/Admin/SpecializedStoreManagerPage.cs`: EmblemsManagerPage, EffectsManagerPage, EmblemBackgroundsManagerPage, FramesManagerPage, TitlesManagerPage, BundlesManagerPage, TeamColorsManagerPage, SpecializedStoreManagerPage, SpecializedStoreManagerDefinition
+- `GalleryEngine/Admin/StoreCategoriesEditorPage.xaml.cs`: StoreCategoriesEditorPage, EditorMode, in
+- `GalleryEngine/Admin/StoreSettingsManagerPage.cs`: StoreSettingsManagerPage
+- `GalleryEngine/Models/GalleryCatalog.cs`: GalleryCatalog
+- `GalleryEngine/Models/GalleryItem.cs`: GalleryItem
+- `GalleryEngine/Models/GallerySeason.cs`: GallerySeason
+- `GalleryEngine/Models/GalleryTheme.cs`: GalleryTheme
+- `GalleryEngine/Models/HeroLayout.cs`: HeroLayout
+- `GalleryEngine/Models/InventoryDisplayModels.cs`: CatalogAssetDisplay, ResolvedInventoryDisplay, MissingCatalogDisplayMetadata, StoreProductAssetReference, InventoryCollectionSnapshot, PlayerVisualIdentity, StoreCheckoutResult
+- `GalleryEngine/Models/PlayerOwnedStoreItem.cs`: PlayerOwnedStoreItem
+- `GalleryEngine/Models/PlayerStoreProgressModel.cs`: StoreProgressCount, PlayerStoreProgressModel
+- `GalleryEngine/Models/PlayerWalletModel.cs`: PlayerWalletModel
+- `GalleryEngine/Models/StorePurchaseRecord.cs`: StoreItemType, StorePurchaseCurrencyType, StorePurchaseRecord
+- `GalleryEngine/Models/StorePurchaseResult.cs`: StorePurchaseResult
+- `GalleryEngine/Models/TeamAssetPayloadModel.cs`: TeamAssetPayloadModel
+- `GalleryEngine/Models/TeamAssetTypes.cs`: TeamAssetTypeDefinition, TeamAssetTypes
+- `GalleryEngine/Models/TeamIdentityModel.cs`: TeamIdentityModel
+- `GalleryEngine/Models/TeamOwnedAssetItem.cs`: TeamOwnedAssetItem
+- `GalleryEngine/Services/GalleryService.cs`: GalleryService
+- `GalleryEngine/Services/GalleryThemeEngine.cs`: GalleryThemeEngine, GalleryTheme
+- `GalleryEngine/Services/ImageColorExtractor.cs`: ImageColorExtractor
+- `GalleryEngine/Services/InventoryDisplayResolver.cs`: InventoryDisplayResolver
+- `GalleryEngine/Services/InventoryRouter.cs`: InventoryOwnerScope, InventoryEquipTarget, InventoryProductContext, InventoryRoute, InventoryState, InventoryActionResult, InventoryRouter
+- `GalleryEngine/Services/OwnedAssetCategoryCatalog.cs`: OwnedAssetCategory, OwnedAssetCategoryCatalog
+- `GalleryEngine/Services/PlayerAssetInventoryService.cs`: PlayerAssetInventoryService
+- `GalleryEngine/Services/PlayerInventoryService.cs`: PlayerInventoryService, in
+- `GalleryEngine/Services/PlayerStoreIdentityService.cs`: PlayerStoreIdentityService
+- `GalleryEngine/Services/PlayerStoreProgressService.cs`: PlayerStoreProgressService
+- `GalleryEngine/Services/PlayerVisualIdentityResolver.cs`: PlayerVisualIdentityResolver
+- `GalleryEngine/Services/PlayerWalletService.cs`: PlayerWalletService
+- `GalleryEngine/Services/StoreAssetCatalogService.cs`: StoreAssetCatalogService, ProductLink
+- `GalleryEngine/Services/StoreAssetQueryService.cs`: StoreAssetSearchEntry, StoreAssetQueryService
+- `GalleryEngine/Services/StoreCheckoutService.cs`: StoreCheckoutService
+- `GalleryEngine/Services/StoreEquipService.cs`: StoreAcquireResult, StoreEquipService
+- `GalleryEngine/Services/StorePurchaseService.cs`: StorePurchaseService, PublishedStoreItem
+- `GalleryEngine/Services/TeamAssetInventoryService.cs`: TeamAssetInventoryService
+- `GalleryEngine/Services/TeamAssetPayloadCatalog.cs`: TeamAssetPayloadCatalog
+- `GalleryEngine/Services/TeamEligibleAssetService.cs`: TeamEligibleAssetService
+- `GalleryEngine/Services/TeamIdentityResolver.cs`: TeamIdentityResolver
+- `Models/AppVersionInfoModel.cs`: AppVersionInfoModel
+- `Models/ApplicationUserModel.cs`: ApplicationUserRole, ApplicationUserModel
+- `Models/AvatarItemModel.cs`: AvatarItemModel
+- `Models/CurrentUserSessionModel.cs`: CurrentUserSessionModel
+- `Models/DeveloperLockModel.cs`: DeveloperLockModel
+- `Models/GameRules.cs`: GameRules
+- `Models/HonorIdentityModel.cs`: HonorIdentityModel
+- `Models/HonorKeyRecord.cs`: HonorKeyRecord
+- `Models/HonorRoleType.cs`: HonorRoleType
+- `Models/InfoSectionModel.cs`: InfoSectionModel
+- `Models/MatchModel.cs`: MatchModel
+- `Models/Player.cs`: Player
+- `Models/PlayerAchievementModel.cs`: PlayerAchievementModel
+- `Models/PlayerProfileModel.cs`: PlayerProfileStatus, PlayerProfileModel
+- `Models/PlayerTimelineItemModel.cs`: PlayerTimelineItemModel
+- `Models/RivalryRecord.cs`: RivalryRecord
+- `Models/RoundModel.cs`: RoundModel
+- `Models/SavedMatch.cs`: SavedMatch
+- `Models/SecurityLogModel.cs`: SecurityLogModel
+- `Models/SpecialHonorKeyModel.cs`: SpecialHonorKeyModel
+- `Models/Team.cs`: Team
+- `Models/TeamProfileModel.cs`: TeamProfileModel
+- `Models/UpdateLogModel.cs`: UpdateLogModel
+- `Models/UserGuideSectionModel.cs`: UserGuideSectionModel, UserGuideItemModel
+- `Models/UserPrivacyProfileModel.cs`: UserPrivacyProfileModel
+- `Pages/CertificatePage.xaml.cs`: CertificatePage
+- `Pages/CertificatePrintPage.xaml.cs`: CertificatePrintPage
+- `Pages/CreateTeamPage.xaml.cs`: SelectableCarouselItem, EmblemCarouselItem, TeamColorCarouselItem, EmblemBackgroundPickerItem, CreateTeamPage
+- `Pages/DeveloperLoginPage.xaml.cs`: DeveloperLoginPage
+- `Pages/GamePage.xaml.cs`: GamePage
+- `Pages/HallOfFamePage.xaml.cs`: HallOfFamePage, TeamLegendResult
+- `Pages/HistoryPage.xaml.cs`: HistoryPage
+- `Pages/HonorsAdminPage.xaml.cs`: HonorsAdminPage
+- `Pages/MatchDetailsPage.xaml.cs`: MatchDetailsPage
+- `Pages/PlayerDetailsPage.xaml.cs`: PlayerDetailsPage
+- `Pages/PlayerProfilesPage.xaml.cs`: PlayerProfilesPage, CollectionCount, InventoryPayload
+- `Pages/RankingsPage.xaml.cs`: RankingsPage
+- `Pages/RulesPage.xaml.cs`: RulesPage
+- `Pages/StatisticsPage.xaml.cs`: StatisticsPage
+- `Services/AchievementsInfoService.cs`: AchievementsInfoService
+- `Services/AppEvents.cs`: AppEvents
+- `Services/AppVersionService.cs`: AppVersionService
+- `Services/ApplicationUserService.cs`: ApplicationUserService, StoreOwnerContext, ApplicationUserState, LegacyApplicationIdentity
+- `Services/AvatarService.cs`: AvatarService
+- `Services/BackupService.cs`: BackupService
+- `Services/BadgeEngine.cs`: BadgeEngine
+- `Services/CertificateExportService.cs`: CertificateExportService
+- `Services/DataMaintenanceService.cs`: DataMaintenanceService
+- `Services/DataStatusService.cs`: DataStatusModel, DataStatusService
+- `Services/DeveloperLockService.cs`: DeveloperLockService
+- `Services/DeveloperVaultService.cs`: DeveloperVaultService
+- `Services/DiagnosticService.cs`: DiagnosticResultModel, DiagnosticService
+- `Services/GameService.cs`: GameService
+- `Services/HallOfLegendsConstitutionService.cs`: HallOfLegendsConstitutionService
+- `Services/HonorActivationSevice.cs`: HonorActivationService
+- `Services/HonorIdentityService.cs`: HonorIdentityService
+- `Services/HonorKeyGeneratorService.cs`: HonorKeyGeneratorService
+- `Services/PlayerAchievementService.cs`: PlayerAchievementService
+- `Services/PlayerEngine.cs`: PlayerEngine
+- `Services/PlayerIdentityHistoryService.cs`: PlayerIdentityHistoryService
+- `Services/PlayerIdentityService.cs`: PlayerIdentityService
+- `Services/PlayerManagementService.cs`: PlayerManagementService
+- `Services/PlayerProfileService.cs`: PlayerProfileService
+- `Services/PlayerRankService.cs`: PlayerRankResult, PlayerRankService, RankBracket
+- `Services/PlayerTeamSyncService.cs`: PlayerTeamSyncService
+- `Services/PlayerTimelineService.cs`: PlayerTimelineService
+- `Services/RankThemeService.cs`: RankTheme, RankThemeService
+- `Services/RankingService.cs`: RankingService
+- `Services/SeasonManager.cs`: SeasonManager
+- `Services/SecurityLogService.cs`: SecurityLogService
+- `Services/SpecialHonorsService.cs`: SpecialHonorsService
+- `Services/SupportReportService.cs`: SupportReportService
+- `Services/TeamProfileService.cs`: TeamProfileService
+- `Services/TrustRingDrawable.cs`: TrustRingDrawable
+- `Services/UpdateLogService.cs`: UpdateLogService
+- `Services/UserGuideService.cs`: UserGuideService
+- `Services/UserPrivacyProfileService.cs`: UserPrivacyProfileService

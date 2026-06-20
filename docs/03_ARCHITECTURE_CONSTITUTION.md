@@ -1,29 +1,62 @@
-# 03 ARCHITECTURE CONSTITUTION
+# Domino Majlis PRO — Official Engineering Manual v1.0
 
-## Application Architecture
-- .NET MAUI single-project application.
-- Shell navigation via `AppShell`.
-- C# + XAML.
-- Services-based business logic.
-- JSON storage in app data.
-- GalleryEngine and Store Manager are project subsystems.
+Status: Official project reference for AI agents and developers.
+Source basis: uploaded DominoMajlisPRO repository snapshot.
 
-## Protected Subsystems
-- `Services/ApplicationUserService.cs`: account/session/role authority.
-- `Services/AppEvents.cs`: synchronization authority.
-- `Services/TeamProfileService.cs`: Team profile lookup and storage.
-- `GalleryEngine/Services/PlayerInventoryService.cs`: Player-owned Store inventory authority.
-- `GalleryEngine/Services/TeamAssetInventoryService.cs`: Team-owned legacy asset authority.
-- `GalleryEngine/Services/TeamEligibleAssetService.cs`: CreateTeamPage team asset eligibility gate.
-- `GalleryEngine/Services/InventoryDisplayResolver.cs`: image/display resolver gateway.
-- `GalleryEngine/Services/PlayerVisualIdentityResolver.cs`: Player visual identity resolver.
-- `Pages/CreateTeamPage.xaml.cs`: team creation and team identity selection.
+---
 
-## Architecture Law
-Extend existing services. Do not duplicate them. Do not bypass them from pages.
+# 03 — Architecture Constitution
 
-## Actual Project Snapshot
-Services count: 38 source files.  
-Pages/Admin/UI count: 87 source/XAML files.  
-Models count: 56 model files.  
-GalleryEngine files: 124 source/XAML files.
+## Actual repository architecture observed
+
+The uploaded project contains a .NET MAUI single project with:
+
+- Solution: `DominoMajlisPRO.slnx`
+- Project folder: `DominoMajlisPRO/`
+- App-level services in `Services/`
+- UI pages in `Pages/`
+- Domain models in `Models/`
+- Gallery/store subsystem in `GalleryEngine/`
+- Platform folders under `Platforms/`
+- Resources under `Resources/`
+
+## Core folders observed
+
+```text
+GalleryEngine/Admin
+GalleryEngine/Components
+GalleryEngine/Models
+GalleryEngine/Pages
+GalleryEngine/Services
+Models
+Pages
+Services
+```
+
+## Architectural pillars
+
+- `AppShell` / Shell navigation must remain the navigation foundation.
+- Services own business logic.
+- Pages own view behavior and binding glue only.
+- Models represent data and persistence shape.
+- GalleryEngine owns store/gallery/inventory/equipment concerns.
+- AppEvents is the synchronization mechanism.
+- JSON storage remains the persistence layer unless the user explicitly approves migration.
+
+## Change policy
+
+Prefer extending or correcting existing services:
+
+- `ApplicationUserService`
+- `PlayerProfileService`
+- `TeamProfileService`
+- `RankingService`
+- `PlayerAssetInventoryService`
+- `PlayerInventoryService`
+- `TeamAssetInventoryService`
+- `TeamEligibleAssetService`
+- `PlayerVisualIdentityResolver`
+- `InventoryDisplayResolver`
+- `TeamIdentityResolver`
+
+Do not duplicate these responsibilities in pages.

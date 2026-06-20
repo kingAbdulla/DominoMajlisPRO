@@ -1,14 +1,13 @@
-# Domino Majlis PRO — Repository Instructions
+# Domino Majlis PRO — Copilot Instructions
 
-Read `/docs/00_READ_FIRST.md` before any engineering task.
+Before any engineering task:
 
-Mandatory rules:
-- Inspect actual files before editing.
-- Preserve .NET MAUI AppShell architecture.
-- Preserve MVVM/service architecture.
-- Preserve XAML layout unless explicitly asked to redesign.
-- Never use DisplayName/PlayerName/TeamName as primary identity keys.
-- Use ApplicationUserId, PlayerId, TeamId, AssetId, ProductId as authoritative IDs.
-- Do not create parallel AppEvents, inventory, session, or storage systems.
-- Build after logical changes.
-- Do not report completion without Android runtime verification for runtime-sensitive bugs.
+1. Read `/docs/00_READ_FIRST.md`.
+2. Read every document under `/docs` in order.
+3. Inspect the real implementation before changing code.
+4. Preserve MVVM, AppShell, services, models, GalleryEngine, AppEvents, JSON storage, and approved XAML layout.
+5. Use AccountId/ApplicationUserId, PlayerId, TeamId, AssetId, and ProductId as authoritative identifiers.
+6. Never use display names as primary keys.
+7. Build after logical changes.
+8. Runtime verify Android/MAUI/store/identity changes.
+9. Never report completion while known crashes or verification failures remain.

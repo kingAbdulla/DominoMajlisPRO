@@ -1,30 +1,45 @@
-# 00 READ FIRST — Domino Majlis PRO
+# Domino Majlis PRO — Official Engineering Manual v1.0
 
-Status: Official project documentation package.  
-Audience: ChatGPT, GitHub Copilot, Codex, Cursor, Cline, Gemini, Claude, and any human developer.
+Status: Official project reference for AI agents and developers.
+Source basis: uploaded DominoMajlisPRO repository snapshot.
 
-## Mandatory Reading Order
-1. `00_READ_FIRST.md`
-2. `01_PROJECT_MISSION.md`
-3. `02_AI_ENGINEERING_CONSTITUTION.md`
-4. `03_ARCHITECTURE_CONSTITUTION.md`
-5. `04_LAYOUT_PROTECTION_POLICY.md`
-6. `05_EXECUTION_CONTRACT.md`
-7. `06_IDENTITY_ARCHITECTURE.md`
-8. `07_STORE_GALLERY_ARCHITECTURE.md`
-9. `08_APP_EVENTS_AND_SYNC.md`
-10. `09_PROJECT_MAP.md`
-11. `10_SERVICE_REFERENCE.md`
-12. `11_PAGE_REFERENCE.md`
-13. `12_PHASE_2_8_STATUS_AND_BUGS.md`
-14. `13_RUNTIME_VERIFICATION_GUIDE.md`
-15. `14_AI_PROMPTS.md`
+---
 
-## Non-Negotiable Rule
-No AI or developer may modify Domino Majlis PRO before reading these files and understanding the current architecture.
+# 00 — READ FIRST
 
-## Source of Truth
-The code repository is the technical source of truth. These documents are the engineering policy source of truth. If old conversation notes conflict with this package, this package wins.
+This repository contains a professional .NET MAUI application for real-world domino competition management. It is not a video game.
 
-## Current Priority
-Phase 2.8 hardening: identity isolation, PlayerId/TeamId binding, Store/Gallery ownership separation, Android emulator verification, RecyclerView crash stabilization.
+Before any AI or developer modifies code, the following documents must be read in order:
+
+1. `01_PROJECT_MISSION.md`
+2. `02_ENGINEERING_CONSTITUTION.md`
+3. `03_ARCHITECTURE_CONSTITUTION.md`
+4. `04_LAYOUT_PROTECTION.md`
+5. `05_EXECUTION_CONTRACT.md`
+6. `06_PROJECT_MAP.md`
+7. `07_IDENTITY_ARCHITECTURE.md`
+8. `08_STORE_GALLERY_ARCHITECTURE.md`
+9. `09_INVENTORY_ASSET_OWNERSHIP.md`
+10. `10_APP_EVENTS_SYNC.md`
+11. `11_JSON_STORAGE_SAFETY.md`
+12. `12_RUNTIME_VERIFICATION.md`
+13. `13_KNOWN_BUGS_AND_PHASE_2_8.md`
+14. `14_AI_BOOTSTRAP.md`
+15. `15_SERVICE_REFERENCE.md`
+16. `16_PAGE_REFERENCE.md`
+17. `17_FILE_INDEX.md`
+
+The repository is the implementation source of truth. These documents are the engineering policy source of truth.
+
+If code conflicts with these documents, the agent must report the conflict and ask before changing architecture.
+
+## Non-negotiable rules
+
+- Analyze before coding.
+- Preserve Shell navigation and MVVM-style separation.
+- Preserve XAML layout unless the user explicitly requests redesign.
+- Use `AccountId`, `ApplicationUserId`, `PlayerId`, `TeamId`, `AssetId`, and `ProductId` as identity keys.
+- Treat names as display-only.
+- Build after logical changes.
+- Runtime verify on Android when the bug is Android/MAUI/UI related.
+- Do not report completion while known crashes or verification failures remain.

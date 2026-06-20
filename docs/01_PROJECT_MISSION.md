@@ -1,22 +1,33 @@
-# 01 PROJECT MISSION
+# Domino Majlis PRO — Official Engineering Manual v1.0
 
-Domino Majlis PRO is a professional real-world domino match recording and competition management platform. It is not a video game.
+Status: Official project reference for AI agents and developers.
+Source basis: uploaded DominoMajlisPRO repository snapshot.
 
-## Product Purpose
-- Record real domino matches.
-- Manage players, teams, ranks, achievements, certificates, history, and Hall of Fame.
-- Provide a premium Arabic-first black/gold experience.
-- Manage cosmetic Store/Gallery assets without compromising identity or data integrity.
+---
 
-## Engineering Priorities
-1. Data integrity.
-2. Identity integrity.
-3. Stable architecture.
-4. Runtime safety.
-5. Build correctness.
-6. User trust.
-7. Performance.
-8. Visual polish.
+# 01 — Project Mission
 
-## Project Philosophy
-Names are display-only. IDs are authoritative. The app must behave correctly across account switching, Android runtime, emulator verification, and real-device testing.
+Domino Majlis PRO is a real-world domino match recording, ranking, profile, identity, gallery, store, achievement, and competition management application.
+
+It must preserve the workflow of real domino events:
+
+- players and teams are real entities;
+- matches are recorded, not simulated;
+- history and rankings preserve real outcomes;
+- store/gallery items decorate players and teams but must not compromise identity integrity;
+- anti-cheat and Hall of Fame logic must be evidence-based and not arcade-style.
+
+## Product priorities
+
+1. Data integrity
+2. Identity integrity
+3. Stability
+4. Runtime correctness
+5. Architecture preservation
+6. AppEvents synchronization
+7. Performance
+8. Visual polish
+
+## Arabic-first product expectations
+
+The app is Arabic-first with premium black/gold visual direction. RTL design and existing approved layout should be preserved.
