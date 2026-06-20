@@ -215,8 +215,8 @@ public partial class CreateTeamPage : ContentPage
                 }
 
                 AddDefaultVisualAssets();
-                if (IsEditMode && ownerTeam != null)
-                    AddSavedIdentityIfMissing(ownerTeam);
+                // Saved team identity must not inject unowned assets.
+                // Owned assets already arrive through TeamEligibleAssetService.
 
                 // Build new lists and assign atomically on the UI thread to avoid RecyclerView mutation during layout.
                 var newEmblems = emblemItems.ToList();
