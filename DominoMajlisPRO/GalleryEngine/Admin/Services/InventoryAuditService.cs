@@ -1,4 +1,4 @@
-using DominoMajlisPRO.GalleryEngine.Admin.Core;
+﻿using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -163,7 +163,7 @@ public static class InventoryAuditService
         else if (!StoreProductAssetTypeCatalog.Validate(
                      product.StoreTypeId,
                      product.AssetId,
-                     product.OwnerScope,
+                     product.OwnerScope ?? "",
                      product.ImagePath,
                      product.ColorHex,
                      out _))
@@ -175,7 +175,7 @@ public static class InventoryAuditService
             product.ProductId,
             product.AssetId,
             product.StoreTypeId,
-            product.OwnerScope,
+            product.OwnerScope ?? "",
             product.ImagePath,
             product.ColorHex,
             status,
@@ -244,3 +244,4 @@ public static class InventoryAuditService
         string ImagePath,
         string ColorHex);
 }
+

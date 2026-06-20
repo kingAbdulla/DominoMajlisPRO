@@ -7,13 +7,13 @@ public class SavedMatch
     public Guid MatchId { get; set; } =
         Guid.NewGuid();
 
-    public string Team1Name { get; set; }
+    public string Team1Name { get; set; } = "";
 
-    public string Team2Name { get; set; }
+    public string Team2Name { get; set; } = "";
 
-    public string Team1Players { get; set; }
+    public string Team1Players { get; set; } = "";
 
-    public string Team2Players { get; set; }
+    public string Team2Players { get; set; } = "";
 
     public int Team1Score { get; set; }
 
@@ -42,7 +42,7 @@ public class SavedMatch
     public List<RoundModel> RoundsHistory { get; set; }
         = new();
 
-    public string WinnerTeam { get; set; }
+    public string WinnerTeam { get; set; } = "";
 
     public bool HasMeles { get; set; }
 
@@ -55,7 +55,7 @@ public class SavedMatch
 
     public bool RankedMatch { get; set; }
 
-    public string MatchVerificationCode { get; set; }
+    public string MatchVerificationCode { get; set; } = "";
 
     public bool IsVerified { get; set; }
     public string WinnerTeamName { get; set; } = "";
@@ -83,3 +83,4 @@ public class SavedMatch
     public string Team2ColorHex { get; set; } = "#FFD700";
 
 }
+

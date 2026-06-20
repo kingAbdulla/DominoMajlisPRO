@@ -1,4 +1,4 @@
-using DominoMajlisPRO.Models;
+﻿using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Services;
 using Microsoft.Maui.Graphics;
@@ -139,8 +139,7 @@ public partial class CertificatePage : ContentPage
    object sender,
    TappedEventArgs e)
     {
-        await Navigation.PushAsync(
- new CertificatePrintPage(match));
+        if (match == null) return; await Navigation.PushAsync(new CertificatePrintPage(match));
        
 
         
@@ -148,3 +147,4 @@ public partial class CertificatePage : ContentPage
     }
    
 }
+

@@ -350,7 +350,7 @@ public static class ApplicationUserService
         {
             var state = await LoadStateAsync();
 
-            return !state.Session.IsLoggedOut &&
+            return !state.Session?.IsLoggedOut == true &&
                    FindCurrentUser(state) != null;
         }
         finally
@@ -371,7 +371,7 @@ public static class ApplicationUserService
             if (changed)
                 await SaveStateAsync(state);
 
-            return state.Session.IsLoggedOut ||
+            return state.Session?.IsLoggedOut == true ||
                    FindCurrentUser(state) == null;
         }
         finally
@@ -517,7 +517,7 @@ public static class ApplicationUserService
             user.UpdatedAt = DateTime.UtcNow;
 
             if (Same(
-                    state.Session.ApplicationUserId,
+                    state.Session?.ApplicationUserId,
                     user.ApplicationUserId))
             {
                 SetSession(state, user);
@@ -575,7 +575,7 @@ public static class ApplicationUserService
             user.UpdatedAt = DateTime.UtcNow;
 
             if (Same(
-                    state.Session.ApplicationUserId,
+                    state.Session?.ApplicationUserId,
                     user.ApplicationUserId))
             {
                 SetSession(state, user);
@@ -822,7 +822,7 @@ public static class ApplicationUserService
         var current = FindCurrentUser(state);
 
         if (!hadUsers &&
-            !state.Session.IsLoggedOut &&
+            !state.Session?.IsLoggedOut == true &&
             (current == null || current.Role == ApplicationUserRole.Ghost) &&
             !Same(current?.ApplicationUserId, user.ApplicationUserId))
         {
@@ -920,7 +920,7 @@ public static class ApplicationUserService
     {
         string accountId = FirstNonEmpty(
             state.Session?.CurrentAccountId,
-            state.Session.ApplicationUserId);
+            state.Session?.ApplicationUserId);
 
         if (string.IsNullOrWhiteSpace(accountId))
             return null;
@@ -1024,9 +1024,11 @@ public static class ApplicationUserService
         ApplicationUserState state,
         ApplicationUserModel user)
     {
+        var previousSession = state.Session;
+
         bool sameUser =
             Same(
-                state.Session.ApplicationUserId,
+                previousSession.ApplicationUserId,
                 user.ApplicationUserId);
 
         state.Session = new CurrentUserSessionModel
@@ -1036,11 +1038,11 @@ public static class ApplicationUserService
             CurrentAccountId = user.ApplicationUserId,
             CurrentPlayerId = user.PlayerId,
             Role = user.Role,
-            TeamId = sameUser ? state.Session.TeamId : "",
+            TeamId = sameUser ? previousSession.TeamId : "",
             IsLoggedOut = false,
             StartedAt =
-                sameUser && state.Session.StartedAt != default
-                    ? state.Session.StartedAt
+                sameUser && previousSession.StartedAt != default
+                    ? previousSession.StartedAt
                     : DateTime.UtcNow,
             LastActiveAt = DateTime.UtcNow
         };
@@ -1051,51 +1053,52 @@ public static class ApplicationUserService
         ApplicationUserModel user)
     {
         bool changed = false;
+        var session = state.Session;
 
-        if (!Same(state.Session.ApplicationUserId, user.ApplicationUserId))
+        if (!Same(session.ApplicationUserId, user.ApplicationUserId))
         {
-            state.Session.ApplicationUserId = user.ApplicationUserId;
+            session.ApplicationUserId = user.ApplicationUserId;
             changed = true;
         }
 
-        if (!Same(state.Session?.CurrentAccountId, user.ApplicationUserId))
+        if (!Same(session.CurrentAccountId, user.ApplicationUserId))
         {
-            state.Session?.CurrentAccountId = user.ApplicationUserId;
-            changed = true;
-        }
-
-        if (!string.Equals(
-                state.Session.PlayerId?.Trim(),
-                user.PlayerId?.Trim(),
-                StringComparison.OrdinalIgnoreCase))
-        {
-            state.Session.PlayerId = user.PlayerId?.Trim() ?? "";
+            session.CurrentAccountId = user.ApplicationUserId;
             changed = true;
         }
 
         if (!string.Equals(
-                state.Session?.CurrentPlayerId?.Trim(),
+                session.PlayerId?.Trim(),
                 user.PlayerId?.Trim(),
                 StringComparison.OrdinalIgnoreCase))
         {
-            state.Session?.CurrentPlayerId = user.PlayerId?.Trim() ?? "";
+            session.PlayerId = user.PlayerId?.Trim() ?? "";
             changed = true;
         }
 
-        if (state.Session.Role != user.Role)
+        if (!string.Equals(
+                session.CurrentPlayerId?.Trim(),
+                user.PlayerId?.Trim(),
+                StringComparison.OrdinalIgnoreCase))
         {
-            state.Session.Role = user.Role;
+            session.CurrentPlayerId = user.PlayerId?.Trim() ?? "";
             changed = true;
         }
 
-        if (state.Session.IsLoggedOut)
+        if (session.Role != user.Role)
         {
-            state.Session.IsLoggedOut = false;
+            session.Role = user.Role;
+            changed = true;
+        }
+
+        if (session.IsLoggedOut)
+        {
+            session.IsLoggedOut = false;
             changed = true;
         }
 
         if (changed)
-            state.Session.LastActiveAt = DateTime.UtcNow;
+            session.LastActiveAt = DateTime.UtcNow;
 
         return changed;
     }
@@ -1220,5 +1223,7 @@ public static class ApplicationUserService
         string LegacyIdentityId,
         string Source);
 }
+
+
 
 

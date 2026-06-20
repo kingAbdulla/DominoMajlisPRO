@@ -209,3 +209,4 @@ public sealed class GalleryTheme
     public MauiColor TextSecondary { get; set; }
     public MauiColor TextMuted { get; set; }
 }
+
