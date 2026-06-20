@@ -4,6 +4,7 @@ using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using System.ComponentModel;
+using System.Threading;
 
 namespace DominoMajlisPRO.Pages;
 
@@ -70,6 +71,10 @@ public partial class CreateTeamPage : ContentPage
 
     private TeamProfileModel? CurrentTeam = null;
     private bool _suppressSelectionHandlers = false;
+    private bool _suppressTeamPlayersChanged = false;
+    private readonly SemaphoreSlim _ownedAssetsReloadGate = new(1, 1);
+    private bool _ownedAssetsReloadRequested = false;
+    private bool _isReloadingOwnedAssets = false;
     private List<TeamProfileModel> LoadedTeams = new();
 
     public CreateTeamPage()
@@ -111,124 +116,152 @@ public partial class CreateTeamPage : ContentPage
 
     async Task LoadOwnedTeamAssetsAsync()
     {
-        var ownerTeam = CurrentTeam;
-
-        // Prefer PlayerId-first resolution: try to interpret the entry text as a PlayerId,
-        // then fall back to name-based lookup for legacy data.
-        string p1Text = Player1Entry.Text?.Trim() ?? string.Empty;
-        PlayerProfileModel? player1 = null;
-        if (!string.IsNullOrWhiteSpace(p1Text))
+        if (!await _ownedAssetsReloadGate.WaitAsync(0))
         {
-            player1 = await PlayerProfileService.GetPlayerByIdAsync(p1Text);
-            if (player1 == null)
-                player1 = await PlayerProfileService.GetPlayerByNameAsync(p1Text);
+            _ownedAssetsReloadRequested = true;
+            return;
         }
 
-        PlayerProfileModel? player2 = null;
-        if (isTeamMode)
+        try
         {
-            string p2Text = Player2Entry.Text?.Trim() ?? string.Empty;
-            if (!string.IsNullOrWhiteSpace(p2Text))
+            do
             {
-                player2 = await PlayerProfileService.GetPlayerByIdAsync(p2Text);
-                if (player2 == null)
-                    player2 = await PlayerProfileService.GetPlayerByNameAsync(p2Text);
+                _ownedAssetsReloadRequested = false;
+                _isReloadingOwnedAssets = true;
+
+                var ownerTeam = CurrentTeam;
+
+                // Prefer PlayerId-first resolution: try to interpret the entry text as a PlayerId,
+                // then fall back to name-based lookup for legacy data.
+                string p1Text = Player1Entry.Text?.Trim() ?? string.Empty;
+                PlayerProfileModel? player1 = null;
+                if (!string.IsNullOrWhiteSpace(p1Text))
+                {
+                    player1 = await PlayerProfileService.GetPlayerByIdAsync(p1Text);
+                    if (player1 == null)
+                        player1 = await PlayerProfileService.GetPlayerByNameAsync(p1Text);
+                }
+
+                PlayerProfileModel? player2 = null;
+                if (isTeamMode)
+                {
+                    string p2Text = Player2Entry.Text?.Trim() ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(p2Text))
+                    {
+                        player2 = await PlayerProfileService.GetPlayerByIdAsync(p2Text);
+                        if (player2 == null)
+                            player2 = await PlayerProfileService.GetPlayerByNameAsync(p2Text);
+                    }
+                }
+
+                var inventory = (await TeamEligibleAssetService.GetEligibleAsync(
+                        ownerTeam?.TeamId,
+                        player1?.PlayerId ?? ownerTeam?.Player1Id,
+                        player2?.PlayerId ??
+                        (isTeamMode ? ownerTeam?.Player2Id : null)))
+                    .Where(item => item.IsOwned || item.Source == "Default")
+                    .ToList();
+
+                emblemItems.Clear();
+                colorItems.Clear();
+                backgroundItems.Clear();
+
+                var catalog = await StoreAssetCatalogService.LoadAsync();
+
+                foreach (var item in inventory)
+                {
+                    var payload =
+                        TeamAssetPayloadCatalog.Resolve(item.TeamAssetId, item.TeamAssetTypeId)
+                        ?? TeamAssetPayloadCatalog.Resolve(item.TeamAssetId);
+
+                    var effectiveTypeId = StoreAssetCatalogService.CanonicalTypeId(
+                        payload?.TeamAssetTypeId ?? item.TeamAssetTypeId);
+
+                    var catalogAsset = StoreAssetCatalogService.Resolve(
+                        catalog, item.TeamAssetId, effectiveTypeId);
+
+                    var displayName = catalogAsset?.DisplayName ?? (payload == null
+                        ? StoreAssetCatalogService.IncompleteDisplayName
+                        : !string.IsNullOrWhiteSpace(payload.ArabicDisplayName)
+                            ? payload.ArabicDisplayName
+                            : payload.EnglishDisplayName ?? StoreAssetCatalogService.IncompleteDisplayName);
+
+                    if (string.Equals(effectiveTypeId, StoreProductAssetType.Emblem.ToString(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        AddEmblemIfMissing(
+                            item.TeamAssetId,
+                            catalogAsset?.PreviewImage ?? payload?.ImagePath ?? "ss.png",
+                            displayName);
+                    }
+                    else if (string.Equals(effectiveTypeId, StoreProductAssetType.TeamColor.ToString(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        AddColorIfMissing(
+                            item.TeamAssetId,
+                            catalogAsset?.ColorHex ?? payload?.ColorHex ?? "#181818",
+                            catalogAsset?.PreviewImage ?? payload?.ImagePath ?? "ss.png",
+                            displayName);
+                    }
+                    else if (string.Equals(effectiveTypeId, StoreProductAssetType.EmblemBackground.ToString(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        AddBackgroundIfMissing(
+                            item.TeamAssetId,
+                            catalogAsset?.PreviewImage
+                            ?? catalogAsset?.ColorHex
+                            ?? payload?.BackgroundImagePath
+                            ?? payload?.BackgroundColorHex
+                            ?? "Transparent",
+                            displayName);
+                    }
+                }
+
+                AddDefaultVisualAssets();
+                if (IsEditMode && ownerTeam != null)
+                    AddSavedIdentityIfMissing(ownerTeam);
+
+                // Build new lists and assign atomically on the UI thread to avoid RecyclerView mutation during layout.
+                var newEmblems = emblemItems.ToList();
+                var newColors = colorItems.ToList();
+                var newBackgrounds = backgroundItems.ToList();
+
+                // Suppress selection handlers while we replace ItemsSource.
+                bool prevSuppress = _suppressSelectionHandlers;
+                _suppressSelectionHandlers = true;
+                try
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        EmblemCarousel.ItemsSource = newEmblems;
+                        ColorCarousel.ItemsSource = newColors;
+                        EmblemBackgroundPicker.ItemsSource = newBackgrounds;
+                        emblemItems = newEmblems;
+                        colorItems = newColors;
+                        backgroundItems = newBackgrounds;
+                    });
+
+                    // Restore selection after a short dispatch to avoid immediate selection events while RecyclerView updates.
+                    await Task.Delay(75);
+
+                    if (!SelectEmblemByAssetId(selectedEmblemAssetId, animate: false))
+                        SelectEmblemByImagePath(selectedEmblem, animate: false);
+
+                    if (!SelectColorByAssetId(selectedColorAssetId, animate: false))
+                        SelectColorByHex(selectedColor, animate: false);
+
+                    if (!SelectEmblemBackground(selectedEmblemBackgroundAssetId))
+                        SelectEmblemBackground("default_background_transparent");
+                }
+                finally
+                {
+                    _suppressSelectionHandlers = prevSuppress;
+                }
             }
+            while (_ownedAssetsReloadRequested);
         }
-
-        var inventory = (await TeamEligibleAssetService.GetEligibleAsync(
-                ownerTeam?.TeamId,
-                player1?.PlayerId ?? ownerTeam?.Player1Id,
-                player2?.PlayerId ??
-                (isTeamMode ? ownerTeam?.Player2Id : null)))
-            .Where(item => item.IsOwned || item.Source == "Default")
-            .ToList();
-
-        emblemItems.Clear();
-        colorItems.Clear();
-        backgroundItems.Clear();
-
-        var catalog = await StoreAssetCatalogService.LoadAsync();
-
-        foreach (var item in inventory)
+        finally
         {
-            var payload =
-                TeamAssetPayloadCatalog.Resolve(item.TeamAssetId, item.TeamAssetTypeId)
-                ?? TeamAssetPayloadCatalog.Resolve(item.TeamAssetId);
-
-            var effectiveTypeId = StoreAssetCatalogService.CanonicalTypeId(
-                payload?.TeamAssetTypeId ?? item.TeamAssetTypeId);
-
-            var catalogAsset = StoreAssetCatalogService.Resolve(
-                catalog, item.TeamAssetId, effectiveTypeId);
-
-            var displayName = catalogAsset?.DisplayName ?? (payload == null
-                ? StoreAssetCatalogService.IncompleteDisplayName
-                : !string.IsNullOrWhiteSpace(payload.ArabicDisplayName)
-                    ? payload.ArabicDisplayName
-                    : payload.EnglishDisplayName ?? StoreAssetCatalogService.IncompleteDisplayName);
-
-            if (string.Equals(effectiveTypeId, StoreProductAssetType.Emblem.ToString(), StringComparison.OrdinalIgnoreCase))
-            {
-                AddEmblemIfMissing(
-                    item.TeamAssetId,
-                    catalogAsset?.PreviewImage ?? payload?.ImagePath ?? "ss.png",
-                    displayName);
-            }
-            else if (string.Equals(effectiveTypeId, StoreProductAssetType.TeamColor.ToString(), StringComparison.OrdinalIgnoreCase))
-            {
-                AddColorIfMissing(
-                    item.TeamAssetId,
-                    catalogAsset?.ColorHex ?? payload?.ColorHex ?? "#181818",
-                    catalogAsset?.PreviewImage ?? payload?.ImagePath ?? "ss.png",
-                    displayName);
-            }
-            else if (string.Equals(effectiveTypeId, StoreProductAssetType.EmblemBackground.ToString(), StringComparison.OrdinalIgnoreCase))
-            {
-                AddBackgroundIfMissing(
-                    item.TeamAssetId,
-                    catalogAsset?.PreviewImage
-                    ?? catalogAsset?.ColorHex
-                    ?? payload?.BackgroundImagePath
-                    ?? payload?.BackgroundColorHex
-                    ?? "Transparent",
-                    displayName);
-            }
+            _isReloadingOwnedAssets = false;
+            _ownedAssetsReloadGate.Release();
         }
-
-        AddDefaultVisualAssets();
-        if (IsEditMode && ownerTeam != null)
-            AddSavedIdentityIfMissing(ownerTeam);
-
-        // Build new lists and assign atomically on the UI thread to avoid RecyclerView mutation during layout.
-        var newEmblems = emblemItems.ToList();
-        var newColors = colorItems.ToList();
-        var newBackgrounds = backgroundItems.ToList();
-
-        // Suppress selection handlers while we replace ItemsSource.
-        bool prevSuppress = _suppressSelectionHandlers;
-        _suppressSelectionHandlers = true;
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            EmblemCarousel.ItemsSource = newEmblems;
-            ColorCarousel.ItemsSource = newColors;
-            EmblemBackgroundPicker.ItemsSource = newBackgrounds;
-            emblemItems = newEmblems;
-            colorItems = newColors;
-            backgroundItems = newBackgrounds;
-        });
-        // Restore selection handling after a short dispatch to avoid immediate selection events while RecyclerView updates.
-        await Task.Delay(50);
-        _suppressSelectionHandlers = prevSuppress;
-
-        if (!SelectEmblemByAssetId(selectedEmblemAssetId, animate: false))
-            SelectEmblemByImagePath(selectedEmblem, animate: false);
-
-        if (!SelectColorByAssetId(selectedColorAssetId, animate: false))
-            SelectColorByHex(selectedColor, animate: false);
-
-        if (!SelectEmblemBackground(selectedEmblemBackgroundAssetId))
-            SelectEmblemBackground("default_background_transparent");
     }
 
     void AddDefaultVisualAssets()
@@ -335,7 +368,8 @@ public partial class CreateTeamPage : ContentPage
         isTeamMode = true;
 
         Player2Layout.IsVisible = true;
-        TeamPlayersChanged(this, null);
+        if (!_suppressTeamPlayersChanged)
+            TeamPlayersChanged(this, null);
         PreviewPlayer2.IsVisible = true;
 
         TeamCard.Stroke = Color.FromArgb("#FFD700");
@@ -350,6 +384,9 @@ public partial class CreateTeamPage : ContentPage
 
     void OnEmblemSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
+        if (_suppressSelectionHandlers)
+            return;
+
         if (e.CurrentSelection.FirstOrDefault() is EmblemCarouselItem selected)
             SelectEmblemByAssetId(selected.AssetId, animate: true);
     }
@@ -394,12 +431,16 @@ public partial class CreateTeamPage : ContentPage
         if (!ReferenceEquals(EmblemCarousel.SelectedItem, selected))
             EmblemCarousel.SelectedItem = selected;
 
-        Dispatcher.Dispatch(() =>
-            EmblemCarousel.ScrollTo(selected, position: ScrollToPosition.Center, animate: animate));
+        if (!_isReloadingOwnedAssets)
+            Dispatcher.Dispatch(() =>
+                EmblemCarousel.ScrollTo(selected, position: ScrollToPosition.Center, animate: animate));
     }
 
     void OnColorSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
+        if (_suppressSelectionHandlers)
+            return;
+
         if (e.CurrentSelection.FirstOrDefault() is TeamColorCarouselItem selected)
             SelectColorByAssetId(selected.AssetId, animate: true);
     }
@@ -441,12 +482,16 @@ public partial class CreateTeamPage : ContentPage
         if (!ReferenceEquals(ColorCarousel.SelectedItem, selected))
             ColorCarousel.SelectedItem = selected;
 
-        Dispatcher.Dispatch(() =>
-            ColorCarousel.ScrollTo(selected, position: ScrollToPosition.Center, animate: animate));
+        if (!_isReloadingOwnedAssets)
+            Dispatcher.Dispatch(() =>
+                ColorCarousel.ScrollTo(selected, position: ScrollToPosition.Center, animate: animate));
     }
 
     void OnEmblemBackgroundSelectionChanged(object? sender, EventArgs e)
     {
+        if (_suppressSelectionHandlers)
+            return;
+
         if (EmblemBackgroundPicker.SelectedItem is EmblemBackgroundPickerItem selected)
             SelectEmblemBackground(selected.AssetId);
     }
@@ -689,6 +734,9 @@ public partial class CreateTeamPage : ContentPage
 
     void TeamPlayersChanged(object sender, TextChangedEventArgs? e)
     {
+        if (_suppressTeamPlayersChanged)
+            return;
+
         string player1 =
             string.IsNullOrWhiteSpace(Player1Entry.Text)
                 ? "اللاعب الأول"
@@ -843,14 +891,23 @@ public partial class CreateTeamPage : ContentPage
         CurrentTeam = team;
         IsEditMode = true;
 
-        if (team.IsSinglePlayer)
-            OnSingleClicked(this, EventArgs.Empty);
-        else
-            OnTeamClicked(this, EventArgs.Empty);
+        bool previousSuppressTeamPlayersChanged = _suppressTeamPlayersChanged;
+        _suppressTeamPlayersChanged = true;
+        try
+        {
+            if (team.IsSinglePlayer)
+                OnSingleClicked(this, EventArgs.Empty);
+            else
+                OnTeamClicked(this, EventArgs.Empty);
 
-        TeamNameEntry.Text = team.TeamName;
-        Player1Entry.Text = team.Player1;
-        Player2Entry.Text = team.Player2;
+            TeamNameEntry.Text = team.TeamName;
+            Player1Entry.Text = team.Player1;
+            Player2Entry.Text = team.Player2;
+        }
+        finally
+        {
+            _suppressTeamPlayersChanged = previousSuppressTeamPlayersChanged;
+        }
 
         selectedEmblem = string.IsNullOrWhiteSpace(team.Emblem)
             ? "shield_3d.png"
