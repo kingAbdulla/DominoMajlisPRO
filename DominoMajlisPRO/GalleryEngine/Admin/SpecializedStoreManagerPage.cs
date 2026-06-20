@@ -262,37 +262,47 @@ public class SpecializedStoreManagerPage : ContentPage
 
     private async Task SelectRecordAsync(bool published)
     {
-        var records = published ? await NewArrivalsAdminService.LoadManagedAsync() : await NewArrivalsAdminService.LoadAllDraftsAsync();
-        var scoped = records.Where(record => _definition.AllowedTypes.Any(type => string.Equals(record.StoreTypeId, type.ToString(), StringComparison.Ordinal))).ToList();
-        if (scoped.Count == 0) { await DisplayAlertAsync(_definition.Title, "لا توجد عناصر", "حسناً"); return; }
-        var labels = scoped.Select(record => $"{record.Title} • {record.AssetId} • {record.Status}").ToArray();
+        var records = published
+            ? await NewArrivalsAdminService.LoadManagedAsync()
+            : await NewArrivalsAdminService.LoadAllDraftsAsync();
+
+        var scoped = records
+            .Where(record => _definition.AllowedTypes.Any(type =>
+                string.Equals(record.StoreTypeId, type.ToString(), StringComparison.Ordinal)))
+            .ToList();
+
+        if (scoped.Count == 0)
+        {
+            await DisplayAlertAsync(_definition.Title, "لا توجد عناصر", "حسناً");
+            return;
+        }
+
+        var labels = scoped
+            .Select(record => $"{record.Title} • {record.AssetId} • {record.Status}")
+            .ToArray();
+
         var selected = await DisplayActionSheetAsync(_definition.Title, "إلغاء", null, labels);
         var index = Array.IndexOf(labels, selected);
         if (index < 0)
             return;
 
         var record = scoped[index];
-        if (!published)
-        {
-            var draftAction = await DisplayActionSheetAsync(record.Title, "إلغاء", null, "استئناف التحرير", "حذف المسودة");
-            if (draftAction == "استئناف التحرير")
-                await PopulateAsync(record, false);
-            else if (draftAction == "حذف المسودة")
-                await NewArrivalsAdminService.DeleteDraftAsync(record.AssetId);
-            return;
-        }
+        var action =
+            await DominoMajlisPRO.GalleryEngine.Admin.Components.AdminAssetDetailsSheet.ShowAsync(
+                this,
+                record,
+                published,
+                _definition.Title);
 
-        var actions = record.Status == NewArrivalStatus.Hidden
-            ? new[] { "استعادة النشر", "حذف نهائي" }
-            : new[] { "تعديل", "أرشفة", "حذف نهائي" };
-        var action = await DisplayActionSheetAsync(record.Title, "إلغاء", null, actions);
-        if (action == "تعديل")
-            await PopulateAsync(record, true);
-        else if (action == "أرشفة")
+        if (action == DominoMajlisPRO.GalleryEngine.Admin.Components.AdminAssetDetailsAction.Edit)
+            await PopulateAsync(record, published);
+        else if (action == DominoMajlisPRO.GalleryEngine.Admin.Components.AdminAssetDetailsAction.Hide)
             await NewArrivalsAdminService.HidePublishedAsync(record.AssetId);
-        else if (action == "استعادة النشر")
+        else if (action == DominoMajlisPRO.GalleryEngine.Admin.Components.AdminAssetDetailsAction.Restore)
             await NewArrivalsAdminService.RestorePublishedAsync(record.AssetId);
-        else if (action == "حذف نهائي")
+        else if (action == DominoMajlisPRO.GalleryEngine.Admin.Components.AdminAssetDetailsAction.DeleteDraft)
+            await NewArrivalsAdminService.DeleteDraftAsync(record.AssetId);
+        else if (action == DominoMajlisPRO.GalleryEngine.Admin.Components.AdminAssetDetailsAction.DeletePublished)
             await NewArrivalsAdminService.DeletePublishedAsync(record.AssetId);
     }
 
