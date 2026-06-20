@@ -116,7 +116,7 @@ public class SpecializedStoreManagerPage : ContentPage
         pickImage.Clicked += OnPickImageClicked;
         imageRow.Add(pickImage, 1);
 
-        var form = new VerticalStackLayout { Spacing = 10, Children = { _titleEntry, _descriptionEditor, imageRow, _previewImage, _assetIdPicker, _assetTypePicker, _categoryPicker } };
+        var form = new VerticalStackLayout { Spacing = 10, Children = { _titleEntry, _descriptionEditor, imageRow, _previewImage, _assetTypePicker, _categoryPicker } };
         if (_definition.IsEffect)
         {
             form.Children.Add(_effectTypePicker);
@@ -252,9 +252,9 @@ public class SpecializedStoreManagerPage : ContentPage
         if (_definition.IsBundle && bundleAssets.Any(item => !ValidBundleComponent(item))) { ShowError("صيغة مكونات الحزمة يجب أن تكون AssetType:AssetId"); return false; }
         if (validateForPublish && string.IsNullOrWhiteSpace(_titleEntry.Text)) { ShowError("العنوان مطلوب"); return false; }
         var productId = _currentRecord?.ProductId ?? Guid.NewGuid().ToString();
-        var assetId = SelectedAssetId();
+        var assetId = _currentRecord?.AssetId;
         if (string.IsNullOrWhiteSpace(assetId))
-            assetId = _currentRecord?.AssetId ?? GenerateAssetId(assetType, _titleEntry.Text);
+            assetId = GenerateAssetId(assetType, _titleEntry.Text);
         record = new NewArrivalRecord { Id = productId, ProductId = productId, AssetId = assetId, StoreTypeId = assetType.ToString(), OwnerScope = StoreProductAssetTypeCatalog.GetOwnerScope(assetType).ToString(), Title = _titleEntry.Text?.Trim() ?? string.Empty, Description = _descriptionEditor.Text?.Trim() ?? string.Empty, ButtonText = "عرض", ImagePath = _imageEntry.Text?.Trim() ?? string.Empty, ColorHex = _definition.IsTeamColor ? _colorHexEntry.Text?.Trim() ?? string.Empty : string.Empty, Category = _categoryPicker.SelectedCanonicalId(), Price = currency == NewArrivalCurrencyType.Free ? 0 : price, CurrencyType = currency, IsFree = currency == NewArrivalCurrencyType.Free || price == 0, EffectType = _effectTypePicker.SelectedCanonicalId(), AnimationType = _animationTypePicker.SelectedCanonicalId(), DurationMilliseconds = duration, EquipTarget = _equipTargetPicker.SelectedCanonicalId(), BundleAssetIds = bundleAssets, DiscountPercent = Math.Clamp(discount, 0, 100), Status = _editingPublished ? NewArrivalStatus.Published : NewArrivalStatus.Draft, CreatedAt = _currentRecord?.CreatedAt ?? DateTime.UtcNow, PublishedAt = _currentRecord?.PublishedAt };
         _validationLabel.IsVisible = false;
         return true;
