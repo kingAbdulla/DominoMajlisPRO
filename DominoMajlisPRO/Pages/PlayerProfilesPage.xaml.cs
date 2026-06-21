@@ -1,4 +1,4 @@
-using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
+﻿using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -132,15 +132,15 @@ public partial class PlayerProfilesPage : ContentPage
         string role = GetRoleDisplayName(currentUser.Role);
         string sessionState =
             currentUser.Role == ApplicationUserRole.Ghost
-                ? "ضيف"
-                : "متصل";
+                ? "ط¶ظٹظپ"
+                : "ظ…طھطµظ„";
 
         AccountDisplayNameLabel.Text =
             string.IsNullOrWhiteSpace(currentUser.DisplayName)
                 ? role
                 : currentUser.DisplayName;
         AccountRoleSessionLabel.Text =
-            $"{role} • {sessionState}";
+            $"{role} â€¢ {sessionState}";
         IdentityUserIdLabel.Text =
             ShortId(currentUser.ApplicationUserId);
         IdentityPlayerIdLabel.Text =
@@ -183,10 +183,9 @@ public partial class PlayerProfilesPage : ContentPage
             ToOptionalImageSource(identity.Frame?.PreviewImage);
         AccountAvatarFrameOverlay.Source = frameSource;
         AccountAvatarFrameOverlay.IsVisible = frameSource != null;
-        var effectSource =
-            ToOptionalImageSource(identity.Effect?.PreviewImage);
-        AccountAvatarEffectOverlay.Source = effectSource;
-        AccountAvatarEffectOverlay.IsVisible = effectSource != null;
+        ApplyPlayerEffectOverlay(
+            AccountAvatarEffectOverlay,
+            identity.Effect);
         AccountAvatarFrame.Stroke = identity.Frame == null
             ? Color.FromArgb("#D4AF37")
             : Colors.Transparent;
@@ -199,7 +198,7 @@ public partial class PlayerProfilesPage : ContentPage
         if (identity.Title != null)
         {
             AccountRoleSessionLabel.Text =
-                $"{AccountRoleSessionLabel.Text} • {identity.Title.DisplayName}";
+                $"{AccountRoleSessionLabel.Text} â€¢ {identity.Title.DisplayName}";
         }
 
         if (string.IsNullOrWhiteSpace(avatarPath))
@@ -228,6 +227,52 @@ public partial class PlayerProfilesPage : ContentPage
                 fallbackAvatar);
     }
 
+    void ApplyPlayerEffectOverlay(
+        Image effectOverlay,
+        DominoMajlisPRO.GalleryEngine.Models.CatalogAssetDisplay? effect)
+    {
+        if (effect == null)
+        {
+            effectOverlay.Source = null;
+            effectOverlay.IsVisible = false;
+            return;
+        }
+
+        var imageSource = ToOptionalImageSource(effect.PreviewImage);
+        if (imageSource != null)
+        {
+            effectOverlay.Source = imageSource;
+            effectOverlay.Opacity = 1;
+            effectOverlay.Scale = 1;
+            effectOverlay.IsVisible = true;
+            return;
+        }
+
+        var key =
+            $"{effect.AssetId} {effect.DisplayName} {effect.ArabicDisplayName}"
+                .ToLowerInvariant();
+
+        if (key.Contains("fire") || key.Contains("flame") || key.Contains("نار") || key.Contains("لهب"))
+        {
+            effectOverlay.Source = "effect_fire.png";
+            effectOverlay.Opacity = 0.92;
+            effectOverlay.Scale = 1.18;
+            effectOverlay.IsVisible = true;
+            return;
+        }
+
+        if (key.Contains("glow") || key.Contains("light") || key.Contains("ضوء") || key.Contains("توهج"))
+        {
+            effectOverlay.Source = "effect_glow.png";
+            effectOverlay.Opacity = 0.85;
+            effectOverlay.Scale = 1.12;
+            effectOverlay.IsVisible = true;
+            return;
+        }
+
+        effectOverlay.Source = null;
+        effectOverlay.IsVisible = false;
+    }
     async Task RefreshCollectionProgressAsync()
     {
         try
@@ -261,7 +306,7 @@ public partial class PlayerProfilesPage : ContentPage
 
             CollectionTotalLabel.Text = $"{owned} / {total}";
             CollectionPercentLabel.Text = $"{progress * 100:0}%";
-            CollectionRemainingLabel.Text = $"المتبقي: {remaining}";
+            CollectionRemainingLabel.Text = $"ط§ظ„ظ…طھط¨ظ‚ظٹ: {remaining}";
             CollectionProgressBar.Progress = progress;
 
             SetBreakdown(
@@ -326,7 +371,7 @@ public partial class PlayerProfilesPage : ContentPage
     {
         CollectionTotalLabel.Text = "0 / 0";
         CollectionPercentLabel.Text = "0%";
-        CollectionRemainingLabel.Text = "المتبقي: 0";
+        CollectionRemainingLabel.Text = "ط§ظ„ظ…طھط¨ظ‚ظٹ: 0";
         CollectionProgressBar.Progress = 0;
         AvatarsProgressLabel.Text = "Avatars 0/0";
         BackgroundsProgressLabel.Text = "Profile Backgrounds 0/0";
@@ -341,14 +386,14 @@ public partial class PlayerProfilesPage : ContentPage
     {
         accountHubExpanded = !accountHubExpanded;
         AccountHubContent.IsVisible = accountHubExpanded;
-        AccountHubArrowLabel.Text = accountHubExpanded ? "⌃" : "⌄";
+        AccountHubArrowLabel.Text = accountHubExpanded ? "âŒƒ" : "âŒ„";
     }
 
     void OnCollectionHeaderTapped(object? sender, TappedEventArgs e)
     {
         collectionExpanded = !collectionExpanded;
         CollectionContent.IsVisible = collectionExpanded;
-        CollectionArrowLabel.Text = collectionExpanded ? "⌃" : "⌄";
+        CollectionArrowLabel.Text = collectionExpanded ? "âŒƒ" : "âŒ„";
     }
 
     async void OnCreateIdentityClicked(object? sender, EventArgs e)
@@ -374,19 +419,19 @@ public partial class PlayerProfilesPage : ContentPage
             catch (Exception ex)
             {
                 await DisplayAlertAsync(
-                    "تعذر ربط الملف",
+                    "طھط¹ط°ط± ط±ط¨ط· ط§ظ„ظ…ظ„ظپ",
                     ex.Message,
-                    "حسناً");
+                    "ط­ط³ظ†ط§ظ‹");
             }
 
             return;
         }
 
         string? playerName = await DisplayPromptAsync(
-            "إنشاء هوية لاعب",
-            "أدخل اسم اللاعب:",
-            "إنشاء",
-            "إلغاء",
+            "ط¥ظ†ط´ط§ط، ظ‡ظˆظٹط© ظ„ط§ط¹ط¨",
+            "ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ظ„ط§ط¹ط¨:",
+            "ط¥ظ†ط´ط§ط،",
+            "ط¥ظ„ط؛ط§ط،",
             maxLength: 40);
 
         if (string.IsNullOrWhiteSpace(playerName))
@@ -405,9 +450,9 @@ public partial class PlayerProfilesPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlertAsync(
-                "تعذر إنشاء الهوية",
+                "طھط¹ط°ط± ط¥ظ†ط´ط§ط، ط§ظ„ظ‡ظˆظٹط©",
                 ex.Message,
-                "حسناً");
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
 
@@ -440,22 +485,22 @@ public partial class PlayerProfilesPage : ContentPage
             {
                 User = user,
                 Label =
-                    $"{user.DisplayName} • {GetRoleDisplayName(user.Role)} • {ShortId(user.ApplicationUserId)}"
+                    $"{user.DisplayName} â€¢ {GetRoleDisplayName(user.Role)} â€¢ {ShortId(user.ApplicationUserId)}"
             })
             .ToList();
 
         if (choices.Count == 0)
         {
             await DisplayAlertAsync(
-                "تسجيل الدخول",
-                "لا توجد حسابات محفوظة على هذا الجهاز.",
-                "حسناً");
+                "طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„",
+                "ظ„ط§ طھظˆط¬ط¯ ط­ط³ط§ط¨ط§طھ ظ…ط­ظپظˆط¸ط© ط¹ظ„ظ‰ ظ‡ط°ط§ ط§ظ„ط¬ظ‡ط§ط².",
+                "ط­ط³ظ†ط§ظ‹");
             return;
         }
 
         string? selected = await DisplayActionSheetAsync(
-            "اختر حساباً محفوظاً",
-            "إلغاء",
+            "ط§ط®طھط± ط­ط³ط§ط¨ط§ظ‹ ظ…ط­ظپظˆط¸ط§ظ‹",
+            "ط¥ظ„ط؛ط§ط،",
             null,
             choices.Select(item => item.Label).ToArray());
 
@@ -472,10 +517,10 @@ public partial class PlayerProfilesPage : ContentPage
     async void OnLogoutIdentityClicked(object? sender, EventArgs e)
     {
         bool confirm = await DisplayAlertAsync(
-            "تسجيل الخروج",
-            "سيتم إنهاء الجلسة فقط، ولن تُحذف الهوية أو بيانات اللاعب.",
-            "تسجيل الخروج",
-            "إلغاء");
+            "طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬",
+            "ط³ظٹطھظ… ط¥ظ†ظ‡ط§ط، ط§ظ„ط¬ظ„ط³ط© ظپظ‚ط·طŒ ظˆظ„ظ† طھظڈط­ط°ظپ ط§ظ„ظ‡ظˆظٹط© ط£ظˆ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ„ط§ط¹ط¨.",
+            "طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬",
+            "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -503,7 +548,7 @@ public partial class PlayerProfilesPage : ContentPage
         {
             AccountHubContent.IsVisible = true;
             accountHubExpanded = true;
-            AccountHubArrowLabel.Text = "⌃";
+            AccountHubArrowLabel.Text = "âŒƒ";
             return;
         }
 
@@ -530,9 +575,9 @@ public partial class PlayerProfilesPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlertAsync(
-                "تعذر فتح الملف الشخصي",
+                "طھط¹ط°ط± ظپطھط­ ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ",
                 ex.Message,
-                "حسناً");
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
 
@@ -557,9 +602,9 @@ public partial class PlayerProfilesPage : ContentPage
             string.IsNullOrWhiteSpace(currentUser.PlayerId))
         {
             InventoryOwnerLabel.Text =
-                "سجّل الدخول إلى حساب لاعب لعرض المقتنيات.";
+                "ط³ط¬ظ‘ظ„ ط§ظ„ط¯ط®ظˆظ„ ط¥ظ„ظ‰ ط­ط³ط§ط¨ ظ„ط§ط¹ط¨ ظ„ط¹ط±ط¶ ط§ظ„ظ…ظ‚طھظ†ظٹط§طھ.";
             InventoryItemsContainer.Children.Add(
-                CreateInventoryEmptyLabel("لا توجد مقتنيات مرتبطة بالضيف."));
+                CreateInventoryEmptyLabel("ظ„ط§ طھظˆط¬ط¯ ظ…ظ‚طھظ†ظٹط§طھ ظ…ط±طھط¨ط·ط© ط¨ط§ظ„ط¶ظٹظپ."));
             return;
         }
 
@@ -598,7 +643,7 @@ public partial class PlayerProfilesPage : ContentPage
         if (matching.Count == 0)
         {
             InventoryItemsContainer.Children.Add(
-                CreateInventoryEmptyLabel("لا توجد عناصر مملوكة."));
+                CreateInventoryEmptyLabel("ظ„ط§ طھظˆط¬ط¯ ط¹ظ†ط§طµط± ظ…ظ…ظ„ظˆظƒط©."));
             return;
         }
 
@@ -640,7 +685,7 @@ public partial class PlayerProfilesPage : ContentPage
         if (matching.Count == 0)
         {
             InventoryItemsContainer.Children.Add(
-                CreateInventoryEmptyLabel("لا توجد عناصر مملوكة."));
+                CreateInventoryEmptyLabel("ظ„ط§ طھظˆط¬ط¯ ط¹ظ†ط§طµط± ظ…ظ…ظ„ظˆظƒط©."));
             return;
         }
 
@@ -739,7 +784,7 @@ public partial class PlayerProfilesPage : ContentPage
         visual.Content = string.IsNullOrWhiteSpace(payload.ImagePath)
             ? new Label
             {
-                Text = "◆",
+                Text = "â—†",
                 TextColor = Color.FromArgb("#D4AF37"),
                 FontSize = 22,
                 HorizontalTextAlignment = TextAlignment.Center,
@@ -767,7 +812,7 @@ public partial class PlayerProfilesPage : ContentPage
                 },
                 new Label
                 {
-                    Text = $"{payload.AssetType} • {(isEquipped ? "Equipped" : "Owned")}",
+                    Text = $"{payload.AssetType} â€¢ {(isEquipped ? "Equipped" : "Owned")}",
                     TextColor = Color.FromArgb("#999999"),
                     FontSize = 10
                 }
@@ -776,7 +821,7 @@ public partial class PlayerProfilesPage : ContentPage
 
         var action = new Button
         {
-            Text = isEquipped ? "مجهز" : "تجهيز",
+            Text = isEquipped ? "ظ…ط¬ظ‡ط²" : "طھط¬ظ‡ظٹط²",
             IsEnabled = !isEquipped,
             BackgroundColor = isEquipped
                 ? Color.FromArgb("#3B321D")
@@ -907,13 +952,13 @@ public partial class PlayerProfilesPage : ContentPage
 
     static string ShortId(string value) =>
         string.IsNullOrWhiteSpace(value)
-            ? "—"
+            ? "â€”"
             : value.Length <= 12
                 ? value
                 : value[..12];
 
     static string DisplayId(string value) =>
-        string.IsNullOrWhiteSpace(value) ? "—" : value;
+        string.IsNullOrWhiteSpace(value) ? "â€”" : value;
 
     static bool SameId(string? left, string? right) =>
         !string.IsNullOrWhiteSpace(left) &&
@@ -960,7 +1005,7 @@ public partial class PlayerProfilesPage : ContentPage
             PlayersContainer.Children.Add(
                 new Label
                 {
-                    Text = "لا يوجد لاعبون بعد",
+                    Text = "ظ„ط§ ظٹظˆط¬ط¯ ظ„ط§ط¹ط¨ظˆظ† ط¨ط¹ط¯",
                     TextColor = Colors.White,
                     FontSize = 18,
                     HorizontalTextAlignment = TextAlignment.Center
@@ -1007,7 +1052,7 @@ public partial class PlayerProfilesPage : ContentPage
         layout.Children.Add(
             new Label
             {
-                Text = "أدوات إدارة اللاعبين",
+                Text = "ط£ط¯ظˆط§طھ ط¥ط¯ط§ط±ط© ط§ظ„ظ„ط§ط¹ط¨ظٹظ†",
                 TextColor = Color.FromArgb("#D4AF37"),
                 FontSize = 17,
                 FontAttributes = FontAttributes.Bold,
@@ -1017,7 +1062,7 @@ public partial class PlayerProfilesPage : ContentPage
         Button deleteAllButton =
             new()
             {
-                Text = "حذف جميع اللاعبين",
+                Text = "ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظ„ط§ط¹ط¨ظٹظ†",
                 BackgroundColor = Color.FromArgb("#C62828"),
                 TextColor = Colors.White,
                 FontAttributes = FontAttributes.Bold,
@@ -1203,8 +1248,8 @@ public partial class PlayerProfilesPage : ContentPage
         return new Label
         {
             Text = identity?.Title == null
-                ? $"{statusText}  •  {rankResult.DisplayName}"
-                : $"{statusText}  •  {rankResult.DisplayName}  •  {identity.Title.DisplayName}",
+                ? $"{statusText}  â€¢  {rankResult.DisplayName}"
+                : $"{statusText}  â€¢  {rankResult.DisplayName}  â€¢  {identity.Title.DisplayName}",
             TextColor = Color.FromArgb(statusColor),
             FontSize = 13,
             FontAttributes = FontAttributes.Bold
@@ -1242,7 +1287,7 @@ public partial class PlayerProfilesPage : ContentPage
     {
         return new Label
         {
-            Text = $"المباريات: {player.TotalMatches}   |   الفوز: {player.Wins}   |   الخسارة: {player.Losses}",
+            Text = $"ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ: {player.TotalMatches}   |   ط§ظ„ظپظˆط²: {player.Wins}   |   ط§ظ„ط®ط³ط§ط±ط©: {player.Losses}",
             TextColor = Color.FromArgb("#CCCCCC"),
             FontSize = 12
         };
@@ -1254,7 +1299,7 @@ public partial class PlayerProfilesPage : ContentPage
     {
         return new Label
         {
-            Text = $"Win Rate: {player.WinRate:0.##}%   |   متبقي للترقية: {rankResult.RemainingXP} XP",
+            Text = $"Win Rate: {player.WinRate:0.##}%   |   ظ…طھط¨ظ‚ظٹ ظ„ظ„طھط±ظ‚ظٹط©: {rankResult.RemainingXP} XP",
             TextColor = Color.FromArgb("#C8B58A"),
             FontSize = 12
         };
@@ -1272,7 +1317,7 @@ public partial class PlayerProfilesPage : ContentPage
         Button detailsButton =
             new()
             {
-                Text = "التفاصيل",
+                Text = "ط§ظ„طھظپط§طµظٹظ„",
                 BackgroundColor = Color.FromArgb("#D4AF37"),
                 TextColor = Colors.Black,
                 FontAttributes = FontAttributes.Bold,
@@ -1293,7 +1338,7 @@ public partial class PlayerProfilesPage : ContentPage
             Button deleteButton =
                 new()
                 {
-                    Text = "حذف",
+                    Text = "ط­ط°ظپ",
                     BackgroundColor = Color.FromArgb("#C62828"),
                     TextColor = Colors.White,
                     FontAttributes = FontAttributes.Bold,
@@ -1316,10 +1361,10 @@ public partial class PlayerProfilesPage : ContentPage
     {
         bool confirm =
             await DisplayAlert(
-                "حذف اللاعب",
-                $"هل تريد حذف اللاعب ({player.PlayerName}) نهائياً؟\n\nسيتم حذف ملف اللاعب وإزالة PlayerId من الفرق الحالية.\n\nسجل المباريات التاريخي لن يتم حذفه.",
-                "حذف",
-                "إلغاء");
+                "ط­ط°ظپ ط§ظ„ظ„ط§ط¹ط¨",
+                $"ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ط§ظ„ظ„ط§ط¹ط¨ ({player.PlayerName}) ظ†ظ‡ط§ط¦ظٹط§ظ‹طں\n\nط³ظٹطھظ… ط­ط°ظپ ظ…ظ„ظپ ط§ظ„ظ„ط§ط¹ط¨ ظˆط¥ط²ط§ظ„ط© PlayerId ظ…ظ† ط§ظ„ظپط±ظ‚ ط§ظ„ط­ط§ظ„ظٹط©.\n\nط³ط¬ظ„ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ ط§ظ„طھط§ط±ظٹط®ظٹ ظ„ظ† ظٹطھظ… ط­ط°ظپظ‡.",
+                "ط­ط°ظپ",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -1329,36 +1374,36 @@ public partial class PlayerProfilesPage : ContentPage
         await LoadPlayersAsync();
 
         await DisplayAlert(
-            "تم",
-            "تم حذف اللاعب بنجاح",
-            "حسناً");
+            "طھظ…",
+            "طھظ… ط­ط°ظپ ط§ظ„ظ„ط§ط¹ط¨ ط¨ظ†ط¬ط§ط­",
+            "ط­ط³ظ†ط§ظ‹");
     }
 
     async void OnDeleteAllPlayersClicked(object? sender, EventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "حذف جميع اللاعبين",
-                "سيتم حذف جميع ملفات اللاعبين وإزالة PlayerId من الفرق الحالية.\n\nسجل المباريات التاريخي لن يتم حذفه.\n\nهل تريد المتابعة؟",
-                "متابعة",
-                "إلغاء");
+                "ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظ„ط§ط¹ط¨ظٹظ†",
+                "ط³ظٹطھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ظ…ظ„ظپط§طھ ط§ظ„ظ„ط§ط¹ط¨ظٹظ† ظˆط¥ط²ط§ظ„ط© PlayerId ظ…ظ† ط§ظ„ظپط±ظ‚ ط§ظ„ط­ط§ظ„ظٹط©.\n\nط³ط¬ظ„ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ ط§ظ„طھط§ط±ظٹط®ظٹ ظ„ظ† ظٹطھظ… ط­ط°ظپظ‡.\n\nظ‡ظ„ طھط±ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط©طں",
+                "ظ…طھط§ط¨ط¹ط©",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
 
         string typed =
             await DisplayPromptAsync(
-                "تأكيد نهائي",
-                "اكتب DELETE PLAYERS لتأكيد الحذف:",
-                "حذف",
-                "إلغاء");
+                "طھط£ظƒظٹط¯ ظ†ظ‡ط§ط¦ظٹ",
+                "ط§ظƒطھط¨ DELETE PLAYERS ظ„طھط£ظƒظٹط¯ ط§ظ„ط­ط°ظپ:",
+                "ط­ط°ظپ",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (typed != "DELETE PLAYERS")
         {
             await DisplayAlert(
-                "تم الإلغاء",
-                "لم يتم حذف اللاعبين.",
-                "حسناً");
+                "طھظ… ط§ظ„ط¥ظ„ط؛ط§ط،",
+                "ظ„ظ… ظٹطھظ… ط­ط°ظپ ط§ظ„ظ„ط§ط¹ط¨ظٹظ†.",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -1368,9 +1413,9 @@ public partial class PlayerProfilesPage : ContentPage
         await LoadPlayersAsync();
 
         await DisplayAlert(
-            "تم",
-            "تم حذف جميع اللاعبين بنجاح",
-            "حسناً");
+            "طھظ…",
+            "طھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظ„ط§ط¹ط¨ظٹظ† ط¨ظ†ط¬ط§ط­",
+            "ط­ط³ظ†ط§ظ‹");
     }
 
     async void OnSearchChanged(object sender, TextChangedEventArgs e)
@@ -1398,6 +1443,7 @@ public partial class PlayerProfilesPage : ContentPage
         await Navigation.PopAsync();
     }
 }
+
 
 
 
