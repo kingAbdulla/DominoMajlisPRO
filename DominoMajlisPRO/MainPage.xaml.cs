@@ -1120,48 +1120,51 @@ TextChangedEventArgs e)
                 HeaderAvatarFrameOverlay.IsVisible = false;
                 HeaderAvatarEffectOverlay.IsVisible = false;
                 HeaderProfileBackgroundImage.IsVisible = false;
+
                 HeaderPlayerNameLabel.Text =
                     string.IsNullOrWhiteSpace(currentUser.DisplayName)
                         ? "اللاعب"
                         : currentUser.DisplayName;
+
                 MemberLevelLabel.Text =
                     ResolveHeaderRoleLabel(currentUser.Role);
+
                 return;
             }
 
             var profile =
                 await PlayerProfileService.GetPlayerByIdAsync(playerId);
+
             var visualIdentity =
                 await PlayerVisualIdentityResolver.ResolveAsync(playerId);
 
             if (refreshVersion != headerRefreshVersion)
                 return;
-            string avatarPath =
-                visualIdentity.Avatar?.PreviewImage ?? string.Empty;
+
             HeaderProfileBackgroundImage.Source = null;
             HeaderProfileBackgroundImage.IsVisible = false;
+
             ApplyHeaderOverlay(
                 HeaderAvatarFrameOverlay,
                 visualIdentity.Frame?.PreviewImage);
+
             PlayerEffectEngine.Apply(
                 HeaderAvatarEffectOverlay,
                 visualIdentity.Effect,
                 1.08);
 
-            if (string.IsNullOrWhiteSpace(avatarPath))
-                avatarPath = ResolveHeaderAvatarFallback(profile);
-
             HeaderPlayerAvatar.Source =
-                InventoryDisplayResolver.ResolveImageSource(
-                    avatarPath,
-                    DefaultHeaderAvatar);
+                profile == null
+                    ? DefaultHeaderAvatar
+                    : PlayerProfileService.GetPlayerImageSource(profile);
 
             HeaderPlayerNameLabel.Text =
                 string.IsNullOrWhiteSpace(profile?.PlayerName)
-                ? string.IsNullOrWhiteSpace(currentUser.DisplayName)
-                    ? "اللاعب"
-                    : currentUser.DisplayName
-                : profile.PlayerName;
+                    ? string.IsNullOrWhiteSpace(currentUser.DisplayName)
+                        ? "اللاعب"
+                        : currentUser.DisplayName
+                    : profile.PlayerName;
+
             MemberLevelLabel.Text =
                 visualIdentity.Title != null
                     ? $"{ResolveHeaderRoleLabel(currentUser.Role)} • {visualIdentity.Title.DisplayName}"
@@ -1185,41 +1188,7 @@ TextChangedEventArgs e)
     }
 
     static ImageSource? ToHeaderImageSource(string? imagePath) =>
-        InventoryDisplayResolver.ResolveOptionalImageSource(
-            imagePath);
-
-    static string ResolveHeaderAvatarFallback(
-        PlayerProfileModel? profile)
-    {
-        if (profile == null)
-            return DefaultHeaderAvatar;
-
-        if (profile.UseCustomAvatar &&
-            !string.IsNullOrWhiteSpace(profile.AvatarPath))
-        {
-            return profile.AvatarPath;
-        }
-
-        if (!string.IsNullOrWhiteSpace(profile.ProfileImagePath))
-            return profile.ProfileImagePath;
-
-        if (!string.IsNullOrWhiteSpace(profile.AvatarImage) &&
-            !string.Equals(
-                profile.AvatarImage,
-                "player_card.png",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return profile.AvatarImage;
-        }
-
-        return string.IsNullOrWhiteSpace(profile.BuiltInAvatar) ||
-               string.Equals(
-                   profile.BuiltInAvatar,
-                   "player_card.png",
-                   StringComparison.OrdinalIgnoreCase)
-            ? DefaultHeaderAvatar
-            : profile.BuiltInAvatar;
-    }
+        InventoryDisplayResolver.ResolveOptionalImageSource(imagePath);
 
     static string ResolveHeaderRoleLabel(ApplicationUserRole role) =>
         role switch
@@ -1240,6 +1209,7 @@ TextChangedEventArgs e)
             PlayerProfileStatus.Normal => "Member",
             _ => "Guest"
         };
+
 
     // =========================
     // SETTINGS SHEET

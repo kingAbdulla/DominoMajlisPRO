@@ -512,10 +512,10 @@ public class PremiumStoreHeaderView : ContentView
         {
             _playerNameLabel.Text = string.IsNullOrWhiteSpace(profile?.PlayerName) ? "اختر لاعباً" : profile.PlayerName;
             _memberLabel.Text = ResolveRoleLabel(identity.Role, profile);
-            var avatarPath = ResolveAvatarPath(profile);
             _avatarImage.Source =
-                InventoryDisplayResolver.ResolveOptionalImageSource(
-                    avatarPath);
+                profile == null
+                    ? null
+                    : PlayerProfileService.GetPlayerImageSource(profile);
             _avatarImage.IsVisible = _avatarImage.Source != null;
             _avatarLabel.IsVisible = !_avatarImage.IsVisible;
             _coinsLabel.Text = wallet.Coins.ToString("N0");

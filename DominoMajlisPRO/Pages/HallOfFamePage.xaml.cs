@@ -558,9 +558,7 @@ public partial class HallOfFamePage : ContentPage
             CreatePlayerCardLayout(
                 rank,
                 borderColor,
-                ToOptionalImageSource(
-                    identity?.Avatar?.PreviewImage) ??
-                PlayerProfileService.GetPlayerImageSource(player),
+              PlayerProfileService.GetPlayerImageSource(player),
                 player.PlayerName,
                 identity?.Title == null
                     ? rankResult.DisplayName
