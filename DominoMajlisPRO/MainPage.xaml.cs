@@ -33,8 +33,6 @@ public partial class MainPage : ContentPage
         public string Player2 => Team.Player2;
     }
 
-    bool isSelectingTeam1 = true;
-
     bool isPickingTeam1 = true;
     bool isDataExpanded = false;
     bool isSystemExpanded = false;
@@ -1251,7 +1249,7 @@ TextChangedEventArgs e)
     {
         SettingsOverlay.IsVisible = true;
 
-        await SettingsSheet.TranslateTo(
+        await SettingsSheet.TranslateToAsync(
             0,
             0,
             250,
@@ -1262,7 +1260,7 @@ TextChangedEventArgs e)
         object sender,
         TappedEventArgs e)
     {
-        await SettingsSheet.TranslateTo(
+        await SettingsSheet.TranslateToAsync(
             0,
             700,
             200,
@@ -2977,3 +2975,4 @@ TextChangedEventArgs e)
             "حسناً");
     }
 }
+

@@ -479,7 +479,7 @@ public partial class GamePage : ContentPage
 
         var floatingTask =
             Task.WhenAll(
-                targetLabel.TranslateTo(
+                targetLabel.TranslateToAsync(
                     0,
                     -25,
                     900,
@@ -1641,7 +1641,7 @@ new SavedMatch
     {
         SideMenuOverlay.IsVisible = true;
 
-        await SideMenuPanel.TranslateTo(
+        await SideMenuPanel.TranslateToAsync(
             0,
             0,
             250,
@@ -1652,7 +1652,7 @@ new SavedMatch
       object sender,
       TappedEventArgs e)
     {
-        await SideMenuPanel.TranslateTo(
+        await SideMenuPanel.TranslateToAsync(
             -280,
             0,
             250,

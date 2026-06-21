@@ -1,4 +1,4 @@
-using DominoMajlisPRO.Models;
+﻿using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Services;
 using PdfSharpCore.Drawing;
@@ -9,7 +9,6 @@ namespace DominoMajlisPRO.Pages;
 public partial class CertificatePrintPage : ContentPage
 {
     SavedMatch match;
-    bool _pdfShared;
     bool _isExporting;
     public CertificatePrintPage(
         SavedMatch savedMatch)
@@ -225,8 +224,6 @@ public partial class CertificatePrintPage : ContentPage
                     Title = "Domino Majlis PRO Certificate",
                     File = new ShareFile(pdfPath)
                 });
-            _pdfShared = true;
-
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 await Navigation.PopAsync();
@@ -243,3 +240,6 @@ public partial class CertificatePrintPage : ContentPage
 
    
 }
+
+
+

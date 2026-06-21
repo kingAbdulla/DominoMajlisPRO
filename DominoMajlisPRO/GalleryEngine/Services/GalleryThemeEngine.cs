@@ -192,21 +192,23 @@ public static class GalleryThemeEngine
 
 public sealed class GalleryTheme
 {
-    public MauiColor Dominant { get; set; }
+    public MauiColor Dominant { get; set; } = MauiColor.FromArgb("#050505");
 
     public Brush Background { get; set; } = new SolidColorBrush(MauiColor.FromArgb("#030303"));
     public Brush HeroBackground { get; set; } = new SolidColorBrush(MauiColor.FromArgb("#050505"));
     public Brush CardBackground { get; set; } = new SolidColorBrush(MauiColor.FromArgb("#050505"));
     public Brush ActionBackground { get; set; } = new SolidColorBrush(MauiColor.FromArgb("#080808"));
 
-    public MauiColor Accent { get; set; }
-    public MauiColor AccentSoft { get; set; }
-    public MauiColor Stroke { get; set; }
-    public MauiColor Glow { get; set; }
+    public MauiColor Accent { get; set; } = MauiColor.FromArgb("#D4AF37");
+    public MauiColor AccentSoft { get; set; } = MauiColor.FromArgb("#332A0D");
+    public MauiColor Stroke { get; set; } = MauiColor.FromArgb("#2A2A2A");
+    public MauiColor Glow { get; set; } = MauiColor.FromArgb("#D4AF37");
 
-    public MauiColor Gold { get; set; }
-    public MauiColor TextPrimary { get; set; }
-    public MauiColor TextSecondary { get; set; }
-    public MauiColor TextMuted { get; set; }
+    public MauiColor Gold { get; set; } = MauiColor.FromArgb("#D4AF37");
+    public MauiColor TextPrimary { get; set; } = MauiColor.FromArgb("#FFFFFF");
+    public MauiColor TextSecondary { get; set; } = MauiColor.FromArgb("#CFCFCF");
+    public MauiColor TextMuted { get; set; } = MauiColor.FromArgb("#8A8A8A");
 }
+
+
 

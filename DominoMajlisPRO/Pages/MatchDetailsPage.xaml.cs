@@ -542,7 +542,7 @@ public partial class MatchDetailsPage : ContentPage
 
         BottomSheetRoot.IsVisible = true;
 
-        await BottomSheet.TranslateTo(
+        await BottomSheet.TranslateToAsync(
             0,
             0,
             250,
@@ -558,7 +558,7 @@ public partial class MatchDetailsPage : ContentPage
         if (!panelOpened)
             return;
 
-        await BottomSheet.TranslateTo(
+        await BottomSheet.TranslateToAsync(
             0,
             600,
             250,
@@ -737,7 +737,7 @@ public partial class MatchDetailsPage : ContentPage
 
         MomentumSheetRoot.IsVisible = true;
 
-        await MomentumSheet.TranslateTo(
+        await MomentumSheet.TranslateToAsync(
             0,
             0,
             250,
@@ -755,7 +755,7 @@ public partial class MatchDetailsPage : ContentPage
         if (!momentumOpened)
             return;
 
-        await MomentumSheet.TranslateTo(
+        await MomentumSheet.TranslateToAsync(
             0,
             700,
             250,

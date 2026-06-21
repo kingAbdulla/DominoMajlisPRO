@@ -1485,7 +1485,7 @@ public partial class HallOfFamePage : ContentPage
                 320,
                 Easing.CubicOut),
 
-            HallContainer.TranslateTo(
+            HallContainer.TranslateToAsync(
                 0,
                 0,
                 320,

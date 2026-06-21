@@ -4,12 +4,12 @@ namespace DominoMajlisPRO.Services;
 
 public class RankTheme
 {
-    public Color BackgroundColor { get; set; }
-    public Color BorderColor { get; set; }
-    public Color GlowColor { get; set; }
-    public Color ProgressColor { get; set; }
-    public Color TrustRingColor { get; set; }
-    public Color TextColor { get; set; }
+    public Color BackgroundColor { get; set; } = Colors.Transparent;
+    public Color BorderColor { get; set; } = Colors.Transparent;
+    public Color GlowColor { get; set; } = Colors.Transparent;
+    public Color ProgressColor { get; set; } = Colors.Transparent;
+    public Color TrustRingColor { get; set; } = Colors.Transparent;
+    public Color TextColor { get; set; } = Colors.White;
 }
 
 public static class RankThemeService
@@ -345,3 +345,5 @@ public static class RankThemeService
         return "";
     }
 }
+
+
