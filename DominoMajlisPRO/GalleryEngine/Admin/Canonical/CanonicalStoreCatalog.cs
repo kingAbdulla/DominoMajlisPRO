@@ -69,6 +69,8 @@ public static class CanonicalStoreCatalog
         new("PlayerBackground", "خلفية اللاعب"),
         new("PlayerFrame", "إطار اللاعب"),
         new("PlayerEffect", "مؤثر اللاعب"),
+        new("TeamEffect", "مؤثر الفريق"),
+        new("GlobalEffect", "مؤثر عام"),
         new("PlayerTitle", "لقب اللاعب"),
         new("TeamEmblem", "شعار الفريق"),
         new("TeamColor", "لون الفريق"),
@@ -77,25 +79,28 @@ public static class CanonicalStoreCatalog
 
     public static IReadOnlyList<CanonicalOption> EffectTypes() =>
     [
-        new("Glow", "توهج"),
-        new("Particles", "جسيمات"),
-        new("Trail", "أثر متحرك"),
-        new("Aura", "هالة"),
-        new("Fire", "نار"),
-        new("Ice", "جليد"),
-        new("Lightning", "برق"),
-        new("Shadow", "ظل")
+        new("Glow", "توهج / Glow"),
+        new("Aura", "هالة / Aura"),
+        new("Ring", "حلقة / Ring"),
+        new("Pulse", "نبض / Pulse"),
+        new("Fire", "نار / Fire"),
+        new("Ice", "جليد / Ice"),
+        new("Lightning", "برق / Lightning"),
+        new("Shadow", "ظل / Shadow"),
+        new("Royal", "ملكي / Royal"),
+        new("Diamond", "ماسي / Diamond")
     ];
 
     public static IReadOnlyList<CanonicalOption> AnimationTypes() =>
     [
-        new("None", "بدون حركة"),
-        new("Glow", "توهج"),
-        new("Pulse", "نبض"),
-        new("Shine", "لمعة"),
-        new("Float", "طفو"),
-        new("Rotate", "دوران"),
-        new("Sparkle", "بريق")
+        new("None", "بدون حركة / None"),
+        new("Pulse", "نبض / Pulse"),
+        new("Rotate", "دوران / Rotate"),
+        new("Fade", "تلاشي / Fade"),
+        new("Flash", "وميض / Flash"),
+        new("Orbit", "مدار / Orbit"),
+        new("Breathing", "تنفس / Breathing"),
+        new("Lightning", "برق / Lightning")
     ];
 
     public static IReadOnlyList<CanonicalOption> Currencies() =>
@@ -169,11 +174,19 @@ public static class CanonicalStoreCatalog
 
     public static IReadOnlyList<CanonicalOption> GlowEffects() =>
     [
-        new("#D4AF37", "ذهبي"),
-        new("#2F80ED", "أزرق"),
-        new("#9B51E0", "بنفسجي"),
-        new("#E34B78", "وردي"),
-        new("#FFFFFF", "أبيض")
+        new("Gold", "ذهبي / Gold"),
+        new("Silver", "فضي / Silver"),
+        new("Emerald", "زمردي / Emerald"),
+        new("Sapphire", "ياقوت أزرق / Sapphire"),
+        new("Ruby", "ياقوت أحمر / Ruby"),
+        new("Purple", "بنفسجي / Purple"),
+        new("Fire", "ناري / Fire"),
+        new("Ice", "جليدي / Ice"),
+        new("Shadow", "ظل / Shadow"),
+        new("Rainbow", "قوس قزح / Rainbow"),
+        new("TeamTheme", "لون الفريق / Team Theme"),
+        new("PlayerTheme", "لون اللاعب / Player Theme"),
+        new("Custom", "مخصص / Custom")
     ];
 
     public static IReadOnlyList<CanonicalOption> UnlockTypes() =>
