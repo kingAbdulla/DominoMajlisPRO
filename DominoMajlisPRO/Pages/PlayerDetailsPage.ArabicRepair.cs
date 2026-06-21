@@ -22,7 +22,8 @@ public partial class PlayerDetailsPage
             {
                 runs++;
                 RepairStaticArabicUiText();
-                return Handler != null && runs < 10;
+                RepairAllVisibleText(this);
+                return Handler != null && runs < 12;
             });
     }
 
@@ -53,6 +54,38 @@ public partial class PlayerDetailsPage
 
         LastAchievementHistoryLabel.Text =
             CleanHistoryValue(GetLastHistoryValue(currentPlayer.AchievementHistory));
+    }
+
+    static void RepairAllVisibleText(Element element)
+    {
+        if (element is Label label)
+        {
+            label.Text = RepairKnownBrokenText(label.Text);
+        }
+        else if (element is Button button)
+        {
+            button.Text = RepairKnownBrokenText(button.Text);
+        }
+
+        foreach (var child in element.LogicalChildren)
+            RepairAllVisibleText(child);
+    }
+
+    static string RepairKnownBrokenText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return value ?? string.Empty;
+
+        var text = value.Trim();
+
+        return text switch
+        {
+            "âœ“" => "✓",
+            "ًں”’" => "🔒",
+            "?��?" => "لا يوجد",
+            "?�€�?" => "لا يوجد",
+            _ => text
+        };
     }
 
     static string CleanHistoryValue(string? value)
