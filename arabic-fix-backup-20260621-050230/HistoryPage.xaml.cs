@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -85,9 +85,9 @@ public partial class HistoryPage : ContentPage
                 new[] { match.Team1Id, match.Team2Id }));
         foreach (var match in matches)
         {
-            match.Team1Name ??= "الفريق الأول";
-            match.Team2Name ??= "الفريق الثاني";
-            match.WinnerTeamName ??= "بدون فائز";
+            match.Team1Name ??= "ط§ظ„ظپط±ظٹظ‚ ط§ظ„ط£ظˆظ„";
+            match.Team2Name ??= "ط§ظ„ظپط±ظٹظ‚ ط§ظ„ط«ط§ظ†ظٹ";
+            match.WinnerTeamName ??= "ط¨ط¯ظˆظ† ظپط§ط¦ط²";
             match.Team1Players ??= "";
             match.Team2Players ??= "";
             identities.TryGetValue(match.Team1Id, out var team1);
@@ -135,10 +135,10 @@ public partial class HistoryPage : ContentPage
     {
         bool confirm =
             await DisplayAlert(
-                "حذف جميع المباريات",
-                "سيتم حذف جميع المباريات نهائياً",
-                "حذف",
-                "إلغاء");
+                "ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ",
+                "ط³ظٹطھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ ظ†ظ‡ط§ط¦ظٹط§ظ‹",
+                "ط­ط°ظپ",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -250,14 +250,14 @@ public partial class HistoryPage : ContentPage
 
         if (loadedCount >= filteredMatches.Count)
         {
-            LoadMoreButton.Text = "عرض أقل";
+            LoadMoreButton.Text = "ط¹ط±ط¶ ط£ظ‚ظ„";
             isExpanded = true;
             LoadMoreButton.IsVisible =
                 filteredMatches.Count > PageSize;
         }
         else
         {
-            LoadMoreButton.Text = "عرض المزيد";
+            LoadMoreButton.Text = "ط¹ط±ط¶ ط§ظ„ظ…ط²ظٹط¯";
             isExpanded = false;
             LoadMoreButton.IsVisible =
                 filteredMatches.Count > PageSize;
@@ -275,7 +275,7 @@ public partial class HistoryPage : ContentPage
 
             LoadNextBatch();
 
-            LoadMoreButton.Text = "عرض المزيد";
+            LoadMoreButton.Text = "ط¹ط±ط¶ ط§ظ„ظ…ط²ظٹط¯";
             return;
         }
 
@@ -311,10 +311,10 @@ public partial class HistoryPage : ContentPage
 
         bool confirm =
             await DisplayAlert(
-                "حذف المباراة",
-                "هل تريد حذف المباراة؟",
-                "حذف",
-                "إلغاء");
+                "ط­ط°ظپ ط§ظ„ظ…ط¨ط§ط±ط§ط©",
+                "ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ط§ظ„ظ…ط¨ط§ط±ط§ط©طں",
+                "ط­ط°ظپ",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;

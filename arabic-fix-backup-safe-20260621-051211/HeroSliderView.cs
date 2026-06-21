@@ -201,7 +201,7 @@ public class HeroSliderView : ContentView
         {
             var result = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = "اختر صورة موسم للتجربة",
+                PickerTitle = "ط§ط®طھط± طµظˆط±ط© ظ…ظˆط³ظ… ظ„ظ„طھط¬ط±ط¨ط©",
                 FileTypes = FilePickerFileType.Images
             });
 
@@ -222,10 +222,10 @@ public class HeroSliderView : ContentView
 
             var slide = _slides[0];
 
-            slide.Badge = "تجربة موسم";
-            slide.Title = "موسم جديد";
-            slide.Subtitle = "اختبار اللون التلقائي";
-            slide.Description = "تم توليد الخلفية من الصورة المختارة.";
+            slide.Badge = "طھط¬ط±ط¨ط© ظ…ظˆط³ظ…";
+            slide.Title = "ظ…ظˆط³ظ… ط¬ط¯ظٹط¯";
+            slide.Subtitle = "ط§ط®طھط¨ط§ط± ط§ظ„ظ„ظˆظ† ط§ظ„طھظ„ظ‚ط§ط¦ظٹ";
+            slide.Description = "طھظ… طھظˆظ„ظٹط¯ ط§ظ„ط®ظ„ظپظٹط© ظ…ظ† ط§ظ„طµظˆط±ط© ط§ظ„ظ…ط®طھط§ط±ط©.";
             slide.Image = localPath;
 
             _carousel.ItemsSource = null;
@@ -235,9 +235,9 @@ public class HeroSliderView : ContentView
         catch
         {
             await Application.Current!.MainPage!.DisplayAlert(
-                "تنبيه",
-                "تعذر اختيار الصورة للتجربة.",
-                "حسنًا");
+                "طھظ†ط¨ظٹظ‡",
+                "طھط¹ط°ط± ط§ط®طھظٹط§ط± ط§ظ„طµظˆط±ط© ظ„ظ„طھط¬ط±ط¨ط©.",
+                "ط­ط³ظ†ظ‹ط§");
         }
     }
 

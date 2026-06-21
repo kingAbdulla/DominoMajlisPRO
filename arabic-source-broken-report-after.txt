@@ -1,0 +1,333 @@
+﻿@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=15; Line=        new("Frame", "الإطارات"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=23; Line=        new("ProductCard", "بطاقات المنتجات"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=24; Line=        new("CategoryCard", "بطاقات التصنيفات"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=33; Line=        new("Developer", "المطور")}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=51; Line=        new("Visible", "ظاهر"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=53; Line=        new("DeveloperOnly", "للمطور فقط"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=70; Line=        new("PlayerFrame", "إطار اللاعب"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=87; Line=        new("Shadow", "ظل")}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=96; Line=        new("Float", "طفو"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=115; Line=        new("DeveloperOnly", "للمطور فقط"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=126; Line=        new("Legendary", "أسطوري"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=142; Line=        new("LaunchEvent", "حدث الإطلاق"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=144; Line=        new("NationalEvent", "حدث وطني"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=154; Line=        new("Legend", "المجموعة الأسطورية"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=164; Line=        new("None", "بدون إطار"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=165; Line=        new("GoldFrame", "الإطار الذهبي"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=166; Line=        new("RoyalFrame", "الإطار الملكي"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=167; Line=        new("LegendFrame", "الإطار الأسطوري")}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=187; Line=        new("Developer", "المطور"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=198; Line=        new("Legendary", "أسطوري"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=235; Line=        new("ProductCard", "بطاقات المنتجات"),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Canonical\CanonicalStoreCatalog.cs; LineNumber=236; Line=        new("CategoryCard", "بطاقات التصنيفات")}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Core\StoreCmsValidationEngine.cs; LineNumber=16; Line=    public static StoreCmsValidationResult ValidateTitle(StoreCmsValidationResult result, string? value, string message = "العنوان مطلوب") => ValidateRequired(result, "Title", value, message);}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Core\StoreCmsValidationEngine.cs; LineNumber=17; Line=    public static StoreCmsValidationResult ValidateImage(StoreCmsValidationResult result, string? value, string message = "الصورة مطلوبة") => ValidateRequired(result, "ImagePath", value, message);}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Models\StoreProductAssetType.cs; LineNumber=74; Line=            message = "نوع الأصل مطلوب ويجب اختياره من القائمة المعتمدة";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Models\StoreProductAssetType.cs; LineNumber=82; Line=            message = "نطاق المالك غير صالح لنوع الأصل المحدد";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Models\StoreProductAssetType.cs; LineNumber=88; Line=            message = "معرّف الأصل AssetId مطلوب للأصول القابلة للاقتناء";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Models\StoreProductAssetType.cs; LineNumber=94; Line=            message = "لون الفريق يتطلب قيمة ColorHex صحيحة مثل #FFD700";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Models\StoreProductAssetType.cs; LineNumber=100; Line=            message = "نوع الأصل المحدد يتطلب صورة أو حمولة مرئية صالحة";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Models\StoreTextLimitRule.cs; LineNumber=14; Line=    public string ValidationMessage { get; set; } = "النص أطول من المساحة المسموحة لهذه البطاقة";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\AvatarsAdminService.cs; LineNumber=60; Line=        if (string.IsNullOrWhiteSpace(record.NameAr) && string.IsNullOrWhiteSpace(record.NameEn)) result.Add("Name", "اسم الصورة مطلوب");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\AvatarsAdminService.cs; LineNumber=61; Line=        StoreCmsValidationEngine.ValidateImage(result, record.ImagePath, "صورة اللاعب مطلوبة");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\AvatarsAdminService.cs; LineNumber=62; Line=        if (string.IsNullOrWhiteSpace(record.CategoryId) && string.IsNullOrWhiteSpace(record.Collection)) result.Add("Category", "التصنيف أو المجموعة مطلوبة");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\BackgroundsAdminService.cs; LineNumber=124; Line=        if (string.IsNullOrWhiteSpace(record.NameAr) && string.IsNullOrWhiteSpace(record.NameEn)) result.Add("Name", "اسم الخلفية مطلوب");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\BackgroundsAdminService.cs; LineNumber=125; Line=        StoreCmsValidationEngine.ValidateImage(result, record.ImagePath, "صورة الخلفية مطلوبة");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\BackgroundsAdminService.cs; LineNumber=126; Line=        if (string.IsNullOrWhiteSpace(record.CategoryId) && string.IsNullOrWhiteSpace(record.Collection)) result.Add("Category", "التصنيف أو المجموعة مطلوبة");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\LimitedOffersAdminService.cs; LineNumber=198; Line=        { message = "يرجى إكمال الحقول المطلوبة قبل النشر"; return false; }}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\LimitedOffersAdminService.cs; LineNumber=202; Line=        { message = "الأسعار مطلوبة عند اختيار العملات أو الجواهر"; return false; }}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\NewArrivalsAdminService.cs; LineNumber=217; Line=            message = "يرجى إكمال الحقول المطلوبة قبل النشر";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\NewArrivalsAdminService.cs; LineNumber=224; Line=            message = "السعر مطلوب عند اختيار العملات أو الجواهر";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\StoreAdminService.cs; LineNumber=12; Line=            CreateSection("current-season", "الموسم الحالي", "إدارة بطاقة الموسم والصورة الرئيسية", "♛", StoreCardTemplateType.SeasonHero, 0),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\StoreAdminService.cs; LineNumber=15; Line=            CreateSection("categories", "الفئات", "تصنيف المتجر وبطاقات التصفح", "▦", StoreCardTemplateType.CategoryCard, 3),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\StoreAdminService.cs; LineNumber=22; Line=            CreateSection("frames", "الإطارات", "إطارات هوية اللاعب", "▢", StoreCardTemplateType.ProductCard, 10),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\StoreAdminService.cs; LineNumber=26; Line=            CreateSection("product-cards", "بطاقات المنتجات", "إدارة بطاقات المنتجات المنشورة", "▤", StoreCardTemplateType.ProductCard, 14),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\StoreAdminService.cs; LineNumber=27; Line=            CreateSection("category-cards", "بطاقات الفئات", "إدارة بطاقات تصفح الفئات", "▦", StoreCardTemplateType.CategoryCard, 15),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\StoreAdminService.cs; LineNumber=28; Line=            CreateSection("store-settings", "إعدادات المتجر", "إعدادات النشر والظهور العامة", "⚙", StoreCardTemplateType.StoreSettings, 16)}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\StoreCategoriesAdminService.cs; LineNumber=67; Line=        if (string.IsNullOrWhiteSpace(record.NameAr) && string.IsNullOrWhiteSpace(record.NameEn)) { message = "اسم التصنيف مطلوب"; return false; }}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\Services\StoreCategoriesAdminService.cs; LineNumber=68; Line=        if (string.IsNullOrWhiteSpace(record.IconPath)) { message = "أيقونة التصنيف مطلوبة"; return false; }}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\AvatarsEditorPage.xaml; LineNumber=28; Line=                            Text="إدارة صور اللاعبين وطرق فتحها"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\AvatarsEditorPage.xaml; LineNumber=162; Line=                        <Picker x:Name="UnlockRequirementPicker" Title="متطلب الفتح" />}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\AvatarsEditorPage.xaml.cs; LineNumber=360; Line=                    Text = "لا توجد صور مطابقة",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\AvatarsEditorPage.xaml.cs; LineNumber=933; Line=                : "ظاهر";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\BackgroundsEditorPage.xaml; LineNumber=65; Line=      <Picker x:Name="UnlockRequirementPicker" Title="متطلب الفتح" />}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\CurrentSeasonEditorPage.xaml.cs; LineNumber=98; Line=            editingManaged ? "تعديل موسم منشور بنفس الهوية" : editingDraft ? "استكمال تعديل مسودة محفوظة" : "مسودة",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\CurrentSeasonEditorPage.xaml.cs; LineNumber=187; Line=                Text = "لا توجد مسودات محفوظة حالياً",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\DeveloperStoreManagerPage.xaml; LineNumber=56; Line=                    Text="هذه الصفحة هي نقطة الدخول الرسمية لإدارة محتوى المتجر. كل قسم يستخدم قواعد الصور والنصوص الخاصة بالقالب حتى تبقى المعاينات بنفس حدود المتجر العام."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\LimitedOffersEditorPage.xaml; LineNumber=32; Line=      <Picker x:Name="OwnerScopePicker" Title="نطاق المالك" IsEnabled="False" />}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\LimitedOffersEditorPage.xaml; LineNumber=33; Line=      <Entry x:Name="ColorHexEntry" Placeholder="ColorHex (مطلوب للون الفريق)" />}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\NewArrivalsEditorPage.xaml; LineNumber=50; Line=                        <Picker x:Name="OwnerScopePicker" Title="نطاق المالك" IsEnabled="False" />}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\NewArrivalsEditorPage.xaml; LineNumber=51; Line=                        <Entry x:Name="ColorHexEntry" Placeholder="ColorHex (مطلوب للون الفريق)" />}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\NewArrivalsEditorPage.xaml.cs; LineNumber=185; Line=            SheetList.Children.Add(CreateEmptySheetLabel("لا توجد مسودات محفوظة حالياً"));}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\SpecializedStoreManagerPage.cs; LineNumber=60; Line=    private readonly Editor _bundleAssetsEditor = new() { Placeholder = "AssetType:AssetId — أصل واحد في كل سطر", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 92 };}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\SpecializedStoreManagerPage.cs; LineNumber=253; Line=        if (validateForPublish && string.IsNullOrWhiteSpace(_titleEntry.Text)) { ShowError("العنوان مطلوب"); return false; }}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\SpecializedStoreManagerPage.cs; LineNumber=387; Line=    public static SpecializedStoreManagerDefinition Frames { get; } = new("الإطارات", "نشر إطارات هوية اللاعب", new[] { StoreProductAssetType.Frame });}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\StoreCategoriesEditorPage.xaml; LineNumber=40; Line=                        <Grid ColumnDefinitions="*,*"><HorizontalStackLayout Spacing="8"><Label x:Name="VisibleLabel" Text="ظاهر" /><Switch x:Name="VisibleSwitch" /></HorizontalStackLayout><HorizontalStackLayout Grid.Column="1" Spacing="8"><Label x:Name="FeaturedLabel" Text="مميز" /><Switch x:Name="FeaturedSwitch" /></HorizontalStackLayout></Grid>}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\StoreSettingsManagerPage.cs; LineNumber=55; Line=                    Row("إظهار وصل حديثاً", _newArrivals),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\StoreSettingsManagerPage.cs; LineNumber=56; Line=                    Row("إظهار العروض المحدودة", _limitedOffers),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Admin\StoreSettingsManagerPage.cs; LineNumber=57; Line=                    Row("إظهار بطاقات الفئات", _categories),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Catalogs\Seasons\ArabianLegendsSeasonCatalog.cs; LineNumber=14; Line=            Title = "أساطير العرب",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Catalogs\Seasons\ArabianLegendsSeasonCatalog.cs; LineNumber=17; Line=            Description = "اكتشف مقتنيات الموسم واصنع هوية فريقك الأسطورية.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Catalogs\Seasons\ArabianLegendsSeasonCatalog.cs; LineNumber=83; Line=                Rarity = "أسطوري",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Catalogs\Seasons\ArabianLegendsSeasonCatalog.cs; LineNumber=86; Line=                Lore = "في قلب الصحراء الذهبية، كان أسد واحد يحكم الممرات القديمة. لم يكن الأقوى فقط، بل كان رمزًا للقيادة والصبر والانتصار.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Catalogs\Seasons\ArabianLegendsSeasonCatalog.cs; LineNumber=104; Line=                Lore = "لم يظهر صقر الرمال إلا عند بداية المواسم الكبرى. يقال إن ظهوره يعني أن فريقًا جديدًا سيصعد إلى المجد.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Catalogs\Seasons\ArabianLegendsSeasonCatalog.cs; LineNumber=118; Line=                Category = "الإطارات",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Catalogs\Seasons\ArabianLegendsSeasonCatalog.cs; LineNumber=122; Line=                Lore = "صُنع تاج المجد للفرق التي لا تبحث عن الفوز فقط، بل عن ترك أثر في تاريخ المجلس.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Catalogs\Seasons\ArabianLegendsSeasonCatalog.cs; LineNumber=137; Line=                Rarity = "أسطوري",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Catalogs\Seasons\ArabianLegendsSeasonCatalog.cs; LineNumber=140; Line=                Lore = "ظهر تنين اللهب في الليالي التي تحولت فيها الرمال إلى جمر. كان ظهوره نذيرًا ببداية صراع جديد.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Components\StoreSections\AvatarsSectionView.cs; LineNumber=227; Line=            await ShowMessageAsync($"خطأ أثناء عملية الشراء: {ex.Message}");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Components\StoreSections\BackgroundsSectionView.cs; LineNumber=191; Line=            await ShowMessageAsync($"خطأ أثناء عملية الشراء: {ex.Message}");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Components\StoreSections\PremiumStoreHeaderView.cs; LineNumber=531; Line=        HonorRoleType.Developer => "مطور",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Components\StoreSections\PremiumStoreHeaderView.cs; LineNumber=543; Line=            PlayerProfileStatus.Developer => "مطور",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Components\StoreSections\QuickActionsView.cs; LineNumber=34; Line=            CreateActionCard("🎫", "بطاقة الموسم", "جوائز حصرية", StoreQuickAction.SeasonPass),}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Components\StoreSections\StoreFooterView.cs; LineNumber=27; Line=        grid.Add(CreateFooterItem("🤍", "ادعم المطور", "ساعدنا لنقدم لك الأفضل"), 1, 0);}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Components\StoreSections\StoreProductActionSheet.cs; LineNumber=714; Line=                try { await ShowMessageAsync($"حدث خطأ: {ex.Message}"); } catch { }}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Components\StoreSections\StoreProductActionSheet.cs; LineNumber=909; Line=            "حساب لاعب مطلوب",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Components\StoreSections\StoreTypeRegistry.cs; LineNumber=18; Line=    public static readonly StoreTypeDefinition Frame = new("Frame", "الإطارات", "Frames", "▢", StoreView.Frames, true, true, true, false);}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Components\StoreSections\StoreTypeRegistry.cs; LineNumber=69; Line=        Add(aliases, Frame, "border", "إطار", "اطار");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Components\HeroBackgroundView .cs; LineNumber=104; Line=        // لم يعد مطلوبًا هنا.}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Pages\GalleryPage.xaml.cs; LineNumber=116; Line=                await ShowPlaceholderAsync("بطاقة الموسم", "بطاقة الموسم قيد التجهيز");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Pages\GalleryPage.xaml.cs; LineNumber=128; Line=        await ShowPlaceholderAsync("المحفظة", "خيارات الشحن قيد التجهيز", balance);}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Pages\GalleryPage.xaml.cs; LineNumber=220; Line=        HonorRoleType.Developer => "مطور",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Pages\GalleryPage.xaml.cs; LineNumber=385; Line=            "الإطارات",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\GalleryEngine\Pages\GalleryPage.xaml.cs; LineNumber=444; Line=        StoreView.Frames => "الإطارات",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\CreateTeamPage.xaml; LineNumber=519; Line=                <!-- الإطار الذهبي -->}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\CreateTeamPage.xaml; LineNumber=528; Line=                <!-- خلفية البطاقة -->}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\CreateTeamPage.xaml; LineNumber=760; Line=            Text="الفرق المحفوظة"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\CreateTeamPage.xaml; LineNumber=885; Line= Text="لا توجد نتائج مطابقة"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\CreateTeamPage.xaml.cs; LineNumber=810; Line=                "سيتم حذف جميع الفرق المحفوظة نهائياً، هل أنت متأكد؟",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\CreateTeamPage.xaml.cs; LineNumber=866; Line=                "سيتم حذف جميع الفرق المحفوظة نهائياً، هل أنت متأكد؟",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml; LineNumber=18; Line=                Text="بوابة المطور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml; LineNumber=42; Line=                        Text="تسجيل دخول المطور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml; LineNumber=50; Line=                        Text="أدخل بيانات حساب المطور للوصول إلى أدوات الإدارة."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml; LineNumber=139; Line=                        Text="أدوات المطور المؤكدة"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml; LineNumber=155; Line=                        Text="فتح أدوات المطور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml; LineNumber=185; Line=                        Text="سيتم مشاركتها كملف TXT. احفظ الملف خارج التطبيق."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml; LineNumber=227; Line=                        Text="استخدم هذا الخيار بعد تصفير التطبيق أو فقدان صلاحية المطور."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml.cs; LineNumber=38; Line=        TitleLabel.Text = "إنشاء حساب المطور الأول";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml.cs; LineNumber=40; Line=            "أنشئ اسم مستخدم وكلمة مرور للمطور. سيتم توليد 5 أكواد استرداد ومشاركتها كملف TXT.";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml.cs; LineNumber=55; Line=        PrimaryActionButton.Text = "إنشاء حساب المطور";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml.cs; LineNumber=70; Line=        TitleLabel.Text = "تسجيل دخول المطور";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml.cs; LineNumber=72; Line=            "أدخل اسم المستخدم وكلمة مرور المطور للوصول إلى أدوات الإدارة.";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml.cs; LineNumber=102; Line=        TitleLabel.Text = "استعادة كلمة مرور المطور";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml.cs; LineNumber=261; Line=                    "سجل الدخول أولاً لتأكيد هوية المطور.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml.cs; LineNumber=284; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml.cs; LineNumber=405; Line=                "تم استيراد Developer Vault بنجاح. أغلق التطبيق وافتحه من جديد.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\DeveloperLoginPage.xaml.cs; LineNumber=413; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\GamePage.xaml; LineNumber=61; Line=            <!-- بطاقة المباراة -->}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\GamePage.xaml.cs; LineNumber=636; Line=                    Text = $"+{round.Points} نقطة",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\GamePage.xaml.cs; LineNumber=1482; Line=        // ط§ظ„ظ…ط¨ط§ط±ط§ط© ظ…ظ†طھظ‡ظٹط©}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\GamePage.xaml.cs; LineNumber=1488; Line=        // ظ„ط§ طھظˆط¬ط¯ ط¬ظˆظ„ط§طھ}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\GamePage.xaml.cs; LineNumber=1557; Line=    //طھطµظپظٹط± ط§ظ„ط¬ط¯ظˆظ„ }
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml; LineNumber=113; Line=                <!-- HERO - الحجم محفوظ، فقط تقليل المسافات والـ Glow -->}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml; LineNumber=153; Line=                                    Text="بطل قاعة الأساطير"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml; LineNumber=175; Line=                                    Text="لا توجد أسطورة"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml; LineNumber=192; Line=                                    Text="بانتظار فريق يحقق شروط الدستور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml; LineNumber=232; Line=                <!-- HALL MEMBERS - محفوظ كما طلبت -->}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml; LineNumber=247; Line=                                    Text="أعضاء قاعة الأساطير"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml; LineNumber=376; Line=                                Text="السجلات الأسطورية"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml; LineNumber=414; Line=                                Text="إحصائيات قاعة الأساطير"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml.cs; LineNumber=117; Line=        HeroTeamNameLabel.Text = "لا توجد أسطورة";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml.cs; LineNumber=118; Line=        HeroSubtitleLabel.Text = "ابدأ أول مباراة ليظهر أبطال القاعة";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml.cs; LineNumber=149; Line=            HeroTeamNameLabel.Text = "لا توجد أسطورة";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml.cs; LineNumber=150; Line=            HeroSubtitleLabel.Text = "بانتظار فريق يحقق شروط الدستور";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml.cs; LineNumber=158; Line=        HeroSubtitleLabel.Text = "دخل قاعة الأساطير وفق الدستور";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml.cs; LineNumber=1356; Line=            return $"Win Rate أقل من المطلوب ({result.WinRate:0}%)";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml.cs; LineNumber=1512; Line=                "أعضاء قاعة الأساطير",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HallOfFamePage.xaml.cs; LineNumber=1527; Line=            "أعضاء قاعة الأساطير",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HistoryPage.xaml; LineNumber=119; Line=                    Text="لا توجد نتائج مطابقة"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml; LineNumber=58; Line=                        Text="هوية المطور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml; LineNumber=64; Line=                        Text="هذه الهوية ثابتة وتُستخدم لتتبع العمليات الحساسة داخل التطبيق."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml; LineNumber=281; Line=                        Text="إدارة أكواد استرداد المطور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml; LineNumber=287; Line=                        Text="أدخل اسم مستخدم المطور وكلمة مرور المطور لتوليد 5 أكواد استرداد جديدة. سيتم إلغاء الأكواد القديمة."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml; LineNumber=345; Line=                        Text="كلمة مرور الخزنة هي نفس كلمة مرور المطور. سيتم التحقق منها قبل التصدير."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml; LineNumber=406; Line=                        Text="تصفير بيانات التطبيق بالكامل"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml; LineNumber=412; Line=                        Text="أداة مطور فقط. سيتم إنشاء نسخة احتياطية قابلة للمشاركة ثم حذف ملفات بيانات التطبيق."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml; LineNumber=418; Line=                        Text="حذف جميع البيانات وتصفير التطبيق"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=64; Line=                "تعذر تحميل هوية المطور.";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=86; Line=            "تم نسخ هوية المطور.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=117; Line=            ? $"تم التفعيل بنجاح\n\nRecovery Key:\n{result.RecoveryKey}\n\nMaster Recovery Key:\n{result.MasterKey}\n\nاحفظ هذه المفاتيح الآن. لن تظهر مرة أخرى."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=130; Line=            ? $"تم التفعيل بنجاح\n\nRecovery Key:\n{result.RecoveryKey}\n\nMaster Recovery Key:\n{result.MasterKey}\n\nاحفظ هذه المفاتيح الآن. لن تظهر مرة أخرى."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=183; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=239; Line=                    "كلمة مرور المطور غير صحيحة.";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=243; Line=                    "كلمة مرور المطور غير صحيحة.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=253; Line=                $"تم إنشاء خزنة المطور:\n{Path.GetFileName(vaultPath)}";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=268; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=296; Line=                "تم استيراد خزنة المطور بنجاح.";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=300; Line=                "تم استيراد خزنة المطور بنجاح. أغلق التطبيق وافتحه من جديد.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=309; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=324; Line=                "هذه الأداة متاحة للمطور فقط.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=332; Line=                "تحذير خطير",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=333; Line=                "سيتم إنشاء نسخة احتياطية قابلة للمشاركة ثم حذف جميع ملفات بيانات التطبيق.\n\nهل تريد المتابعة؟",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\HonorsAdminPage.xaml.cs; LineNumber=371; Line=                Title = "نسخة احتياطية قبل تصفير Domino Majlis PRO",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml; LineNumber=868; Line=        Text="أبطأ جولة"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml; LineNumber=927; Line=        Text="الفريق المسيطر"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml; LineNumber=957; Line=        Text="أطول سلسلة انتصار"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml.cs; LineNumber=577; Line=            "ميزة مشاركة الصورة قيد التطوير",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml.cs; LineNumber=587; Line=            "ميزة PDF قيد التطوير",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml.cs; LineNumber=620; Line=            "تم نسخ النتيجة إلى الحافظة",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml.cs; LineNumber=638; Line=        // أبطأ جولة}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml.cs; LineNumber=675; Line=        // أطول سلسلة انتصارات}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml.cs; LineNumber=702; Line=        // الفريق المسيطر}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml.cs; LineNumber=736; Line=            $"{highestPoints} نقطة";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml.cs; LineNumber=774; Line=            "ميزة سلامة المباراة قيد التطوير",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\MatchDetailsPage.xaml.cs; LineNumber=795; Line=            "ميزة QR Code قيد التطوير",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\PlayerDetailsPage.xaml.cs; LineNumber=260; Line=            await DisplayAlert("خطأ", "لم يتم العثور على اللاعب", "حسناً");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\PlayerDetailsPage.xaml.cs; LineNumber=556; Line=            "هل تريد حذف هذا الحدث فقط؟",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\PlayerDetailsPage.xaml.cs; LineNumber=926; Line=            await DisplayAlert("خطأ", $"حدث خطأ أثناء تنفيذ العملية: {ex.Message}", "حسناً");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\PlayerDetailsPage.xaml.cs; LineNumber=974; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\PlayerProfilesPage.xaml.cs; LineNumber=451; Line=                "لا توجد حسابات محفوظة على هذا الجهاز.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\PlayerProfilesPage.xaml.cs; LineNumber=457; Line=            "اختر حساباً محفوظاً",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\PlayerProfilesPage.xaml.cs; LineNumber=476; Line=            "سيتم إنهاء الجلسة فقط، ولن تُحذف الهوية أو بيانات اللاعب.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\PlayerProfilesPage.xaml.cs; LineNumber=562; Line=                CreateInventoryEmptyLabel("لا توجد مقتنيات مرتبطة بالضيف."));}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\RankingsPage.xaml.cs; LineNumber=1162; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Pages\StatisticsPage.xaml; LineNumber=335; Line=                            Text="⏱ أطول مباراة"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\AchievementsInfoService.cs; LineNumber=21; Line=                "Champion: بطل الموسم",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\AchievementsInfoService.cs; LineNumber=23; Line=                "Founder: مؤسس التطبيق",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\AchievementsInfoService.cs; LineNumber=24; Line=                "Developer: مطور التطبيق",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\AchievementsInfoService.cs; LineNumber=44; Line=                "Season Reward: تحقيق متطلبات الموسم",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\AchievementsInfoService.cs; LineNumber=62; Line=                "الالتزام بقواعد اللعب النظيف"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\AppVersionService.cs; LineNumber=23; Line=                "إضافة النسخ الاحتياطي",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\AppVersionService.cs; LineNumber=40; Line=            $"المطور: {info.Developer}\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\BackupService.cs; LineNumber=103; Line=            throw new Exception("النسخة الاحتياطية لا تحتوي على ملفات بيانات.");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DataMaintenanceService.cs; LineNumber=25; Line=            $"تم تصفير بيانات التطبيق بالكامل\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DataMaintenanceService.cs; LineNumber=26; Line=            $"تم إنشاء نسخة احتياطية قابلة للمشاركة قبل الحذف:\n{Path.GetFileName(backupPath)}\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DataMaintenanceService.cs; LineNumber=28; Line=            $"أغلق التطبيق وافتحه من جديد.";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DataMaintenanceService.cs; LineNumber=105; Line=            $"تم تنظيف البيانات بنجاح\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DataMaintenanceService.cs; LineNumber=108; Line=            $"التصنيفات المحذوفة لأنها غير مرتبطة بفريق: {removedRankings}";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=94; Line=                    "تم إنشاء حساب المطور مسبقاً.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=104; Line=                    "أدخل اسم مستخدم المطور.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=114; Line=                    "كلمة مرور المطور يجب أن تكون 8 أحرف على الأقل.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=124; Line=                    "كلمة المرور وتأكيدها غير متطابقين.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=171; Line=            "تم إنشاء حساب المطور الأساسي",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=179; Line=                "تم إنشاء حساب المطور بنجاح. تم توليد 5 أكواد استرداد. احفظ الملف الآن.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=232; Line=            "تم تسجيل دخول المطور",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=275; Line=                    "كلمة المرور الجديدة وتأكيدها غير متطابقين."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=300; Line=            "تم تغيير كلمة مرور المطور",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=308; Line=                "تم تغيير كلمة مرور المطور بنجاح."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=327; Line=                    "لا يوجد حساب مطور مفعّل. استخدم استيراد Developer Vault."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=356; Line=                    "كلمة المرور الجديدة وتأكيدها غير متطابقين."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=407; Line=            "تمت إعادة تعيين كلمة مرور المطور بكود استرداد",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=415; Line=                "تمت إعادة تعيين كلمة مرور المطور بنجاح."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=446; Line=            "تم توليد 5 أكواد استرداد جديدة للمطور",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=491; Line=            "تم حذف حساب المطور من الجهاز",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperLockService.cs; LineNumber=583; Line=            "تم تغيير كلمة مرور المطور",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperVaultService.cs; LineNumber=24; Line=            throw new Exception("كلمة مرور الخزنة هي نفس كلمة مرور المطور ويجب أن تكون 8 أحرف على الأقل.");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DeveloperVaultService.cs; LineNumber=99; Line=            throw new Exception("كلمة مرور الخزنة هي نفس كلمة مرور المطور.");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DiagnosticService.cs; LineNumber=66; Line=                "✓ لا توجد مشاكل ظاهرة في البيانات");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\DiagnosticService.cs; LineNumber=198; Line=                $"⚠ توجد تصنيفات غير مرتبطة بفريق: {orphanRankings}");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\HallOfLegendsConstitutionService.cs; LineNumber=13; Line=            "Article 5: أي إزالة دائمة تتطلب دليلاً موثقاً.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\HallOfLegendsConstitutionService.cs; LineNumber=18; Line=            "Article 10: يتم تقييم السلوك عبر بيانات طويلة المدى.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\HallOfLegendsConstitutionService.cs; LineNumber=20; Line=            "Article 12: الفريق في Watch يبقى مؤهلاً ما لم تظهر أدلة قوية.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\HallOfLegendsConstitutionService.cs; LineNumber=22; Line=            "Article 14: Confirmed Fraud فقط يسمح بالحظر أو الإزالة.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\HallOfLegendsConstitutionService.cs; LineNumber=23; Line=            "Article 15: للمطور صلاحية المراجعة النهائية عند التعارض.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\HonorKeyGeneratorService.cs; LineNumber=84; Line=            "ملاحظة مهمة:");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\PlayerAchievementService.cs; LineNumber=53; Line=                    Title = "أسطورة ناشئة",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\PlayerAchievementService.cs; LineNumber=63; Line=                    Description = "ادخل قاعة الأساطير",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\PlayerIdentityService.cs; LineNumber=23; Line=        // إزالة التطويل}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\SpecialHonorsService.cs; LineNumber=97; Line=            throw new Exception("توليد المفاتيح متاح للمطور فقط.");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\SpecialHonorsService.cs; LineNumber=211; Line=            return (false, "مفتاح التفعيل غير صحيح أو غير مولّد من المطور", "", "");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\SpecialHonorsService.cs; LineNumber=214; Line=            return (false, "نوع مفتاح التفعيل لا يطابق نوع الصلاحية", "", "");}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\SpecialHonorsService.cs; LineNumber=301; Line=                "تم تفعيل الشرف بنجاح. احفظ مفاتيح الاسترداد الآن، لن تظهر مرة أخرى.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UpdateLogService.cs; LineNumber=20; Line=                    "إضافة النسخ الاحتياطي",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UpdateLogService.cs; LineNumber=32; Line=                ReleaseDate = "نسخة تطوير",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UpdateLogService.cs; LineNumber=37; Line=                    "تحسين نظام الفرق",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UpdateLogService.cs; LineNumber=48; Line=                    "إطلاق نظام حساب النقاط",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=18; Line=                Title = "طريقة استخدام التطبيق",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=26; Line=                        "الصفحة الرئيسية هي نقطة البداية في التطبيق.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=30; Line=                        "• اختيار نظام اللعب.\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=54; Line=                        "7- اختر لون الإطار.\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=57; Line=                        "ملاحظات مهمة:\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=67; Line=                        "1- افتح قائمة الفرق المحفوظة.\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=74; Line=                        "1- افتح قائمة الفرق المحفوظة.\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=87; Line=                        "طريقة إدخال النقاط:\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=88; Line=                                                "اختر البطاقة اولا مثلا فريق ( النسور ) بعدها ادخل الرقم من لوحة الارقام وارجع اضغط على بطاقة فريق ( النسور ) سيتم حسابها تلقائياً :\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=90; Line=                        "1- اختر الفريق الذي حصل على النقاط بالضغط على بطاقته.\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=95; Line=                        "ملاحظات مهمة:\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=99; Line=                        "• تظهر نتيجة الفريقين مباشرة بعد كل إدخال.\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=100; Line=                        "• يظهر سجل الجولات في أسفل الصفحة.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=104; Line=                        "عند الضغط على جولة من سجل الجولات تظهر خيارات مثل:\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=110; Line=                        "عند وصول أحد الفريقين إلى شرط الفوز، تظهر رسالة تأكيد قبل حفظ المباراة."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=117; Line=                        "سجل المباريات يعرض جميع المباريات التي تم حفظها.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=168; Line=                        "عند الضغط على فريق داخل التصنيفات تظهر نافذة تفاصيل تحتوي على معلومات أوسع، مثل الانتصارات، الخسائر، الملص، XP، الثقة، والرتبة.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=177; Line=                        "قاعة المشاهير مخصصة للفرق التي حققت إنجازات عالية داخل التطبيق.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=179; Line=                        "لا يدخل الفريق إلى قاعة المشاهير إلا إذا حقق شروطاً قوية، مثل الأداء العالي، الثقة، وعدد الانتصارات.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=192; Line=                        "لاحقاً يمكن تطويرها للطباعة أو التصدير بصيغة PDF."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=199; Line=                        "صفحة الإعدادات تحتوي على أدوات مهمة لإدارة التطبيق.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=203; Line=                        "• إنشاء نسخة احتياطية.\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=204; Line=                        "• استعادة نسخة احتياطية.\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=213; Line=                        "يفضل إنشاء نسخة احتياطية قبل تنفيذ أي عملية حذف أو استعادة."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=230; Line=                        Title = "النظام العالمي",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=232; Line=                        "النظام العالمي يعتمد على الوصول إلى 151 نقطة.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=234; Line=                        "الفريق الذي يصل أولاً إلى 151 نقطة أو أكثر يكون هو الفائز.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=236; Line=                        "هذا النظام مناسب للمباريات الطويلة والتصنيفات الرسمية."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=241; Line=                        Title = "النظام المحلي",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=243; Line=                        "النظام المحلي يدعم الفوز العادي والملص.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=245; Line=                        "إذا وصل فريق إلى 101 نقطة أو أكثر، وكان الخصم أقل من 25 نقطة، يعتبر الفوز ملصاً.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=247; Line=                        "أما إذا كان الخصم 25 نقطة أو أكثر، فيجب إكمال المباراة حتى 151 نقطة."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=254; Line=                        "الملص هو فوز خاص يحدث في النظام المحلي.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=256; Line=                        "شرطه:\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=258; Line=                        "• أن يصل الفريق الفائز إلى 101 نقطة أو أكثر.\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=259; Line=                        "• أن يكون الفريق الخصم أقل من 25 نقطة.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=268; Line=                        "لا يسمح التطبيق للاعب نفسه أن يكون موجوداً في الفريقين المتقابلين.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=283; Line=                Title = "لماذا تم تصميم التطبيق",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=289; Line=                        Title = "فكرة التطبيق",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=291; Line=                        "تم تصميم Domino Majlis PRO ليكون تطبيقاً احترافياً لإدارة مباريات الدومينو.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=293; Line=                        "الفكرة هي تحويل حساب النقاط من طريقة يدوية إلى نظام منظم وسهل وواضح."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=302; Line=                        "التطبيق يحل هذه المشكلة من خلال:\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=315; Line=                        "لا يكتفي التطبيق بحساب النقاط فقط.\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\Services\UserGuideService.cs; LineNumber=317; Line=                        "بل يحول المباريات إلى نظام تنافسي يحتوي على:\n\n" +}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=197; Line=                            Text="منصة احترافية لإدارة بطولات الدومينو"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1097; Line=    Text="🔍 لا توجد نتائج مطابقة"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1189; Line=    Text="النسخ الاحتياطي"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1234; Line=                                    <Label Text="📊 النظام"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1377; Line=    Text="📨 إرسال تقرير تشخيص للمطور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1446; Line=                                    <Label Text="معلومات التطبيق"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1449; Line=                                    <Label Text="المطور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1493; Line=                Text="🔑 قفل المطور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1621; Line=                Text="تنظيف البيانات التالفة"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1897; Line=                    Text="تحسين تجربة التطبيق&#10;&#10;يمكنك اختيارياً إضافة بعض المعلومات العامة لمساعدتنا على فهم جمهور التطبيق وتطوير التطبيق مستقبلاً."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1940; Line=                    Text="المحافظة"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1947; Line=                    Placeholder="اكتب المحافظة فقط"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=1953; Line=                    Text="لن يتم جمع أي بيانات شخصية دون موافقتك.&#10;يمكنك تخطي هذه الخطوة.&#10;يمكنك حذف هذه البيانات في أي وقت."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=2060; Line=                    Text="قفل المطور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=2082; Line=                    Placeholder="كلمة مرور المطور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=2097; Line=                    Text="حفظ كلمة مرور المطور"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml; LineNumber=2149; Line=                Text="أدخل الاسم أو ID، ثم مفتاح التفعيل. سيحدد التطبيق نوع الصلاحية تلقائياً."}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=197; Line=                "لا توجد فرق محفوظة",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=235; Line=                "لا توجد فرق محفوظة",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1402; Line=    "تم إنشاء النسخة الاحتياطية بنجاح. احفظ الملف في مكان آمن.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1408; Line=                    Title = "نسخة احتياطية - Domino Majlis PRO",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1415; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1416; Line=                $"فشل إنشاء النسخة الاحتياطية:\n{ex.Message}",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1431; Line=                "سيتم استبدال البيانات الحالية بالبيانات الموجودة داخل النسخة الاحتياطية.\n\nسيتم إنشاء نسخة طارئة قبل الاستعادة.\n\nهل تريد المتابعة؟",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1445; Line=                            "اختر ملف النسخة الاحتياطية"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1460; Line=                $"تمت استعادة البيانات بنجاح.\n\nتم إنشاء نسخة طارئة قبل الاستعادة:\n{System.IO.Path.GetFileName(emergencyBackup)}",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1474; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1513; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1551; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1564; Line=                "سيتم حذف سجل جميع المباريات نهائياً.\n\nسيتم إنشاء نسخة طارئة قبل الحذف.\n\nبعد الحذف سيتم إعادة بناء التصنيفات.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1587; Line=                $"تم حذف جميع المباريات بنجاح.\n\nتم إنشاء نسخة طارئة:\n{System.IO.Path.GetFileName(emergencyBackup)}",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1593; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1607; Line=                "تنظيف البيانات",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1609; Line=                "تنظيف",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1629; Line=                $"{result}\n\nتم إنشاء نسخة طارئة:\n{System.IO.Path.GetFileName(emergencyBackup)}",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1635; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1636; Line=                $"فشل تنظيف البيانات:\n{ex.Message}",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1684; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1701; Line=                ? "التشخيص - توجد ملاحظات"}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1712; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1743; Line=            $"المطور: {info.Developer}";}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1972; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=1993; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=2015; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=2241; Line=                "تم إنشاء هوية اللاعب وربطها بالجلسة الحالية.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=2341; Line=                "سيتم حفظ معلومات اختيارية فقط لتحسين تجربة التطبيق.\n\nلن يتم حفظ عنوان السكن أو رقم الهاتف أو الموقع الجغرافي.\n\nهل توافق؟",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=2636; Line=                "أدخل كلمة مرور المطور",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=2656; Line=                "كلمة المرور وتأكيدها غير متطابقين",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=2666; Line=            "تم حفظ كلمة مرور المطور",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=2689; Line=                "تم التحقق من قفل المطور",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=2701; Line=                "فشل التحقق من قفل المطور",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=2705; Line=                "خطأ",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=2731; Line=                "سيتم حذف السجلات المؤقتة فقط.\n\nالسجلات الدائمة ستبقى محفوظة.",}
+@{Path=C:\Users\smart gen\source\repos\DominoMajlisPRO\DominoMajlisPRO\MainPage.xaml.cs; LineNumber=2928; Line=                    "تم تفعيل صلاحية المطور بنجاح.",}

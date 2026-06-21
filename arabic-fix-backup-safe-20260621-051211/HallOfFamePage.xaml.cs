@@ -667,7 +667,7 @@ public partial class HallOfFamePage : ContentPage
         layout.Children.Add(
             new Label
             {
-                Text = rank <= 3 ? $"#{rank} 🏅" : $"#{rank}",
+                Text = rank <= 3 ? $"#{rank} ًںڈ…" : $"#{rank}",
                 TextColor = Color.FromArgb("#D4AE62"),
                 FontSize = 12,
                 FontFamily= "timesbi",
@@ -1609,6 +1609,5 @@ public partial class HallOfFamePage : ContentPage
         public int LegacyScore { get; set; }
     }
 }
-
 
 

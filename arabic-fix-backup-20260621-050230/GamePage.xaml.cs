@@ -622,7 +622,7 @@ public partial class GamePage : ContentPage
             info.Children.Add(
                 new Label
                 {
-                    Text = $"ظ‹ع؛عˆâ€  {round.WinnerTeam}",
+                    Text = $"ًںڈ† {round.WinnerTeam}",
                     TextColor = Colors.White,
                     FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone
     ? 16
@@ -1479,13 +1479,13 @@ new SavedMatch
         object sender,
         EventArgs e)
     {
-        // ط·آ§ط¸â€‍ط¸â€¦ط·آ¨ط·آ§ط·آ±ط·آ§ط·آ© ط¸â€¦ط¸â€ ط·ع¾ط¸â€،ط¸ظ¹ط·آ©
+        // ط§ظ„ظ…ط¨ط§ط±ط§ط© ظ…ظ†طھظ‡ظٹط©
         if (gameFinished)
         {
             await Navigation.PopAsync();
             return;
         }
-        // ط¸â€‍ط·آ§ ط·ع¾ط¸ث†ط·آ¬ط·آ¯ ط·آ¬ط¸ث†ط¸â€‍ط·آ§ط·ع¾
+        // ظ„ط§ طھظˆط¬ط¯ ط¬ظˆظ„ط§طھ
         if (roundsHistory.Count == 0)
         {
             await Navigation.PopAsync();
@@ -1554,7 +1554,7 @@ new SavedMatch
     }
 
     //=========================
-    //ط·ع¾ط·آµط¸ظ¾ط¸ظ¹ط·آ± ط·آ§ط¸â€‍ط·آ¬ط·آ¯ط¸ث†ط¸â€‍ 
+    //طھطµظپظٹط± ط§ظ„ط¬ط¯ظˆظ„ 
     void StartNewMatchSameTeams()
     {
         team1Score = 0;
@@ -1712,5 +1712,4 @@ new SavedMatch
             false;
     }
 }
-
 
