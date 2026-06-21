@@ -194,7 +194,7 @@ public partial class MainPage : ContentPage
         {
             await DisplayAlert(
                 "تنبيه",
-                "?�?� ???�?�?� ???�?� ?�?�???�?�?�",
+                "لا توجد فرق متاحة حالياً",
                 "حسناً");
 
             return;
@@ -232,7 +232,7 @@ public partial class MainPage : ContentPage
         {
             await DisplayAlert(
                 "تنبيه",
-                "?�?� ???�?�?� ???�?� ?�?�???�?�?�",
+                "لا توجد فرق متاحة حالياً",
                 "حسناً");
 
             return;
@@ -1413,7 +1413,7 @@ TextChangedEventArgs e)
         catch (Exception ex)
         {
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 $"???�?� ?�?�?�?�?? ?�?�?�?�?�?� ?�?�?�?�?????�?�???�:\n{ex.Message}",
                 "حسناً");
         }
@@ -1472,7 +1472,7 @@ TextChangedEventArgs e)
         catch (Exception ex)
         {
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 $"فشلت عملية الاستعادة:\n{ex.Message}",
                 "حسناً");
         }
@@ -1511,7 +1511,7 @@ TextChangedEventArgs e)
         catch (Exception ex)
         {
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 $"فشلت إعادة بناء التصنيفات:\n{ex.Message}",
                 "حسناً");
         }
@@ -1549,7 +1549,7 @@ TextChangedEventArgs e)
         catch (Exception ex)
         {
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 $"فشل حذف التصنيفات:\n{ex.Message}",
                 "حسناً");
         }
@@ -1591,7 +1591,7 @@ TextChangedEventArgs e)
         catch (Exception ex)
         {
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 $"فشل حذف جميع المباريات:\n{ex.Message}",
                 "حسناً");
         }
@@ -1605,9 +1605,9 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "???�?�???? ?�?�?�???�?�?�??",
+                "اكتملت العملية",
                 "سيتم فحص ملفات البيانات وإصلاح الملفات الفارغة أو التالفة.\n\nلن يتم حذف الفرق أو المباريات السليمة.",
-                "???�?�????",
+                "اكتمل",
                 "إلغاء");
 
         if (!confirm)
@@ -1633,7 +1633,7 @@ TextChangedEventArgs e)
         catch (Exception ex)
         {
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 $"???�?� ???�?�???? ?�?�?�???�?�?�??:\n{ex.Message}",
                 "حسناً");
         }
@@ -1682,7 +1682,7 @@ TextChangedEventArgs e)
         catch (Exception ex)
         {
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 $"فشل عرض حالة البيانات:\n{ex.Message}",
                 "حسناً");
         }
@@ -1699,7 +1699,7 @@ TextChangedEventArgs e)
 
             string title =
                 result.HasProblems
-                ? "?�?�???�?�???� - ???�?�?� ?�?�?�?�?�?�??"
+                ? "النسخة الحالية - لا يوجد تحديث"
                 : "التشخيص - سليم";
 
             await DisplayAlert(
@@ -1710,7 +1710,7 @@ TextChangedEventArgs e)
         catch (Exception ex)
         {
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 $"فشل تشغيل التشخيص:\n{ex.Message}",
                 "حسناً");
         }
@@ -1741,7 +1741,7 @@ TextChangedEventArgs e)
             $"نوع النسخة: {info.ReleaseType}";
 
         VersionDeveloperLabel.Text =
-            $"?�?�?�?�?�?�: {info.Developer}";
+            $"المطور: {info.Developer}";
 
         VersionUpdateStatusLabel.Text =
             info.UpdateStatus;
@@ -1970,7 +1970,7 @@ TextChangedEventArgs e)
         catch (Exception ex)
         {
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 $"فشل إنشاء تقرير الدعم:\n{ex.Message}",
                 "حسناً");
         }
@@ -1991,7 +1991,7 @@ TextChangedEventArgs e)
         catch
         {
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 "تعذر فتح إنستغرام",
                 "حسناً");
         }
@@ -2013,7 +2013,7 @@ TextChangedEventArgs e)
         catch
         {
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 "تعذر فتح البريد الإلكتروني",
                 "حسناً");
         }
@@ -2599,8 +2599,8 @@ TextChangedEventArgs e)
 
         DeveloperLockLastChangeLabel.Text =
             lockData.LastPasswordChange == DateTime.MinValue
-            ? "?�?�?� ?????????�: —"
-            : $"?�?�?� ?????????�: {lockData.LastPasswordChange:yyyy/MM/dd HH:mm}";
+            ? "آخر تغيير لكلمة المرور: —"
+            : $"آخر تغيير لكلمة المرور: {lockData.LastPasswordChange:yyyy/MM/dd HH:mm}";
 
         DeveloperPasswordEntry.Text = "";
         DeveloperConfirmPasswordEntry.Text = "";
@@ -2703,7 +2703,7 @@ TextChangedEventArgs e)
                 "Developer password verification failed");
 
             await DisplayAlert(
-                "?�?�?�",
+                "خطأ",
                 "كلمة المرور غير صحيحة",
                 "حسناً");
         }
@@ -2976,6 +2976,7 @@ TextChangedEventArgs e)
             "حسناً");
     }
 }
+
 
 
 
