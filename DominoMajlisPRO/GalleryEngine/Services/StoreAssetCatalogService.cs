@@ -171,7 +171,8 @@ public static class StoreAssetCatalogService
             assetId.Trim(),
             assetType,
             ownerScope,
-            ArabicTextRecoveryService.RecoverDisplayText(displayName),`r`n            ArabicTextRecoveryService.RecoverDisplayText(arabicDisplayName),
+            ArabicTextRecoveryService.RecoverDisplayText(displayName),
+            ArabicTextRecoveryService.RecoverDisplayText(arabicDisplayName),
             previewImage?.Trim() ?? string.Empty,
             colorHex?.Trim() ?? string.Empty,
             products
@@ -214,4 +215,5 @@ public static class StoreAssetCatalogService
         string AssetId,
         string AssetType);
 }
+
 
