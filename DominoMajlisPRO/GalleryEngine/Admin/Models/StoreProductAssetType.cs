@@ -1,4 +1,4 @@
-namespace DominoMajlisPRO.GalleryEngine.Admin.Models;
+﻿namespace DominoMajlisPRO.GalleryEngine.Admin.Models;
 
 public enum StoreProductAssetType
 {
@@ -58,8 +58,7 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.ProfileBackground or
         StoreProductAssetType.Emblem or
         StoreProductAssetType.EmblemBackground or
-        StoreProductAssetType.Frame or
-        StoreProductAssetType.Effect;
+        StoreProductAssetType.Frame;
 
     public static bool Validate(
         string? storeTypeId,
@@ -97,7 +96,7 @@ public static class StoreProductAssetTypeCatalog
 
         if (RequiresImagePayload(type) && !IsValidImagePayload(imagePath))
         {
-            message = "نوع الأصل المحدد يتطلب صورة أو حمولة مرئية صالحة";
+            message = "نوع الأصل المحدد يتطلب صورة صالحة";
             return false;
         }
 
@@ -167,3 +166,5 @@ public static class StoreManagerAssetTypeScopes
     private static IReadOnlyList<string> Types(params StoreProductAssetType[] types) =>
         types.Select(type => type.ToString()).ToArray();
 }
+
+

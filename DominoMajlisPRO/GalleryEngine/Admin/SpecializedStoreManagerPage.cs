@@ -1,4 +1,4 @@
-using DominoMajlisPRO.GalleryEngine.Admin.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Canonical;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -116,7 +116,14 @@ public class SpecializedStoreManagerPage : ContentPage
         pickImage.Clicked += OnPickImageClicked;
         imageRow.Add(pickImage, 1);
 
-        var form = new VerticalStackLayout { Spacing = 10, Children = { _titleEntry, _descriptionEditor, imageRow, _previewImage, _assetTypePicker, _categoryPicker } };
+        var form = new VerticalStackLayout { Spacing = 10, Children = { _titleEntry, _descriptionEditor } };
+if (!_definition.IsEffect)
+{
+    form.Children.Add(imageRow);
+    form.Children.Add(_previewImage);
+}
+form.Children.Add(_assetTypePicker);
+form.Children.Add(_categoryPicker);
         if (_definition.IsEffect)
         {
             form.Children.Add(_effectTypePicker);
@@ -389,3 +396,5 @@ public sealed record SpecializedStoreManagerDefinition(string Title, string Subt
     public static SpecializedStoreManagerDefinition Bundles { get; } = new("الحزم", "نشر حزم متعددة الأصول", new[] { StoreProductAssetType.Bundle }, IsBundle: true);
     public static SpecializedStoreManagerDefinition TeamColors { get; } = new("ألوان الفرق", "نشر ألوان هوية الفرق", new[] { StoreProductAssetType.TeamColor }, IsTeamColor: true);
 }
+
+
