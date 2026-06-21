@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
+using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -227,52 +227,13 @@ public partial class PlayerProfilesPage : ContentPage
                 fallbackAvatar);
     }
 
-    void ApplyPlayerEffectOverlay(
+        void ApplyPlayerEffectOverlay(
         Image effectOverlay,
         DominoMajlisPRO.GalleryEngine.Models.CatalogAssetDisplay? effect)
     {
-        if (effect == null)
-        {
-            effectOverlay.Source = null;
-            effectOverlay.IsVisible = false;
-            return;
-        }
-
-        var imageSource = ToOptionalImageSource(effect.PreviewImage);
-        if (imageSource != null)
-        {
-            effectOverlay.Source = imageSource;
-            effectOverlay.Opacity = 1;
-            effectOverlay.Scale = 1;
-            effectOverlay.IsVisible = true;
-            return;
-        }
-
-        var key =
-            $"{effect.AssetId} {effect.DisplayName} {effect.ArabicDisplayName}"
-                .ToLowerInvariant();
-
-        if (key.Contains("fire") || key.Contains("flame") || key.Contains("نار") || key.Contains("لهب"))
-        {
-            effectOverlay.Source = "fire_gold.png";
-            effectOverlay.Opacity = 0.92;
-            effectOverlay.Scale = 1.18;
-            effectOverlay.IsVisible = true;
-            return;
-        }
-
-        if (key.Contains("glow") || key.Contains("light") || key.Contains("ضوء") || key.Contains("توهج"))
-        {
-            effectOverlay.Source = "fire_gold.png";
-            effectOverlay.Opacity = 0.85;
-            effectOverlay.Scale = 1.12;
-            effectOverlay.IsVisible = true;
-            return;
-        }
-
-        effectOverlay.Source = null;
-        effectOverlay.IsVisible = false;
+        PlayerEffectEngine.Apply(effectOverlay, effect, 1.18);
     }
+
     async Task RefreshCollectionProgressAsync()
     {
         try

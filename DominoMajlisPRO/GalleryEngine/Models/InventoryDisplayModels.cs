@@ -10,7 +10,11 @@ public sealed record CatalogAssetDisplay(
     string ArabicDisplayName,
     string PreviewImage,
     string ColorHex,
-    IReadOnlyList<string> ProductIds)
+    IReadOnlyList<string> ProductIds,
+    string EffectType = "",
+    string AnimationType = "",
+    int DurationMilliseconds = 0,
+    string EquipTarget = "")
 {
     public bool HasDisplayMetadata =>
         !string.IsNullOrWhiteSpace(DisplayName) &&

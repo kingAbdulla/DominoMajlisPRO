@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.Models;
+using DominoMajlisPRO.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Pages;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -48,7 +48,7 @@ public partial class MainPage : ContentPage
 
 
 
-    string selectedRules = "عالمي";
+    string selectedRules = "ط¹ط§ظ„ظ…ظٹ";
 
 
     // =========================
@@ -193,9 +193,9 @@ public partial class MainPage : ContentPage
         if (allTeams.Count == 0)
         {
             await DisplayAlert(
-                "تنبيه",
-                "لا توجد فرق محفوظة",
-                "حسناً");
+                "طھظ†ط¨ظٹظ‡",
+                "ظ„ط§ طھظˆط¬ط¯ ظپط±ظ‚ ظ…ط­ظپظˆط¸ط©",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -203,7 +203,7 @@ public partial class MainPage : ContentPage
         isPickingTeam1 = true;
 
         PickerTitle.Text =
-            "اختر الفريق الأول";
+            "ط§ط®طھط± ط§ظ„ظپط±ظٹظ‚ ط§ظ„ط£ظˆظ„";
         filteredTeams =
             recentTeams
 
@@ -231,9 +231,9 @@ public partial class MainPage : ContentPage
         if (allTeams.Count == 0)
         {
             await DisplayAlert(
-                "تنبيه",
-                "لا توجد فرق محفوظة",
-                "حسناً");
+                "طھظ†ط¨ظٹظ‡",
+                "ظ„ط§ طھظˆط¬ط¯ ظپط±ظ‚ ظ…ط­ظپظˆط¸ط©",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -241,7 +241,7 @@ public partial class MainPage : ContentPage
         isPickingTeam1 = false;
 
         PickerTitle.Text =
-            "اختر الفريق الثاني";
+            "ط§ط®طھط± ط§ظ„ظپط±ظٹظ‚ ط§ظ„ط«ط§ظ†ظٹ";
 
         filteredTeams =
      recentTeams
@@ -386,9 +386,9 @@ public partial class MainPage : ContentPage
      selectedTeam2 == null)
         {
             await DisplayAlert(
-                "تنبيه",
-                "يجب اختيار فريقين",
-                "حسناً");
+                "طھظ†ط¨ظٹظ‡",
+                "ظٹط¬ط¨ ط§ط®طھظٹط§ط± ظپط±ظٹظ‚ظٹظ†",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -396,9 +396,9 @@ public partial class MainPage : ContentPage
         if (selectedTeam1.TeamId == selectedTeam2.TeamId)
         {
             await DisplayAlert(
-                "تنبيه",
-                "لا يمكن اختيار نفس الفريق مرتين",
-                "حسناً");
+                "طھظ†ط¨ظٹظ‡",
+                "ظ„ط§ ظٹظ…ظƒظ† ط§ط®طھظٹط§ط± ظ†ظپط³ ط§ظ„ظپط±ظٹظ‚ ظ…ط±طھظٹظ†",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -439,9 +439,9 @@ public partial class MainPage : ContentPage
                     x.PlayerId == duplicatePlayerId)
                 ?.PlayerName ?? duplicatePlayerId;
             await DisplayAlert(
-    "لا يمكن بدء المباراة",
-    $"اللاعب ({duplicatePlayerName}) موجود في الفريقين.\n\nيجب أن يكون كل لاعب ضمن فريق واحد فقط.",
-    "حسناً");
+    "ظ„ط§ ظٹظ…ظƒظ† ط¨ط¯ط، ط§ظ„ظ…ط¨ط§ط±ط§ط©",
+    $"ط§ظ„ظ„ط§ط¹ط¨ ({duplicatePlayerName}) ظ…ظˆط¬ظˆط¯ ظپظٹ ط§ظ„ظپط±ظٹظ‚ظٹظ†.\n\nظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ظƒظ„ ظ„ط§ط¹ط¨ ط¶ظ…ظ† ظپط±ظٹظ‚ ظˆط§ط­ط¯ ظپظ‚ط·.",
+    "ط­ط³ظ†ط§ظ‹");
 
 
             return;
@@ -455,10 +455,10 @@ public partial class MainPage : ContentPage
         if (team1Single != team2Single)
         {
             await DisplayAlert(
-                "تنبيه",
-                "لا يمكن لعب فريق فردي ضد فريق زوجي",
-                "يجب أن يكون الفريقان من نفس النوع",
-                "حسناً");
+                "طھظ†ط¨ظٹظ‡",
+                "ظ„ط§ ظٹظ…ظƒظ† ظ„ط¹ط¨ ظپط±ظٹظ‚ ظپط±ط¯ظٹ ط¶ط¯ ظپط±ظٹظ‚ ط²ظˆط¬ظٹ",
+                "ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط§ظ„ظپط±ظٹظ‚ط§ظ† ظ…ظ† ظ†ظپط³ ط§ظ„ظ†ظˆط¹",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -603,7 +603,7 @@ TextChangedEventArgs e)
                 selectedTeam2 = null;
 
                 PreviewTeam2NameLabel.Text =
-                    "اختر الفريق الثاني";
+                    "ط§ط®طھط± ط§ظ„ظپط±ظٹظ‚ ط§ظ„ط«ط§ظ†ظٹ";
 
                 PreviewTeam2PlayersLabel.Text =
                     "";
@@ -635,10 +635,10 @@ TextChangedEventArgs e)
     object sender,
     TappedEventArgs e)
     {
-        selectedRules = "محلي";
+        selectedRules = "ظ…ط­ظ„ظٹ";
 
         PreviewRulesLabel.Text =
-            "محلي";
+            "ظ…ط­ظ„ظٹ";
 
         RulesDropdownBorder.IsVisible = false;
 
@@ -649,10 +649,10 @@ TextChangedEventArgs e)
     object sender,
     TappedEventArgs e)
     {
-        selectedRules = "عالمي";
+        selectedRules = "ط¹ط§ظ„ظ…ظٹ";
 
         PreviewRulesLabel.Text =
-            "عالمي";
+            "ط¹ط§ظ„ظ…ظٹ";
 
         RulesDropdownBorder.IsVisible = false;
 
@@ -670,11 +670,11 @@ TextChangedEventArgs e)
     {
         return emblem switch
         {
-            "🦅" => "eagle_3d.png",
-            "🐺" => "wolf_3d.png",
-            "🦁" => "lion_3d.png",
-            "🐉" => "dragon_3d.png",
-            "👑" => "crown_3d.png",
+            "ًں¦…" => "eagle_3d.png",
+            "ًںگ؛" => "wolf_3d.png",
+            "ًں¦پ" => "lion_3d.png",
+            "ًںگ‰" => "dragon_3d.png",
+            "ًں‘‘" => "crown_3d.png",
             _ => "shield_3d.png"
         };
     }
@@ -724,10 +724,10 @@ TextChangedEventArgs e)
         if (teams == null || teams.Count == 0)
         {
             MainSeasonTitleLabel.Text =
-                "الموسم الحالي";
+                "ط§ظ„ظ…ظˆط³ظ… ط§ظ„ط­ط§ظ„ظٹ";
 
             MainSeasonCountdownLabel.Text =
-                "ابدأ أول مباراة لتفعيل الموسم";
+                "ط§ط¨ط¯ط£ ط£ظˆظ„ ظ…ط¨ط§ط±ط§ط© ظ„طھظپط¹ظٹظ„ ط§ظ„ظ…ظˆط³ظ…";
 
             MainSeasonProgressPercentLabel.Text =
                 "0%";
@@ -753,10 +753,10 @@ TextChangedEventArgs e)
             SeasonManager.GetSeasonProgress(seasonTeam);
 
         MainSeasonTitleLabel.Text =
-            $"الموسم {seasonNumber}";
+            $"ط§ظ„ظ…ظˆط³ظ… {seasonNumber}";
 
         MainSeasonCountdownLabel.Text =
-            $"متبقي {daysRemaining} يوم على نهاية الموسم";
+            $"ظ…طھط¨ظ‚ظٹ {daysRemaining} ظٹظˆظ… ط¹ظ„ظ‰ ظ†ظ‡ط§ظٹط© ط§ظ„ظ…ظˆط³ظ…";
 
         MainSeasonProgressPercentLabel.Text =
             $"{progress * 100:0}%";
@@ -787,7 +787,7 @@ TextChangedEventArgs e)
                 selectedTeam1 = null;
 
                 PreviewTeam1NameLabel.Text =
-                    "اختر الفريق الأول";
+                    "ط§ط®طھط± ط§ظ„ظپط±ظٹظ‚ ط§ظ„ط£ظˆظ„";
 
                 PreviewTeam1PlayersLabel.Text =
                     "";
@@ -829,7 +829,7 @@ TextChangedEventArgs e)
                 selectedTeam2 = null;
 
                 PreviewTeam2NameLabel.Text =
-                    "اختر الفريق الثاني";
+                    "ط§ط®طھط± ط§ظ„ظپط±ظٹظ‚ ط§ظ„ط«ط§ظ†ظٹ";
 
                 PreviewTeam2PlayersLabel.Text =
                     "";
@@ -870,7 +870,7 @@ TextChangedEventArgs e)
         else
         {
             PreviewTeamsLabel.Text =
-                "اختر فريقين";
+                "ط§ط®طھط± ظپط±ظٹظ‚ظٹظ†";
         }
     }
 
@@ -1067,7 +1067,7 @@ TextChangedEventArgs e)
         }
         catch
         {
-            // تم إلغاء الضغط
+            // طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط¶ط؛ط·
         }
     }
 
@@ -1122,7 +1122,7 @@ TextChangedEventArgs e)
                 HeaderProfileBackgroundImage.IsVisible = false;
                 HeaderPlayerNameLabel.Text =
                     string.IsNullOrWhiteSpace(currentUser.DisplayName)
-                        ? "اللاعب"
+                        ? "ط§ظ„ظ„ط§ط¹ط¨"
                         : currentUser.DisplayName;
                 MemberLevelLabel.Text =
                     ResolveHeaderRoleLabel(currentUser.Role);
@@ -1143,9 +1143,10 @@ TextChangedEventArgs e)
             ApplyHeaderOverlay(
                 HeaderAvatarFrameOverlay,
                 visualIdentity.Frame?.PreviewImage);
-            ApplyHeaderOverlay(
+            PlayerEffectEngine.Apply(
                 HeaderAvatarEffectOverlay,
-                visualIdentity.Effect?.PreviewImage);
+                visualIdentity.Effect,
+                1.08);
 
             if (string.IsNullOrWhiteSpace(avatarPath))
                 avatarPath = ResolveHeaderAvatarFallback(profile);
@@ -1158,12 +1159,12 @@ TextChangedEventArgs e)
             HeaderPlayerNameLabel.Text =
                 string.IsNullOrWhiteSpace(profile?.PlayerName)
                 ? string.IsNullOrWhiteSpace(currentUser.DisplayName)
-                    ? "اللاعب"
+                    ? "ط§ظ„ظ„ط§ط¹ط¨"
                     : currentUser.DisplayName
                 : profile.PlayerName;
             MemberLevelLabel.Text =
                 visualIdentity.Title != null
-                    ? $"{ResolveHeaderRoleLabel(currentUser.Role)} • {visualIdentity.Title.DisplayName}"
+                    ? $"{ResolveHeaderRoleLabel(currentUser.Role)} â€¢ {visualIdentity.Title.DisplayName}"
                     : ResolveHeaderRoleLabel(currentUser.Role);
         }
         catch
@@ -1172,7 +1173,7 @@ TextChangedEventArgs e)
             HeaderAvatarFrameOverlay.IsVisible = false;
             HeaderAvatarEffectOverlay.IsVisible = false;
             HeaderProfileBackgroundImage.IsVisible = false;
-            HeaderPlayerNameLabel.Text = "اللاعب";
+            HeaderPlayerNameLabel.Text = "ط§ظ„ظ„ط§ط¹ط¨";
             MemberLevelLabel.Text = "Guest";
         }
     }
@@ -1344,7 +1345,7 @@ TextChangedEventArgs e)
         state = !state;
 
         content.IsVisible = state;
-        arrow.Text = state ? "▲" : "▼";
+        arrow.Text = state ? "â–²" : "â–¼";
     }
 
     void OnDataSettingsTapped(object sender, TappedEventArgs e)
@@ -1398,23 +1399,23 @@ TextChangedEventArgs e)
             string backupPath =
                 await BackupService.CreateBackupAsync();
             await DisplayAlert(
-    "تم",
-    "تم إنشاء النسخة الاحتياطية بنجاح. احفظ الملف في مكان آمن.",
-    "حسناً");
+    "طھظ…",
+    "طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط© ط¨ظ†ط¬ط§ط­. ط§ط­ظپط¸ ط§ظ„ظ…ظ„ظپ ظپظٹ ظ…ظƒط§ظ† ط¢ظ…ظ†.",
+    "ط­ط³ظ†ط§ظ‹");
 
             await Share.Default.RequestAsync(
                 new ShareFileRequest
                 {
-                    Title = "نسخة احتياطية - Domino Majlis PRO",
+                    Title = "ظ†ط³ط®ط© ط§ط­طھظٹط§ط·ظٹط© - Domino Majlis PRO",
                     File = new ShareFile(backupPath)
                 });
         }
         catch (Exception ex)
         {
             await DisplayAlert(
-                "خطأ",
-                $"فشل إنشاء النسخة الاحتياطية:\n{ex.Message}",
-                "حسناً");
+                "ط®ط·ط£",
+                $"ظپط´ظ„ ط¥ظ†ط´ط§ط، ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©:\n{ex.Message}",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
 
@@ -1427,10 +1428,10 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "استعادة البيانات",
-                "سيتم استبدال البيانات الحالية بالبيانات الموجودة داخل النسخة الاحتياطية.\n\nسيتم إنشاء نسخة طارئة قبل الاستعادة.\n\nهل تريد المتابعة؟",
-                "استعادة",
-                "إلغاء");
+                "ط§ط³طھط¹ط§ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ",
+                "ط³ظٹطھظ… ط§ط³طھط¨ط¯ط§ظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط­ط§ظ„ظٹط© ط¨ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظˆط¬ظˆط¯ط© ط¯ط§ط®ظ„ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©.\n\nط³ظٹطھظ… ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط·ط§ط±ط¦ط© ظ‚ط¨ظ„ ط§ظ„ط§ط³طھط¹ط§ط¯ط©.\n\nظ‡ظ„ طھط±ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط©طں",
+                "ط§ط³طھط¹ط§ط¯ط©",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -1442,7 +1443,7 @@ TextChangedEventArgs e)
                     new PickOptions
                     {
                         PickerTitle =
-                            "اختر ملف النسخة الاحتياطية"
+                            "ط§ط®طھط± ظ…ظ„ظپ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©"
                     });
 
             if (file == null)
@@ -1456,9 +1457,9 @@ TextChangedEventArgs e)
                 .RestoreBackupAsync(file);
 
             await DisplayAlert(
-                "تمت الاستعادة",
-                $"تمت استعادة البيانات بنجاح.\n\nتم إنشاء نسخة طارئة قبل الاستعادة:\n{System.IO.Path.GetFileName(emergencyBackup)}",
-                "حسناً");
+                "طھظ…طھ ط§ظ„ط§ط³طھط¹ط§ط¯ط©",
+                $"طھظ…طھ ط§ط³طھط¹ط§ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط¨ظ†ط¬ط§ط­.\n\nطھظ… ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط·ط§ط±ط¦ط© ظ‚ط¨ظ„ ط§ظ„ط§ط³طھط¹ط§ط¯ط©:\n{System.IO.Path.GetFileName(emergencyBackup)}",
+                "ط­ط³ظ†ط§ظ‹");
             AppEvents.RaiseDataChanged();
             allTeams =
                 await TeamProfileService.LoadTeamsAsync();
@@ -1471,9 +1472,9 @@ TextChangedEventArgs e)
         catch (Exception ex)
         {
             await DisplayAlert(
-                "خطأ",
-                $"فشلت عملية الاستعادة:\n{ex.Message}",
-                "حسناً");
+                "ط®ط·ط£",
+                $"ظپط´ظ„طھ ط¹ظ…ظ„ظٹط© ط§ظ„ط§ط³طھط¹ط§ط¯ط©:\n{ex.Message}",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
 
@@ -1488,10 +1489,10 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "إعادة بناء التصنيفات",
-                "سيتم إعادة حساب التصنيفات من سجل المباريات الحالي.\n\nلن يتم حذف الفرق أو المباريات.\n\nهل تريد المتابعة؟",
-                "إعادة البناء",
-                "إلغاء");
+                "ط¥ط¹ط§ط¯ط© ط¨ظ†ط§ط، ط§ظ„طھطµظ†ظٹظپط§طھ",
+                "ط³ظٹطھظ… ط¥ط¹ط§ط¯ط© ط­ط³ط§ط¨ ط§ظ„طھطµظ†ظٹظپط§طھ ظ…ظ† ط³ط¬ظ„ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ ط§ظ„ط­ط§ظ„ظٹ.\n\nظ„ظ† ظٹطھظ… ط­ط°ظپ ط§ظ„ظپط±ظ‚ ط£ظˆ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ.\n\nظ‡ظ„ طھط±ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط©طں",
+                "ط¥ط¹ط§ط¯ط© ط§ظ„ط¨ظ†ط§ط،",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -1503,16 +1504,16 @@ TextChangedEventArgs e)
             AppEvents.RaiseDataChanged();
 
             await DisplayAlert(
-                "تم",
-                "تمت إعادة بناء التصنيفات بنجاح",
-                "حسناً");
+                "طھظ…",
+                "طھظ…طھ ط¥ط¹ط§ط¯ط© ط¨ظ†ط§ط، ط§ظ„طھطµظ†ظٹظپط§طھ ط¨ظ†ط¬ط§ط­",
+                "ط­ط³ظ†ط§ظ‹");
         }
         catch (Exception ex)
         {
             await DisplayAlert(
-                "خطأ",
-                $"فشلت إعادة بناء التصنيفات:\n{ex.Message}",
-                "حسناً");
+                "ط®ط·ط£",
+                $"ظپط´ظ„طھ ط¥ط¹ط§ط¯ط© ط¨ظ†ط§ط، ط§ظ„طھطµظ†ظٹظپط§طھ:\n{ex.Message}",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
 
@@ -1525,10 +1526,10 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "حذف التصنيفات",
-                "سيتم حذف التصنيفات فقط.\n\nلن يتم حذف الفرق أو سجل المباريات.\n\nيمكنك إعادة بناء التصنيفات لاحقاً.",
-                "حذف",
-                "إلغاء");
+                "ط­ط°ظپ ط§ظ„طھطµظ†ظٹظپط§طھ",
+                "ط³ظٹطھظ… ط­ط°ظپ ط§ظ„طھطµظ†ظٹظپط§طھ ظپظ‚ط·.\n\nظ„ظ† ظٹطھظ… ط­ط°ظپ ط§ظ„ظپط±ظ‚ ط£ظˆ ط³ط¬ظ„ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ.\n\nظٹظ…ظƒظ†ظƒ ط¥ط¹ط§ط¯ط© ط¨ظ†ط§ط، ط§ظ„طھطµظ†ظٹظپط§طھ ظ„ط§ط­ظ‚ط§ظ‹.",
+                "ط­ط°ظپ",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -1541,16 +1542,16 @@ TextChangedEventArgs e)
             AppEvents.RaiseDataChanged();
 
             await DisplayAlert(
-                "تم",
-                "تم حذف التصنيفات بنجاح",
-                "حسناً");
+                "طھظ…",
+                "طھظ… ط­ط°ظپ ط§ظ„طھطµظ†ظٹظپط§طھ ط¨ظ†ط¬ط§ط­",
+                "ط­ط³ظ†ط§ظ‹");
         }
         catch (Exception ex)
         {
             await DisplayAlert(
-                "خطأ",
-                $"فشل حذف التصنيفات:\n{ex.Message}",
-                "حسناً");
+                "ط®ط·ط£",
+                $"ظپط´ظ„ ط­ط°ظپ ط§ظ„طھطµظ†ظٹظپط§طھ:\n{ex.Message}",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
 
@@ -1560,10 +1561,10 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "حذف جميع المباريات",
-                "سيتم حذف سجل جميع المباريات نهائياً.\n\nسيتم إنشاء نسخة طارئة قبل الحذف.\n\nبعد الحذف سيتم إعادة بناء التصنيفات.",
-                "حذف",
-                "إلغاء");
+                "ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ",
+                "ط³ظٹطھظ… ط­ط°ظپ ط³ط¬ظ„ ط¬ظ…ظٹط¹ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ ظ†ظ‡ط§ط¦ظٹط§ظ‹.\n\nط³ظٹطھظ… ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط·ط§ط±ط¦ط© ظ‚ط¨ظ„ ط§ظ„ط­ط°ظپ.\n\nط¨ط¹ط¯ ط§ظ„ط­ط°ظپ ط³ظٹطھظ… ط¥ط¹ط§ط¯ط© ط¨ظ†ط§ط، ط§ظ„طھطµظ†ظٹظپط§طھ.",
+                "ط­ط°ظپ",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -1583,16 +1584,16 @@ TextChangedEventArgs e)
             AppEvents.RaiseDataChanged();
 
             await DisplayAlert(
-                "تم",
-                $"تم حذف جميع المباريات بنجاح.\n\nتم إنشاء نسخة طارئة:\n{System.IO.Path.GetFileName(emergencyBackup)}",
-                "حسناً");
+                "طھظ…",
+                $"طھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ ط¨ظ†ط¬ط§ط­.\n\nطھظ… ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط·ط§ط±ط¦ط©:\n{System.IO.Path.GetFileName(emergencyBackup)}",
+                "ط­ط³ظ†ط§ظ‹");
         }
         catch (Exception ex)
         {
             await DisplayAlert(
-                "خطأ",
-                $"فشل حذف جميع المباريات:\n{ex.Message}",
-                "حسناً");
+                "ط®ط·ط£",
+                $"ظپط´ظ„ ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ:\n{ex.Message}",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
     // =========================
@@ -1604,10 +1605,10 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "تنظيف البيانات",
-                "سيتم فحص ملفات البيانات وإصلاح الملفات الفارغة أو التالفة.\n\nلن يتم حذف الفرق أو المباريات السليمة.",
-                "تنظيف",
-                "إلغاء");
+                "طھظ†ط¸ظٹظپ ط§ظ„ط¨ظٹط§ظ†ط§طھ",
+                "ط³ظٹطھظ… ظپط­طµ ظ…ظ„ظپط§طھ ط§ظ„ط¨ظٹط§ظ†ط§طھ ظˆط¥طµظ„ط§ط­ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظپط§ط±ط؛ط© ط£ظˆ ط§ظ„طھط§ظ„ظپط©.\n\nظ„ظ† ظٹطھظ… ط­ط°ظپ ط§ظ„ظپط±ظ‚ ط£ظˆ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ ط§ظ„ط³ظ„ظٹظ…ط©.",
+                "طھظ†ط¸ظٹظپ",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -1625,16 +1626,16 @@ TextChangedEventArgs e)
             AppEvents.RaiseDataChanged();
 
             await DisplayAlert(
-                "تم",
-                $"{result}\n\nتم إنشاء نسخة طارئة:\n{System.IO.Path.GetFileName(emergencyBackup)}",
-                "حسناً");
+                "طھظ…",
+                $"{result}\n\nطھظ… ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط·ط§ط±ط¦ط©:\n{System.IO.Path.GetFileName(emergencyBackup)}",
+                "ط­ط³ظ†ط§ظ‹");
         }
         catch (Exception ex)
         {
             await DisplayAlert(
-                "خطأ",
-                $"فشل تنظيف البيانات:\n{ex.Message}",
-                "حسناً");
+                "ط®ط·ط£",
+                $"ظپط´ظ„ طھظ†ط¸ظٹظپ ط§ظ„ط¨ظٹط§ظ†ط§طھ:\n{ex.Message}",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
 
@@ -1669,21 +1670,21 @@ TextChangedEventArgs e)
                 await DataStatusService.GetStatusAsync();
 
             await DisplayAlert(
-                "حالة البيانات",
-                $"الفرق: {status.TeamsCount}\n" +
-                $"اللاعبون: {status.PlayersCount}\n" +
-                $"المباريات: {status.MatchesCount}\n" +
-                $"التصنيفات: {status.RankingsCount}\n" +
-                $"قاعة المشاهير: {status.HallOfFameCount}\n\n" +
-                $"حجم البيانات: {status.DataSizeText}",
-                "حسناً");
+                "ط­ط§ظ„ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ",
+                $"ط§ظ„ظپط±ظ‚: {status.TeamsCount}\n" +
+                $"ط§ظ„ظ„ط§ط¹ط¨ظˆظ†: {status.PlayersCount}\n" +
+                $"ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ: {status.MatchesCount}\n" +
+                $"ط§ظ„طھطµظ†ظٹظپط§طھ: {status.RankingsCount}\n" +
+                $"ظ‚ط§ط¹ط© ط§ظ„ظ…ط´ط§ظ‡ظٹط±: {status.HallOfFameCount}\n\n" +
+                $"ط­ط¬ظ… ط§ظ„ط¨ظٹط§ظ†ط§طھ: {status.DataSizeText}",
+                "ط­ط³ظ†ط§ظ‹");
         }
         catch (Exception ex)
         {
             await DisplayAlert(
-                "خطأ",
-                $"فشل عرض حالة البيانات:\n{ex.Message}",
-                "حسناً");
+                "ط®ط·ط£",
+                $"ظپط´ظ„ ط¹ط±ط¶ ط­ط§ظ„ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ:\n{ex.Message}",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
 
@@ -1698,20 +1699,20 @@ TextChangedEventArgs e)
 
             string title =
                 result.HasProblems
-                ? "التشخيص - توجد ملاحظات"
-                : "التشخيص - سليم";
+                ? "ط§ظ„طھط´ط®ظٹطµ - طھظˆط¬ط¯ ظ…ظ„ط§ط­ط¸ط§طھ"
+                : "ط§ظ„طھط´ط®ظٹطµ - ط³ظ„ظٹظ…";
 
             await DisplayAlert(
                 title,
                 string.Join("\n", result.Messages),
-                "حسناً");
+                "ط­ط³ظ†ط§ظ‹");
         }
         catch (Exception ex)
         {
             await DisplayAlert(
-                "خطأ",
-                $"فشل تشغيل التشخيص:\n{ex.Message}",
-                "حسناً");
+                "ط®ط·ط£",
+                $"ظپط´ظ„ طھط´ط؛ظٹظ„ ط§ظ„طھط´ط®ظٹطµ:\n{ex.Message}",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
     // ====================
@@ -1731,16 +1732,16 @@ TextChangedEventArgs e)
             info.AppName;
 
         VersionNumberLabel.Text =
-            $"الإصدار الحالي: {info.Version}";
+            $"ط§ظ„ط¥طµط¯ط§ط± ط§ظ„ط­ط§ظ„ظٹ: {info.Version}";
 
         VersionBuildLabel.Text =
-            $"رقم البناء: {info.Build}";
+            $"ط±ظ‚ظ… ط§ظ„ط¨ظ†ط§ط،: {info.Build}";
 
         VersionReleaseTypeLabel.Text =
-            $"نوع النسخة: {info.ReleaseType}";
+            $"ظ†ظˆط¹ ط§ظ„ظ†ط³ط®ط©: {info.ReleaseType}";
 
         VersionDeveloperLabel.Text =
-            $"المطور: {info.Developer}";
+            $"ط§ظ„ظ…ط·ظˆط±: {info.Developer}";
 
         VersionUpdateStatusLabel.Text =
             info.UpdateStatus;
@@ -1752,7 +1753,7 @@ TextChangedEventArgs e)
             LatestUpdatesContainer.Children.Add(
                 new Label
                 {
-                    Text = $"✓ {update}",
+                    Text = $"âœ“ {update}",
                     TextColor = Colors.White,
                     FontSize = 14,
                     HorizontalTextAlignment = TextAlignment.End
@@ -1783,9 +1784,9 @@ TextChangedEventArgs e)
         await Clipboard.Default.SetTextAsync(text);
 
         await DisplayAlert(
-            "تم",
-            "تم نسخ معلومات الإصدار",
-            "حسناً");
+            "طھظ…",
+            "طھظ… ظ†ط³ط® ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ط¥طµط¯ط§ط±",
+            "ط­ط³ظ†ط§ظ‹");
     }
 
     // =========================
@@ -1800,7 +1801,7 @@ TextChangedEventArgs e)
         UpdateLogContainer.Children.Add(
             new Label
             {
-                Text = "سجل التحديثات",
+                Text = "ط³ط¬ظ„ ط§ظ„طھط­ط¯ظٹط«ط§طھ",
                 FontSize = 22,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Colors.Gold,
@@ -1835,7 +1836,7 @@ TextChangedEventArgs e)
             layout.Children.Add(
                 new Label
                 {
-                    Text = $"الإصدار {log.Version}",
+                    Text = $"ط§ظ„ط¥طµط¯ط§ط± {log.Version}",
                     TextColor = Colors.Gold,
                     FontSize = 18,
                     FontAttributes = FontAttributes.Bold,
@@ -1856,7 +1857,7 @@ TextChangedEventArgs e)
                 layout.Children.Add(
                     new Label
                     {
-                        Text = $"✓ {update}",
+                        Text = $"âœ“ {update}",
                         TextColor = Colors.White,
                         FontSize = 14,
                         HorizontalTextAlignment = TextAlignment.End
@@ -1895,7 +1896,7 @@ TextChangedEventArgs e)
             InfoContentContainer.Children.Add(
                 new Label
                 {
-                    Text = $"✓ {item}",
+                    Text = $"âœ“ {item}",
                     TextColor = Colors.White,
                     FontSize = 14,
                     HorizontalTextAlignment = TextAlignment.End
@@ -1945,10 +1946,10 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "إرسال تقرير تشخيص",
-                "سيتم إنشاء تقرير يحتوي على معلومات الإصدار، حالة البيانات، ونتيجة التشخيص.\n\nلا يتم إرسال كلمات مرور أو مفاتيح خاصة.",
-                "إنشاء التقرير",
-                "إلغاء");
+                "ط¥ط±ط³ط§ظ„ طھظ‚ط±ظٹط± طھط´ط®ظٹطµ",
+                "ط³ظٹطھظ… ط¥ظ†ط´ط§ط، طھظ‚ط±ظٹط± ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ط¥طµط¯ط§ط±طŒ ط­ط§ظ„ط© ط§ظ„ط¨ظٹط§ظ†ط§طھطŒ ظˆظ†طھظٹط¬ط© ط§ظ„طھط´ط®ظٹطµ.\n\nظ„ط§ ظٹطھظ… ط¥ط±ط³ط§ظ„ ظƒظ„ظ…ط§طھ ظ…ط±ظˆط± ط£ظˆ ظ…ظپط§طھظٹط­ ط®ط§طµط©.",
+                "ط¥ظ†ط´ط§ط، ط§ظ„طھظ‚ط±ظٹط±",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -1962,16 +1963,16 @@ TextChangedEventArgs e)
             await Share.Default.RequestAsync(
                 new ShareFileRequest
                 {
-                    Title = "تقرير دعم Domino Majlis PRO",
+                    Title = "طھظ‚ط±ظٹط± ط¯ط¹ظ… Domino Majlis PRO",
                     File = new ShareFile(reportPath)
                 });
         }
         catch (Exception ex)
         {
             await DisplayAlert(
-                "خطأ",
-                $"فشل إنشاء تقرير الدعم:\n{ex.Message}",
-                "حسناً");
+                "ط®ط·ط£",
+                $"ظپط´ظ„ ط¥ظ†ط´ط§ط، طھظ‚ط±ظٹط± ط§ظ„ط¯ط¹ظ…:\n{ex.Message}",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }    // =========================
     // OPEN INSTAGRAM
@@ -1990,9 +1991,9 @@ TextChangedEventArgs e)
         catch
         {
             await DisplayAlert(
-                "خطأ",
-                "تعذر فتح إنستغرام",
-                "حسناً");
+                "ط®ط·ط£",
+                "طھط¹ط°ط± ظپطھط­ ط¥ظ†ط³طھط؛ط±ط§ظ…",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
     // =========================
@@ -2012,9 +2013,9 @@ TextChangedEventArgs e)
         catch
         {
             await DisplayAlert(
-                "خطأ",
-                "تعذر فتح البريد الإلكتروني",
-                "حسناً");
+                "ط®ط·ط£",
+                "طھط¹ط°ط± ظپطھط­ ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
     // =========================
@@ -2048,7 +2049,7 @@ TextChangedEventArgs e)
                 Label titleLabel =
      new Label
      {
-         Text = $"{item.Title} ▼",
+         Text = $"{item.Title} â–¼",
 
          FontSize = 16,
 
@@ -2129,8 +2130,8 @@ TextChangedEventArgs e)
 
                     titleLabel.Text =
                         isOpen
-                        ? $"{item.Title} ▲"
-                        : $"{item.Title} ▼";
+                        ? $"{item.Title} â–²"
+                        : $"{item.Title} â–¼";
                 };
 
                 card.GestureRecognizers.Add(tap);
@@ -2191,19 +2192,19 @@ TextChangedEventArgs e)
         try
         {
             string? choice = await DisplayActionSheetAsync(
-                "الهوية المحلية",
-                "الاستمرار كضيف",
+                "ط§ظ„ظ‡ظˆظٹط© ط§ظ„ظ…ط­ظ„ظٹط©",
+                "ط§ظ„ط§ط³طھظ…ط±ط§ط± ظƒط¶ظٹظپ",
                 null,
-                "تسجيل الدخول",
-                "إنشاء حساب");
+                "طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„",
+                "ط¥ظ†ط´ط§ط، ط­ط³ط§ط¨");
 
             switch (choice)
             {
-                case "تسجيل الدخول":
+                case "طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„":
                     await ShowLocalUserSwitcherAsync();
                     break;
 
-                case "إنشاء حساب":
+                case "ط¥ظ†ط´ط§ط، ط­ط³ط§ط¨":
                     await ApplicationUserService.EnsureGhostUserAsync();
                     await UpgradeCurrentGhostAsync();
                     break;
@@ -2222,10 +2223,10 @@ TextChangedEventArgs e)
     async Task UpgradeCurrentGhostAsync()
     {
         string? playerName = await DisplayPromptAsync(
-            "إنشاء هوية لاعب",
-            "أدخل اسم اللاعب الذي سيُربط بهذه الهوية المحلية:",
-            "إنشاء",
-            "إلغاء",
+            "ط¥ظ†ط´ط§ط، ظ‡ظˆظٹط© ظ„ط§ط¹ط¨",
+            "ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ظ„ط§ط¹ط¨ ط§ظ„ط°ظٹ ط³ظٹظڈط±ط¨ط· ط¨ظ‡ط°ظ‡ ط§ظ„ظ‡ظˆظٹط© ط§ظ„ظ…ط­ظ„ظٹط©:",
+            "ط¥ظ†ط´ط§ط،",
+            "ط¥ظ„ط؛ط§ط،",
             maxLength: 40);
 
         if (string.IsNullOrWhiteSpace(playerName))
@@ -2237,16 +2238,16 @@ TextChangedEventArgs e)
                 .UpgradeGhostToMemberAsync(playerName);
 
             await DisplayAlertAsync(
-                "تم",
-                "تم إنشاء هوية اللاعب وربطها بالجلسة الحالية.",
-                "حسناً");
+                "طھظ…",
+                "طھظ… ط¥ظ†ط´ط§ط، ظ‡ظˆظٹط© ط§ظ„ظ„ط§ط¹ط¨ ظˆط±ط¨ط·ظ‡ط§ ط¨ط§ظ„ط¬ظ„ط³ط© ط§ظ„ط­ط§ظ„ظٹط©.",
+                "ط­ط³ظ†ط§ظ‹");
         }
         catch (Exception ex)
         {
             await DisplayAlertAsync(
-                "تعذر إنشاء الهوية",
+                "طھط¹ط°ط± ط¥ظ†ط´ط§ط، ط§ظ„ظ‡ظˆظٹط©",
                 ex.Message,
-                "حسناً");
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
 
@@ -2267,22 +2268,22 @@ TextChangedEventArgs e)
             {
                 User = user,
                 Label =
-                    $"{user.DisplayName} • {ResolveHeaderRoleLabel(user.Role)} • {ShortUserId(user.ApplicationUserId)}"
+                    $"{user.DisplayName} â€¢ {ResolveHeaderRoleLabel(user.Role)} â€¢ {ShortUserId(user.ApplicationUserId)}"
             })
             .ToList();
 
         if (choices.Count == 0)
         {
             await DisplayAlertAsync(
-                "تبديل الحساب",
-                "لا توجد هويات محلية أخرى على هذا الجهاز.",
-                "حسناً");
+                "طھط¨ط¯ظٹظ„ ط§ظ„ط­ط³ط§ط¨",
+                "ظ„ط§ طھظˆط¬ط¯ ظ‡ظˆظٹط§طھ ظ…ط­ظ„ظٹط© ط£ط®ط±ظ‰ ط¹ظ„ظ‰ ظ‡ط°ط§ ط§ظ„ط¬ظ‡ط§ط².",
+                "ط­ط³ظ†ط§ظ‹");
             return;
         }
 
         string? selected = await DisplayActionSheetAsync(
-            "اختر الهوية المحلية",
-            "إلغاء",
+            "ط§ط®طھط± ط§ظ„ظ‡ظˆظٹط© ط§ظ„ظ…ط­ظ„ظٹط©",
+            "ط¥ظ„ط؛ط§ط،",
             null,
             choices.Select(item => item.Label).ToArray());
 
@@ -2302,10 +2303,10 @@ TextChangedEventArgs e)
     async Task LogoutCurrentUserAsync()
     {
         bool confirm = await DisplayAlertAsync(
-            "تسجيل الخروج",
-            "سيتم إنهاء الجلسة المحلية فقط. لن تُحذف الهوية أو بيانات اللاعب.",
-            "تسجيل الخروج",
-            "إلغاء");
+            "طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬",
+            "ط³ظٹطھظ… ط¥ظ†ظ‡ط§ط، ط§ظ„ط¬ظ„ط³ط© ط§ظ„ظ…ط­ظ„ظٹط© ظپظ‚ط·. ظ„ظ† طھظڈط­ط°ظپ ط§ظ„ظ‡ظˆظٹط© ط£ظˆ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ„ط§ط¹ط¨.",
+            "طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬",
+            "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -2317,7 +2318,7 @@ TextChangedEventArgs e)
     static string ShortUserId(string applicationUserId)
     {
         if (string.IsNullOrWhiteSpace(applicationUserId))
-            return "—";
+            return "â€”";
 
         return applicationUserId.Length <= 10
             ? applicationUserId
@@ -2337,10 +2338,10 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "الموافقة على حفظ البيانات",
-                "سيتم حفظ معلومات اختيارية فقط لتحسين تجربة التطبيق.\n\nلن يتم حفظ عنوان السكن أو رقم الهاتف أو الموقع الجغرافي.\n\nهل توافق؟",
-                "أوافق",
-                "إلغاء");
+                "ط§ظ„ظ…ظˆط§ظپظ‚ط© ط¹ظ„ظ‰ ط­ظپط¸ ط§ظ„ط¨ظٹط§ظ†ط§طھ",
+                "ط³ظٹطھظ… ط­ظپط¸ ظ…ط¹ظ„ظˆظ…ط§طھ ط§ط®طھظٹط§ط±ظٹط© ظپظ‚ط· ظ„طھط­ط³ظٹظ† طھط¬ط±ط¨ط© ط§ظ„طھط·ط¨ظٹظ‚.\n\nظ„ظ† ظٹطھظ… ط­ظپط¸ ط¹ظ†ظˆط§ظ† ط§ظ„ط³ظƒظ† ط£ظˆ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط£ظˆ ط§ظ„ظ…ظˆظ‚ط¹ ط§ظ„ط¬ط؛ط±ط§ظپظٹ.\n\nظ‡ظ„ طھظˆط§ظپظ‚طں",
+                "ط£ظˆط§ظپظ‚",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -2360,9 +2361,9 @@ TextChangedEventArgs e)
         PrivacyProfileOverlay.IsVisible = false;
         await RefreshProfileStatus();
         await DisplayAlert(
-            "تم",
-            "تم حفظ الملف الشخصي الاختياري بنجاح",
-            "حسناً");
+            "طھظ…",
+            "طھظ… ط­ظپط¸ ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ ط§ظ„ط§ط®طھظٹط§ط±ظٹ ط¨ظ†ط¬ط§ط­",
+            "ط­ط³ظ†ط§ظ‹");
      
     }
 
@@ -2372,10 +2373,10 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "حذف البيانات",
-                "هل تريد حذف بيانات الملف الشخصي الاختياري؟",
-                "حذف",
-                "إلغاء");
+                "ط­ط°ظپ ط§ظ„ط¨ظٹط§ظ†ط§طھ",
+                "ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ ط§ظ„ط§ط®طھظٹط§ط±ظٹطں",
+                "ط­ط°ظپ",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -2389,9 +2390,9 @@ TextChangedEventArgs e)
         PrivacyProfileOverlay.IsVisible = false;
         await RefreshProfileStatus();
         await DisplayAlert(
-            "تم",
-            "تم حذف بيانات الملف الشخصي",
-            "حسناً");
+            "طھظ…",
+            "طھظ… ط­ط°ظپ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ",
+            "ط­ط³ظ†ط§ظ‹");
 
     }
 
@@ -2440,7 +2441,7 @@ TextChangedEventArgs e)
             logs.Count(x => !x.IsPermanent);
 
         SecurityLogCounterLabel.Text =
-            $"الدائمة: {permanentCount} | المؤقتة: {temporaryCount}";
+            $"ط§ظ„ط¯ط§ط¦ظ…ط©: {permanentCount} | ط§ظ„ظ…ط¤ظ‚طھط©: {temporaryCount}";
 
         var role =
             await HonorIdentityService.GetCurrentRoleAsync();
@@ -2453,7 +2454,7 @@ TextChangedEventArgs e)
             SecurityLogContainer.Children.Add(
                 new Label
                 {
-                    Text = "لا توجد أحداث أمنية مسجلة",
+                    Text = "ظ„ط§ طھظˆط¬ط¯ ط£ط­ط¯ط§ط« ط£ظ…ظ†ظٹط© ظ…ط³ط¬ظ„ط©",
                     TextColor = Colors.White,
                     HorizontalTextAlignment =
                         TextAlignment.Center
@@ -2466,17 +2467,17 @@ TextChangedEventArgs e)
                 string severityIcon =
                     log.Severity switch
                     {
-                        "High" => "🔴",
-                        "Medium" => "🟡",
-                        _ => "🟢"
+                        "High" => "ًں”´",
+                        "Medium" => "ًںں،",
+                        _ => "ًںں¢"
                     };
 
                 string severityText =
                     log.Severity switch
                     {
-                        "High" => "حساس",
-                        "Medium" => "تحذير",
-                        _ => "معلومات"
+                        "High" => "ط­ط³ط§ط³",
+                        "Medium" => "طھط­ط°ظٹط±",
+                        _ => "ظ…ط¹ظ„ظˆظ…ط§طھ"
                     };
 
                 SecurityLogContainer.Children.Add(
@@ -2518,7 +2519,7 @@ TextChangedEventArgs e)
                         new Label
                         {
                             Text =
-                                $"نوع الحدث: {severityText}",
+                                $"ظ†ظˆط¹ ط§ظ„ط­ط¯ط«: {severityText}",
 
                             TextColor =
                                 Color.FromArgb("#CCCCCC"),
@@ -2532,7 +2533,7 @@ TextChangedEventArgs e)
                         new Label
                         {
                             Text =
-                                $"التاريخ: {log.Date:yyyy/MM/dd HH:mm}",
+                                $"ط§ظ„طھط§ط±ظٹط®: {log.Date:yyyy/MM/dd HH:mm}",
 
                             TextColor =
                                 Color.FromArgb("#999999"),
@@ -2593,13 +2594,13 @@ TextChangedEventArgs e)
 
         DeveloperLockStatusLabel.Text =
             lockData.IsEnabled
-            ? "الحالة: مفعّل"
-            : "الحالة: غير مفعّل";
+            ? "ط§ظ„ط­ط§ظ„ط©: ظ…ظپط¹ظ‘ظ„"
+            : "ط§ظ„ط­ط§ظ„ط©: ط؛ظٹط± ظ…ظپط¹ظ‘ظ„";
 
         DeveloperLockLastChangeLabel.Text =
             lockData.LastPasswordChange == DateTime.MinValue
-            ? "آخر تغيير: —"
-            : $"آخر تغيير: {lockData.LastPasswordChange:yyyy/MM/dd HH:mm}";
+            ? "ط¢ط®ط± طھط؛ظٹظٹط±: â€”"
+            : $"ط¢ط®ط± طھط؛ظٹظٹط±: {lockData.LastPasswordChange:yyyy/MM/dd HH:mm}";
 
         DeveloperPasswordEntry.Text = "";
         DeveloperConfirmPasswordEntry.Text = "";
@@ -2632,9 +2633,9 @@ TextChangedEventArgs e)
         if (string.IsNullOrWhiteSpace(password))
         {
             await DisplayAlert(
-                "تنبيه",
-                "أدخل كلمة مرور المطور",
-                "حسناً");
+                "طھظ†ط¨ظٹظ‡",
+                "ط£ط¯ط®ظ„ ظƒظ„ظ…ط© ظ…ط±ظˆط± ط§ظ„ظ…ط·ظˆط±",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -2642,9 +2643,9 @@ TextChangedEventArgs e)
         if (password.Length < 8)
         {
             await DisplayAlert(
-                "تنبيه",
-                "كلمة المرور يجب أن تكون 8 أحرف على الأقل",
-                "حسناً");
+                "طھظ†ط¨ظٹظ‡",
+                "ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† 8 ط£ط­ط±ظپ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -2652,9 +2653,9 @@ TextChangedEventArgs e)
         if (password != confirm)
         {
             await DisplayAlert(
-                "تنبيه",
-                "كلمة المرور وتأكيدها غير متطابقين",
-                "حسناً");
+                "طھظ†ط¨ظٹظ‡",
+                "ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظˆطھط£ظƒظٹط¯ظ‡ط§ ط؛ظٹط± ظ…طھط·ط§ط¨ظ‚ظٹظ†",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -2662,9 +2663,9 @@ TextChangedEventArgs e)
         await DeveloperLockService.SetPasswordAsync(password);
 
         await DisplayAlert(
-            "تم",
-            "تم حفظ كلمة مرور المطور",
-            "حسناً");
+            "طھظ…",
+            "طھظ… ط­ظپط¸ ظƒظ„ظ…ط© ظ…ط±ظˆط± ط§ظ„ظ…ط·ظˆط±",
+            "ط­ط³ظ†ط§ظ‹");
 
         DeveloperLockOverlay.IsVisible = false;
     }
@@ -2686,25 +2687,25 @@ TextChangedEventArgs e)
         {
             await SecurityLogService.AddAsync(
                 "SECURITY",
-                "تم التحقق من قفل المطور",
+                "طھظ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظ‚ظپظ„ ط§ظ„ظ…ط·ظˆط±",
                 "Developer password verified");
 
             await DisplayAlert(
-                "تم",
-                "كلمة المرور صحيحة",
-                "حسناً");
+                "طھظ…",
+                "ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± طµط­ظٹط­ط©",
+                "ط­ط³ظ†ط§ظ‹");
         }
         else
         {
             await SecurityLogService.AddAsync(
                 "SECURITY",
-                "فشل التحقق من قفل المطور",
+                "ظپط´ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظ‚ظپظ„ ط§ظ„ظ…ط·ظˆط±",
                 "Developer password verification failed");
 
             await DisplayAlert(
-                "خطأ",
-                "كلمة المرور غير صحيحة",
-                "حسناً");
+                "ط®ط·ط£",
+                "ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± طµط­ظٹط­ط©",
+                "ط­ط³ظ†ط§ظ‹");
         }
     }
 
@@ -2727,10 +2728,10 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "حذف السجلات المؤقتة",
-                "سيتم حذف السجلات المؤقتة فقط.\n\nالسجلات الدائمة ستبقى محفوظة.",
-                "حذف",
-                "إلغاء");
+                "ط­ط°ظپ ط§ظ„ط³ط¬ظ„ط§طھ ط§ظ„ظ…ط¤ظ‚طھط©",
+                "ط³ظٹطھظ… ط­ط°ظپ ط§ظ„ط³ط¬ظ„ط§طھ ط§ظ„ظ…ط¤ظ‚طھط© ظپظ‚ط·.\n\nط§ظ„ط³ط¬ظ„ط§طھ ط§ظ„ط¯ط§ط¦ظ…ط© ط³طھط¨ظ‚ظ‰ ظ…ط­ظپظˆط¸ط©.",
+                "ط­ط°ظپ",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -2739,15 +2740,15 @@ TextChangedEventArgs e)
 
         await SecurityLogService.AddAsync(
             "SECURITY",
-            "تم حذف السجلات المؤقتة",
+            "طھظ… ط­ط°ظپ ط§ظ„ط³ط¬ظ„ط§طھ ط§ظ„ظ…ط¤ظ‚طھط©",
             "Temporary security logs cleared by Developer",
             "Medium",
             true);
 
         await DisplayAlert(
-            "تم",
-            "تم حذف السجلات المؤقتة بنجاح",
-            "حسناً");
+            "طھظ…",
+            "طھظ… ط­ط°ظپ ط§ظ„ط³ط¬ظ„ط§طھ ط§ظ„ظ…ط¤ظ‚طھط© ط¨ظ†ط¬ط§ط­",
+            "ط­ط³ظ†ط§ظ‹");
 
         OnSecurityLogTapped(
             sender,
@@ -2770,7 +2771,7 @@ TextChangedEventArgs e)
         if (!identity.IsActivated)
         {
             CurrentHonorRoleLabel.Text =
-                "👤 الحالة الحالية: مستخدم عادي";
+                "ًں‘¤ ط§ظ„ط­ط§ظ„ط© ط§ظ„ط­ط§ظ„ظٹط©: ظ…ط³طھط®ط¯ظ… ط¹ط§ط¯ظٹ";
         }
         else
         {
@@ -2779,25 +2780,25 @@ TextChangedEventArgs e)
                 case HonorRoleType.Developer:
 
                     CurrentHonorRoleLabel.Text =
-                        "⚙️ الحالة الحالية: Developer";
+                        "âڑ™ï¸ڈ ط§ظ„ط­ط§ظ„ط© ط§ظ„ط­ط§ظ„ظٹط©: Developer";
                     break;
 
                 case HonorRoleType.Founder:
 
                     CurrentHonorRoleLabel.Text =
-                        $"👑 الحالة الحالية: Founder #{identity.FounderNumber}";
+                        $"ًں‘‘ ط§ظ„ط­ط§ظ„ط© ط§ظ„ط­ط§ظ„ظٹط©: Founder #{identity.FounderNumber}";
                     break;
 
                 case HonorRoleType.Honor:
 
                     CurrentHonorRoleLabel.Text =
-                        "🏛️ الحالة الحالية: Honor Member";
+                        "ًںڈ›ï¸ڈ ط§ظ„ط­ط§ظ„ط© ط§ظ„ط­ط§ظ„ظٹط©: Honor Member";
                     break;
 
                 default:
 
                     CurrentHonorRoleLabel.Text =
-                        "👤 الحالة الحالية: مستخدم عادي";
+                        "ًں‘¤ ط§ظ„ط­ط§ظ„ط© ط§ظ„ط­ط§ظ„ظٹط©: ظ…ط³طھط®ط¯ظ… ط¹ط§ط¯ظٹ";
                     break;
             }
         }
@@ -2827,9 +2828,9 @@ TextChangedEventArgs e)
         if (string.IsNullOrWhiteSpace(displayName))
         {
             await DisplayAlert(
-                "تنبيه",
-                "أدخل الاسم أو ID",
-                "حسناً");
+                "طھظ†ط¨ظٹظ‡",
+                "ط£ط¯ط®ظ„ ط§ظ„ط§ط³ظ… ط£ظˆ ID",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -2837,9 +2838,9 @@ TextChangedEventArgs e)
         if (string.IsNullOrWhiteSpace(activationKey))
         {
             await DisplayAlert(
-                "تنبيه",
-                "أدخل مفتاح التفعيل",
-                "حسناً");
+                "طھظ†ط¨ظٹظ‡",
+                "ط£ط¯ط®ظ„ ظ…ظپطھط§ط­ ط§ظ„طھظپط¹ظٹظ„",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -2868,9 +2869,9 @@ TextChangedEventArgs e)
                 HonorActivationOverlay.IsVisible = false;
 
                 await DisplayAlert(
-                    "تم",
-                    "تم تأسيس أول Developer بنجاح. الآن صدّر Developer Vault فوراً.",
-                    "حسناً");
+                    "طھظ…",
+                    "طھظ… طھط£ط³ظٹط³ ط£ظˆظ„ Developer ط¨ظ†ط¬ط§ط­. ط§ظ„ط¢ظ† طµط¯ظ‘ط± Developer Vault ظپظˆط±ط§ظ‹.",
+                    "ط­ط³ظ†ط§ظ‹");
 
                 return;
             }
@@ -2883,15 +2884,15 @@ TextChangedEventArgs e)
         {
             await SecurityLogService.AddAsync(
                 "HONOR",
-                "محاولة تفعيل صلاحية إضافية",
+                "ظ…ط­ط§ظˆظ„ط© طھظپط¹ظٹظ„ طµظ„ط§ط­ظٹط© ط¥ط¶ط§ظپظٹط©",
                 $"Current Role: {currentIdentity.Role}",
                 "Medium",
                 false);
 
             await DisplayAlert(
-                "الصلاحية مفعّلة مسبقاً",
-                $"هذا الجهاز مفعّل حالياً بصلاحية:\n{currentIdentity.Role}\n\nلا يمكن تفعيل صلاحية أخرى على نفس الجهاز.",
-                "حسناً");
+                "ط§ظ„طµظ„ط§ط­ظٹط© ظ…ظپط¹ظ‘ظ„ط© ظ…ط³ط¨ظ‚ط§ظ‹",
+                $"ظ‡ط°ط§ ط§ظ„ط¬ظ‡ط§ط² ظ…ظپط¹ظ‘ظ„ ط­ط§ظ„ظٹط§ظ‹ ط¨طµظ„ط§ط­ظٹط©:\n{currentIdentity.Role}\n\nظ„ط§ ظٹظ…ظƒظ† طھظپط¹ظٹظ„ طµظ„ط§ط­ظٹط© ط£ط®ط±ظ‰ ط¹ظ„ظ‰ ظ†ظپط³ ط§ظ„ط¬ظ‡ط§ط².",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -2905,15 +2906,15 @@ TextChangedEventArgs e)
         {
             await SecurityLogService.AddAsync(
                 "HONOR",
-                "فشل تفعيل قاعة الشرف",
+                "ظپط´ظ„ طھظپط¹ظٹظ„ ظ‚ط§ط¹ط© ط§ظ„ط´ط±ظپ",
                 "Invalid honor activation key",
                 "Medium",
                 false);
 
             await DisplayAlert(
-                "فشل التفعيل",
-                "مفتاح التفعيل غير صحيح.",
-                "حسناً");
+                "ظپط´ظ„ ط§ظ„طھظپط¹ظٹظ„",
+                "ظ…ظپطھط§ط­ ط§ظ„طھظپط¹ظٹظ„ ط؛ظٹط± طµط­ظٹط­.",
+                "ط­ط³ظ†ط§ظ‹");
 
             return;
         }
@@ -2925,24 +2926,24 @@ TextChangedEventArgs e)
             identity.Role switch
             {
                 HonorRoleType.Developer =>
-                    "تم تفعيل صلاحية المطور بنجاح.",
+                    "طھظ… طھظپط¹ظٹظ„ طµظ„ط§ط­ظٹط© ط§ظ„ظ…ط·ظˆط± ط¨ظ†ط¬ط§ط­.",
 
                 HonorRoleType.Founder =>
-                    $"تم تفعيل صلاحية Founder بنجاح.\n\nFounder #{identity.FounderNumber}",
+                    $"طھظ… طھظپط¹ظٹظ„ طµظ„ط§ط­ظٹط© Founder ط¨ظ†ط¬ط§ط­.\n\nFounder #{identity.FounderNumber}",
 
                 HonorRoleType.Honor =>
-                    "تم تفعيل صلاحية Honor بنجاح.",
+                    "طھظ… طھظپط¹ظٹظ„ طµظ„ط§ط­ظٹط© Honor ط¨ظ†ط¬ط§ط­.",
 
                 _ =>
-                    "تم التفعيل بنجاح."
+                    "طھظ… ط§ظ„طھظپط¹ظٹظ„ ط¨ظ†ط¬ط§ط­."
             };
 
         HonorActivationOverlay.IsVisible = false;
 
         await DisplayAlert(
-            "تم التفعيل",
+            "طھظ… ط§ظ„طھظپط¹ظٹظ„",
             message,
-            "حسناً");
+            "ط­ط³ظ†ط§ظ‹");
     }
     // =========================
     // DEBUG: CLEAR HONOR IDENTITY
@@ -2953,10 +2954,10 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "تصفير هوية الشرف",
-                "سيتم حذف صلاحية الجهاز الحالية فقط.\n\nلن يتم حذف الفرق أو المباريات أو التصنيفات.",
-                "حذف",
-                "إلغاء");
+                "طھطµظپظٹط± ظ‡ظˆظٹط© ط§ظ„ط´ط±ظپ",
+                "ط³ظٹطھظ… ط­ط°ظپ طµظ„ط§ط­ظٹط© ط§ظ„ط¬ظ‡ط§ط² ط§ظ„ط­ط§ظ„ظٹط© ظپظ‚ط·.\n\nظ„ظ† ظٹطھظ… ط­ط°ظپ ط§ظ„ظپط±ظ‚ ط£ظˆ ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ ط£ظˆ ط§ظ„طھطµظ†ظٹظپط§طھ.",
+                "ط­ط°ظپ",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -2964,15 +2965,15 @@ TextChangedEventArgs e)
         await HonorIdentityService.ClearAsync();
 
         CurrentHonorRoleLabel.Text =
-            "👤 الحالة الحالية: مستخدم عادي";
+            "ًں‘¤ ط§ظ„ط­ط§ظ„ط© ط§ظ„ط­ط§ظ„ظٹط©: ظ…ط³طھط®ط¯ظ… ط¹ط§ط¯ظٹ";
 
         HonorDisplayNameEntry.Text = "";
         HonorActivationKeyEntry.Text = "";
 
         await DisplayAlert(
-            "تم",
-            "تم حذف هوية الشرف من الجهاز. يمكنك الآن تفعيل Developer أو Founder أو Honor من جديد.",
-            "حسناً");
+            "طھظ…",
+            "طھظ… ط­ط°ظپ ظ‡ظˆظٹط© ط§ظ„ط´ط±ظپ ظ…ظ† ط§ظ„ط¬ظ‡ط§ط². ظٹظ…ظƒظ†ظƒ ط§ظ„ط¢ظ† طھظپط¹ظٹظ„ Developer ط£ظˆ Founder ط£ظˆ Honor ظ…ظ† ط¬ط¯ظٹط¯.",
+            "ط­ط³ظ†ط§ظ‹");
     }
 }
 

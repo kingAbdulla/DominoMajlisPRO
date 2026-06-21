@@ -6,7 +6,7 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class StoreAssetCatalogService
 {
-    public const string IncompleteDisplayName = "عنصر غير مكتمل البيانات";
+    public const string IncompleteDisplayName = "ط¹ظ†طµط± ط؛ظٹط± ظ…ظƒطھظ…ظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ";
 
     public static async Task<IReadOnlyList<CatalogAssetDisplay>> LoadAsync()
     {
@@ -41,7 +41,11 @@ public static class StoreAssetCatalogService
                 item.Title,
                 item.ImagePath,
                 item.ColorHex,
-                productIds));
+                productIds,
+                item.EffectType,
+                item.AnimationType,
+                item.DurationMilliseconds,
+                item.EquipTarget));
         }
         assets.AddRange(avatarsTask.Result.Select(item => Create(
             item.Id,
@@ -157,7 +161,11 @@ public static class StoreAssetCatalogService
         string arabicDisplayName,
         string previewImage,
         string colorHex,
-        IReadOnlyList<ProductLink> products) =>
+        IReadOnlyList<ProductLink> products,
+        string effectType = "",
+        string animationType = "",
+        int durationMilliseconds = 0,
+        string equipTarget = "") =>
         new(
             assetId.Trim(),
             assetType,
@@ -173,7 +181,11 @@ public static class StoreAssetCatalogService
                 .Select(item => item.ProductId?.Trim() ?? string.Empty)
                 .Where(item => item.Length > 0)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList());
+                .ToList(),
+            effectType?.Trim() ?? string.Empty,
+            animationType?.Trim() ?? string.Empty,
+            durationMilliseconds,
+            equipTarget?.Trim() ?? string.Empty);
 
     private static StoreProductAssetType TeamType(string typeId) =>
         Same(typeId, TeamAssetTypes.Emblem.TeamAssetTypeId)

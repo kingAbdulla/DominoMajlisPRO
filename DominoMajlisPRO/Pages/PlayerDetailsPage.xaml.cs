@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.Models;
+using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -151,7 +151,7 @@ public partial class PlayerDetailsPage : ContentPage
         layout.Children.Add(
             new Label
             {
-                Text = achievement.IsUnlocked ? "âœ“" : "ًں”’",
+                Text = achievement.IsUnlocked ? "أ¢إ“â€œ" : "ظ‹ع؛â€‌â€™",
                 TextColor =
                     achievement.IsUnlocked
                         ? Color.FromArgb("#00C853")
@@ -257,7 +257,7 @@ public partial class PlayerDetailsPage : ContentPage
 
         if (currentPlayer == null)
         {
-            await DisplayAlert("ط®ط·ط£", "ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ظ„ظ„ط§ط¹ط¨", "ط­ط³ظ†ط§ظ‹");
+            await DisplayAlert("ط·آ®ط·آ·ط·آ£", "ط¸â€‍ط¸â€¦ ط¸ظ¹ط·ع¾ط¸â€¦ ط·آ§ط¸â€‍ط·آ¹ط·آ«ط¸ث†ط·آ± ط·آ¹ط¸â€‍ط¸â€° ط·آ§ط¸â€‍ط¸â€‍ط·آ§ط·آ¹ط·آ¨", "ط·آ­ط·آ³ط¸â€ ط·آ§ط¸â€¹");
             await Navigation.PopAsync();
             return;
         }
@@ -287,7 +287,7 @@ public partial class PlayerDetailsPage : ContentPage
             await ResolveIdentityRoleAsync(currentPlayer);
         PlayerStatusLabel.Text = visualIdentity.Title == null
             ? identityRole
-            : $"{identityRole} â€¢ {visualIdentity.Title.DisplayName}";
+            : $"{identityRole} أ¢â‚¬آ¢ {visualIdentity.Title.DisplayName}";
         ApplyAvatarIdentityVisuals(visualIdentity);
 
         PlayerRankLabel.Text =
@@ -297,7 +297,7 @@ public partial class PlayerDetailsPage : ContentPage
             rank.Progress;
 
         RankProgressLabel.Text =
-            $"ظ…طھط¨ظ‚ظٹ ظ„ظ„طھط±ظ‚ظٹط©: {rank.RemainingXP} XP";
+            $"ط¸â€¦ط·ع¾ط·آ¨ط¸â€ڑط¸ظ¹ ط¸â€‍ط¸â€‍ط·ع¾ط·آ±ط¸â€ڑط¸ظ¹ط·آ©: {rank.RemainingXP} XP";
 
         LevelLabel.Text =
             currentPlayer.PlayerLevel.ToString();
@@ -360,10 +360,7 @@ public partial class PlayerDetailsPage : ContentPage
             ToImageSource(identity.Frame?.PreviewImage);
         AvatarFrameOverlay.Source = frameSource;
         AvatarFrameOverlay.IsVisible = frameSource != null;
-        var effectSource =
-            ToImageSource(identity.Effect?.PreviewImage);
-        AvatarEffectOverlay.Source = effectSource;
-        AvatarEffectOverlay.IsVisible = effectSource != null;
+        PlayerEffectEngine.Apply(AvatarEffectOverlay, identity.Effect, 1.18);
         AvatarFrame.Stroke = identity.Frame == null
             ? Color.FromArgb("#D4AF37")
             : Colors.Transparent;
@@ -408,7 +405,7 @@ public partial class PlayerDetailsPage : ContentPage
             TimelineContainer.Children.Add(
                 new Label
                 {
-                    Text = "ظ„ط§ ظٹظˆط¬ط¯ ط³ط¬ظ„ ظ†ط´ط§ط· ط¨ط¹ط¯",
+                    Text = "ط¸â€‍ط·آ§ ط¸ظ¹ط¸ث†ط·آ¬ط·آ¯ ط·آ³ط·آ¬ط¸â€‍ ط¸â€ ط·آ´ط·آ§ط·آ· ط·آ¨ط·آ¹ط·آ¯",
                     TextColor = Color.FromArgb("#AAAAAA"),
                     FontSize = 13,
                     HorizontalTextAlignment = TextAlignment.Center
@@ -431,7 +428,7 @@ public partial class PlayerDetailsPage : ContentPage
 
         var showMore = new Button
         {
-            Text = $"ط¹ط±ط¶ ط§ظ„ظ…ط²ظٹط¯ ({remaining})",
+            Text = $"ط·آ¹ط·آ±ط·آ¶ ط·آ§ط¸â€‍ط¸â€¦ط·آ²ط¸ظ¹ط·آ¯ ({remaining})",
             BackgroundColor = Color.FromArgb("#1A1A1A"),
             TextColor = Color.FromArgb("#D4AF37"),
             BorderColor = Color.FromArgb("#8A5B27"),
@@ -475,7 +472,7 @@ public partial class PlayerDetailsPage : ContentPage
         {
             var deleteButton = new Button
             {
-                Text = "âœ•",
+                Text = "أ¢إ“â€¢",
                 BackgroundColor = Colors.Transparent,
                 TextColor = Color.FromArgb("#FF7777"),
                 FontSize = 13,
@@ -552,10 +549,10 @@ public partial class PlayerDetailsPage : ContentPage
             return;
 
         bool confirmed = await DisplayAlertAsync(
-            "ط­ط°ظپ ط§ظ„ط­ط¯ط«",
-            "ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ط­ط¯ط« ظپظ‚ط·طں",
-            "ط­ط°ظپ",
-            "ط¥ظ„ط؛ط§ط،");
+            "ط·آ­ط·آ°ط¸ظ¾ ط·آ§ط¸â€‍ط·آ­ط·آ¯ط·آ«",
+            "ط¸â€،ط¸â€‍ ط·ع¾ط·آ±ط¸ظ¹ط·آ¯ ط·آ­ط·آ°ط¸ظ¾ ط¸â€،ط·آ°ط·آ§ ط·آ§ط¸â€‍ط·آ­ط·آ¯ط·آ« ط¸ظ¾ط¸â€ڑط·آ·ط·ع؛",
+            "ط·آ­ط·آ°ط¸ظ¾",
+            "ط·آ¥ط¸â€‍ط·ط›ط·آ§ط·طŒ");
         if (!confirmed ||
             !PlayerTimelineService.DeleteIdentityEvent(
                 currentPlayer,
@@ -576,10 +573,10 @@ public partial class PlayerDetailsPage : ContentPage
             return;
 
         bool confirmed = await DisplayAlertAsync(
-            "ط­ط°ظپ ط³ط¬ظ„ ط§ظ„ط£ط­ط¯ط§ط«",
-            "ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ط¬ظ…ظٹط¹ ط£ط­ط¯ط§ط« ظ‡ظˆظٹط© ط§ظ„ظ„ط§ط¹ط¨طں",
-            "ط­ط°ظپ ط§ظ„ظƒظ„",
-            "ط¥ظ„ط؛ط§ط،");
+            "ط·آ­ط·آ°ط¸ظ¾ ط·آ³ط·آ¬ط¸â€‍ ط·آ§ط¸â€‍ط·آ£ط·آ­ط·آ¯ط·آ§ط·آ«",
+            "ط¸â€،ط¸â€‍ ط·ع¾ط·آ±ط¸ظ¹ط·آ¯ ط·آ­ط·آ°ط¸ظ¾ ط·آ¬ط¸â€¦ط¸ظ¹ط·آ¹ ط·آ£ط·آ­ط·آ¯ط·آ§ط·آ« ط¸â€،ط¸ث†ط¸ظ¹ط·آ© ط·آ§ط¸â€‍ط¸â€‍ط·آ§ط·آ¹ط·آ¨ط·ع؛",
+            "ط·آ­ط·آ°ط¸ظ¾ ط·آ§ط¸â€‍ط¸ئ’ط¸â€‍",
+            "ط·آ¥ط¸â€‍ط·ط›ط·آ§ط·طŒ");
         if (!confirmed ||
             !PlayerTimelineService.DeleteAllIdentityEvents(currentPlayer))
         {
@@ -886,9 +883,9 @@ public partial class PlayerDetailsPage : ContentPage
         if (selectedAvatar == null)
         {
             await DisplayAlert(
-                "طھظ†ط¨ظٹظ‡",
-                "ط§ط®طھط± Avatar ط£ظˆظ„ط§ظ‹",
-                "ط­ط³ظ†ط§ظ‹");
+                "ط·ع¾ط¸â€ ط·آ¨ط¸ظ¹ط¸â€،",
+                "ط·آ§ط·آ®ط·ع¾ط·آ± Avatar ط·آ£ط¸ث†ط¸â€‍ط·آ§ط¸â€¹",
+                "ط·آ­ط·آ³ط¸â€ ط·آ§ط¸â€¹");
 
             return;
         }
@@ -919,11 +916,11 @@ public partial class PlayerDetailsPage : ContentPage
         }
         catch (OperationCanceledException)
         {
-            await DisplayAlert("طھظ†ط¨ظٹظ‡", "طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط¹ظ…ظ„ظٹط© ط£ظˆ ط§ظ†طھظ‡ظ‰ ط§ظ„ظˆظ‚طھ ط§ظ„ظ…ط³ظ…ظˆط­.", "ط­ط³ظ†ط§ظ‹");
+            await DisplayAlert("ط·ع¾ط¸â€ ط·آ¨ط¸ظ¹ط¸â€،", "ط·ع¾ط¸â€¦ ط·آ¥ط¸â€‍ط·ط›ط·آ§ط·طŒ ط·آ§ط¸â€‍ط·آ¹ط¸â€¦ط¸â€‍ط¸ظ¹ط·آ© ط·آ£ط¸ث† ط·آ§ط¸â€ ط·ع¾ط¸â€،ط¸â€° ط·آ§ط¸â€‍ط¸ث†ط¸â€ڑط·ع¾ ط·آ§ط¸â€‍ط¸â€¦ط·آ³ط¸â€¦ط¸ث†ط·آ­.", "ط·آ­ط·آ³ط¸â€ ط·آ§ط¸â€¹");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("ط®ط·ط£", $"ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھظ†ظپظٹط° ط§ظ„ط¹ظ…ظ„ظٹط©: {ex.Message}", "ط­ط³ظ†ط§ظ‹");
+            await DisplayAlert("ط·آ®ط·آ·ط·آ£", $"ط·آ­ط·آ¯ط·آ« ط·آ®ط·آ·ط·آ£ ط·آ£ط·آ«ط¸â€ ط·آ§ط·طŒ ط·ع¾ط¸â€ ط¸ظ¾ط¸ظ¹ط·آ° ط·آ§ط¸â€‍ط·آ¹ط¸â€¦ط¸â€‍ط¸ظ¹ط·آ©: {ex.Message}", "ط·آ­ط·آ³ط¸â€ ط·آ§ط¸â€¹");
         }
         finally
         {
@@ -950,7 +947,7 @@ public partial class PlayerDetailsPage : ContentPage
                 await FilePicker.Default.PickAsync(
                     new PickOptions
                     {
-                        PickerTitle = "ط§ط®طھط± طµظˆط±ط© ط§ظ„ظ„ط§ط¹ط¨",
+                        PickerTitle = "ط·آ§ط·آ®ط·ع¾ط·آ± ط·آµط¸ث†ط·آ±ط·آ© ط·آ§ط¸â€‍ط¸â€‍ط·آ§ط·آ¹ط·آ¨",
                         FileTypes = FilePickerFileType.Images
                     });
 
@@ -971,9 +968,9 @@ public partial class PlayerDetailsPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlert(
-                "ط®ط·ط£",
-                $"طھط¹ط°ط± ط§ط®طھظٹط§ط± ط§ظ„طµظˆط±ط©:\n{ex.Message}",
-                "ط­ط³ظ†ط§ظ‹");
+                "ط·آ®ط·آ·ط·آ£",
+                $"ط·ع¾ط·آ¹ط·آ°ط·آ± ط·آ§ط·آ®ط·ع¾ط¸ظ¹ط·آ§ط·آ± ط·آ§ط¸â€‍ط·آµط¸ث†ط·آ±ط·آ©:\n{ex.Message}",
+                "ط·آ­ط·آ³ط¸â€ ط·آ§ط¸â€¹");
         }
     }
 
@@ -990,7 +987,7 @@ public partial class PlayerDetailsPage : ContentPage
     async Task BuildIdentityHistoryAsync(PlayerProfileModel player)
     {
         IdentityLastUpdateLabel.Text =
-            $"ط¢ط®ط± طھط­ط¯ظٹط«: {player.LastUpdatedAt:yyyy/MM/dd HH:mm}";
+            $"ط·آ¢ط·آ®ط·آ± ط·ع¾ط·آ­ط·آ¯ط¸ظ¹ط·آ«: {player.LastUpdatedAt:yyyy/MM/dd HH:mm}";
 
         CurrentTeamsLabel.Text =
             await GetCurrentTeamNamesAsync(player.CurrentTeamIds);
@@ -1008,7 +1005,7 @@ public partial class PlayerDetailsPage : ContentPage
     async Task<string> GetCurrentTeamNamesAsync(string teamIds)
     {
         if (string.IsNullOrWhiteSpace(teamIds))
-            return "ظ„ط§ ظٹظˆط¬ط¯";
+            return "ط¸â€‍ط·آ§ ط¸ظ¹ط¸ث†ط·آ¬ط·آ¯";
 
         var teams =
             await TeamProfileService.LoadTeamsAsync();
@@ -1028,14 +1025,14 @@ public partial class PlayerDetailsPage : ContentPage
             .ToList();
 
         return names.Count == 0
-            ? "ظ„ط§ ظٹظˆط¬ط¯"
-            : string.Join("طŒ ", names);
+            ? "ط¸â€‍ط·آ§ ط¸ظ¹ط¸ث†ط·آ¬ط·آ¯"
+            : string.Join("ط·إ’ ", names);
     }
 
     string GetLastHistoryValue(string history)
     {
         if (string.IsNullOrWhiteSpace(history))
-            return "â€”";
+            return "أ¢â‚¬â€‌";
 
         string last =
             history
@@ -1053,11 +1050,11 @@ public partial class PlayerDetailsPage : ContentPage
     string GetLastHistory(string history)
     {
         if (string.IsNullOrWhiteSpace(history))
-            return "â€”";
+            return "أ¢â‚¬â€‌";
 
         return history
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .LastOrDefault() ?? "â€”";
+            .LastOrDefault() ?? "أ¢â‚¬â€‌";
     }
 }
 
