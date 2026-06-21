@@ -43,6 +43,14 @@ public partial class MainPage
         {
             button.Text = RepairKnownBrokenMainText(button.Text);
         }
+        else if (element is Entry entry)
+        {
+            entry.Placeholder = RepairKnownBrokenMainText(entry.Placeholder);
+        }
+        else if (element is Editor editor)
+        {
+            editor.Placeholder = RepairKnownBrokenMainText(editor.Placeholder);
+        }
 
         foreach (var child in element.LogicalChildren)
             RepairVisibleMainPageText(child);
@@ -50,19 +58,15 @@ public partial class MainPage
 
     static string RepairKnownBrokenMainText(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return value ?? string.Empty;
+        var text = NormalizeBrokenUiText(value);
 
-        var text = value.Trim();
+        if (string.IsNullOrWhiteSpace(text))
+            return text;
 
-        text = text.Replace("âœ“", "✓", StringComparison.Ordinal);
-        text = text.Replace("â–¼", "+", StringComparison.Ordinal);
-        text = text.Replace("â–²", "-", StringComparison.Ordinal);
+        if (!LooksBrokenMainText(text))
+            return text;
 
-        if (LooksBrokenMainText(text))
-            return "غير متاح";
-
-        return text;
+        return "غير متاح";
     }
 
     static bool LooksBrokenMainText(string? value)
