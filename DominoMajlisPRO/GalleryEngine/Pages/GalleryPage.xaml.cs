@@ -471,7 +471,7 @@ public partial class GalleryPage : ContentPage
 
     private async void OnIdentityRequested(object? sender, EventArgs e)
     {
-        await DisplayAlert("هوية اللاعب", "سيتم ربط الهوية بملف اللاعب لاحقًا.", "حسنًا");
+        await OpenAccountAsync();
     }
 
     // TEMP DEV: Season switch test control. Remove before production.
