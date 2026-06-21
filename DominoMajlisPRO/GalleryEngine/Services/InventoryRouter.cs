@@ -235,7 +235,8 @@ public static class InventoryRouter
         InventoryRoute route)
     {
         if (route.EquipTarget is InventoryEquipTarget.Avatar or
-            InventoryEquipTarget.ProfileBackground)
+            InventoryEquipTarget.ProfileBackground or
+            InventoryEquipTarget.Effect)
         {
             return await StoreEquipService.EquipAsync(playerId, assetId);
         }

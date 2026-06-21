@@ -184,8 +184,8 @@ public sealed class AdminAssetDetailsSheet : ContentPage
 
         button.Clicked += async (_, _) =>
         {
-            _result.TrySetResult(action);
             await Navigation.PopModalAsync(false);
+            _result.TrySetResult(action);
         };
 
         return button;

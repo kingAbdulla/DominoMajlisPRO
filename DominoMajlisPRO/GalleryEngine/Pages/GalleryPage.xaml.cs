@@ -1,6 +1,7 @@
 ﻿using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
@@ -18,6 +19,7 @@ public partial class GalleryPage : ContentPage
     private AvatarsSectionView? _avatarsSection;
     private BackgroundsSectionView? _backgroundsSection;
     private NewArrivalsSectionView? _newArrivalsFullSection;
+    private NewArrivalsSectionView? _effectsSection;
     private LimitedOffersSectionView? _limitedOffersFullSection;
     private BrowseCategoriesSectionView? _browseCategoriesFullSection;
 
@@ -309,6 +311,10 @@ public partial class GalleryPage : ContentPage
                 _backgroundsSection ??= CreateBackgroundsSection();
                 SelectedSectionHost.Content = _backgroundsSection;
                 break;
+            case StoreView.Effects:
+                _effectsSection ??= CreateEffectsSection();
+                SelectedSectionHost.Content = _effectsSection;
+                break;
             default:
                 SelectedSectionHost.Content = null;
                 SelectedSectionHost.IsVisible = false;
@@ -356,6 +362,18 @@ public partial class GalleryPage : ContentPage
         return section;
     }
 
+    private NewArrivalsSectionView CreateEffectsSection()
+    {
+        var section = new NewArrivalsSectionView(
+            "المؤثرات",
+            "EFFECTS",
+            StoreProductAssetType.Effect.ToString());
+        section.SetVisibleItemCount(StoreNavigationState.PageSize);
+        section.AvailableItemCountChanged += (_, count) =>
+            OnAvailableItemCountChanged(StoreView.Effects, count);
+        return section;
+    }
+
     private void OnAvailableItemCountChanged(StoreView view, int count)
     {
         if (StoreNavigation.CurrentView != view)
@@ -386,6 +404,9 @@ public partial class GalleryPage : ContentPage
                 break;
             case StoreView.Backgrounds:
                 _backgroundsSection?.SetVisibleItemCount(StoreNavigation.VisibleItemCount);
+                break;
+            case StoreView.Effects:
+                _effectsSection?.SetVisibleItemCount(StoreNavigation.VisibleItemCount);
                 break;
         }
 

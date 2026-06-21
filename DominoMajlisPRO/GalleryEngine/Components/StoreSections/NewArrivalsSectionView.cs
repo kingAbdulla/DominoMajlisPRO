@@ -10,14 +10,24 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
     private IReadOnlyList<NewArrivalCard> _availableItems =
         Array.Empty<NewArrivalCard>();
     private readonly StoreProductActionSheet _actionSheet = new();
+    private readonly string? _storeTypeFilter;
     private int _visibleItemCount = 6;
 
     public event EventHandler? ShowAllRequested;
     public event EventHandler<int>? AvailableItemCountChanged;
 
     public NewArrivalsSectionView()
-        : base("وصل حديثاً", "NEW ARRIVALS", "عرض الكل")
+        : this("وصل حديثاً", "NEW ARRIVALS", null)
     {
+    }
+
+    public NewArrivalsSectionView(
+        string title,
+        string subtitle,
+        string? storeTypeFilter)
+        : base(title, subtitle, "عرض الكل")
+    {
+        _storeTypeFilter = storeTypeFilter;
         AttachShowAllTap();
         Loaded += OnCmsLoaded;
         Unloaded += OnCmsUnloaded;
@@ -55,8 +65,16 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
     private async Task RefreshFromCmsAsync()
     {
         var published = await StoreAssetQueryService.LoadNewArrivalsAsync();
-        var items = new List<NewArrivalCard>(published.Count);
-        foreach (var record in published)
+        var scoped = string.IsNullOrWhiteSpace(_storeTypeFilter)
+            ? published
+            : published
+                .Where(record => string.Equals(
+                    StoreAssetCatalogService.CanonicalTypeId(record.StoreTypeId),
+                    _storeTypeFilter,
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        var items = new List<NewArrivalCard>(scoped.Count);
+        foreach (var record in scoped)
         {
             var productId = string.IsNullOrWhiteSpace(record.ProductId) ? record.Id.Trim() : record.ProductId.Trim();
             var assetId = NewArrivalsAdminService.GetAssetId(record).Trim();
@@ -126,6 +144,7 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
         var price = isFree ? "مجاني" : string.Equals(item.Currency, "Coins", StringComparison.OrdinalIgnoreCase) ? $"🪙 {item.Price}" : $"💎 {item.Price}";
         _actionSheet.Show(this, item.Image, item.Name, "وصل حديثاً", item.Description, price, "غير مملوك",
             "اقتناء", true, () => Task.CompletedTask, () => Task.CompletedTask,
+            previewKind: ResolvePreviewKind(card.StoreTypeId),
             inventoryAssetId: card.AssetId,
             inventoryStoreTypeId: card.StoreTypeId,
             inventoryIsFree: isFree,
@@ -133,6 +152,15 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
             inventoryPrice: card.Price,
             inventoryCurrencyMetadata: card.CurrencyMetadata);
     }
+
+    private static StoreProductPreviewKind ResolvePreviewKind(
+        string storeTypeId) =>
+        string.Equals(
+            StoreAssetCatalogService.CanonicalTypeId(storeTypeId),
+            StoreProductAssetType.Effect.ToString(),
+            StringComparison.OrdinalIgnoreCase)
+                ? StoreProductPreviewKind.Effect
+                : StoreProductPreviewKind.Generic;
 
     private static void AttachCardTap(PremiumGalleryCard card, Action action)
     {

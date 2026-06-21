@@ -80,7 +80,8 @@ public static class StoreCheckoutService
                 {
                     equipped = route.EquipTarget is
                         InventoryEquipTarget.Avatar or
-                        InventoryEquipTarget.ProfileBackground
+                        InventoryEquipTarget.ProfileBackground or
+                        InventoryEquipTarget.Effect
                             ? await StoreEquipService.EquipAsync(
                                 owner.PlayerId,
                                 product.AssetId)

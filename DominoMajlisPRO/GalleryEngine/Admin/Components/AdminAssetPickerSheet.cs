@@ -42,8 +42,8 @@ public sealed class AdminAssetPickerSheet : ContentPage
 
         close.Clicked += async (_, _) =>
         {
-            _result.TrySetResult(null);
             await Navigation.PopModalAsync(false);
+            _result.TrySetResult(null);
         };
 
         var panel = new Border
@@ -168,8 +168,8 @@ public sealed class AdminAssetPickerSheet : ContentPage
         {
             Command = new Command(async () =>
             {
-                _result.TrySetResult(record);
                 await Navigation.PopModalAsync(false);
+                _result.TrySetResult(record);
             })
         });
 
