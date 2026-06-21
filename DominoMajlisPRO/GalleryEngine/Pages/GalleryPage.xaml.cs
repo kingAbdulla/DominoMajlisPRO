@@ -457,9 +457,8 @@ public partial class GalleryPage : ContentPage
 
     private async void OnCartRequested(object? sender, EventArgs e)
     {
-        await DisplayAlert("سلة الشراء", "سيتم فتح سلة الشراء لاحقًا.", "حسنًا");
+        await Navigation.PushAsync(new StoreCartPage());
     }
-
     private async void OnCoinsRequested(object? sender, EventArgs e)
     {
         await RechargeNavigationService.OpenAsync(Navigation);
