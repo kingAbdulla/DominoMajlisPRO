@@ -1,12 +1,13 @@
-using DominoMajlisPRO.GalleryEngine.Admin.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.Localization;
 
 namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class StoreAssetCatalogService
 {
-    public const string IncompleteDisplayName = "ط¹ظ†طµط± ط؛ظٹط± ظ…ظƒطھظ…ظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ";
+    public const string IncompleteDisplayName = "Incomplete item";
 
     public static async Task<IReadOnlyList<CatalogAssetDisplay>> LoadAsync()
     {
@@ -170,8 +171,7 @@ public static class StoreAssetCatalogService
             assetId.Trim(),
             assetType,
             ownerScope,
-            displayName,
-            arabicDisplayName?.Trim() ?? string.Empty,
+            ArabicTextRecoveryService.RecoverDisplayText(displayName),`r`n            ArabicTextRecoveryService.RecoverDisplayText(arabicDisplayName),
             previewImage?.Trim() ?? string.Empty,
             colorHex?.Trim() ?? string.Empty,
             products
@@ -214,3 +214,4 @@ public static class StoreAssetCatalogService
         string AssetId,
         string AssetType);
 }
+
