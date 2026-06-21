@@ -294,9 +294,17 @@ public static class PlayerEngine
         PlayerProfileModel player)
     {
         var imagePath =
-            !string.IsNullOrWhiteSpace(player.ProfileImagePath)
-                ? player.ProfileImagePath
-                : player.AvatarImage;
+            player.UseCustomAvatar &&
+            !string.IsNullOrWhiteSpace(player.AvatarPath)
+                ? player.AvatarPath
+                : !string.IsNullOrWhiteSpace(player.ProfileImagePath)
+                    ? player.ProfileImagePath
+                    : !string.IsNullOrWhiteSpace(player.AvatarImage)
+                        ? player.AvatarImage
+                        : !string.IsNullOrWhiteSpace(player.BuiltInAvatar)
+                            ? player.BuiltInAvatar
+                            : "player_card.png";
+
         return global::DominoMajlisPRO.GalleryEngine.Services
             .InventoryDisplayResolver.ResolveImageSource(
                 imagePath,

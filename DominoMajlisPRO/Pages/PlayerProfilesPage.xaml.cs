@@ -1143,19 +1143,7 @@ public partial class PlayerProfilesPage : ContentPage
     static ImageSource ResolvePlayerAvatarSource(
         PlayerProfileModel player)
     {
-        var candidate =
-            player.UseCustomAvatar &&
-            !string.IsNullOrWhiteSpace(player.AvatarPath)
-                ? player.AvatarPath
-                : !string.IsNullOrWhiteSpace(player.ProfileImagePath)
-                    ? player.ProfileImagePath
-                    : !string.IsNullOrWhiteSpace(player.AvatarImage)
-                        ? player.AvatarImage
-                        : player.BuiltInAvatar;
-
-        return InventoryDisplayResolver.ResolveImageSource(
-            candidate,
-            "player_card.png");
+        return PlayerProfileService.GetPlayerImageSource(player);
     }
 
     View CreatePlayerInfoSection(
