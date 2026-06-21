@@ -155,6 +155,10 @@ public static class PlayerProfileService
                 : avatarImage;
 
         player.ProfileImagePath = "";
+        player.BuiltInAvatar = player.AvatarImage;
+        player.AvatarPath = "";
+        player.UseCustomAvatar = false;
+        player.LastUpdatedAt = DateTime.Now;
 
         PlayerEngine.Normalize(player);
         PlayerTimelineService.AddEvent(
@@ -203,8 +207,10 @@ public static class PlayerProfileService
         await sourceStream.CopyToAsync(targetStream);
 
         player.ProfileImagePath = targetPath;
+        player.AvatarPath = targetPath;
+        player.UseCustomAvatar = true;
         player.AvatarImage = "";
-
+        player.LastUpdatedAt = DateTime.Now;
         PlayerEngine.Normalize(player);
 
         PlayerTimelineService.AddEvent(
@@ -228,6 +234,10 @@ public static class PlayerProfileService
 
         player.ProfileImagePath = "";
         player.AvatarImage = "player_card.png";
+        player.AvatarPath = "";
+        player.BuiltInAvatar = "player_card.png";
+        player.UseCustomAvatar = false;
+        player.LastUpdatedAt = DateTime.Now;
 
         PlayerEngine.Normalize(player);
 
