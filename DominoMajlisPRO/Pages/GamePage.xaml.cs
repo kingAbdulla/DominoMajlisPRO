@@ -70,10 +70,10 @@ public partial class GamePage : ContentPage
 
         // RULES
         RulesLabel.Text =
-            $"ط§ظ„ظ‚ظˆط§ظ†ظٹظ†: {rules}";
+            $"القوانين: {rules}";
 
         isLocalRules =
-            rules.Contains("ظ…ط­ظ„ظٹ");
+            rules.Contains("محلي");
 
         // MATCH DATA
         currentMatch.Team1Name =
@@ -174,8 +174,8 @@ public partial class GamePage : ContentPage
 
         RulesLabel.Text =
             match.IsLocalRules
-            ? "ط§ظ„ظ‚ظˆط§ظ†ظٹظ†: ظ…ط­ظ„ظٹ"
-            : "ط§ظ„ظ‚ظˆط§ظ†ظٹظ†: ط¹ط§ظ„ظ…ظٹ";
+            ? "القوانين: محلي"
+            : "القوانين: عالمي";
         SetupGestures();
         SetupScoreCardGestures();
         SelectTeam(1);
@@ -560,8 +560,8 @@ public partial class GamePage : ContentPage
 
         ToggleRoundsButton.Text =
             showAllRounds
-            ? "ط¥ط®ظپط§ط، â–²"
-            : "ط¹ط±ط¶ ط§ظ„ظ…ط²ظٹط¯ â–¼";
+            ? "إخفاء ▲"
+            : "عرض المزيد ▼";
 
         RefreshRoundsHistory();
     }
@@ -622,7 +622,7 @@ public partial class GamePage : ContentPage
             info.Children.Add(
                 new Label
                 {
-                    Text = $"ظ‹ع؛عˆâ€  {round.WinnerTeam}",
+                    Text = $"🏆 {round.WinnerTeam}",
                     TextColor = Colors.White,
                     FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone
     ? 16
@@ -649,7 +649,7 @@ public partial class GamePage : ContentPage
                 new Label
                 {
                     Text =
-    $"ط§ظ„ظ†طھظٹط¬ط©: {round.Team1NewScore} - {round.Team2NewScore}",
+    $"النتيجة: {round.Team1NewScore} - {round.Team2NewScore}",
                     TextColor = Colors.Gold,
                     FontSize = 18,
                     FontAttributes = FontAttributes.Bold
@@ -679,22 +679,22 @@ public partial class GamePage : ContentPage
                 if (currentMatch.IsLocked)
 {
     await DisplayAlert(
-        "ط§ظ„ظ…ط¨ط§ط±ط§ط© ظ…ظ‚ظپظ„ط©",
-        "ظ„ط§ ظٹظ…ظƒظ† طھط¹ط¯ظٹظ„ ط£ظˆ ط­ط°ظپ ط£ظˆ ظ†ظ‚ظ„ ط§ظ„ط¬ظˆظ„ط§طھ ط¨ط¹ط¯ ط§ط¹طھظ…ط§ط¯ ط§ظ„ظ…ط¨ط§ط±ط§ط©.",
-        "ط­ط³ظ†ط§ظ‹");
+        "المباراة مقفلة",
+        "لا يمكن تعديل أو حذف أو نقل الجولات بعد اعتماد المباراة.",
+        "حسناً");
 
     return;
 }
                 string action =
     await DisplayActionSheet(
-        $"ط§ظ„ط¬ظˆظ„ط© {round.RoundNumber}\n{round.WinnerTeam}\n+{round.Points}",
-        "ط¥ظ„ط؛ط§ط،",
+        $"الجولة {round.RoundNumber}\n{round.WinnerTeam}\n+{round.Points}",
+        "إلغاء",
         null,
-        "âœڈï¸ڈ طھط¹ط¯ظٹظ„ ط§ظ„ظ†ظ‚ط§ط·",
-        "ًں”„ ظ†ظ‚ظ„ ظ„ظ„ظپط±ظٹظ‚ ط§ظ„ط¢ط®ط±",
-        "ًں—‘ ط­ط°ظپ ط§ظ„ط¬ظˆظ„ط©");
+        "✏️ تعديل النقاط",
+        "🔄 نقل للفريق الآخر",
+        "🗑 حذف الجولة");
 
-                if (action == "ًں”„ ظ†ظ‚ظ„ ظ„ظ„ظپط±ظٹظ‚ ط§ظ„ط¢ط®ط±")
+                if (action == "🔄 نقل للفريق الآخر")
                 {
                     round.WinnerTeamId =
                         round.WinnerTeamId == 1 ? 2 : 1;
@@ -715,14 +715,14 @@ public partial class GamePage : ContentPage
                     return;
                 }
 
-                if (action == "ًں—‘ ط­ط°ظپ ط§ظ„ط¬ظˆظ„ط©")
+                if (action == "🗑 حذف الجولة")
                 {
                     bool confirm =
      await DisplayAlert(
-         "ط­ط°ظپ ط§ظ„ط¬ظˆظ„ط©",
-         "ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ط¬ظˆظ„ط©طں",
-         "ظ†ط¹ظ…",
-         "ظ„ط§");
+         "حذف الجولة",
+         "هل تريد حذف هذه الجولة؟",
+         "نعم",
+         "لا");
 
                     if (!confirm)
                         return;
@@ -749,14 +749,14 @@ public partial class GamePage : ContentPage
 
 
 
-                else if (action == "âœڈï¸ڈ طھط¹ط¯ظٹظ„ ط§ظ„ظ†ظ‚ط§ط·")
+                else if (action == "✏️ تعديل النقاط")
                 {
                     string result =
                         await DisplayPromptAsync(
-                            "طھط¹ط¯ظٹظ„ ط§ظ„ط¬ظˆظ„ط©",
-                            "ط£ط¯ط®ظ„ ط§ظ„ظ†ظ‚ط§ط· ط§ظ„ط¬ط¯ظٹط¯ط©",
+                            "تعديل الجولة",
+                            "أدخل النقاط الجديدة",
                             "ط­ظپط¸",
-                            "ط¥ظ„ط؛ط§ط،",
+                            "إلغاء",
                             keyboard: Keyboard.Numeric);
 
                     if (!int.TryParse(
@@ -972,7 +972,7 @@ public partial class GamePage : ContentPage
         if (!roundsHistory.Any())
         {
             LastRoundTeamLabel.Text =
-                "ظ„ط§ طھظˆط¬ط¯ ط¬ظˆظ„ط§طھ";
+                "لا توجد جولات";
 
             LastRoundPointsLabel.Text =
                 "";
@@ -987,7 +987,7 @@ public partial class GamePage : ContentPage
             roundsHistory.Last();
 
         LastRoundTeamLabel.Text =
-    $"âڑ، {last.WinnerTeam}";
+    $"⚡ {last.WinnerTeam}";
 
         LastRoundPointsLabel.Text =
        $"+{last.Points}";
@@ -1001,17 +1001,17 @@ public partial class GamePage : ContentPage
         if (elapsed.TotalSeconds < 60)
         {
             LastRoundTimeLabel.Text =
-                $"ظ…ظ†ط° {(int)elapsed.TotalSeconds} ط«ط§ظ†ظٹط©";
+                $"منذ {(int)elapsed.TotalSeconds} ثانية";
         }
         else if (elapsed.TotalMinutes < 60)
         {
             LastRoundTimeLabel.Text =
-                $"ظ…ظ†ط° {(int)elapsed.TotalMinutes} ط¯ظ‚ظٹظ‚ط©";
+                $"منذ {(int)elapsed.TotalMinutes} دقيقة";
         }
         else
         {
             LastRoundTimeLabel.Text =
-                $"ظ…ظ†ط° {(int)elapsed.TotalHours} ط³ط§ط¹ط©";
+                $"منذ {(int)elapsed.TotalHours} ساعة";
         }
     }
     // =========================
@@ -1082,22 +1082,22 @@ public partial class GamePage : ContentPage
         if (meles)
         {
             await DisplayAlert(
-                "ًں”¥ ظ…ظ„طµ",
-                $"ط§ظ„ظپط§ط¦ط²:\n" +
+                "🔥 ملص",
+                $"الفائز:\n" +
                 $"{winner}\n" +
                 $"({winnerPlayers})\n\n" +
-                $"طھظ… طھط­ظ‚ظٹظ‚ ط§ظ„ظ…ظ„طµ",
-                "ظ…ظ…طھط§ط²");
+                $"تم تحقيق الملص",
+                "ممتاز");
             StartNewMatchSameTeams();
         }
         else
         {
             await DisplayAlert(
-     "ًںڈ† ط§ظ†طھظ‡ط§ط، ط§ظ„ظ…ط¨ط§ط±ط§ط©",
-     $"ط§ظ„ظپط§ط¦ط²:\n" +
+     "🏆 انتهاء المباراة",
+     $"الفائز:\n" +
      $"{winner}\n" +
      $"({winnerPlayers})",
-     "ظ…ظ…طھط§ط²");
+     "ممتاز");
 
             StartNewMatchSameTeams();
         }
@@ -1153,7 +1153,7 @@ public partial class GamePage : ContentPage
                 Colors.Transparent;
             
 
-            LeaderLabel.Text = "طھط¹ط§ط¯ظ„";
+            LeaderLabel.Text = "تعادل";
 
         }
 
@@ -1306,10 +1306,10 @@ public partial class GamePage : ContentPage
     {
         bool confirm =
             await DisplayAlert(
-                "ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ†",
-                "ظ‡ظ„ طھط±ظٹط¯ ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط¨ط§ط±ط§ط©طں",
-                "ظ†ط¹ظ…",
-                "ط¥ظ„ط؛ط§ط،");
+                "إعادة تعيين",
+                "هل تريد إعادة المباراة؟",
+                "نعم",
+                "إلغاء");
         if (!confirm)
             return;
         team1Score = 0;
@@ -1392,8 +1392,8 @@ new SavedMatch
         matchSaved = false;
         UpdateLeaderUI();
         await DisplayAlert(
-            "طھظ…",
-            "طھظ… ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ† ط§ظ„ط¬ظˆظ„ط© ط§ظ„ط£ط®ظٹط±ط©",
+            "تم",
+            "تم التراجع عن الجولة الأخيرة",
             "OK");
     }
     // =========================
@@ -1414,8 +1414,8 @@ new SavedMatch
         if (roundsHistory.Count == 0)
         {
             await DisplayAlert(
-                "ظ„ط§ ظٹظ…ظƒظ† ط¥ظ†ظ‡ط§ط، ط§ظ„ظ…ط¨ط§ط±ط§ط©",
-                "ظ„ظ… ظٹطھظ… ظ„ط¹ط¨ ط£ظٹ ط¬ظˆظ„ط© ط¨ط¹ط¯",
+                "لا يمكن إنهاء المباراة",
+                "لم يتم لعب أي جولة بعد",
                 "OK");
 
             return;
@@ -1428,8 +1428,8 @@ new SavedMatch
         if (team1Score == team2Score)
         {
             await DisplayAlert(
-                "طھط¹ط§ط¯ظ„",
-                "ظ„ط§ ظٹظ…ظƒظ† ط¥ظ†ظ‡ط§ط، ط§ظ„ظ…ط¨ط§ط±ط§ط© ظˆط§ظ„ظ†طھظٹط¬ط© ظ…طھط¹ط§ط¯ظ„ط©",
+                "تعادل",
+                "لا يمكن إنهاء المباراة والنتيجة متعادلة",
                 "OK");
 
             return;
@@ -1455,10 +1455,10 @@ new SavedMatch
 
         bool confirm =
             await DisplayAlert(
-                "ط¥ظ†ظ‡ط§ط، ط§ظ„ظ…ط¨ط§ط±ط§ط©",
-                $"ظ‡ظ„ طھط±ظٹط¯ ط¥ظ†ظ‡ط§ط، ط§ظ„ظ…ط¨ط§ط±ط§ط©طں\n\nط§ظ„ظپط§ط¦ط²:\n{winner}",
-                "ط¥ظ†ظ‡ط§ط،",
-                "ط¥ظ„ط؛ط§ط،");
+                "إنهاء المباراة",
+                $"هل تريد إنهاء المباراة؟\n\nالفائز:\n{winner}",
+                "إنهاء",
+                "إلغاء");
 
         if (!confirm)
             return;
@@ -1479,13 +1479,13 @@ new SavedMatch
         object sender,
         EventArgs e)
     {
-        // ط·آ§ط¸â€‍ط¸â€¦ط·آ¨ط·آ§ط·آ±ط·آ§ط·آ© ط¸â€¦ط¸â€ ط·ع¾ط¸â€،ط¸ظ¹ط·آ©
+        // المباراة منتهية
         if (gameFinished)
         {
             await Navigation.PopAsync();
             return;
         }
-        // ط¸â€‍ط·آ§ ط·ع¾ط¸ث†ط·آ¬ط·آ¯ ط·آ¬ط¸ث†ط¸â€‍ط·آ§ط·ع¾
+        // لا توجد جولات
         if (roundsHistory.Count == 0)
         {
             await Navigation.PopAsync();
@@ -1494,10 +1494,10 @@ new SavedMatch
         // SAVE QUESTION
         bool save =
             await DisplayAlert(
-                "ط­ظپط¸ ط§ظ„ظ…ط¨ط§ط±ط§ط©",
-                "ظ‡ظ„ طھط±ظٹط¯ ط­ظپط¸ ط§ظ„ظ…ط¨ط§ط±ط§ط© ظˆط§ط³طھظƒظ…ط§ظ„ظ‡ط§ ظ„ط§ط­ظ‚ط§ظ‹طں",
-                "ظ†ط¹ظ…",
-                "ظ„ط§");
+                "حفظ المباراة",
+                "هل تريد حفظ المباراة واستكمالها لاحقاً؟",
+                "نعم",
+                "لا");
         if (!save)
         {
             await Navigation.PopAsync();
@@ -1554,7 +1554,7 @@ new SavedMatch
     }
 
     //=========================
-    //ط·ع¾ط·آµط¸ظ¾ط¸ظ¹ط·آ± ط·آ§ط¸â€‍ط·آ¬ط·آ¯ط¸ث†ط¸â€‍ 
+    // تصفير الجدول
     void StartNewMatchSameTeams()
     {
         team1Score = 0;
@@ -1569,10 +1569,10 @@ new SavedMatch
 
 
 
-        LeaderLabel.Text = "طھط¹ط§ط¯ظ„";
+        LeaderLabel.Text = "تعادل";
 
         LastRoundTeamLabel.Text =
-            "ظ„ط§ طھظˆط¬ط¯ ط¬ظˆظ„ط§طھ";
+            "لا توجد جولات";
 
         LastRoundPointsLabel.Text =
             "";

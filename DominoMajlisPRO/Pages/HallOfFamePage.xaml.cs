@@ -112,28 +112,28 @@ public partial class HallOfFamePage : ContentPage
 
     void LoadEmptyState()
     {
-        SeasonNumberLabel.Text = "â€”";
+        SeasonNumberLabel.Text = "—";
 
-        HeroTeamNameLabel.Text = "ظ„ط§ طھظˆط¬ط¯ ط£ط³ط·ظˆط±ط©";
-        HeroSubtitleLabel.Text = "ط§ط¨ط¯ط£ ط£ظˆظ„ ظ…ط¨ط§ط±ط§ط© ظ„ظٹط¸ظ‡ط± ط£ط¨ط·ط§ظ„ ط§ظ„ظ‚ط§ط¹ط©";
+        HeroTeamNameLabel.Text = "لا توجد أسطورة";
+        HeroSubtitleLabel.Text = "ابدأ أول مباراة ليظهر أبطال القاعة";
         HeroWinsLabel.Text = "0";
         HeroWinRateLabel.Text = "0%";
         HeroLegacyLabel.Text = "0";
 
         TopTeamsContainer.Children.Add(
-            CreateEmptyCard("ظ„ط§ طھظˆط¬ط¯ ظپط±ظ‚ ظ…ط¤ظ‡ظ„ط© ط­ط§ظ„ظٹط§ظ‹"));
+            CreateEmptyCard("لا توجد فرق مؤهلة حالياً"));
 
         TopPlayersContainer.Children.Add(
-            CreateEmptyCard("ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ط§ط¹ط¨ظٹظ† ط¨ط¹ط¯"));
+            CreateEmptyCard("لا توجد بيانات للاعبين بعد"));
 
         RecordsContainer.Children.Add(CreateRecordEmptyGrid());
 
-        AddStat("all_gold.png", "ط§ظ„ظ…ط±ط´ط­ظˆظ†", "0", 0, 0);
-        AddStat("trophy_3d.png", "ط§ظ„ظ…ط¤ظ‡ظ„ظˆظ†", "0", 1, 0);
-        AddStat("joystick_gold.png", "ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ", "0", 2, 0);
-        AddStat("target_3d.png", "ط£ط¹ظ„ظ‰ ظ†طھظٹط¬ط©", "0", 0, 1);
+        AddStat("all_gold.png", "المرشحون", "0", 0, 0);
+        AddStat("trophy_3d.png", "المؤهلون", "0", 1, 0);
+        AddStat("joystick_gold.png", "المباريات", "0", 2, 0);
+        AddStat("target_3d.png", "أعلى نتيجة", "0", 0, 1);
         AddStat("xp_gold.png", "Legacy", "0", 1, 1);
-        AddStat("halloffame_gold.png", "ط§ظ„ط¯ط³طھظˆط±", "Active", 2, 1);
+        AddStat("halloffame_gold.png", "الدستور", "Active", 2, 1);
     }
 
     void LoadHeroChampion()
@@ -146,8 +146,8 @@ public partial class HallOfFamePage : ContentPage
 
         if (champion == null)
         {
-            HeroTeamNameLabel.Text = "ظ„ط§ طھظˆط¬ط¯ ط£ط³ط·ظˆط±ط©";
-            HeroSubtitleLabel.Text = "ط¨ط§ظ†طھط¸ط§ط± ظپط±ظٹظ‚ ظٹط­ظ‚ظ‚ ط´ط±ظˆط· ط§ظ„ط¯ط³طھظˆط±";
+            HeroTeamNameLabel.Text = "لا توجد أسطورة";
+            HeroSubtitleLabel.Text = "بانتظار فريق يحقق شروط الدستور";
             HeroWinsLabel.Text = "0";
             HeroWinRateLabel.Text = "0%";
             HeroLegacyLabel.Text = "0";
@@ -155,7 +155,7 @@ public partial class HallOfFamePage : ContentPage
         }
 
         HeroTeamNameLabel.Text = champion.DisplayName;
-        HeroSubtitleLabel.Text = "ط¯ط®ظ„ ظ‚ط§ط¹ط© ط§ظ„ط£ط³ط§ط·ظٹط± ظˆظپظ‚ ط§ظ„ط¯ط³طھظˆط±";
+        HeroSubtitleLabel.Text = "دخل قاعة الأساطير وفق الدستور";
         HeroWinsLabel.Text = champion.Wins.ToString();
         HeroWinRateLabel.Text = $"{champion.WinRate:0}%";
         HeroLegacyLabel.Text = champion.LegacyScore.ToString();
@@ -171,7 +171,7 @@ public partial class HallOfFamePage : ContentPage
         if (topTeams.Count == 0)
         {
             TopTeamsContainer.Children.Add(
-                CreateEmptyCard("ظ„ط§ طھظˆط¬ط¯ ظپط±ظ‚ ظ…ط¤ظ‡ظ„ط© ط­ط§ظ„ظٹط§ظ‹"));
+                CreateEmptyCard("لا توجد فرق مؤهلة حالياً"));
 
             return;
         }
@@ -248,7 +248,7 @@ public partial class HallOfFamePage : ContentPage
         if (playerNames.Count == 0)
         {
             TopPlayersContainer.Children.Add(
-                CreateEmptyCard("ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ط§ط¹ط¨ظٹظ† ط¨ط¹ط¯"));
+                CreateEmptyCard("لا توجد بيانات للاعبين بعد"));
 
             return;
         }
@@ -330,8 +330,8 @@ public partial class HallOfFamePage : ContentPage
         AddRecordCard(
             recordsGrid,
             "wins_gold.png",
-            "ط£ظƒط«ط± ظپط±ظٹظ‚ ظپط§ط²",
-            teamResults?.DisplayName ?? "â€”",
+            "أكثر فريق فاز",
+            teamResults?.DisplayName ?? "—",
             teamResults?.Wins.ToString() ?? "0",
             0,
             0);
@@ -339,8 +339,8 @@ public partial class HallOfFamePage : ContentPage
         AddRecordCard(
             recordsGrid,
             "meles_badge_gold.png",
-            "ظ…ظ„ظƒ ط§ظ„ظ…ظ„طµ",
-            melesKing?.Key ?? "â€”",
+            "ملك الملص",
+            melesKing?.Key ?? "—",
             melesKing?.Count().ToString() ?? "0",
             1,
             0);
@@ -348,16 +348,16 @@ public partial class HallOfFamePage : ContentPage
         AddRecordCard(
             recordsGrid,
             "fast_round_gold.png",
-            "ط£ط³ط±ط¹ ظ…ط¨ط§ط±ط§ط©",
-            "ط§ظ„ط²ظ…ظ†",
-            fastest == null ? "â€”" : $"{fastest.MatchDurationMinutes} ط¯",
+            "أسرع مباراة",
+            "الزمن",
+            fastest == null ? "—" : $"{fastest.MatchDurationMinutes} د",
             0,
             1);
 
         AddRecordCard(
             recordsGrid,
             "highest_score_gold.png",
-            "ط£ط¹ظ„ظ‰ ظ†طھظٹط¬ط©",
+            "أعلى نتيجة",
             "Score",
             highestScore.ToString(),
             1,
@@ -378,12 +378,12 @@ public partial class HallOfFamePage : ContentPage
                 ? 0
                 : matches.Max(x => Math.Max(x.Team1Score, x.Team2Score));
 
-        AddStat("all_gold.png", "ط§ظ„ظ…ط±ط´ط­ظˆظ†", allResults.Count.ToString(), 0, 0);
-        AddStat("trophy_3d.png", "ط§ظ„ظ…ط¤ظ‡ظ„ظˆظ†", eligible.Count.ToString(), 1, 0);
-        AddStat("joystick_gold.png", "ط§ظ„ظ…ط¨ط§ط±ظٹط§طھ", totalMatches.ToString(), 2, 0);
-        AddStat("target_3d.png", "ط£ط¹ظ„ظ‰ ظ†طھظٹط¬ط©", highestScore.ToString(), 0, 1);
+        AddStat("all_gold.png", "المرشحون", allResults.Count.ToString(), 0, 0);
+        AddStat("trophy_3d.png", "المؤهلون", eligible.Count.ToString(), 1, 0);
+        AddStat("joystick_gold.png", "المباريات", totalMatches.ToString(), 2, 0);
+        AddStat("target_3d.png", "أعلى نتيجة", highestScore.ToString(), 0, 1);
         AddStat("xp_gold.png", "Legacy", eligible.Sum(x => x.LegacyScore).ToString(), 1, 1);
-        AddStat("halloffame_gold.png", "ط§ظ„ط¯ط³طھظˆط±", "Active", 2, 1);
+        AddStat("halloffame_gold.png", "الدستور", "Active", 2, 1);
     }
 
     View CreateTeamLegendCard(
@@ -429,7 +429,7 @@ public partial class HallOfFamePage : ContentPage
         layout.Children.Add(
             new Label
             {
-                Text = rank <= 3 ? $"â™› {rank}" : rank.ToString(),
+                Text = rank <= 3 ? $"♛ {rank}" : rank.ToString(),
                 TextColor = Color.FromArgb("#D4AE62"),
                 FontSize = 13,
                 FontAttributes = FontAttributes.Bold,
@@ -460,7 +460,7 @@ public partial class HallOfFamePage : ContentPage
         layout.Children.Add(
             new Label
             {
-                Text = $"{team.Wins} ط§ظ†طھطµط§ط±",
+                Text = $"{team.Wins} انتصار",
                 TextColor = Color.FromArgb("#C8B58A"),
                 FontSize = 11,
                 HorizontalTextAlignment = TextAlignment.Center
@@ -479,7 +479,7 @@ public partial class HallOfFamePage : ContentPage
         layout.Children.Add(
             new Label
             {
-                Text = "âک…âک…âک…âک…âک…",
+                Text = "★★★★★",
                 TextColor = Color.FromArgb("#D4AE62"),
                 FontSize = 11,
                 HorizontalTextAlignment = TextAlignment.Center
@@ -528,7 +528,7 @@ public partial class HallOfFamePage : ContentPage
                 "player_card.png",
                 playerName,
                 rankText,
-                score > 0 ? score.ToString() : "â€”");
+                score > 0 ? score.ToString() : "—");
 
         card.Content = layout;
 
@@ -564,7 +564,7 @@ public partial class HallOfFamePage : ContentPage
                 player.PlayerName,
                 identity?.Title == null
                     ? rankResult.DisplayName
-                    : $"{rankResult.DisplayName} â€¢ {identity.Title.DisplayName}",
+                    : $"{rankResult.DisplayName} • {identity.Title.DisplayName}",
                 player.LegacyScore.ToString(),
                 identity);
 
@@ -944,8 +944,8 @@ public partial class HallOfFamePage : ContentPage
         AddRecordCard(
             grid,
             "wins_gold.png",
-            "ط£ظƒط«ط± ظپط±ظٹظ‚ ظپط§ط²",
-            "â€”",
+            "أكثر فريق فاز",
+            "—",
             "0",
             0,
             0);
@@ -953,8 +953,8 @@ public partial class HallOfFamePage : ContentPage
         AddRecordCard(
             grid,
             "meles_badge_gold.png",
-            "ظ…ظ„ظƒ ط§ظ„ظ…ظ„طµ",
-            "â€”",
+            "ملك الملص",
+            "—",
             "0",
             1,
             0);
@@ -962,16 +962,16 @@ public partial class HallOfFamePage : ContentPage
         AddRecordCard(
             grid,
             "fast_round_gold.png",
-            "ط£ط³ط±ط¹ ظ…ط¨ط§ط±ط§ط©",
-            "ط§ظ„ط²ظ…ظ†",
-            "â€”",
+            "أسرع مباراة",
+            "الزمن",
+            "—",
             0,
             1);
 
         AddRecordCard(
             grid,
             "highest_score_gold.png",
-            "ط£ط¹ظ„ظ‰ ظ†طھظٹط¬ط©",
+            "أعلى نتيجة",
             "Score",
             "0",
             1,
@@ -1344,21 +1344,21 @@ public partial class HallOfFamePage : ContentPage
             team?.IsSuspicious ?? false;
 
         if (result.LegacyScore < 300)
-            return "ظٹط­طھط§ط¬ Legacy ط£ط¹ظ„ظ‰";
+            return "يحتاج Legacy أعلى";
 
         if (result.TotalMatches < 20)
-            return $"ظٹط­طھط§ط¬ ظ…ط¨ط§ط±ظٹط§طھ ط£ظƒط«ط± ({result.TotalMatches}/20)";
+            return $"يحتاج مباريات أكثر ({result.TotalMatches}/20)";
 
         if (trust < 95)
-            return $"Trust Score ط؛ظٹط± ظƒط§ظپ ({trust}/95)";
+            return $"Trust Score غير كاف ({trust}/95)";
 
         if (result.WinRate < 60)
-            return $"Win Rate ط£ظ‚ظ„ ظ…ظ† ط§ظ„ظ…ط·ظ„ظˆط¨ ({result.WinRate:0}%)";
+            return $"Win Rate أقل من المطلوب ({result.WinRate:0}%)";
 
         if (suspicious)
-            return "ط§ظ„ظپط±ظٹظ‚ طھط­طھ ط§ظ„ظ…ط±ط§ط¬ط¹ط©";
+            return "الفريق تحت المراجعة";
 
-        return "ظ‚ط±ظٹط¨ ظ…ظ† ط§ظ„طھط£ظ‡ظ„";
+        return "قريب من التأهل";
     }
 
     string GetTeam1Key(
@@ -1435,12 +1435,12 @@ public partial class HallOfFamePage : ContentPage
                     .GetCurrentSeasonNumber(teams);
 
             return season <= 0
-                ? "â€”"
+                ? "—"
                 : season.ToString();
         }
         catch
         {
-            return "â€”";
+            return "—";
         }
     }
 
@@ -1509,9 +1509,9 @@ public partial class HallOfFamePage : ContentPage
         if (eligible.Count == 0)
         {
             await DisplayAlert(
-                "ط£ط¹ط¶ط§ط، ظ‚ط§ط¹ط© ط§ظ„ط£ط³ط§ط·ظٹط±",
-                "ظ„ط§ طھظˆط¬ط¯ ظپط±ظ‚ ظ…ط¤ظ‡ظ„ط© ط­ط§ظ„ظٹط§ظ‹.",
-                "ط­ط³ظ†ط§ظ‹");
+                "أعضاء قاعة الأساطير",
+                "لا توجد فرق مؤهلة حالياً.",
+                "حسناً");
 
             return;
         }
@@ -1524,9 +1524,9 @@ public partial class HallOfFamePage : ContentPage
                         $"#{index + 1} {x.DisplayName} | Wins {x.Wins} | Legacy {x.LegacyScore} | WR {x.WinRate:0}%"));
 
         await DisplayAlert(
-            "ط£ط¹ط¶ط§ط، ظ‚ط§ط¹ط© ط§ظ„ط£ط³ط§ط·ظٹط±",
+            "أعضاء قاعة الأساطير",
             text,
-            "ط­ط³ظ†ط§ظ‹");
+            "حسناً");
     }
 
     async void OnShowAllPlayersClicked(
