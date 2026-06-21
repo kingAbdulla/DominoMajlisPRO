@@ -151,7 +151,7 @@ public partial class PlayerDetailsPage : ContentPage
         layout.Children.Add(
             new Label
             {
-                Text = achievement.IsUnlocked ? "âœ“" : "ًں”’",
+                Text = achievement.IsUnlocked ? "✓" : "🔒",
                 TextColor =
                     achievement.IsUnlocked
                         ? Color.FromArgb("#00C853")
@@ -257,7 +257,7 @@ public partial class PlayerDetailsPage : ContentPage
 
         if (currentPlayer == null)
         {
-            await DisplayAlert("?�?�?�?�?�?�", "?��??�… ?�?�?�?�?�… ?�?�?��??�?�?�?�?�?�?�?� ?�?�?��??�‰ ?�?�?��??��??�?�?�?�?�?�", "?�?�?�?�?�†?�?�?�‹");
+            await DisplayAlert("خطأ", "لم يتم العثور على ملف اللاعب.", "حسناً");
             await Navigation.PopAsync();
             return;
         }
@@ -284,7 +284,7 @@ public partial class PlayerDetailsPage : ContentPage
             await ResolveIdentityRoleAsync(currentPlayer);
         PlayerStatusLabel.Text = visualIdentity.Title == null
             ? identityRole
-            : $"{identityRole} ?�€?� {visualIdentity.Title.DisplayName}";
+            : $"{identityRole} • {visualIdentity.Title.DisplayName}";
         ApplyAvatarIdentityVisuals(visualIdentity);
 
         PlayerRankLabel.Text =
@@ -294,7 +294,7 @@ public partial class PlayerDetailsPage : ContentPage
             rank.Progress;
 
         RankProgressLabel.Text =
-            $"?�…?�?�?�?�?��??�?� ?��??��??�?�?�?�?��??�?�?�?�: {rank.RemainingXP} XP";
+            $"متبقي للترقية: {rank.RemainingXP} XP";
 
         LevelLabel.Text =
             currentPlayer.PlayerLevel.ToString();
@@ -402,7 +402,7 @@ public partial class PlayerDetailsPage : ContentPage
             TimelineContainer.Children.Add(
                 new Label
                 {
-                    Text = "?��??�?� ?�?�?�?�?�?�?�?� ?�?�?�?�?��? ?�†?�?�?�?�?�?� ?�?�?�?�?�?�",
+                    Text = "لا توجد أحداث في السجل حالياً",
                     TextColor = Color.FromArgb("#AAAAAA"),
                     FontSize = 13,
                     HorizontalTextAlignment = TextAlignment.Center
@@ -425,7 +425,7 @@ public partial class PlayerDetailsPage : ContentPage
 
         var showMore = new Button
         {
-            Text = $"?�?�?�?�?�?� ?�?�?��??�…?�?�?�?�?�?� ({remaining})",
+            Text = $"عرض المزيد ({remaining})",
             BackgroundColor = Color.FromArgb("#1A1A1A"),
             TextColor = Color.FromArgb("#D4AF37"),
             BorderColor = Color.FromArgb("#8A5B27"),
@@ -469,7 +469,7 @@ public partial class PlayerDetailsPage : ContentPage
         {
             var deleteButton = new Button
             {
-                Text = "âœ•",
+                Text = "✕",
                 BackgroundColor = Colors.Transparent,
                 TextColor = Color.FromArgb("#FF7777"),
                 FontSize = 13,
@@ -546,10 +546,10 @@ public partial class PlayerDetailsPage : ContentPage
             return;
 
         bool confirmed = await DisplayAlertAsync(
-            "?�?�?�?�?�?� ?�?�?��??�?�?�?�?�?�",
-            "?��??��? ?�?�?�?�?�?�?�?� ?�?�?�?�?�?� ?��??�?�?�?� ?�?�?��??�?�?�?�?�?� ?�?�?��??�?�?�??",
-            "?�?�?�?�?�?�",
-            "?�?�?��??�?�?�?�?�?�");
+            "حذف حدث الهوية",
+            "هل تريد حذف هذا الحدث من سجل الهوية؟",
+            "حذف",
+            "إلغاء");
         if (!confirmed ||
             !PlayerTimelineService.DeleteIdentityEvent(
                 currentPlayer,
@@ -570,10 +570,10 @@ public partial class PlayerDetailsPage : ContentPage
             return;
 
         bool confirmed = await DisplayAlertAsync(
-            "?�?�?�?�?�?� ?�?�?�?�?��? ?�?�?��??�?�?�?�?�?�?�?�?�?�",
-            "?��??��? ?�?�?�?�?�?�?�?� ?�?�?�?�?�?� ?�?�?�…?�?�?�?� ?�?�?�?�?�?�?�?�?�?� ?��??�?�?�?�?�?� ?�?�?��??��??�?�?�?�?�?�?�??",
-            "?�?�?�?�?�?� ?�?�?��??�?�?��?",
-            "?�?�?��??�?�?�?�?�?�");
+            "حذف سجل الهوية",
+            "هل تريد حذف جميع أحداث الهوية؟ لا يؤثر هذا على بيانات اللاعب أو سجل المباريات.",
+            "حذف السجل",
+            "إلغاء");
         if (!confirmed ||
             !PlayerTimelineService.DeleteAllIdentityEvents(currentPlayer))
         {
@@ -880,9 +880,9 @@ public partial class PlayerDetailsPage : ContentPage
         if (selectedAvatar == null)
         {
             await DisplayAlert(
-                "?�?�?�†?�?�?�?�?��?",
-                "?�?�?�?�?�?�?�?� Avatar ?�?�?�?�?��??�?�?�‹",
-                "?�?�?�?�?�†?�?�?�‹");
+                "تنبيه",
+                "يرجى اختيار Avatar أولاً.",
+                "حسناً");
 
             return;
         }
@@ -913,11 +913,11 @@ public partial class PlayerDetailsPage : ContentPage
         }
         catch (OperationCanceledException)
         {
-            await DisplayAlert("?�?�?�†?�?�?�?�?��?", "?�?�?�… ?�?�?��??�?�?�?�?�?� ?�?�?��??�?�?�…?��??�?�?�?� ?�?�?�?� ?�?�?�†?�?�?��??�‰ ?�?�?��??�?�?��??�?� ?�?�?��??�…?�?�?�…?�?�?�?�.", "?�?�?�?�?�†?�?�?�‹");
+            await DisplayAlert("تنبيه", "انتهت مهلة تجهيز الصورة الرمزية. حاول مرة أخرى بعد لحظات.", "حسناً");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("?�?�?�?�?�?�", $"?�?�?�?�?�?� ?�?�?�?�?�?� ?�?�?�?�?�†?�?�?�?� ?�?�?�†?�?�?�?�?�?� ?�?�?��??�?�?�…?��??�?�?�?�: {ex.Message}", "?�?�?�?�?�†?�?�?�‹");
+            await DisplayAlert("خطأ", $"فشل حفظ الصورة الرمزية:\n{ex.Message}", "حسناً");
         }
         finally
         {
@@ -944,7 +944,7 @@ public partial class PlayerDetailsPage : ContentPage
                 await FilePicker.Default.PickAsync(
                     new PickOptions
                     {
-                        PickerTitle = "?�?�?�?�?�?�?�?� ?�?�?�?�?�?�?�?� ?�?�?��??��??�?�?�?�?�?�",
+                        PickerTitle = "اختر صورة اللاعب من الجهاز",
                         FileTypes = FilePickerFileType.Images
                     });
 
@@ -965,9 +965,9 @@ public partial class PlayerDetailsPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlert(
-                "?�?�?�?�?�?�",
-                $"?�?�?�?�?�?�?�?� ?�?�?�?�?�?�?�?�?�?�?�?� ?�?�?��??�?�?�?�?�?�?�?�:\n{ex.Message}",
-                "?�?�?�?�?�†?�?�?�‹");
+                "خطأ",
+                $"فشل اختيار صورة اللاعب:\n{ex.Message}",
+                "حسناً");
         }
     }
 
@@ -984,7 +984,7 @@ public partial class PlayerDetailsPage : ContentPage
     async Task BuildIdentityHistoryAsync(PlayerProfileModel player)
     {
         IdentityLastUpdateLabel.Text =
-            $"?�?�?�?�?�?� ?�?�?�?�?�?�?�?�?�?�: {player.LastUpdatedAt:yyyy/MM/dd HH:mm}";
+            $"آخر تحديث للهوية: {player.LastUpdatedAt:yyyy/MM/dd HH:mm}";
 
         CurrentTeamsLabel.Text =
             await GetCurrentTeamNamesAsync(player.CurrentTeamIds);
@@ -1002,7 +1002,7 @@ public partial class PlayerDetailsPage : ContentPage
     async Task<string> GetCurrentTeamNamesAsync(string teamIds)
     {
         if (string.IsNullOrWhiteSpace(teamIds))
-            return "?��??�?� ?�?�?�?�?�?�?�?�";
+            return "لا توجد فرق حالية";
 
         var teams =
             await TeamProfileService.LoadTeamsAsync();
@@ -1022,14 +1022,14 @@ public partial class PlayerDetailsPage : ContentPage
             .ToList();
 
         return names.Count == 0
-            ? "?��??�?� ?�?�?�?�?�?�?�?�"
-            : string.Join("?�?� ", names);
+            ? "لا توجد فرق حالية"
+            : string.Join("، ", names);
     }
 
     string GetLastHistoryValue(string history)
     {
         if (string.IsNullOrWhiteSpace(history))
-            return "?�€�?";
+            return "—";
 
         string last =
             history
@@ -1047,11 +1047,11 @@ public partial class PlayerDetailsPage : ContentPage
     string GetLastHistory(string history)
     {
         if (string.IsNullOrWhiteSpace(history))
-            return "?�€�?";
+            return "—";
 
         return history
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .LastOrDefault() ?? "?�€�?";
+            .LastOrDefault() ?? "—";
     }
 }
 

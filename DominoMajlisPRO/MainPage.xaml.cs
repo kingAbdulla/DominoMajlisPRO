@@ -439,10 +439,9 @@ public partial class MainPage : ContentPage
                     x.PlayerId == duplicatePlayerId)
                 ?.PlayerName ?? duplicatePlayerId;
             await DisplayAlert(
-    "لا يمكن بدء المباراة",
-    $"?�?�?�?�?�?� ({duplicatePlayerName}) ?�?�?�?�?� ???? ?�?�???�???�???�.\n\n???�?� ?�?� ???�?�?� ?�?� ?�?�?�?� ?�?�?� ???�???� ?�?�?�?� ???�?�.",
-    "حسناً");
-
+               "لا يمكن بدء المباراة",
+               $"اللاعب ({duplicatePlayerName}) موجود في الفريقين.\n\nيجب أن يكون كل لاعب ضمن فريق واحد فقط.",
+               "حسناً");
 
             return;
         }
@@ -1369,23 +1368,23 @@ TextChangedEventArgs e)
             string backupPath =
                 await BackupService.CreateBackupAsync();
             await DisplayAlert(
-    "تم",
-    "???� ?�?�?�?�?? ?�?�?�?�?�?� ?�?�?�?�?????�?�???� ?�?�?�?�?�. ?�?�???� ?�?�?�?�?? ???? ?�?�?�?� ?�?�?�.",
-    "حسناً");
+   "تم",
+   "تم إنشاء النسخة الاحتياطية بنجاح. احفظ الملف في مكان آمن.",
+   "حسناً");
 
             await Share.Default.RequestAsync(
                 new ShareFileRequest
                 {
-                    Title = "?�?�?�?� ?�?�?????�?�???� - Domino Majlis PRO",
+                    Title = "نسخة احتياطية - Domino Majlis PRO",
                     File = new ShareFile(backupPath)
                 });
         }
         catch (Exception ex)
         {
             await DisplayAlert(
-                "خطأ",
-                $"???�?� ?�?�?�?�?? ?�?�?�?�?�?� ?�?�?�?�?????�?�???�:\n{ex.Message}",
-                "حسناً");
+               "خطأ",
+               $"فشل إنشاء النسخة الاحتياطية:\n{ex.Message}",
+               "حسناً");
         }
     }
 
@@ -1397,9 +1396,9 @@ TextChangedEventArgs e)
     TappedEventArgs e)
     {
         bool confirm =
-            await DisplayAlert(
+           await DisplayAlert(
                 "استعادة البيانات",
-                "?�?????� ?�?�???�?�?�?� ?�?�?�???�?�?�?? ?�?�?�?�?�???� ?�?�?�?�???�?�?�?? ?�?�?�?�?�?�?�?� ?�?�?�?� ?�?�?�?�?�?� ?�?�?�?�?????�?�???�.\n\n?�?????� ?�?�?�?�?? ?�?�?�?� ?�?�?�?�?� ?�?�?� ?�?�?�?�???�?�?�?�.\n\n?�?� ???�???� ?�?�?�???�?�?�?�??",
+                "سيتم استبدال البيانات الحالية بالبيانات الموجودة داخل النسخة الاحتياطية.\n\nسيتم إنشاء نسخة طارئة قبل الاستعادة.\n\nهل تريد المتابعة؟",
                 "استعادة",
                 "إلغاء");
 
@@ -1413,7 +1412,7 @@ TextChangedEventArgs e)
                     new PickOptions
                     {
                         PickerTitle =
-                            "?�?�???� ?�?�?? ?�?�?�?�?�?� ?�?�?�?�?????�?�???�"
+                            "اختر ملف النسخة الاحتياطية"
                     });
 
             if (file == null)
@@ -1428,7 +1427,7 @@ TextChangedEventArgs e)
 
             await DisplayAlert(
                 "تمت الاستعادة",
-                $"???�?? ?�?�???�?�?�?� ?�?�?�???�?�?�?? ?�?�?�?�?�.\n\n???� ?�?�?�?�?? ?�?�?�?� ?�?�?�?�?� ?�?�?� ?�?�?�?�???�?�?�?�:\n{System.IO.Path.GetFileName(emergencyBackup)}",
+                $"تمت استعادة البيانات بنجاح.\n\nتم إنشاء نسخة طارئة قبل الاستعادة:\n{System.IO.Path.GetFileName(emergencyBackup)}",
                 "حسناً");
             AppEvents.RaiseDataChanged();
             allTeams =
@@ -1495,9 +1494,9 @@ TextChangedEventArgs e)
     TappedEventArgs e)
     {
         bool confirm =
-            await DisplayAlert(
+           await DisplayAlert(
                 "حذف التصنيفات",
-                "?�?????� ?�?�?? ?�?�???�?�?????�?? ???�?�.\n\n?�?� ?????� ?�?�?? ?�?�???�?� ?�?� ?�?�?� ?�?�?�?�?�?�???�??.\n\n???�?�?�?� ?�?�?�?�?� ?�?�?�?? ?�?�???�?�?????�?? ?�?�?�?�?�?�.",
+                "سيتم حذف التصنيفات فقط.\n\nلن يتم حذف الفرق أو سجل المباريات.\n\nيمكنك إعادة بناء التصنيفات لاحقاً.",
                 "حذف",
                 "إلغاء");
 
@@ -1532,7 +1531,7 @@ TextChangedEventArgs e)
         bool confirm =
             await DisplayAlert(
                 "حذف جميع المباريات",
-                "?�?????� ?�?�?? ?�?�?� ?�?�???� ?�?�?�?�?�?�???�?? ?�?�?�?�???�?�.\n\n?�?????� ?�?�?�?�?? ?�?�?�?� ?�?�?�?�?� ?�?�?� ?�?�?�?�??.\n\n?�?�?� ?�?�?�?�?? ?�?????� ?�?�?�?�?� ?�?�?�?? ?�?�???�?�?????�??.",
+                "سيتم حذف سجل جميع المباريات نهائياً.\n\nسيتم إنشاء نسخة طارئة قبل الحذف.\n\nبعد الحذف سيتم إعادة بناء التصنيفات.",
                 "حذف",
                 "إلغاء");
 
@@ -1555,7 +1554,7 @@ TextChangedEventArgs e)
 
             await DisplayAlert(
                 "تم",
-                $"???� ?�?�?? ?�?�???� ?�?�?�?�?�?�???�?? ?�?�?�?�?�.\n\n???� ?�?�?�?�?? ?�?�?�?� ?�?�?�?�?�:\n{System.IO.Path.GetFileName(emergencyBackup)}",
+                $"تم حذف جميع المباريات بنجاح.\n\nتم إنشاء نسخة طارئة:\n{System.IO.Path.GetFileName(emergencyBackup)}",
                 "حسناً");
         }
         catch (Exception ex)
@@ -1596,15 +1595,15 @@ TextChangedEventArgs e)
             AppEvents.RaiseDataChanged();
 
             await DisplayAlert(
-                "تم",
-                $"{result}\n\n???� ?�?�?�?�?? ?�?�?�?� ?�?�?�?�?�:\n{System.IO.Path.GetFileName(emergencyBackup)}",
-                "حسناً");
+                  "تم",
+                  $"{result}\n\nتم إنشاء نسخة طارئة:\n{System.IO.Path.GetFileName(emergencyBackup)}",
+                  "حسناً");
         }
         catch (Exception ex)
         {
             await DisplayAlert(
                 "خطأ",
-                $"???�?� ???�?�???? ?�?�?�???�?�?�??:\n{ex.Message}",
+                $"فشل تنظيف البيانات:\n{ex.Message}",
                 "حسناً");
         }
     }
@@ -1723,7 +1722,8 @@ TextChangedEventArgs e)
             LatestUpdatesContainer.Children.Add(
                 new Label
                 {
-                    Text = $"âœ“ {update}",
+
+                    Text = $"✓ {update}",
                     TextColor = Colors.White,
                     FontSize = 14,
                     HorizontalTextAlignment = TextAlignment.End
@@ -1827,7 +1827,7 @@ TextChangedEventArgs e)
                 layout.Children.Add(
                     new Label
                     {
-                        Text = $"âœ“ {update}",
+                        Text = $"✓ {update}",
                         TextColor = Colors.White,
                         FontSize = 14,
                         HorizontalTextAlignment = TextAlignment.End
@@ -1866,7 +1866,7 @@ TextChangedEventArgs e)
             InfoContentContainer.Children.Add(
                 new Label
                 {
-                    Text = $"âœ“ {item}",
+                    Text = $"✓ {item}",
                     TextColor = Colors.White,
                     FontSize = 14,
                     HorizontalTextAlignment = TextAlignment.End
@@ -2019,7 +2019,7 @@ TextChangedEventArgs e)
                 Label titleLabel =
      new Label
      {
-         Text = $"{item.Title} â–¼",
+         Text = $"{item.Title} ▼",
 
          FontSize = 16,
 
@@ -2100,8 +2100,8 @@ TextChangedEventArgs e)
 
                     titleLabel.Text =
                         isOpen
-                        ? $"{item.Title} â–²"
-                        : $"{item.Title} â–¼";
+                        ? $"{item.Title} ▲"
+                        : $"{item.Title} ▼";
                 };
 
                 card.GestureRecognizers.Add(tap);
@@ -2193,8 +2193,8 @@ TextChangedEventArgs e)
     async Task UpgradeCurrentGhostAsync()
     {
         string? playerName = await DisplayPromptAsync(
-            "إنشاء هوية لاعب",
-            "?�?�?�?� ?�?�?� ?�?�?�?�?�?� ?�?�?�?? ?�?????�?�?� ?�?�?�?� ?�?�?�?�???� ?�?�?�?�?�???�:",
+             "إنشاء هوية لاعب",
+            "أدخل اسم اللاعب الذي سيُربط بهذه الهوية المحلية:",
             "إنشاء",
             "إلغاء",
             maxLength: 40);
@@ -2208,8 +2208,8 @@ TextChangedEventArgs e)
                 .UpgradeGhostToMemberAsync(playerName);
 
             await DisplayAlertAsync(
-                "تم",
-                "???� ?�?�?�?�?? ?�?�???� ?�?�?�?�?�?� ?�?�?�?�?�?� ?�?�?�?�?�?�?� ?�?�?�?�?�???�.",
+                 "تم",
+                "تم إنشاء هوية اللاعب وربطها بالجلسة الحالية.",
                 "حسناً");
         }
         catch (Exception ex)
@@ -2274,7 +2274,7 @@ TextChangedEventArgs e)
     {
         bool confirm = await DisplayAlertAsync(
             "تسجيل الخروج",
-            "?�?????� ?�?�?�?�?? ?�?�?�?�?�?� ?�?�?�?�?�???� ???�?�. ?�?� ?????�?�?? ?�?�?�?�???� ?�?� ?�???�?�?�?? ?�?�?�?�?�?�.",
+            "سيتم إنهاء الجلسة المحلية فقط. لن تُحذف الهوية أو بيانات اللاعب.",
             "تسجيل الخروج",
             "إلغاء");
 
@@ -2308,8 +2308,8 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "?�?�?�?�?�???�?� ?�?�?� ?�???� ?�?�?�???�?�?�??",
-                "?�?????� ?�???� ?�?�?�?�?�?�?? ?�?�?????�?�???� ???�?� ?�???�?�???� ???�?�?�?� ?�?�???�?�???�.\n\n?�?� ?????� ?�???� ?�?�?�?�?� ?�?�?�?�?� ?�?� ?�?�?� ?�?�?�?�???? ?�?� ?�?�?�?�?�?� ?�?�?�???�?�????.\n\n?�?� ???�?�???�??",
+               "الموافقة على حفظ البيانات",
+                "سيتم حفظ معلومات اختيارية فقط لتحسين تجربة التطبيق.\n\nلن يتم حفظ عنوان السكن أو رقم الهاتف أو الموقع الجغرافي.\n\nهل توافق؟",
                 "أوافق",
                 "إلغاء");
 
@@ -2331,10 +2331,10 @@ TextChangedEventArgs e)
         PrivacyProfileOverlay.IsVisible = false;
         await RefreshProfileStatus();
         await DisplayAlert(
-            "تم",
-            "???� ?�???� ?�?�?�?�?? ?�?�?�?�?�?? ?�?�?�?�?????�?�?? ?�?�?�?�?�",
+           "تم",
+            "تم حفظ الملف الشخصي الاختياري بنجاح",
             "حسناً");
-     
+
     }
 
     async void OnDeletePrivacyProfileClicked(
@@ -2437,9 +2437,9 @@ TextChangedEventArgs e)
                 string severityIcon =
                     log.Severity switch
                     {
-                        "High" => "ًں”´",
-                        "Medium" => "ًںں،",
-                        _ => "ًںں¢"
+                        "High" => "🔴",
+                        "Medium" => "🟡",
+                        _ => "🟢"
                     };
 
                 string severityText =
@@ -2603,8 +2603,8 @@ TextChangedEventArgs e)
         if (string.IsNullOrWhiteSpace(password))
         {
             await DisplayAlert(
-                "تنبيه",
-                "?�?�?�?� ?�?�?�?� ?�?�?�?� ?�?�?�?�?�?�",
+               "تنبيه",
+                "أدخل كلمة مرور المطور",
                 "حسناً");
 
             return;
@@ -2623,8 +2623,8 @@ TextChangedEventArgs e)
         if (password != confirm)
         {
             await DisplayAlert(
-                "تنبيه",
-                "?�?�?�?� ?�?�?�?�?�?� ?�???�?�???�?�?� ?????� ?�???�?�?�?�???�",
+               "تنبيه",
+                "كلمة المرور وتأكيدها غير متطابقين",
                 "حسناً");
 
             return;
@@ -2634,7 +2634,8 @@ TextChangedEventArgs e)
 
         await DisplayAlert(
             "تم",
-            "???� ?�???� ?�?�?�?� ?�?�?�?� ?�?�?�?�?�?�",
+              "تم",
+            "تم حفظ كلمة مرور المطور",
             "حسناً");
 
         DeveloperLockOverlay.IsVisible = false;
@@ -2657,7 +2658,7 @@ TextChangedEventArgs e)
         {
             await SecurityLogService.AddAsync(
                 "SECURITY",
-                "???� ?�?�???�?�?� ?�?� ?�???� ?�?�?�?�?�?�",
+                 "تم التحقق من قفل المطور",
                 "Developer password verified");
 
             await DisplayAlert(
@@ -2669,7 +2670,7 @@ TextChangedEventArgs e)
         {
             await SecurityLogService.AddAsync(
                 "SECURITY",
-                "???�?� ?�?�???�?�?� ?�?� ?�???� ?�?�?�?�?�?�",
+                "فشل التحقق من قفل المطور",
                 "Developer password verification failed");
 
             await DisplayAlert(
@@ -2699,7 +2700,7 @@ TextChangedEventArgs e)
         bool confirm =
             await DisplayAlert(
                 "حذف السجلات المؤقتة",
-                "?�?????� ?�?�?? ?�?�?�?�?�?�?? ?�?�?�?�?�???� ???�?�.\n\n?�?�?�?�?�?�?? ?�?�?�?�?�?�?� ?�???�?�?� ?�?�???�?�?�.",
+               "سيتم حذف السجلات المؤقتة فقط.\n\nالسجلات الدائمة ستبقى محفوظة.",
                 "حذف",
                 "إلغاء");
 
@@ -2840,7 +2841,7 @@ TextChangedEventArgs e)
 
                 await DisplayAlert(
                     "تم",
-                    "???� ???�?�???� ?�?�?� Developer ?�?�?�?�?�. ?�?�?�?� ?�?�?�?� Developer Vault ???�?�?�?�.",
+                    "تم تأسيس أول Developer بنجاح. الآن صدّر Developer Vault فوراً.",
                     "حسناً");
 
                 return;
@@ -2896,7 +2897,7 @@ TextChangedEventArgs e)
             identity.Role switch
             {
                 HonorRoleType.Developer =>
-                    "???� ?????�???� ?�?�?�?�???� ?�?�?�?�?�?� ?�?�?�?�?�.",
+                    "تم تفعيل صلاحية المطور بنجاح.",
 
                 HonorRoleType.Founder =>
                     $"تم تفعيل صلاحية Founder بنجاح.\n\nFounder #{identity.FounderNumber}",
@@ -2925,7 +2926,7 @@ TextChangedEventArgs e)
         bool confirm =
             await DisplayAlert(
                 "تصفير هوية الشرف",
-                "?�?????� ?�?�?? ?�?�?�?�???� ?�?�?�?�?�?� ?�?�?�?�?�???� ???�?�.\n\n?�?� ?????� ?�?�?? ?�?�???�?� ?�?� ?�?�?�?�?�?�???�?? ?�?� ?�?�???�?�?????�??.",
+                "سيتم حذف صلاحية الجهاز الحالية فقط.\n\nلن يتم حذف الفرق أو المباريات أو التصنيفات.",
                 "حذف",
                 "إلغاء");
 
@@ -2941,8 +2942,8 @@ TextChangedEventArgs e)
         HonorActivationKeyEntry.Text = "";
 
         await DisplayAlert(
-            "تم",
-            "???� ?�?�?? ?�?�???� ?�?�?�?�?? ?�?� ?�?�?�?�?�?�. ???�?�?�?� ?�?�?�?� ?????�???� Developer ?�?� Founder ?�?� Honor ?�?� ?�?�???�.",
+         "تم",
+            "تم حذف هوية الشرف من الجهاز. يمكنك الآن تفعيل Developer أو Founder أو Honor من جديد.",
             "حسناً");
     }
 }

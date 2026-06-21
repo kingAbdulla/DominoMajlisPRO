@@ -190,11 +190,11 @@ public partial class PlayerProfilesPage : ContentPage
             ? Color.FromArgb("#D4AF37")
             : Colors.Transparent;
         AccountAvatarFrame.Shadow = new Shadow
-            {
-                Brush = new SolidColorBrush(Color.FromArgb("#F2C14E")),
-                Radius = 18,
-                Opacity = 0.55f
-            };
+        {
+            Brush = new SolidColorBrush(Color.FromArgb("#F2C14E")),
+            Radius = 18,
+            Opacity = 0.55f
+        };
         if (identity.Title != null)
         {
             AccountRoleSessionLabel.Text =
@@ -227,7 +227,7 @@ public partial class PlayerProfilesPage : ContentPage
                 fallbackAvatar);
     }
 
-        void ApplyPlayerEffectOverlay(
+    void ApplyPlayerEffectOverlay(
         Image effectOverlay,
         DominoMajlisPRO.GalleryEngine.Models.CatalogAssetDisplay? effect)
     {
@@ -347,14 +347,14 @@ public partial class PlayerProfilesPage : ContentPage
     {
         accountHubExpanded = !accountHubExpanded;
         AccountHubContent.IsVisible = accountHubExpanded;
-        AccountHubArrowLabel.Text = accountHubExpanded ? "âŒƒ" : "âŒ„";
+        AccountHubArrowLabel.Text = accountHubExpanded ? "▲" : "▼";
     }
 
     void OnCollectionHeaderTapped(object? sender, TappedEventArgs e)
     {
         collectionExpanded = !collectionExpanded;
         CollectionContent.IsVisible = collectionExpanded;
-        CollectionArrowLabel.Text = collectionExpanded ? "âŒƒ" : "âŒ„";
+        CollectionArrowLabel.Text = collectionExpanded ? "▲" : "▼";
     }
 
     async void OnCreateIdentityClicked(object? sender, EventArgs e)
@@ -380,7 +380,7 @@ public partial class PlayerProfilesPage : ContentPage
             catch (Exception ex)
             {
                 await DisplayAlertAsync(
-                    "???�?�?� ?�?�?� ?�?�?�?�??",
+                    "تعذر إنشاء الهوية",
                     ex.Message,
                     "حسناً");
             }
@@ -454,13 +454,13 @@ public partial class PlayerProfilesPage : ContentPage
         {
             await DisplayAlertAsync(
                 "تسجيل الدخول",
-                "?�?� ???�?�?� ?�?�?�?�?�?? ?�?�???�?�?� ?�?�?� ?�?�?� ?�?�?�?�?�?�.",
+                "لا توجد هويات محلية أخرى على هذا الجهاز.",
                 "حسناً");
             return;
         }
 
         string? selected = await DisplayActionSheetAsync(
-            "?�?�???� ?�?�?�?�?�?� ?�?�???�?�?�?�",
+            "اختر الهوية المحلية",
             "إلغاء",
             null,
             choices.Select(item => item.Label).ToArray());
@@ -479,7 +479,7 @@ public partial class PlayerProfilesPage : ContentPage
     {
         bool confirm = await DisplayAlertAsync(
             "تسجيل الخروج",
-            "?�?????� ?�?�?�?�?? ?�?�?�?�?�?� ???�?�?� ?�?�?� ?????�?�?? ?�?�?�?�???� ?�?� ?�???�?�?�?? ?�?�?�?�?�?�.",
+            "هل تريد تسجيل الخروج من هذه الهوية؟ يمكنك تسجيل الدخول مرة أخرى لاحقاً.",
             "تسجيل الخروج",
             "إلغاء");
 
@@ -509,7 +509,7 @@ public partial class PlayerProfilesPage : ContentPage
         {
             AccountHubContent.IsVisible = true;
             accountHubExpanded = true;
-            AccountHubArrowLabel.Text = "âŒƒ";
+            AccountHubArrowLabel.Text = "▲";
             return;
         }
 
@@ -565,7 +565,7 @@ public partial class PlayerProfilesPage : ContentPage
             InventoryOwnerLabel.Text =
                 "سجّل الدخول إلى حساب لاعب لعرض المقتنيات.";
             InventoryItemsContainer.Children.Add(
-                CreateInventoryEmptyLabel("?�?� ???�?�?� ?�?�???�???�?? ?�?�???�?�?� ?�?�?�?�????."));
+                CreateInventoryEmptyLabel("لا توجد مقتنيات مملوكة لهذا الحساب."));
             return;
         }
 
@@ -745,7 +745,7 @@ public partial class PlayerProfilesPage : ContentPage
         visual.Content = string.IsNullOrWhiteSpace(payload.ImagePath)
             ? new Label
             {
-                Text = "â—†",
+                Text = "◆",
                 TextColor = Color.FromArgb("#D4AF37"),
                 FontSize = 22,
                 HorizontalTextAlignment = TextAlignment.Center,
@@ -1129,12 +1129,12 @@ public partial class PlayerProfilesPage : ContentPage
             StrokeThickness = 2,
             StrokeShape = new RoundRectangle { CornerRadius = 999 },
             Shadow = new Shadow
-                {
-                    Brush = new SolidColorBrush(
-                        Color.FromArgb("#F2C14E")),
-                    Radius = 18,
-                    Opacity = 0.55f
-                },
+            {
+                Brush = new SolidColorBrush(
+                    Color.FromArgb("#F2C14E")),
+                Radius = 18,
+                Opacity = 0.55f
+            },
             Content = avatar
         };
     }
@@ -1391,10 +1391,3 @@ public partial class PlayerProfilesPage : ContentPage
         await Navigation.PopAsync();
     }
 }
-
-
-
-
-
-
-
