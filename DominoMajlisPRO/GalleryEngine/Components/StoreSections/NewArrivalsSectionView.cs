@@ -154,13 +154,25 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
     }
 
     private static StoreProductPreviewKind ResolvePreviewKind(
-        string storeTypeId) =>
-        string.Equals(
-            StoreAssetCatalogService.CanonicalTypeId(storeTypeId),
+        string storeTypeId)
+    {
+        var canonicalType =
+            StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+        if (string.Equals(
+                canonicalType,
+                StoreProductAssetType.Frame.ToString(),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return StoreProductPreviewKind.Frame;
+        }
+
+        return string.Equals(
+            canonicalType,
             StoreProductAssetType.Effect.ToString(),
             StringComparison.OrdinalIgnoreCase)
                 ? StoreProductPreviewKind.Effect
                 : StoreProductPreviewKind.Generic;
+    }
 
     private static void AttachCardTap(PremiumGalleryCard card, Action action)
     {
