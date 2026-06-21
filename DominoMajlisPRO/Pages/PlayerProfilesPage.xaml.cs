@@ -254,7 +254,7 @@ public partial class PlayerProfilesPage : ContentPage
 
         if (key.Contains("fire") || key.Contains("flame") || key.Contains("نار") || key.Contains("لهب"))
         {
-            effectOverlay.Source = "effect_fire.png";
+            effectOverlay.Source = "fire_gold.png";
             effectOverlay.Opacity = 0.92;
             effectOverlay.Scale = 1.18;
             effectOverlay.IsVisible = true;
@@ -263,7 +263,7 @@ public partial class PlayerProfilesPage : ContentPage
 
         if (key.Contains("glow") || key.Contains("light") || key.Contains("ضوء") || key.Contains("توهج"))
         {
-            effectOverlay.Source = "effect_glow.png";
+            effectOverlay.Source = "fire_gold.png";
             effectOverlay.Opacity = 0.85;
             effectOverlay.Scale = 1.12;
             effectOverlay.IsVisible = true;
@@ -1443,6 +1443,8 @@ public partial class PlayerProfilesPage : ContentPage
         await Navigation.PopAsync();
     }
 }
+
+
 
 
 
