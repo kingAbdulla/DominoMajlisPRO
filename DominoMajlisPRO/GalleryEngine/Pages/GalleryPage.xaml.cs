@@ -474,7 +474,6 @@ public partial class GalleryPage : ContentPage
         await OpenAccountAsync();
     }
 
-    // TEMP DEV: Season switch test control. Remove before production.
     private async Task SwitchToNextSeasonForTestAsync()
     {
         _catalog ??= GalleryService.GetCatalog();
