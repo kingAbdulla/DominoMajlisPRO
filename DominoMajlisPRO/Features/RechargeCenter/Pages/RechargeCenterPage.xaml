@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DominoMajlisPRO.Features.RechargeCenter.Pages.RechargeCenterPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:DominoMajlisPRO.Features.RechargeCenter.Models"
+    xmlns:components="clr-namespace:DominoMajlisPRO.Features.RechargeCenter.Components"
+    BackgroundColor="#030713"
+    FlowDirection="RightToLeft"
+    NavigationPage.HasNavigationBar="False">
+
+    <ContentPage.Resources>
+        <Color x:Key="Gold">#E6B94F</Color>
+        <Color x:Key="PaleGold">#FFE7A1</Color>
+        <Color x:Key="Card">#10172A</Color>
+        <Color x:Key="Card2">#171425</Color>
+        <Color x:Key="Muted">#B7B4BF</Color>
+        <Style x:Key="SectionTitle" TargetType="Label">
+            <Setter Property="FontFamily" Value="Tajawal-Regular" />
+            <Setter Property="FontSize" Value="21" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="TextColor" Value="{StaticResource Gold}" />
+        </Style>
+        <Style x:Key="BodyText" TargetType="Label">
+            <Setter Property="FontFamily" Value="Tajawal-Regular" />
+            <Setter Property="TextColor" Value="#F6F0E2" />
+        </Style>
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="{StaticResource Card}" />
+            <Setter Property="Stroke" Value="#8D6A2B" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="Padding" Value="14" />
+            <Setter Property="StrokeShape">
+                <Setter.Value>
+                    <RoundRectangle CornerRadius="18" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="GoldButton" TargetType="Button">
+            <Setter Property="FontFamily" Value="Tajawal-Regular" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="TextColor" Value="#171005" />
+            <Setter Property="BackgroundColor" Value="{StaticResource Gold}" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="HeightRequest" Value="46" />
+        </Style>
+        <Style x:Key="OutlineButton" TargetType="Button">
+            <Setter Property="FontFamily" Value="Tajawal-Regular" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="TextColor" Value="{StaticResource PaleGold}" />
+            <Setter Property="BackgroundColor" Value="#17130D" />
+            <Setter Property="BorderColor" Value="#9B7331" />
+            <Setter Property="BorderWidth" Value="1" />
+            <Setter Property="CornerRadius" Value="13" />
+            <Setter Property="HeightRequest" Value="42" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid>
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#020612" Offset="0" />
+                <GradientStop Color="#111126" Offset="0.45" />
+                <GradientStop Color="#050814" Offset="1" />
+            </LinearGradientBrush>
+        </Grid.Background>
+
+        <ScrollView x:Name="PageScroll" VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout Padding="16,18,16,24" Spacing="18" MaximumWidthRequest="1180" HorizontalOptions="Center">
+
+                <Grid x:Name="HeaderGrid" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" RowSpacing="10" FlowDirection="LeftToRight">
+                    <Button Grid.Column="0" Text="← العودة" Clicked="OnBackClicked" Style="{StaticResource OutlineButton}" Padding="14,0" />
+                    <VerticalStackLayout Grid.Column="1" Spacing="0" HorizontalOptions="Center">
+                        <Label Text="اشحن الآن" MaxLines="1" FontFamily="Tajawal-Regular" FontSize="34" FontAttributes="Bold" TextColor="{StaticResource Gold}" HorizontalTextAlignment="Center" />
+                        <Label Text="♛  Unlock Premium Experience  ♛" FontFamily="CinzelDecorative-Bold" FontSize="12" TextColor="#F7D887" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                    <Button Grid.Column="2" Text="سجل المشتريات" Clicked="OnHistoryClicked" Style="{StaticResource OutlineButton}" Padding="14,0" />
+                </Grid>
+
+                <Border Style="{StaticResource CardBorder}" Padding="18">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#17152D" Offset="0" />
+                            <GradientStop Color="#07162D" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="15">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="العملات" Style="{StaticResource BodyText}" TextColor="#CFB97D" />
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="🪙" FontSize="22" />
+                                <Label Text="{Binding CoinsText}" FontFamily="CinzelDecorative-Bold" FontSize="20" TextColor="White" VerticalTextAlignment="Center" />
+                                <Button Text="+" Clicked="OnAddCoinsClicked" WidthRequest="32" HeightRequest="34" Padding="0" Style="{StaticResource OutlineButton}" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                        <BoxView Grid.Column="1" WidthRequest="1" Color="#66532D" />
+                        <VerticalStackLayout Grid.Column="2" Spacing="2">
+                            <Label Text="الجواهر" Style="{StaticResource BodyText}" TextColor="#CFB97D" />
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="💎" FontSize="22" />
+                                <Label Text="{Binding GemsText}" FontFamily="CinzelDecorative-Bold" FontSize="20" TextColor="White" VerticalTextAlignment="Center" />
+                                <Button Text="+" Clicked="OnAddGemsClicked" WidthRequest="32" HeightRequest="34" Padding="0" Style="{StaticResource OutlineButton}" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <VerticalStackLayout x:Name="PackagesSection" Spacing="10">
+                    <components:RechargeSectionHeaderView Text="💎  باقات الجواهر" />
+                    <FlexLayout Wrap="Wrap" JustifyContent="Center" AlignItems="Stretch"
+                                BindableLayout.ItemsSource="{Binding Packages}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:RechargePackageModel">
+                                <Border Style="{StaticResource CardBorder}" WidthRequest="145" Margin="3" Padding="10">
+                                    <VerticalStackLayout Spacing="7">
+                                        <Border IsVisible="{Binding IsMostPopular}" BackgroundColor="#D89D2C" StrokeThickness="0" Padding="8,3">
+                                            <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                                            <Label Text="{Binding BadgeText}" FontFamily="CinzelDecorative-Bold" FontSize="10" TextColor="#160F04" HorizontalTextAlignment="Center" />
+                                        </Border>
+                                        <Label Text="{Binding GemsAmount, StringFormat='{0:N0}'}" FontFamily="CinzelDecorative-Bold" FontSize="25" TextColor="{StaticResource Gold}" HorizontalTextAlignment="Center" />
+                                        <Label Text="Gems" Style="{StaticResource BodyText}" HorizontalTextAlignment="Center" />
+                                        <Label Text="💎" FontSize="48" HorizontalTextAlignment="Center" />
+                                        <Border BackgroundColor="#3A1761" Stroke="#7D43A8" Padding="7,4">
+                                            <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                                            <Label Text="{Binding BonusText}" Style="{StaticResource BodyText}" FontSize="12" HorizontalTextAlignment="Center" />
+                                        </Border>
+                                        <Button Text="{Binding PriceText}" Clicked="OnPackageClicked" CommandParameter="{Binding .}" Style="{StaticResource GoldButton}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+                </VerticalStackLayout>
+
+                <Grid x:Name="OffersVipGrid" ColumnDefinitions="*,*" ColumnSpacing="12" RowSpacing="12">
+                    <VerticalStackLayout Grid.Column="0" Spacing="10">
+                        <Label Text="عروض محدودة" Style="{StaticResource SectionTitle}" />
+                        <FlexLayout Wrap="Wrap" JustifyContent="Center" BindableLayout.ItemsSource="{Binding Offers}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:RechargeOfferModel">
+                                    <Border Style="{StaticResource CardBorder}" WidthRequest="190" Margin="4" Padding="12">
+                                        <VerticalStackLayout Spacing="6">
+                                            <Label Text="{Binding DiscountText}" FontFamily="Tajawal-Regular" FontAttributes="Bold" TextColor="White" BackgroundColor="#9A1845" Padding="8,3" HorizontalTextAlignment="Center" />
+                                            <Label Text="{Binding Title}" Style="{StaticResource BodyText}" FontAttributes="Bold" FontSize="17" HorizontalTextAlignment="Center" />
+                                            <Label Text="🎁" FontSize="44" HorizontalTextAlignment="Center" />
+                                            <Label Text="{Binding RewardText}" Style="{StaticResource BodyText}" TextColor="{StaticResource Gold}" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                            <Label Text="{Binding BonusText}" Style="{StaticResource BodyText}" FontSize="12" HorizontalTextAlignment="Center" />
+                                            <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                                                <Label Text="{Binding OldPriceText}" TextDecorations="Strikethrough" TextColor="#8F8D94" />
+                                                <Label Text="{Binding NewPriceText}" TextColor="{StaticResource PaleGold}" FontAttributes="Bold" />
+                                            </HorizontalStackLayout>
+                                            <Button Text="شراء العرض" Clicked="OnOfferClicked" CommandParameter="{Binding .}" Style="{StaticResource GoldButton}" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+                    </VerticalStackLayout>
+
+                    <Border Grid.Column="1" Style="{StaticResource CardBorder}" Padding="20">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Grid.Column="0" Spacing="10">
+                                <Label Text="{Binding VipPlan.Title}" FontFamily="CinzelDecorative-Bold" FontSize="25" TextColor="{StaticResource Gold}" />
+                                <Label Text="{Binding VipPlan.DailyGems, StringFormat='💎  {0:N0} جوهرة يومية'}" Style="{StaticResource BodyText}" />
+                                <Label Text="{Binding VipPlan.MonthlyCoins, StringFormat='🪙  {0:N0} عملة شهرية'}" Style="{StaticResource BodyText}" />
+                                <Label Text="{Binding VipPlan.XpBonusPercent, StringFormat='⭐  +{0}% XP Bonus'}" Style="{StaticResource BodyText}" />
+                                <Label Text="✓ إطار حصري" Style="{StaticResource BodyText}" TextColor="#77D496" />
+                                <Label Text="✓ لقب مميز" Style="{StaticResource BodyText}" TextColor="#77D496" />
+                                <Button Text="{Binding VipPlan.MonthlyPriceText}" Clicked="OnVipClicked" Style="{StaticResource GoldButton}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="♛&#10;VIP" FontFamily="CinzelDecorative-Bold" FontSize="35" TextColor="{StaticResource Gold}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Grid x:Name="RewardsGrid" ColumnDefinitions="*,*" ColumnSpacing="12" RowSpacing="12">
+                    <Border Grid.Column="0" Style="{StaticResource CardBorder}">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="أول عملية شحن" Style="{StaticResource SectionTitle}" />
+                            <Label Text="احصل على مكافآت حصرية بعد أول عملية شحن" Style="{StaticResource BodyText}" TextColor="{StaticResource Muted}" />
+                            <FlexLayout Wrap="Wrap" JustifyContent="Center" BindableLayout.ItemsSource="{Binding FirstRechargeRewards}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:RechargeRewardModel">
+                                        <VerticalStackLayout WidthRequest="100" Margin="3" Spacing="2">
+                                            <Label Text="{Binding IconKey}" FontSize="31" HorizontalTextAlignment="Center" />
+                                            <Label Text="{Binding Title}" Style="{StaticResource BodyText}" FontSize="10" HorizontalTextAlignment="Center" MaxLines="2" />
+                                        </VerticalStackLayout>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </FlexLayout>
+                            <Button Text="استلم مكافآت الشحن" Clicked="OnFirstRechargeClicked" Style="{StaticResource GoldButton}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource CardBorder}">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="تقدم الشحن" Style="{StaticResource SectionTitle}" />
+                            <Label Text="اشحن المزيد للحصول على مكافآت إضافية" Style="{StaticResource BodyText}" TextColor="{StaticResource Muted}" />
+                            <ProgressBar Progress="{Binding ProgressValue}" ProgressColor="{StaticResource Gold}" BackgroundColor="#312D39" HeightRequest="8" />
+                            <Label Text="{Binding ProgressText}" Style="{StaticResource BodyText}" HorizontalTextAlignment="Center" />
+                            <FlexLayout Wrap="Wrap" JustifyContent="Center" BindableLayout.ItemsSource="{Binding ProgressRewards}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:RechargeProgressRewardModel">
+                                        <Border Style="{StaticResource CardBorder}" WidthRequest="135" Margin="3" Padding="8">
+                                            <VerticalStackLayout Spacing="3">
+                                                <Label Text="{Binding IconKey}" FontSize="28" HorizontalTextAlignment="Center" />
+                                                <Label Text="{Binding RequiredGems, StringFormat='{0:N0} 💎'}" TextColor="{StaticResource Gold}" HorizontalTextAlignment="Center" />
+                                                <Label Text="{Binding Title}" Style="{StaticResource BodyText}" FontSize="11" HorizontalTextAlignment="Center" />
+                                                <Button Text="استلام" Clicked="OnProgressRewardClicked" CommandParameter="{Binding .}" Style="{StaticResource OutlineButton}" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </FlexLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="طرق الدفع" Style="{StaticResource SectionTitle}" />
+                        <Label Text="{Binding SelectedPaymentText, StringFormat='طريقة الدفع المحددة: {0}'}" Style="{StaticResource BodyText}" TextColor="#8FCBFF" />
+                        <FlexLayout Wrap="Wrap" JustifyContent="Center" BindableLayout.ItemsSource="{Binding PaymentMethods}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:PaymentMethodModel">
+                                    <Border Style="{StaticResource CardBorder}" WidthRequest="150" Margin="4" Padding="10">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnPaymentMethodTapped" CommandParameter="{Binding .}" />
+                                        </Border.GestureRecognizers>
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="{Binding IconKey}" FontSize="24" TextColor="White" HorizontalTextAlignment="Center" />
+                                            <Label Text="{Binding Name}" Style="{StaticResource BodyText}" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+                        <Label Text="🛡 جميع طرق الدفع آمنة ومشفرة" Style="{StaticResource BodyText}" FontSize="12" TextColor="#C9B779" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Grid x:Name="LowerGrid" ColumnDefinitions="1.2*,1*,0.8*" ColumnSpacing="12" RowSpacing="12">
+                    <Border Grid.Column="0" Style="{StaticResource CardBorder}">
+                        <VerticalStackLayout Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="آخر العمليات" Style="{StaticResource SectionTitle}" />
+                                <Button Grid.Column="1" Text="عرض الكل" Clicked="OnHistoryClicked" Style="{StaticResource OutlineButton}" />
+                            </Grid>
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding RecentPurchases}" Spacing="5">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:PurchaseHistoryItemModel">
+                                        <Grid ColumnDefinitions="*,Auto" Padding="4">
+                                            <VerticalStackLayout>
+                                                <Label Text="{Binding ItemTitle}" Style="{StaticResource BodyText}" FontAttributes="Bold" />
+                                                <Label Text="{Binding CreatedAtText}" Style="{StaticResource BodyText}" FontSize="10" TextColor="{StaticResource Muted}" />
+                                            </VerticalStackLayout>
+                                            <VerticalStackLayout Grid.Column="1">
+                                                <Label Text="{Binding PriceText}" TextColor="{StaticResource Gold}" />
+                                                <Label Text="{Binding Status}" TextColor="#64C887" FontSize="11" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource CardBorder}">
+                        <VerticalStackLayout Spacing="7">
+                            <Label Text="الأسئلة الشائعة" Style="{StaticResource SectionTitle}" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding FaqItems}" Spacing="6">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:RechargeFaqItemModel">
+                                        <Border BackgroundColor="#0B1020" Stroke="#4B4233" Padding="10">
+                                            <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnFaqTapped" CommandParameter="{Binding .}" />
+                                            </Border.GestureRecognizers>
+                                            <VerticalStackLayout Spacing="5">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <Label Text="{Binding Question}" Style="{StaticResource BodyText}" FontAttributes="Bold" />
+                                                    <Label Grid.Column="1" Text="{Binding Chevron}" TextColor="{StaticResource Gold}" />
+                                                </Grid>
+                                                <Label Text="{Binding Answer}" IsVisible="{Binding IsExpanded}" Style="{StaticResource BodyText}" FontSize="12" TextColor="{StaticResource Muted}" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource CardBorder}">
+                        <VerticalStackLayout Spacing="12" VerticalOptions="Center">
+                            <Label Text="تحتاج مساعدة؟" Style="{StaticResource SectionTitle}" HorizontalTextAlignment="Center" />
+                            <Label Text="🎧" FontSize="52" HorizontalTextAlignment="Center" />
+                            <Label Text="فريق الدعم جاهز لمساعدتك" Style="{StaticResource BodyText}" HorizontalTextAlignment="Center" />
+                            <Button Text="تواصل مع الدعم" Clicked="OnSupportClicked" Style="{StaticResource GoldButton}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16" FlowDirection="LeftToRight">
+                    <Label Text="All purchases are encrypted and securely processed." TextColor="#C4C1C6" FontSize="11" />
+                    <Label Grid.Column="1" Text="{Binding Catalog.StoreVersion, StringFormat='v {0}'}" TextColor="#8E8B93" FontSize="11" />
+                    <Label Grid.Column="2" Text="{Binding Catalog.StoreId, StringFormat='Store ID: {0}'}" TextColor="#8E8B93" FontSize="11" />
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid x:Name="BusyOverlay" IsVisible="{Binding IsBusy}" BackgroundColor="#99000000" InputTransparent="False">
+            <ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource Gold}" WidthRequest="52" HeightRequest="52" />
+        </Grid>
+    </Grid>
+</ContentPage>

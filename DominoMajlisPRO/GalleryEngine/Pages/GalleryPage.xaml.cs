@@ -5,6 +5,7 @@ using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
+using DominoMajlisPRO.Features.RechargeCenter.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Pages;
 
@@ -109,7 +110,7 @@ public partial class GalleryPage : ContentPage
                 break;
 
             case StoreQuickAction.TopUp:
-                await ShowWalletPlaceholderAsync();
+                await RechargeNavigationService.OpenAsync(Navigation);
                 break;
 
             case StoreQuickAction.SeasonPass:
@@ -461,12 +462,12 @@ public partial class GalleryPage : ContentPage
 
     private async void OnCoinsRequested(object? sender, EventArgs e)
     {
-        await DisplayAlert("العملات", "سيتم فتح صفحة شحن العملات لاحقًا.", "حسنًا");
+        await RechargeNavigationService.OpenAsync(Navigation);
     }
 
     private async void OnGemsRequested(object? sender, EventArgs e)
     {
-        await DisplayAlert("الجواهر", "سيتم فتح صفحة شحن الجواهر لاحقًا.", "حسنًا");
+        await RechargeNavigationService.OpenAsync(Navigation);
     }
 
     private async void OnIdentityRequested(object? sender, EventArgs e)

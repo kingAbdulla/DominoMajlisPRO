@@ -130,6 +130,9 @@
 		<MauiXaml Update="GalleryEngine\Pages\GalleryPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Features\RechargeCenter\Pages\RechargeCenterPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Pages\CertificatePage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
