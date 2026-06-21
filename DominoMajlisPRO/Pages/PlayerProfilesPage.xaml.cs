@@ -1109,9 +1109,8 @@ public partial class PlayerProfilesPage : ContentPage
         avatar.Add(
             new Image
             {
-                Source =
-                    ToOptionalImageSource(identity?.Avatar?.PreviewImage) ??
-                    ResolvePlayerAvatarSource(player),
+                Source = ResolvePlayerAvatarSource(player),
+
                 Aspect = Aspect.AspectFill,
                 WidthRequest = 92,
                 HeightRequest = 92

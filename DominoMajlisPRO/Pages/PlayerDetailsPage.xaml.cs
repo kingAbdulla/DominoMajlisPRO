@@ -274,13 +274,10 @@ public partial class PlayerDetailsPage : ContentPage
             PlayerRankService.Calculate(currentPlayer.PlayerXP);
 
         PlayerAvatarImage.Source =
-            ResolveAvatarSource(visualIdentity) ??
             PlayerProfileService.GetPlayerImageSource(currentPlayer);
 
         AvatarPreviewImage.Source =
-            ResolveAvatarSource(visualIdentity) ??
             PlayerProfileService.GetPlayerImageSource(currentPlayer);
-
         PlayerNameLabel.Text = currentPlayer.PlayerName;
 
         string identityRole =
