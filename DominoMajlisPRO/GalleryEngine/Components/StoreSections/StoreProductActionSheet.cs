@@ -1,4 +1,5 @@
-﻿using DominoMajlisPRO.GalleryEngine.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
@@ -363,12 +364,30 @@ internal sealed class StoreProductActionSheet : Grid
             if (version != _animationVersion || !IsVisible || _isClosing)
                 return;
 
-            if (effect == null)
-            {
-                _image.IsVisible = true;
-                return;
-            }
+            effect ??= new CatalogAssetDisplay(
+                _inventoryAssetId!,
+                StoreProductAssetType.Effect,
+                StoreProductOwnerScope.Player,
+                _name.Text ?? "Effect",
+                _name.Text ?? "Effect",
+                string.Empty,
+                string.Empty,
+                Array.Empty<string>(),
+                "Glow",
+                "Breathing",
+                0,
+                "PlayerAvatar",
+                "Gold",
+                "Gold",
+                string.Empty,
+                string.Empty,
+                new[] { "Glow", "Aura", "Pulse", "Particle" },
+                0.95,
+                1.0,
+                1.0,
+                1.0);
 
+            _image.Source = null;
             _image.IsVisible = true;
             PlayerEffectEngine.Apply(_image, effect, 1.0);
         });
@@ -1074,5 +1093,7 @@ internal sealed class StoreProductActionSheet : Grid
         };
     }
 }
+
+
 
 
