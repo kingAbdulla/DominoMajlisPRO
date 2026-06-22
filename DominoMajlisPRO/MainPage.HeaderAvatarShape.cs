@@ -33,7 +33,7 @@ public partial class MainPage
         border.MinimumHeightRequest = avatarSize;
         border.HorizontalOptions = LayoutOptions.Center;
         border.VerticalOptions = LayoutOptions.Center;
-        border.BackgroundColor = Color.FromArgb("#151515");
+        border.BackgroundColor = Colors.Transparent;
         border.Stroke = Color.FromArgb("#D4AF37");
         border.StrokeThickness = 2.4;
         border.StrokeShape = new RoundRectangle { CornerRadius = 999 };
@@ -160,7 +160,7 @@ public partial class MainPage
                 graphicsView.InputTransparent = true;
                 graphicsView.ZIndex = 3;
             }
-            else if (child is Image image && !ReferenceEquals(image, HeaderAvatarEffectOverlay))
+            else if (child is Image image)
             {
                 image.BackgroundColor = Colors.Transparent;
                 image.Shadow = null;
