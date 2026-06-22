@@ -1,3 +1,5 @@
+using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO;
@@ -6,6 +8,7 @@ public partial class MainPage
 {
     const string HeaderAvatarOuterHostId = "MainHeaderAvatarOuterHost";
     const string HeaderAvatarInnerHostId = "MainHeaderAvatarInnerHost";
+    const double MainHeaderAvatarEffectScale = 1.18;
 
     void ApplyMainHeaderAvatarShape()
     {
@@ -35,7 +38,7 @@ public partial class MainPage
         border.VerticalOptions = LayoutOptions.Center;
         border.BackgroundColor = Color.FromArgb("#151515");
         border.Stroke = Color.FromArgb("#D4AF37");
-        border.StrokeThickness = 2.4;
+        border.StrokeThickness = 3;
         border.StrokeShape = new RoundRectangle { CornerRadius = 999 };
         border.Shadow = new Shadow
         {
@@ -67,6 +70,35 @@ public partial class MainPage
         HeaderAvatarFrameOverlay.Aspect = Aspect.AspectFit;
         HeaderAvatarEffectOverlay.Aspect = Aspect.AspectFit;
         HeaderAvatarEffectOverlay.StyleId = "MainHeaderAvatarEffectOverlay";
+    }
+
+    void ApplyMainHeaderAvatarIdentityVisuals(PlayerVisualIdentity identity)
+    {
+        ApplyMainHeaderAvatarShape();
+
+        var frameSource =
+            ToHeaderImageSource(identity.Frame?.PreviewImage);
+        HeaderAvatarFrameOverlay.Source = frameSource;
+        HeaderAvatarFrameOverlay.IsVisible = frameSource != null;
+
+        PlayerEffectEngine.Apply(
+            HeaderAvatarEffectOverlay,
+            identity.Effect,
+            MainHeaderAvatarEffectScale);
+
+        Border border = EnsureMainHeaderAvatarBorder();
+        border.Stroke = identity.Frame == null
+            ? Color.FromArgb("#D4AF37")
+            : Colors.Transparent;
+        border.Shadow = new Shadow
+        {
+            Brush = new SolidColorBrush(
+                identity.Effect == null
+                    ? Color.FromArgb("#D4AF37")
+                    : Color.FromArgb("#F2C14E")),
+            Radius = identity.Effect == null ? 18 : 24,
+            Opacity = identity.Effect == null ? 0.45f : 0.65f
+        };
     }
 
     Border EnsureMainHeaderAvatarBorder()
