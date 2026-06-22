@@ -1,4 +1,4 @@
-using DominoMajlisPRO.GalleryEngine.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
@@ -104,7 +104,10 @@ internal sealed class StoreProductActionSheet : Grid
             Stroke = PremiumGoldDark,
             StrokeThickness = 1,
             StrokeShape = new RoundRectangle { CornerRadius = 20 },
-            Content = _image
+            Content = new Grid
+            {
+                Children = { _image }
+            }
         };
 
         _name = CreateLabel(22, PrimaryText, true);
@@ -336,6 +339,39 @@ internal sealed class StoreProductActionSheet : Grid
         IsVisible = true;
         _ = AnimateOpenAsync(version);
         _ = RefreshInventoryStateAsync(version, inventoryPlayerId, inventoryAssetId);
+    }
+
+    private async Task RenderEffectPreviewAsync(int version)
+    {
+        if (_previewKind != StoreProductPreviewKind.Effect ||
+            string.IsNullOrWhiteSpace(_inventoryAssetId))
+        {
+            PlayerEffectEngine.Apply(_image, null);
+            _image.IsVisible = true;
+            return;
+        }
+
+        var effect = await StoreAssetCatalogService.ResolveAsync(
+            _inventoryAssetId,
+            "Effect");
+
+        if (version != _animationVersion || !IsVisible || _isClosing)
+            return;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (version != _animationVersion || !IsVisible || _isClosing)
+                return;
+
+            if (effect == null)
+            {
+                _image.IsVisible = true;
+                return;
+            }
+
+            _image.IsVisible = true;
+            PlayerEffectEngine.Apply(_image, effect, 1.0);
+        });
     }
 
     private async Task RefreshInventoryStateAsync(int version, string? playerId, string? assetId)
@@ -1038,3 +1074,5 @@ internal sealed class StoreProductActionSheet : Grid
         };
     }
 }
+
+
