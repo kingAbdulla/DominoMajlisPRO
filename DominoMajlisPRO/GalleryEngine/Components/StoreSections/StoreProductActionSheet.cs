@@ -20,52 +20,52 @@ internal enum StoreProductPreviewKind
 
 internal sealed class StoreProductActionSheet : Grid
 {
-    private static readonly Color PremiumBlack = Color.FromArgb("#080808");
-    private static readonly Color PremiumBlackSoft = Color.FromArgb("#14110B");
-    private static readonly Color PremiumGold = Color.FromArgb("#FFD76A");
-    private static readonly Color PremiumGoldDark = Color.FromArgb("#8A642E");
-    private static readonly Color PrimaryText = Color.FromArgb("#FFF4D2");
-    private static readonly Color SecondaryText = Color.FromArgb("#C8B58A");
-    private static readonly Color MutedText = Color.FromArgb("#8F7A55");
+    static readonly Color PremiumBlack = Color.FromArgb("#080808");
+    static readonly Color PremiumBlackSoft = Color.FromArgb("#14110B");
+    static readonly Color PremiumGold = Color.FromArgb("#FFD76A");
+    static readonly Color PremiumGoldDark = Color.FromArgb("#8A642E");
+    static readonly Color PrimaryText = Color.FromArgb("#FFF4D2");
+    static readonly Color SecondaryText = Color.FromArgb("#C8B58A");
+    static readonly Color MutedText = Color.FromArgb("#8F7A55");
 
-    private readonly Border _sheet;
-    private readonly BoxView _backdrop;
-    private readonly Border _rarityBadge;
-    private readonly Border _previewSurface;
-    private readonly BoxView _accentBar;
-    private readonly Image _image;
-    private readonly Label _name;
-    private readonly Label _rarity;
-    private readonly Label _state;
-    private readonly Label _description;
-    private readonly Label _price;
-    private readonly Label _wallet;
-    private readonly Label _previewMessage;
-    private readonly Button _close;
-    private readonly Button _preview;
-    private readonly Button _action;
-    private readonly Button _cancel;
-    private readonly StoreProductPreviewOverlay _previewOverlay;
+    readonly Border _sheet;
+    readonly BoxView _backdrop;
+    readonly Border _rarityBadge;
+    readonly Border _previewSurface;
+    readonly BoxView _accentBar;
+    readonly Image _image;
+    readonly EffectPreviewHostView _effectPreview;
+    readonly Label _name;
+    readonly Label _rarity;
+    readonly Label _state;
+    readonly Label _description;
+    readonly Label _price;
+    readonly Label _wallet;
+    readonly Label _previewMessage;
+    readonly Button _close;
+    readonly Button _preview;
+    readonly Button _action;
+    readonly Button _cancel;
+    readonly StoreProductPreviewOverlay _previewOverlay;
 
-    private Func<Task>? _previewAction;
-    private Func<Task>? _primaryAction;
-    private bool _isExecuting;
-    private bool _isClosing;
-    private bool _isPreviewActive;
-    private int _animationVersion;
-    private StoreProductPreviewKind _previewKind;
-    private string _actionText = string.Empty;
-    private string _imagePath = string.Empty;
-    private string? _inventoryPlayerId;
-    private string? _inventoryAssetId;
-    private string? _inventoryStoreTypeId;
-    private bool? _inventoryIsFree;
-    private string? _inventorySeasonId;
-    private string? _inventoryCollectionId;
-    private string? _inventoryProductId;
-    private int? _inventoryPrice;
-    private string? _inventoryCurrencyMetadata;
-    private InventoryProductContext? _inventoryContext;
+    Func<Task>? _previewAction;
+    Func<Task>? _primaryAction;
+    bool _isExecuting;
+    bool _isClosing;
+    int _animationVersion;
+    StoreProductPreviewKind _previewKind;
+    string _actionText = string.Empty;
+    string _imagePath = string.Empty;
+    string? _inventoryPlayerId;
+    string? _inventoryAssetId;
+    string? _inventoryStoreTypeId;
+    bool? _inventoryIsFree;
+    string? _inventorySeasonId;
+    string? _inventoryCollectionId;
+    string? _inventoryProductId;
+    int? _inventoryPrice;
+    string? _inventoryCurrencyMetadata;
+    InventoryProductContext? _inventoryContext;
 
     public StoreProductActionSheet()
     {
@@ -99,6 +99,21 @@ internal sealed class StoreProductActionSheet : Grid
             VerticalOptions = LayoutOptions.Center
         };
 
+        _effectPreview = new EffectPreviewHostView(168)
+        {
+            IsVisible = false,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var previewGrid = new Grid
+        {
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
+        previewGrid.Children.Add(_image);
+        previewGrid.Children.Add(_effectPreview);
+
         _previewSurface = new Border
         {
             HeightRequest = 188,
@@ -107,17 +122,11 @@ internal sealed class StoreProductActionSheet : Grid
             Stroke = PremiumGoldDark,
             StrokeThickness = 1,
             StrokeShape = new RoundRectangle { CornerRadius = 20 },
-            Content = new Grid
-            {
-                HorizontalOptions = LayoutOptions.Fill,
-                VerticalOptions = LayoutOptions.Fill,
-                Children = { _image }
-            }
+            Content = previewGrid
         };
 
         _name = CreateLabel(22, PrimaryText, true);
         _name.HorizontalTextAlignment = TextAlignment.Center;
-
         _rarity = CreateLabel(12, PremiumBlack, true);
         _rarity.HorizontalTextAlignment = TextAlignment.Center;
         _rarityBadge = new Border
@@ -128,22 +137,17 @@ internal sealed class StoreProductActionSheet : Grid
             StrokeShape = new RoundRectangle { CornerRadius = 14 },
             Content = _rarity
         };
-
         _state = CreateLabel(14, PremiumGold, true);
         _state.HorizontalTextAlignment = TextAlignment.Center;
-
         _description = CreateLabel(12, SecondaryText);
         _description.MaxLines = 3;
         _description.LineBreakMode = LineBreakMode.TailTruncation;
         _description.HorizontalTextAlignment = TextAlignment.Center;
-
         _price = CreateLabel(17, PremiumGold, true);
         _price.HorizontalTextAlignment = TextAlignment.Center;
-
         _wallet = CreateLabel(12, PrimaryText, true);
         _wallet.HorizontalTextAlignment = TextAlignment.Center;
         _wallet.IsVisible = false;
-
         _previewMessage = CreateLabel(11, MutedText);
         _previewMessage.Text = "تجربة مؤقتة";
         _previewMessage.HorizontalTextAlignment = TextAlignment.Center;
@@ -155,14 +159,11 @@ internal sealed class StoreProductActionSheet : Grid
         _close.Padding = 0;
         _close.CornerRadius = 21;
         _close.Clicked += (_, _) => Hide();
-
         _preview = CreateButton("👁 معاينة", 14, Color.FromArgb("#211B10"), PrimaryText);
         _preview.Clicked += OnPreviewClicked;
-
         _action = CreateButton(string.Empty, 15, PremiumGold, PremiumBlack);
         _action.FontAttributes = FontAttributes.Bold;
         _action.Clicked += OnPrimaryClicked;
-
         _cancel = CreateButton("✖ إلغاء", 14, Color.FromArgb("#171717"), SecondaryText);
         _cancel.Clicked += (_, _) => Hide();
 
@@ -279,9 +280,16 @@ internal sealed class StoreProductActionSheet : Grid
         string? inventoryCurrencyMetadata = null)
     {
         AttachToPage(owner);
-        ResetPreviewVisuals();
+        ResetPreviewVisuals(force: true);
 
-        var isEffectPreview = IsEffectPreviewCandidate(previewKind, inventoryStoreTypeId, inventoryAssetId, name, description, imagePath);
+        var isEffectPreview = IsEffectPreviewCandidate(
+            previewKind,
+            inventoryStoreTypeId,
+            inventoryAssetId,
+            name,
+            description,
+            imagePath);
+
         _previewKind = isEffectPreview ? StoreProductPreviewKind.Effect : previewKind;
         _imagePath = imagePath;
         _name.Text = name;
@@ -311,7 +319,9 @@ internal sealed class StoreProductActionSheet : Grid
         var accent = ResolveRarityAccent(rarity);
         _accentBar.Color = accent;
         _rarityBadge.Background = new SolidColorBrush(accent);
-        _rarityBadge.Stroke = string.Equals(rarity, "Immortal", StringComparison.OrdinalIgnoreCase) ? PremiumGold : accent;
+        _rarityBadge.Stroke = string.Equals(rarity, "Immortal", StringComparison.OrdinalIgnoreCase)
+            ? PremiumGold
+            : accent;
         _sheet.Stroke = accent;
 
         if (!string.IsNullOrWhiteSpace(walletBefore) || !string.IsNullOrWhiteSpace(walletAfter))
@@ -336,7 +346,7 @@ internal sealed class StoreProductActionSheet : Grid
         IsVisible = true;
 
         if (isEffectPreview)
-            RenderEffectPreviewNow(version);
+            RenderEffectPreview();
         else
             RenderImagePreview(imagePath);
 
@@ -344,9 +354,10 @@ internal sealed class StoreProductActionSheet : Grid
         _ = RefreshInventoryStateAsync(version, inventoryPlayerId, inventoryAssetId);
     }
 
-    private void RenderImagePreview(string imagePath)
+    void RenderImagePreview(string imagePath)
     {
-        PlayerEffectEngine.Apply(_image, null);
+        _effectPreview.Clear();
+        _effectPreview.IsVisible = false;
         _image.Source = InventoryDisplayResolver.ResolveImageSource(imagePath);
         _image.IsVisible = true;
         _image.WidthRequest = 168;
@@ -355,28 +366,16 @@ internal sealed class StoreProductActionSheet : Grid
         _image.VerticalOptions = LayoutOptions.Center;
     }
 
-    private void RenderEffectPreviewNow(int version)
+    void RenderEffectPreview()
     {
-        if (version != _animationVersion || !IsVisible || _isClosing)
-            return;
-
         _image.Source = null;
-        _image.IsVisible = true;
-        _image.WidthRequest = 168;
-        _image.HeightRequest = 168;
-        _image.HorizontalOptions = LayoutOptions.Center;
-        _image.VerticalOptions = LayoutOptions.Center;
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            if (version != _animationVersion || !IsVisible || _isClosing)
-                return;
-
-            PlayerEffectEngine.Apply(_image, BuildEffectDisplay(), 1.0);
-        });
+        _image.IsVisible = false;
+        _effectPreview.SetHostSize(168);
+        _effectPreview.IsVisible = true;
+        _effectPreview.Apply(BuildEffectDisplay(), 1.0);
     }
 
-    private CatalogAssetDisplay BuildEffectDisplay()
+    CatalogAssetDisplay BuildEffectDisplay()
     {
         return new CatalogAssetDisplay(
             string.IsNullOrWhiteSpace(_inventoryAssetId) ? (_name.Text ?? "Effect") : _inventoryAssetId,
@@ -402,7 +401,7 @@ internal sealed class StoreProductActionSheet : Grid
             1.0);
     }
 
-    private static bool IsEffectPreviewCandidate(
+    static bool IsEffectPreviewCandidate(
         StoreProductPreviewKind previewKind,
         string? storeTypeId,
         string? assetId,
@@ -434,7 +433,7 @@ internal sealed class StoreProductActionSheet : Grid
                key.Contains("توهج");
     }
 
-    private async Task RefreshInventoryStateAsync(int version, string? playerId, string? assetId)
+    async Task RefreshInventoryStateAsync(int version, string? playerId, string? assetId)
     {
         if (_inventoryContext != null)
         {
@@ -494,7 +493,7 @@ internal sealed class StoreProductActionSheet : Grid
         });
     }
 
-    private void ApplyInventoryState(InventoryState state)
+    void ApplyInventoryState(dynamic state)
     {
         if (state.RequiresIdentity)
         {
@@ -530,7 +529,7 @@ internal sealed class StoreProductActionSheet : Grid
             SetResolvedActionState("غير مملوك", "شراء", true);
     }
 
-    private void SetResolvedActionState(string state, string actionText, bool enabled)
+    void SetResolvedActionState(string state, string actionText, bool enabled)
     {
         _state.Text = state;
         _actionText = actionText;
@@ -547,7 +546,7 @@ internal sealed class StoreProductActionSheet : Grid
         _ = AnimateCloseAsync();
     }
 
-    private async Task AnimateOpenAsync(int version)
+    async Task AnimateOpenAsync(int version)
     {
         await Task.WhenAll(
             _backdrop.FadeToAsync(1, 180, Easing.CubicOut),
@@ -560,7 +559,7 @@ internal sealed class StoreProductActionSheet : Grid
         _sheet.TranslationY = 0;
     }
 
-    private async Task AnimateCloseAsync()
+    async Task AnimateCloseAsync()
     {
         _isClosing = true;
         _animationVersion++;
@@ -588,7 +587,7 @@ internal sealed class StoreProductActionSheet : Grid
             parent.Children.Remove(this);
     }
 
-    private async void OnPreviewClicked(object? sender, EventArgs e)
+    async void OnPreviewClicked(object? sender, EventArgs e)
     {
         if (_isExecuting || _previewAction is null)
             return;
@@ -614,15 +613,13 @@ internal sealed class StoreProductActionSheet : Grid
         }
     }
 
-    private void ResetPreviewVisuals(bool force = false)
+    void ResetPreviewVisuals(bool force = false)
     {
-        if (!force && !_isPreviewActive && _previewSurface.HeightRequest == 188)
-            return;
-
         _image.CancelAnimations();
         PlayerEffectEngine.Apply(_image, null);
+        _effectPreview.Clear();
+        _effectPreview.IsVisible = false;
         _previewSurface.CancelAnimations();
-        _isPreviewActive = false;
         _previewSurface.Scale = 1;
         _previewSurface.HeightRequest = 188;
         _previewSurface.Padding = 10;
@@ -633,7 +630,7 @@ internal sealed class StoreProductActionSheet : Grid
         _image.IsVisible = true;
     }
 
-    private async void OnPrimaryClicked(object? sender, EventArgs e)
+    async void OnPrimaryClicked(object? sender, EventArgs e)
     {
         if (_isExecuting || _primaryAction is null || !_action.IsEnabled)
             return;
@@ -693,9 +690,9 @@ internal sealed class StoreProductActionSheet : Grid
         }
     }
 
-    private bool HasInventoryContext() => _inventoryContext != null;
+    bool HasInventoryContext() => _inventoryContext != null;
 
-    private InventoryProductContext? CreateInventoryContext(string displayedPrice)
+    InventoryProductContext? CreateInventoryContext(string displayedPrice)
     {
         if (string.IsNullOrWhiteSpace(_inventoryAssetId) ||
             string.IsNullOrWhiteSpace(_inventoryStoreTypeId))
@@ -713,7 +710,7 @@ internal sealed class StoreProductActionSheet : Grid
             _inventoryCollectionId);
     }
 
-    private async Task ExecuteInventoryRouterActionAsync()
+    async Task ExecuteInventoryRouterActionAsync()
     {
         var result = await InventoryRouter.AcquireOrEquipAsync(_inventoryContext!);
         if (result.State.RequiresIdentity)
@@ -747,7 +744,7 @@ internal sealed class StoreProductActionSheet : Grid
         }
     }
 
-    private static async Task ShowCreateIdentityMessageAsync()
+    static async Task ShowCreateIdentityMessageAsync()
     {
         var page = Shell.Current?.CurrentPage ?? Application.Current?.Windows.FirstOrDefault()?.Page;
         if (page == null)
@@ -763,7 +760,7 @@ internal sealed class StoreProductActionSheet : Grid
             await page.Navigation.PushAsync(new PlayerProfilesPage());
     }
 
-    private void AttachToPage(View owner)
+    void AttachToPage(View owner)
     {
         if (Parent is Grid currentParent)
             currentParent.Children.Remove(this);
@@ -783,13 +780,13 @@ internal sealed class StoreProductActionSheet : Grid
         ZIndex = int.MaxValue;
     }
 
-    private static Task ShowMessageAsync(string message)
+    static Task ShowMessageAsync(string message)
     {
         var page = Shell.Current?.CurrentPage ?? Application.Current?.Windows.FirstOrDefault()?.Page;
         return page?.DisplayAlert("متجر الفريق", message, "حسناً") ?? Task.CompletedTask;
     }
 
-    private static bool ResolveFreeState(bool? declaredFree, string? displayedPrice)
+    static bool ResolveFreeState(bool? declaredFree, string? displayedPrice)
     {
         if (declaredFree == true)
             return true;
@@ -806,7 +803,7 @@ internal sealed class StoreProductActionSheet : Grid
         return digits.Length > 0 && digits.All(digit => digit == '0');
     }
 
-    private void SetControlsEnabled(bool enabled)
+    void SetControlsEnabled(bool enabled)
     {
         _close.IsEnabled = enabled;
         _preview.IsEnabled = enabled;
@@ -814,7 +811,7 @@ internal sealed class StoreProductActionSheet : Grid
         _cancel.IsEnabled = enabled;
     }
 
-    private static string BuildActionText(string actionText)
+    static string BuildActionText(string actionText)
     {
         if (actionText.Contains("استخدام", StringComparison.Ordinal))
             return "✅ استخدام";
@@ -826,7 +823,7 @@ internal sealed class StoreProductActionSheet : Grid
         return actionText;
     }
 
-    private static Color ResolveRarityAccent(string rarity)
+    static Color ResolveRarityAccent(string rarity)
     {
         return rarity.Trim().ToLowerInvariant() switch
         {
@@ -839,7 +836,7 @@ internal sealed class StoreProductActionSheet : Grid
         };
     }
 
-    private static Label CreateLabel(double size, Color color, bool bold = false)
+    static Label CreateLabel(double size, Color color, bool bold = false)
     {
         return new Label
         {
@@ -850,7 +847,7 @@ internal sealed class StoreProductActionSheet : Grid
         };
     }
 
-    private static Button CreateButton(string text, double size, Color background, Color foreground)
+    static Button CreateButton(string text, double size, Color background, Color foreground)
     {
         return new Button
         {
