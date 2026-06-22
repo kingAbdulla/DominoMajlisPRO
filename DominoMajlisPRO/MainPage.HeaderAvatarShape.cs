@@ -33,7 +33,7 @@ public partial class MainPage
         border.MinimumHeightRequest = avatarSize;
         border.HorizontalOptions = LayoutOptions.Center;
         border.VerticalOptions = LayoutOptions.Center;
-        border.BackgroundColor = Colors.Transparent;
+        border.BackgroundColor = Color.FromArgb("#151515");
         border.Stroke = Color.FromArgb("#D4AF37");
         border.StrokeThickness = 2.4;
         border.StrokeShape = new RoundRectangle { CornerRadius = 999 };
@@ -58,9 +58,9 @@ public partial class MainPage
             NormalizeProceduralEffectChildren(innerHost, avatarSize);
         }
 
-        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 0, false);
-        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 1, true);
-        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 2, false);
+        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0, false);
+        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1, false);
+        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2, false);
         ConfigureProfileStatusBadge(avatarSize);
 
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
@@ -170,9 +170,9 @@ public partial class MainPage
                 graphicsView.Clip = null;
                 graphicsView.BackgroundColor = Colors.Transparent;
                 graphicsView.InputTransparent = true;
-                graphicsView.ZIndex = 1;
+                graphicsView.ZIndex = 3;
             }
-            else if (child is Image image && !ReferenceEquals(image, HeaderPlayerAvatar))
+            else if (child is Image image)
             {
                 image.BackgroundColor = Colors.Transparent;
                 image.Shadow = null;
