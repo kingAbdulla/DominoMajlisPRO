@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.Localization;
@@ -46,7 +46,16 @@ public static class StoreAssetCatalogService
                 item.EffectType,
                 item.AnimationType,
                 item.DurationMilliseconds,
-                item.EquipTarget));
+                item.EquipTarget,
+                item.PrimaryColorPresetId,
+                item.SecondaryColorPresetId,
+                item.CustomPrimaryColorHex,
+                item.CustomSecondaryColorHex,
+                item.EffectLayerIds,
+                item.EffectOpacity,
+                item.EffectScale,
+                item.EffectSpeed,
+                item.EffectIntensity));
         }
         assets.AddRange(avatarsTask.Result.Select(item => Create(
             item.Id,
@@ -166,7 +175,16 @@ public static class StoreAssetCatalogService
         string effectType = "",
         string animationType = "",
         int durationMilliseconds = 0,
-        string equipTarget = "") =>
+        string equipTarget = "",
+        string primaryColorPresetId = "",
+        string secondaryColorPresetId = "",
+        string customPrimaryColorHex = "",
+        string customSecondaryColorHex = "",
+        IReadOnlyList<string>? effectLayerIds = null,
+        double effectOpacity = 0,
+        double effectScale = 0,
+        double effectSpeed = 0,
+        double effectIntensity = 0) =>
         new(
             assetId.Trim(),
             assetType,
@@ -186,7 +204,16 @@ public static class StoreAssetCatalogService
             effectType?.Trim() ?? string.Empty,
             animationType?.Trim() ?? string.Empty,
             durationMilliseconds,
-            equipTarget?.Trim() ?? string.Empty);
+            equipTarget?.Trim() ?? string.Empty,
+            primaryColorPresetId?.Trim() ?? string.Empty,
+            secondaryColorPresetId?.Trim() ?? string.Empty,
+            customPrimaryColorHex?.Trim() ?? string.Empty,
+            customSecondaryColorHex?.Trim() ?? string.Empty,
+            effectLayerIds ?? Array.Empty<string>(),
+            effectOpacity,
+            effectScale,
+            effectSpeed,
+            effectIntensity);
 
     private static StoreProductAssetType TeamType(string typeId) =>
         Same(typeId, TeamAssetTypes.Emblem.TeamAssetTypeId)
@@ -215,5 +242,3 @@ public static class StoreAssetCatalogService
         string AssetId,
         string AssetType);
 }
-
-
