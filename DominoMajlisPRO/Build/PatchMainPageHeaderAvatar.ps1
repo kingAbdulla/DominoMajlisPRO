@@ -26,18 +26,18 @@ $new = @'
 
                                     <Grid>
                                         <Image
-                                            x:Name="HeaderAvatarEffectOverlay"
-                                            Aspect="AspectFit"
-                                            InputTransparent="True"
-                                            IsVisible="False"/>
-
-                                        <Image
                                             x:Name="HeaderPlayerAvatar"
                                             Source="normal_avatar_1.png"
                                             Aspect="AspectFill"/>
 
                                         <Image
                                             x:Name="HeaderAvatarFrameOverlay"
+                                            Aspect="AspectFit"
+                                            InputTransparent="True"
+                                            IsVisible="False"/>
+
+                                        <Image
+                                            x:Name="HeaderAvatarEffectOverlay"
                                             Aspect="AspectFit"
                                             InputTransparent="True"
                                             IsVisible="False"/>
@@ -62,6 +62,9 @@ $new = @'
 if ($text.Contains('WidthRequest="{OnIdiom Phone=76, Tablet=96}"') -and
     $text.Contains('x:Name="HeaderPlayerAvatar"') -and
     $text.Contains('StrokeShape="RoundRectangle 999"')) {
+    $text = $text.Replace(
+        '<Image' + "`r`n" + '                                            x:Name="HeaderAvatarEffectOverlay"' + "`r`n" + '                                            Aspect="AspectFit"' + "`r`n" + '                                            InputTransparent="True"' + "`r`n" + '                                            IsVisible="False"/>' + "`r`n`r`n" + '                                        <Image' + "`r`n" + '                                            x:Name="HeaderPlayerAvatar"',
+        '<Image' + "`r`n" + '                                            x:Name="HeaderPlayerAvatar"')
     exit 0
 }
 
