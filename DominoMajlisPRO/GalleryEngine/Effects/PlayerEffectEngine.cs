@@ -22,7 +22,7 @@ public static class PlayerEffectEngine
             return;
         }
 
-        var definition = ResolveDefinition(effect, baseScale);
+        var definition = CreateDefinition(effect, baseScale);
         var render = CreateRenderProfile(definition);
 
         overlay.InputTransparent = true;
@@ -35,7 +35,7 @@ public static class PlayerEffectEngine
             ? ResolveLegacyImage(render)
             : null;
 
-        overlay.BackgroundColor = ResolveBackgroundColor(definition, render);
+        overlay.BackgroundColor = CreateBackgroundColor(definition, render);
         overlay.Shadow = new Shadow
         {
             Brush = new SolidColorBrush(render.PrimaryColor),
@@ -46,10 +46,12 @@ public static class PlayerEffectEngine
         StartAnimation(overlay, definition, render);
     }
 
-    static EffectDefinitionModel ResolveDefinition(
+    public static EffectDefinitionModel CreateDefinition(
         CatalogAssetDisplay effect,
-        double baseScale)
+        double baseScale = 1.18)
     {
+        ArgumentNullException.ThrowIfNull(effect);
+
         var key = BuildEffectKey(effect);
         var presetId = ResolvePresetId(effect, key);
         var preset = EffectPresetCatalog.ResolvePreset(presetId);
@@ -88,8 +90,10 @@ public static class PlayerEffectEngine
                 : string.Empty);
     }
 
-    static EffectRenderProfile CreateRenderProfile(EffectDefinitionModel definition)
+    public static EffectRenderProfile CreateRenderProfile(EffectDefinitionModel definition)
     {
+        ArgumentNullException.ThrowIfNull(definition);
+
         var primary = EffectPresetCatalog.ResolveColor(
             definition.PrimaryColorPresetId,
             definition.CustomPrimaryColorHex);
@@ -107,6 +111,32 @@ public static class PlayerEffectEngine
             ResolveShadowOpacity(definition),
             !string.IsNullOrWhiteSpace(definition.LegacyImagePath),
             definition.LegacyImagePath);
+    }
+
+    public static Color CreateBackgroundColor(
+        EffectDefinitionModel definition,
+        EffectRenderProfile render)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        ArgumentNullException.ThrowIfNull(render);
+
+        if (definition.Layers.Contains(EffectLayerId.Aura))
+            return render.SecondaryColor.WithAlpha(0.16f);
+        if (definition.Layers.Contains(EffectLayerId.Ring))
+            return render.PrimaryColor.WithAlpha(0.11f);
+        if (definition.Layers.Contains(EffectLayerId.Pulse))
+            return render.PrimaryColor.WithAlpha(0.13f);
+        if (definition.Layers.Contains(EffectLayerId.Shadow))
+            return render.PrimaryColor.WithAlpha(0.20f);
+
+        return definition.PresetId switch
+        {
+            EffectPresetId.Ring => render.PrimaryColor.WithAlpha(0.11f),
+            EffectPresetId.Aura => render.PrimaryColor.WithAlpha(0.16f),
+            EffectPresetId.Pulse => render.PrimaryColor.WithAlpha(0.13f),
+            EffectPresetId.Shadow => render.PrimaryColor.WithAlpha(0.20f),
+            _ => Colors.Transparent
+        };
     }
 
     static string BuildEffectKey(CatalogAssetDisplay effect) =>
@@ -236,29 +266,6 @@ public static class PlayerEffectEngine
         string.IsNullOrWhiteSpace(render.LegacyImagePath)
             ? DefaultLegacyEffectImage
             : render.LegacyImagePath;
-
-    static Color ResolveBackgroundColor(
-        EffectDefinitionModel definition,
-        EffectRenderProfile render)
-    {
-        if (definition.Layers.Contains(EffectLayerId.Aura))
-            return render.SecondaryColor.WithAlpha(0.16f);
-        if (definition.Layers.Contains(EffectLayerId.Ring))
-            return render.PrimaryColor.WithAlpha(0.11f);
-        if (definition.Layers.Contains(EffectLayerId.Pulse))
-            return render.PrimaryColor.WithAlpha(0.13f);
-        if (definition.Layers.Contains(EffectLayerId.Shadow))
-            return render.PrimaryColor.WithAlpha(0.20f);
-
-        return definition.PresetId switch
-        {
-            EffectPresetId.Ring => render.PrimaryColor.WithAlpha(0.11f),
-            EffectPresetId.Aura => render.PrimaryColor.WithAlpha(0.16f),
-            EffectPresetId.Pulse => render.PrimaryColor.WithAlpha(0.13f),
-            EffectPresetId.Shadow => render.PrimaryColor.WithAlpha(0.20f),
-            _ => Colors.Transparent
-        };
-    }
 
     static float ResolveRadius(EffectDefinitionModel definition)
     {
