@@ -62,11 +62,15 @@ public class SpecializedStoreManagerPage : ContentPage
     private readonly Entry _customPrimaryColorEntry = new() { Placeholder = "لون أساسي مخصص #RRGGBB" };
     private readonly Entry _customSecondaryColorEntry = new() { Placeholder = "لون ثانوي مخصص #RRGGBB" };
     private readonly Editor _effectLayersEditor = new() { Placeholder = "طبقات التأثير", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 76, IsReadOnly = true };
-    private readonly Entry _effectOpacityEntry = new() { Placeholder = "الشفافية 0.05 - 1.00", Keyboard = Keyboard.Numeric };
-    private readonly Entry _effectScaleEntry = new() { Placeholder = "الحجم 0.10 - 3.00", Keyboard = Keyboard.Numeric };
-    private readonly Entry _effectSpeedEntry = new() { Placeholder = "السرعة 0.25 - 3.00", Keyboard = Keyboard.Numeric };
-    private readonly Entry _effectIntensityEntry = new() { Placeholder = "الشدة 0.10 - 3.00", Keyboard = Keyboard.Numeric };
+    private readonly Entry _effectOpacityEntry = new() { Placeholder = "الشفافية 0.05 - 1.00", Keyboard = Keyboard.Numeric, IsVisible = false };
+    private readonly Entry _effectScaleEntry = new() { Placeholder = "الحجم 0.10 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
+    private readonly Entry _effectSpeedEntry = new() { Placeholder = "السرعة 0.25 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
+    private readonly Entry _effectIntensityEntry = new() { Placeholder = "الشدة 0.10 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
     private readonly EffectsStudioPreviewView _effectsPreview = new();
+    private readonly EffectsStudioSliderView _opacitySlider = new("الشفافية", 0.05, 1.00, 0.74);
+    private readonly EffectsStudioSliderView _scaleSlider = new("الحجم", 0.10, 3.00, 1.18);
+    private readonly EffectsStudioSliderView _speedSlider = new("السرعة", 0.25, 3.00, 1.00);
+    private readonly EffectsStudioSliderView _intensitySlider = new("الشدة", 0.10, 3.00, 1.00);
     private readonly Editor _bundleAssetsEditor = new() { Placeholder = "AssetType:AssetId — أصل واحد في كل سطر", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 92 };
     private readonly Entry _discountEntry = new() { Placeholder = "نسبة الخصم", Keyboard = Keyboard.Numeric };
     private readonly Entry _colorHexEntry = new() { Placeholder = "لون الفريق #RRGGBB" };
@@ -79,6 +83,7 @@ public class SpecializedStoreManagerPage : ContentPage
     private readonly List<DominoMajlisPRO.GalleryEngine.Models.CatalogAssetDisplay> _assetChoices = new();
     private NewArrivalRecord? _currentRecord;
     private bool _editingPublished;
+    private bool _syncingEffectSliders;
 
     protected SpecializedStoreManagerPage(SpecializedStoreManagerDefinition definition)
     {
@@ -148,12 +153,14 @@ public class SpecializedStoreManagerPage : ContentPage
             form.Children.Add(_customPrimaryColorEntry);
             form.Children.Add(_customSecondaryColorEntry);
             form.Children.Add(_effectLayersEditor);
-            var effectProperties = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, RowDefinitions = { new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Auto) }, ColumnSpacing = 10, RowSpacing = 10 };
-            effectProperties.Add(_effectOpacityEntry, 0, 0);
-            effectProperties.Add(_effectScaleEntry, 1, 0);
-            effectProperties.Add(_effectSpeedEntry, 0, 1);
-            effectProperties.Add(_effectIntensityEntry, 1, 1);
-            form.Children.Add(effectProperties);
+            form.Children.Add(_opacitySlider);
+            form.Children.Add(_scaleSlider);
+            form.Children.Add(_speedSlider);
+            form.Children.Add(_intensitySlider);
+            form.Children.Add(_effectOpacityEntry);
+            form.Children.Add(_effectScaleEntry);
+            form.Children.Add(_effectSpeedEntry);
+            form.Children.Add(_effectIntensityEntry);
         }
         if (_definition.IsBundle)
         {
@@ -198,6 +205,7 @@ public class SpecializedStoreManagerPage : ContentPage
         _secondaryEffectColorPicker.SetOptions(EffectsStudioCatalog.ColorPresets());
         _effectLayersEditor.Focused += OnEffectLayersFocused;
         WireEffectsPreviewEvents();
+        WireEffectSliders();
         _bundleAssetsEditor.IsReadOnly = true;
         _bundleAssetsEditor.Focused += OnBundleAssetsFocused;
     }
@@ -211,6 +219,36 @@ public class SpecializedStoreManagerPage : ContentPage
             entry.TextChanged += (_, _) => UpdateEffectsPreview();
 
         _effectLayersEditor.TextChanged += (_, _) => UpdateEffectsPreview();
+    }
+
+    private void WireEffectSliders()
+    {
+        _opacitySlider.ValueChanged += (_, value) => UpdateEffectEntryFromSlider(_effectOpacityEntry, value);
+        _scaleSlider.ValueChanged += (_, value) => UpdateEffectEntryFromSlider(_effectScaleEntry, value);
+        _speedSlider.ValueChanged += (_, value) => UpdateEffectEntryFromSlider(_effectSpeedEntry, value);
+        _intensitySlider.ValueChanged += (_, value) => UpdateEffectEntryFromSlider(_effectIntensityEntry, value);
+    }
+
+    private void UpdateEffectEntryFromSlider(Entry entry, double value)
+    {
+        if (_syncingEffectSliders)
+            return;
+
+        entry.Text = value.ToString("0.##");
+        UpdateEffectsPreview();
+    }
+
+    private void SyncEffectSlidersFromEntries()
+    {
+        if (!_definition.IsEffect)
+            return;
+
+        _syncingEffectSliders = true;
+        _opacitySlider.Value = ParseDouble(_effectOpacityEntry.Text, 0.74);
+        _scaleSlider.Value = ParseDouble(_effectScaleEntry.Text, 1.18);
+        _speedSlider.Value = ParseDouble(_effectSpeedEntry.Text, 1.0);
+        _intensitySlider.Value = ParseDouble(_effectIntensityEntry.Text, 1.0);
+        _syncingEffectSliders = false;
     }
 
     private async void OnEffectLayersFocused(object? sender, FocusEventArgs e)
@@ -433,6 +471,7 @@ public class SpecializedStoreManagerPage : ContentPage
         _titleEntry.Text = record.Title; _descriptionEditor.Text = record.Description; _imageEntry.Text = record.ImagePath; _assetTypePicker.SelectCanonicalId(record.StoreTypeId); _priceEntry.Text = record.Price.ToString(); _currencyPicker.SelectCanonicalId(record.CurrencyType.ToString()); _colorHexEntry.Text = record.ColorHex;
         _effectTypePicker.SelectCanonicalId(record.EffectType); _animationTypePicker.SelectCanonicalId(record.AnimationType); _durationEntry.Text = record.DurationMilliseconds.ToString(); _equipTargetPicker.SelectCanonicalId(record.EquipTarget); _bundleAssetsEditor.Text = string.Join(Environment.NewLine, record.BundleAssetIds ?? new List<string>()); _discountEntry.Text = record.DiscountPercent.ToString();
         _primaryEffectColorPicker.SelectCanonicalId(record.PrimaryColorPresetId); _secondaryEffectColorPicker.SelectCanonicalId(record.SecondaryColorPresetId); _customPrimaryColorEntry.Text = record.CustomPrimaryColorHex; _customSecondaryColorEntry.Text = record.CustomSecondaryColorHex; _effectLayersEditor.Text = string.Join(Environment.NewLine, record.EffectLayerIds ?? new List<string>()); _effectOpacityEntry.Text = record.EffectOpacity.ToString("0.##"); _effectScaleEntry.Text = record.EffectScale.ToString("0.##"); _effectSpeedEntry.Text = record.EffectSpeed.ToString("0.##"); _effectIntensityEntry.Text = record.EffectIntensity.ToString("0.##");
+        SyncEffectSlidersFromEntries();
         if (!string.IsNullOrWhiteSpace(record.ImagePath)) { _previewImage.Source = InventoryDisplayResolver.ResolveOptionalImageSource(record.ImagePath); _previewImage.IsVisible = _previewImage.Source != null; }
         await LoadAssetChoicesAsync();
         _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => string.Equals(asset.AssetId, record.AssetId, StringComparison.OrdinalIgnoreCase));
@@ -450,6 +489,7 @@ public class SpecializedStoreManagerPage : ContentPage
         _effectScaleEntry.Text = "1.18";
         _effectSpeedEntry.Text = "1.0";
         _effectIntensityEntry.Text = "1.0";
+        SyncEffectSlidersFromEntries();
         _assetIdPicker.SelectedIndex = -1;
         _previewImage.Source = null; _previewImage.IsVisible = false; _categoryPicker.SelectCanonicalId(_definition.AllowedTypes[0].ToString()); _currencyPicker.SelectCanonicalId("Gems");
         if (_definition.AllowedTypes.Count == 1) _assetTypePicker.SelectedIndex = 0; else _assetTypePicker.SelectedIndex = -1;
