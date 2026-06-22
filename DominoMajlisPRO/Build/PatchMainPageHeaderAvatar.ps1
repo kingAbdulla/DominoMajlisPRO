@@ -9,44 +9,6 @@ if (-not (Test-Path $xamlPath)) {
 
 $text = Get-Content -LiteralPath $xamlPath -Raw -Encoding UTF8
 
-$old = @'
-                                <Grid
-                                    Grid.Column="0"
-                                    WidthRequest="{OnIdiom Phone=40, Tablet=48}"
-                                    HeightRequest="{OnIdiom Phone=40, Tablet=48}"
-                                    VerticalOptions="Center">
-                                        <Image
-                                            x:Name="HeaderPlayerAvatar"
-                                            Source="normal_avatar_1.png"
-                                            Aspect="AspectFill"/>
-
-                                    <Image
-                                        x:Name="HeaderAvatarFrameOverlay"
-                                        Aspect="AspectFit"
-                                        InputTransparent="True"
-                                        IsVisible="False"/>
-                                    <Image
-                                        x:Name="HeaderAvatarEffectOverlay"
-                                        Aspect="AspectFit"
-                                        InputTransparent="True"
-                                        IsVisible="False"/>
-
-                                    <Border
-                                        x:Name="ProfileStatusBadge"
-                                        WidthRequest="{OnIdiom Phone=10, Tablet=12}"
-                                        HeightRequest="{OnIdiom Phone=10, Tablet=12}"
-                                        BackgroundColor="Red"
-                                        Stroke="#111111"
-                                        StrokeThickness="1"
-                                        HorizontalOptions="End"
-                                        VerticalOptions="End">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="999"/>
-                                        </Border.StrokeShape>
-                                    </Border>
-                                </Grid>
-'@
-
 $new = @'
                                 <Border
                                     Grid.Column="0"
@@ -97,13 +59,18 @@ $new = @'
                                 </Border>
 '@
 
-if ($text.Contains($new)) {
+if ($text.Contains('WidthRequest="{OnIdiom Phone=76, Tablet=96}"') -and
+    $text.Contains('x:Name="HeaderPlayerAvatar"') -and
+    $text.Contains('StrokeShape="RoundRectangle 999"')) {
     exit 0
 }
 
-if (-not $text.Contains($old)) {
+$pattern = '(?s)\s*<Grid\s+Grid\.Column="0"\s+WidthRequest="\{OnIdiom Phone=40, Tablet=48\}"\s+HeightRequest="\{OnIdiom Phone=40, Tablet=48\}"\s+VerticalOptions="Center">.*?<Image\s+x:Name="HeaderPlayerAvatar".*?</Grid>\s*(?=<VerticalStackLayout\s+Grid\.Column="1")'
+
+$match = [regex]::Match($text, $pattern)
+if (-not $match.Success) {
     throw 'MainPage header avatar XAML block was not found. Patch not applied.'
 }
 
-$text = $text.Replace($old, $new)
+$text = [regex]::Replace($text, $pattern, "`r`n$new", 1)
 Set-Content -LiteralPath $xamlPath -Value $text -Encoding UTF8 -NoNewline
