@@ -25,6 +25,7 @@ public partial class MainPage
             outerHost.HorizontalOptions = LayoutOptions.Center;
             outerHost.VerticalOptions = LayoutOptions.Center;
             outerHost.Clip = null;
+            outerHost.BackgroundColor = Colors.Transparent;
         }
 
         border.WidthRequest = avatarSize;
@@ -53,8 +54,9 @@ public partial class MainPage
             innerHost.MinimumHeightRequest = avatarSize;
             innerHost.HorizontalOptions = LayoutOptions.Center;
             innerHost.VerticalOptions = LayoutOptions.Center;
+            innerHost.BackgroundColor = Colors.Transparent;
             innerHost.Clip = CreateAvatarClip(avatarSize);
-            ClipProceduralEffectChildren(innerHost, avatarSize);
+            NormalizeProceduralEffectChildren(innerHost, avatarSize);
         }
 
         ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0, true);
@@ -64,6 +66,7 @@ public partial class MainPage
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
         HeaderAvatarFrameOverlay.Aspect = Aspect.AspectFit;
         HeaderAvatarEffectOverlay.Aspect = Aspect.AspectFit;
+        HeaderAvatarEffectOverlay.StyleId = "MainHeaderAvatarEffectOverlay";
     }
 
     Border EnsureMainHeaderAvatarBorder()
@@ -85,7 +88,8 @@ public partial class MainPage
         {
             StyleId = HeaderAvatarInnerHostId,
             HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center
+            VerticalOptions = LayoutOptions.Center,
+            BackgroundColor = Colors.Transparent
         };
 
         foreach (var child in existingChildren)
@@ -134,7 +138,7 @@ public partial class MainPage
         };
     }
 
-    static void ClipProceduralEffectChildren(Grid host, double size)
+    static void NormalizeProceduralEffectChildren(Grid host, double size)
     {
         foreach (var child in host.Children)
         {
@@ -148,6 +152,8 @@ public partial class MainPage
                 graphicsView.VerticalOptions = LayoutOptions.Fill;
                 graphicsView.Clip = CreateAvatarClip(size);
                 graphicsView.BackgroundColor = Colors.Transparent;
+                graphicsView.InputTransparent = true;
+                graphicsView.ZIndex = 3;
             }
         }
     }
