@@ -4,27 +4,90 @@ namespace DominoMajlisPRO;
 
 public partial class MainPage
 {
+    const string HeaderAvatarOuterHostId = "MainHeaderAvatarOuterHost";
+    const string HeaderAvatarInnerHostId = "MainHeaderAvatarInnerHost";
+
     void ApplyMainHeaderAvatarShape()
     {
         double avatarSize = DeviceInfo.Idiom == DeviceIdiom.Phone
             ? 58
             : 72;
 
-        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 1);
-        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 2);
-        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 3);
+        Border border = EnsureMainHeaderAvatarBorder();
+        border.WidthRequest = avatarSize;
+        border.HeightRequest = avatarSize;
+        border.HorizontalOptions = LayoutOptions.Center;
+        border.VerticalOptions = LayoutOptions.Center;
+        border.BackgroundColor = Color.FromArgb("#151515");
+        border.Stroke = Color.FromArgb("#D4AF37");
+        border.StrokeThickness = 2.4;
+        border.StrokeShape = new RoundRectangle { CornerRadius = 999 };
+        border.Shadow = new Shadow
+        {
+            Brush = new SolidColorBrush(Color.FromArgb("#D4AF37")),
+            Radius = 18,
+            Opacity = 0.45f
+        };
+
+        if (border.Content is Grid innerHost)
+        {
+            innerHost.WidthRequest = avatarSize;
+            innerHost.HeightRequest = avatarSize;
+            innerHost.HorizontalOptions = LayoutOptions.Center;
+            innerHost.VerticalOptions = LayoutOptions.Center;
+        }
+
+        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0);
+        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1);
+        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2);
 
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
         HeaderAvatarFrameOverlay.Aspect = Aspect.AspectFit;
         HeaderAvatarEffectOverlay.Aspect = Aspect.AspectFit;
     }
 
+    Border EnsureMainHeaderAvatarBorder()
+    {
+        if (HeaderPlayerAvatar.Parent is Grid innerHost &&
+            string.Equals(innerHost.StyleId, HeaderAvatarInnerHostId, StringComparison.Ordinal) &&
+            innerHost.Parent is Border existingBorder)
+        {
+            return existingBorder;
+        }
+
+        if (HeaderPlayerAvatar.Parent is not Grid originalHost)
+            throw new InvalidOperationException("Header avatar host was not found.");
+
+        var existingChildren = originalHost.Children.ToList();
+        originalHost.Children.Clear();
+
+        Grid newInnerHost = new()
+        {
+            StyleId = HeaderAvatarInnerHostId,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        foreach (var child in existingChildren)
+            newInnerHost.Children.Add(child);
+
+        Border newBorder = new()
+        {
+            StyleId = HeaderAvatarOuterHostId,
+            Padding = 0,
+            Content = newInnerHost
+        };
+
+        originalHost.Children.Add(newBorder);
+        return newBorder;
+    }
+
     static void ConfigureHeaderAvatarImage(Image image, double size, int zIndex)
     {
         image.WidthRequest = size;
         image.HeightRequest = size;
-        image.HorizontalOptions = LayoutOptions.Center;
-        image.VerticalOptions = LayoutOptions.Center;
+        image.HorizontalOptions = LayoutOptions.Fill;
+        image.VerticalOptions = LayoutOptions.Fill;
         image.InputTransparent = true;
         image.ZIndex = zIndex;
         image.Scale = 1.0;
