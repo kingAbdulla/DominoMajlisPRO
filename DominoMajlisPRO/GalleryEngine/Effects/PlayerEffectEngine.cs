@@ -51,24 +51,38 @@ public static class PlayerEffectEngine
         double baseScale)
     {
         var key = BuildEffectKey(effect);
-        var presetId = ResolvePresetId(key);
+        var presetId = ResolvePresetId(effect, key);
         var preset = EffectPresetCatalog.ResolvePreset(presetId);
-        var primaryColor = ResolvePrimaryColorPresetId(key, presetId);
-        var secondaryColor = ResolveSecondaryColorPresetId(key, presetId, primaryColor);
+        var animationId = ResolveAnimationId(effect.AnimationType, preset.DefaultAnimationId);
+        var primaryColor = ResolveColorPresetId(
+            effect.PrimaryColorPresetId,
+            ResolvePrimaryColorPresetId(key, presetId));
+        var secondaryColor = ResolveColorPresetId(
+            effect.SecondaryColorPresetId,
+            ResolveSecondaryColorPresetId(key, presetId, primaryColor));
+        var layers = ResolveLayers(effect.EffectLayerIds, preset.DefaultLayers);
+        var opacity = effect.EffectOpacity > 0 ? effect.EffectOpacity : preset.DefaultOpacity;
+        var scale = effect.EffectScale > 0
+            ? effect.EffectScale
+            : Math.Max(0.1, baseScale + (preset.DefaultScale - 1.18));
+        var speed = effect.EffectSpeed > 0 ? effect.EffectSpeed : preset.DefaultSpeed;
+        var intensity = effect.EffectIntensity > 0 ? effect.EffectIntensity : preset.DefaultIntensity;
 
         return new EffectDefinitionModel(
             effect.AssetId,
             EffectOwnerScope.Player,
             preset.PresetId,
-            preset.DefaultAnimationId,
+            animationId,
             primaryColor,
             secondaryColor,
-            preset.DefaultLayers,
-            preset.DefaultOpacity,
-            Math.Max(0.1, baseScale + (preset.DefaultScale - 1.18)),
-            preset.DefaultSpeed,
-            preset.DefaultIntensity,
-            LegacyImagePath: ShouldUseLegacyImage(effect, key)
+            layers,
+            opacity,
+            scale,
+            speed,
+            intensity,
+            effect.CustomPrimaryColorHex,
+            effect.CustomSecondaryColorHex,
+            ShouldUseLegacyImage(effect, key)
                 ? ResolveLegacyImagePath(effect)
                 : string.Empty);
     }
@@ -98,8 +112,11 @@ public static class PlayerEffectEngine
         $"{effect.AssetId} {effect.DisplayName} {effect.ArabicDisplayName} {effect.EffectType} {effect.AnimationType}"
             .ToLowerInvariant();
 
-    static EffectPresetId ResolvePresetId(string key)
+    static EffectPresetId ResolvePresetId(CatalogAssetDisplay effect, string key)
     {
+        if (Enum.TryParse<EffectPresetId>(effect.EffectType, true, out var explicitPreset))
+            return explicitPreset;
+
         if (key.Contains("lightning") || key.Contains("برق"))
             return EffectPresetId.Lightning;
         if (key.Contains("diamond") || key.Contains("ماسي"))
@@ -120,6 +137,37 @@ public static class PlayerEffectEngine
             return EffectPresetId.Fire;
 
         return EffectPresetId.Glow;
+    }
+
+    static EffectAnimationId ResolveAnimationId(
+        string? value,
+        EffectAnimationId fallback) =>
+        Enum.TryParse<EffectAnimationId>(value, true, out var parsed)
+            ? parsed
+            : fallback;
+
+    static EffectColorPresetId ResolveColorPresetId(
+        string? value,
+        EffectColorPresetId fallback) =>
+        Enum.TryParse<EffectColorPresetId>(value, true, out var parsed)
+            ? parsed
+            : fallback;
+
+    static IReadOnlyList<EffectLayerId> ResolveLayers(
+        IReadOnlyList<string>? layerIds,
+        IReadOnlyList<EffectLayerId> fallback)
+    {
+        var parsed = layerIds?
+            .Select(item => Enum.TryParse<EffectLayerId>(item, true, out var layer)
+                ? layer
+                : (EffectLayerId?)null)
+            .Where(item => item != null)
+            .Select(item => item!.Value)
+            .Distinct()
+            .ToList()
+            ?? new List<EffectLayerId>();
+
+        return parsed.Count == 0 ? fallback : parsed;
     }
 
     static EffectColorPresetId ResolvePrimaryColorPresetId(
@@ -190,8 +238,18 @@ public static class PlayerEffectEngine
 
     static Color ResolveBackgroundColor(
         EffectDefinitionModel definition,
-        EffectRenderProfile render) =>
-        definition.PresetId switch
+        EffectRenderProfile render)
+    {
+        if (definition.Layers.Contains(EffectLayerId.Aura))
+            return render.SecondaryColor.WithAlpha(0.16f);
+        if (definition.Layers.Contains(EffectLayerId.Ring))
+            return render.PrimaryColor.WithAlpha(0.11f);
+        if (definition.Layers.Contains(EffectLayerId.Pulse))
+            return render.PrimaryColor.WithAlpha(0.13f);
+        if (definition.Layers.Contains(EffectLayerId.Shadow))
+            return render.PrimaryColor.WithAlpha(0.20f);
+
+        return definition.PresetId switch
         {
             EffectPresetId.Ring => render.PrimaryColor.WithAlpha(0.11f),
             EffectPresetId.Aura => render.PrimaryColor.WithAlpha(0.16f),
@@ -199,21 +257,27 @@ public static class PlayerEffectEngine
             EffectPresetId.Shadow => render.PrimaryColor.WithAlpha(0.20f),
             _ => Colors.Transparent
         };
+    }
 
-    static float ResolveRadius(EffectDefinitionModel definition) =>
-        definition.PresetId switch
+    static float ResolveRadius(EffectDefinitionModel definition)
+    {
+        var layerBoost = definition.Layers.Contains(EffectLayerId.Glow) ? 6 : 0;
+        return definition.PresetId switch
         {
-            EffectPresetId.Lightning => 36,
-            EffectPresetId.Royal => 34,
-            EffectPresetId.Diamond => 34,
-            EffectPresetId.Aura => 38,
-            EffectPresetId.Ring => 28,
+            EffectPresetId.Lightning => 36 + layerBoost,
+            EffectPresetId.Royal => 34 + layerBoost,
+            EffectPresetId.Diamond => 34 + layerBoost,
+            EffectPresetId.Aura => 38 + layerBoost,
+            EffectPresetId.Ring => 28 + layerBoost,
             EffectPresetId.Shadow => 22,
-            _ => 30
+            _ => 30 + layerBoost
         };
+    }
 
-    static float ResolveShadowOpacity(EffectDefinitionModel definition) =>
-        definition.PresetId switch
+    static float ResolveShadowOpacity(EffectDefinitionModel definition)
+    {
+        var opacityBoost = definition.Layers.Contains(EffectLayerId.Glow) ? 0.08f : 0f;
+        var value = definition.PresetId switch
         {
             EffectPresetId.Shadow => 0.85f,
             EffectPresetId.Ring => 0.70f,
@@ -221,19 +285,24 @@ public static class PlayerEffectEngine
             _ => 0.75f
         };
 
+        return Math.Clamp(value + opacityBoost, 0.05f, 1f);
+    }
+
     static uint ResolveDuration(EffectDefinitionModel definition)
     {
-        var baseDuration = definition.PresetId switch
-        {
-            EffectPresetId.Lightning => 420,
-            EffectPresetId.Royal => 2400,
-            EffectPresetId.Diamond => 760,
-            EffectPresetId.Shadow => 1300,
-            EffectPresetId.Aura => 1800,
-            EffectPresetId.Ring => 1200,
-            EffectPresetId.Pulse => 900,
-            _ => 1000
-        };
+        var baseDuration = definition.DurationMilliseconds > 0
+            ? definition.DurationMilliseconds
+            : definition.PresetId switch
+            {
+                EffectPresetId.Lightning => 420,
+                EffectPresetId.Royal => 2400,
+                EffectPresetId.Diamond => 760,
+                EffectPresetId.Shadow => 1300,
+                EffectPresetId.Aura => 1800,
+                EffectPresetId.Ring => 1200,
+                EffectPresetId.Pulse => 900,
+                _ => 1000
+            };
 
         var speed = Math.Clamp(definition.Speed, 0.25, 3.0);
         return (uint)Math.Clamp(baseDuration / speed, 180, 4000);
