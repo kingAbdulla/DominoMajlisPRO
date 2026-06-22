@@ -61,7 +61,8 @@ public class SpecializedStoreManagerPage : ContentPage
     private readonly Picker _secondaryEffectColorPicker = new() { Title = "اللون الثانوي" };
     private readonly Entry _customPrimaryColorEntry = new() { Placeholder = "لون أساسي مخصص #RRGGBB" };
     private readonly Entry _customSecondaryColorEntry = new() { Placeholder = "لون ثانوي مخصص #RRGGBB" };
-    private readonly Editor _effectLayersEditor = new() { Placeholder = "طبقات التأثير", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 76, IsReadOnly = true };
+    private readonly Editor _effectLayersEditor = new() { Placeholder = "طبقات التأثير", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 76, IsReadOnly = true, IsVisible = false };
+    private readonly EffectsLayerBuilderView _layerBuilder = new();
     private readonly Entry _effectOpacityEntry = new() { Placeholder = "الشفافية 0.05 - 1.00", Keyboard = Keyboard.Numeric, IsVisible = false };
     private readonly Entry _effectScaleEntry = new() { Placeholder = "الحجم 0.10 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
     private readonly Entry _effectSpeedEntry = new() { Placeholder = "السرعة 0.25 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
@@ -84,6 +85,7 @@ public class SpecializedStoreManagerPage : ContentPage
     private NewArrivalRecord? _currentRecord;
     private bool _editingPublished;
     private bool _syncingEffectSliders;
+    private bool _syncingLayerBuilder;
 
     protected SpecializedStoreManagerPage(SpecializedStoreManagerDefinition definition)
     {
@@ -152,6 +154,7 @@ public class SpecializedStoreManagerPage : ContentPage
             form.Children.Add(_secondaryEffectColorPicker);
             form.Children.Add(_customPrimaryColorEntry);
             form.Children.Add(_customSecondaryColorEntry);
+            form.Children.Add(_layerBuilder);
             form.Children.Add(_effectLayersEditor);
             form.Children.Add(_opacitySlider);
             form.Children.Add(_scaleSlider);
@@ -203,9 +206,9 @@ public class SpecializedStoreManagerPage : ContentPage
         _equipTargetPicker.SetOptions(CanonicalStoreCatalog.EquipTargets());
         _primaryEffectColorPicker.SetOptions(EffectsStudioCatalog.ColorPresets());
         _secondaryEffectColorPicker.SetOptions(EffectsStudioCatalog.ColorPresets());
-        _effectLayersEditor.Focused += OnEffectLayersFocused;
         WireEffectsPreviewEvents();
         WireEffectSliders();
+        WireLayerBuilder();
         _bundleAssetsEditor.IsReadOnly = true;
         _bundleAssetsEditor.Focused += OnBundleAssetsFocused;
     }
@@ -227,6 +230,18 @@ public class SpecializedStoreManagerPage : ContentPage
         _scaleSlider.ValueChanged += (_, value) => UpdateEffectEntryFromSlider(_effectScaleEntry, value);
         _speedSlider.ValueChanged += (_, value) => UpdateEffectEntryFromSlider(_effectSpeedEntry, value);
         _intensitySlider.ValueChanged += (_, value) => UpdateEffectEntryFromSlider(_effectIntensityEntry, value);
+    }
+
+    private void WireLayerBuilder()
+    {
+        _layerBuilder.SelectionChanged += (_, _) =>
+        {
+            if (_syncingLayerBuilder)
+                return;
+
+            _effectLayersEditor.Text = string.Join(Environment.NewLine, _layerBuilder.SelectedLayerIds);
+            UpdateEffectsPreview();
+        };
     }
 
     private void UpdateEffectEntryFromSlider(Entry entry, double value)
@@ -251,24 +266,14 @@ public class SpecializedStoreManagerPage : ContentPage
         _syncingEffectSliders = false;
     }
 
-    private async void OnEffectLayersFocused(object? sender, FocusEventArgs e)
+    private void SyncLayerBuilderFromEditor()
     {
         if (!_definition.IsEffect)
             return;
 
-        _effectLayersEditor.Unfocus();
-        var options = EffectsStudioCatalog.Layers();
-        var labels = options.Select(option => option.DisplayName).ToArray();
-        var selected = await DisplayActionSheetAsync("إضافة طبقة تأثير", "إلغاء", null, labels);
-        var option = options.FirstOrDefault(item => string.Equals(item.DisplayName, selected, StringComparison.Ordinal));
-        if (option == null)
-            return;
-
-        var current = ParseLines(_effectLayersEditor.Text);
-        if (!current.Contains(option.CanonicalId, StringComparer.OrdinalIgnoreCase))
-            current.Add(option.CanonicalId);
-        _effectLayersEditor.Text = string.Join(Environment.NewLine, current);
-        UpdateEffectsPreview();
+        _syncingLayerBuilder = true;
+        _layerBuilder.SelectLayers(ParseLines(_effectLayersEditor.Text));
+        _syncingLayerBuilder = false;
     }
 
     private async void OnBundleAssetsFocused(object? sender, FocusEventArgs e)
@@ -472,6 +477,7 @@ public class SpecializedStoreManagerPage : ContentPage
         _effectTypePicker.SelectCanonicalId(record.EffectType); _animationTypePicker.SelectCanonicalId(record.AnimationType); _durationEntry.Text = record.DurationMilliseconds.ToString(); _equipTargetPicker.SelectCanonicalId(record.EquipTarget); _bundleAssetsEditor.Text = string.Join(Environment.NewLine, record.BundleAssetIds ?? new List<string>()); _discountEntry.Text = record.DiscountPercent.ToString();
         _primaryEffectColorPicker.SelectCanonicalId(record.PrimaryColorPresetId); _secondaryEffectColorPicker.SelectCanonicalId(record.SecondaryColorPresetId); _customPrimaryColorEntry.Text = record.CustomPrimaryColorHex; _customSecondaryColorEntry.Text = record.CustomSecondaryColorHex; _effectLayersEditor.Text = string.Join(Environment.NewLine, record.EffectLayerIds ?? new List<string>()); _effectOpacityEntry.Text = record.EffectOpacity.ToString("0.##"); _effectScaleEntry.Text = record.EffectScale.ToString("0.##"); _effectSpeedEntry.Text = record.EffectSpeed.ToString("0.##"); _effectIntensityEntry.Text = record.EffectIntensity.ToString("0.##");
         SyncEffectSlidersFromEntries();
+        SyncLayerBuilderFromEditor();
         if (!string.IsNullOrWhiteSpace(record.ImagePath)) { _previewImage.Source = InventoryDisplayResolver.ResolveOptionalImageSource(record.ImagePath); _previewImage.IsVisible = _previewImage.Source != null; }
         await LoadAssetChoicesAsync();
         _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => string.Equals(asset.AssetId, record.AssetId, StringComparison.OrdinalIgnoreCase));
@@ -484,17 +490,18 @@ public class SpecializedStoreManagerPage : ContentPage
     {
         _currentRecord = null; _editingPublished = false;
         _titleEntry.Text = _descriptionEditor.Text = _imageEntry.Text = _priceEntry.Text = _durationEntry.Text = _bundleAssetsEditor.Text = _discountEntry.Text = _colorHexEntry.Text = string.Empty;
-        _customPrimaryColorEntry.Text = _customSecondaryColorEntry.Text = _effectLayersEditor.Text = string.Empty;
+        _customPrimaryColorEntry.Text = _customSecondaryColorEntry.Text = string.Empty;
         _effectOpacityEntry.Text = "0.74";
         _effectScaleEntry.Text = "1.18";
         _effectSpeedEntry.Text = "1.0";
         _effectIntensityEntry.Text = "1.0";
         SyncEffectSlidersFromEntries();
+        _effectLayersEditor.Text = string.Join(Environment.NewLine, new[] { "Glow", "Aura" });
+        SyncLayerBuilderFromEditor();
         _assetIdPicker.SelectedIndex = -1;
         _previewImage.Source = null; _previewImage.IsVisible = false; _categoryPicker.SelectCanonicalId(_definition.AllowedTypes[0].ToString()); _currencyPicker.SelectCanonicalId("Gems");
         if (_definition.AllowedTypes.Count == 1) _assetTypePicker.SelectedIndex = 0; else _assetTypePicker.SelectedIndex = -1;
         _effectTypePicker.SelectCanonicalId("Glow"); _animationTypePicker.SelectCanonicalId("Breathing"); _equipTargetPicker.SelectCanonicalId("PlayerEffect"); _primaryEffectColorPicker.SelectCanonicalId("Gold"); _secondaryEffectColorPicker.SelectCanonicalId("Gold");
-        _effectLayersEditor.Text = string.Join(Environment.NewLine, new[] { "Glow", "Aura" });
         _validationLabel.IsVisible = false;
         UpdateEffectsPreview();
         SetMode("New Product", "جاهز لإضافة أصل جديد", Color.FromArgb("#2F80ED"));
