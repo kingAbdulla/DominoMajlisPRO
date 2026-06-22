@@ -1,6 +1,6 @@
 <Project InitialTargets="PatchMainPageHeaderAvatarXaml">
-  <Target Name="PatchMainPageHeaderAvatarXaml">
-    <Message Text="Applying MainPage header avatar XAML patch" Importance="High" />
+  <Target Name="PatchMainPageHeaderAvatarXaml" BeforeTargets="PrepareForBuild;BeforeBuild;CollectMauiItems;_CollectMauiItems;CoreCompile">
+    <Message Text="Applying MainPage header avatar XAML patch before MAUI XAML generation" Importance="High" />
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)Build\PatchMainPageHeaderAvatar.ps1&quot;" />
   </Target>
 </Project>
