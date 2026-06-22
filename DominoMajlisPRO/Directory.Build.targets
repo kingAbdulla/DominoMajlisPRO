@@ -1,5 +1,6 @@
-<Project>
-  <Target Name="PatchMainPageHeaderAvatarXaml" BeforeTargets="BeforeBuild">
+<Project InitialTargets="PatchMainPageHeaderAvatarXaml">
+  <Target Name="PatchMainPageHeaderAvatarXaml">
+    <Message Text="Applying MainPage header avatar XAML patch" Importance="High" />
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)Build\PatchMainPageHeaderAvatar.ps1&quot;" />
   </Target>
 </Project>
