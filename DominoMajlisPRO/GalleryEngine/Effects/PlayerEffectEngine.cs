@@ -10,6 +10,7 @@ public static class PlayerEffectEngine
     const string AnimationName = "DominoPlayerEffect";
     const string ProceduralAnimationName = "DominoPlayerProceduralEffect";
     const string DefaultLegacyEffectImage = "fire_gold.png";
+    const string MainHeaderEffectOverlayStyleId = "MainHeaderAvatarEffectOverlay";
 
     static readonly ConditionalWeakTable<Image, ProceduralOverlayState> ProceduralStates = new();
 
@@ -34,6 +35,12 @@ public static class PlayerEffectEngine
 
         HideProceduralOverlay(overlay);
 
+        bool isMainHeaderOverlay =
+            string.Equals(
+                overlay.StyleId,
+                MainHeaderEffectOverlayStyleId,
+                StringComparison.Ordinal);
+
         overlay.InputTransparent = true;
         overlay.IsVisible = true;
         overlay.Rotation = 0;
@@ -44,13 +51,18 @@ public static class PlayerEffectEngine
             ? ResolveLegacyImage(render)
             : null;
 
-        overlay.BackgroundColor = CreateBackgroundColor(definition, render);
-        overlay.Shadow = new Shadow
-        {
-            Brush = new SolidColorBrush(render.PrimaryColor),
-            Radius = render.ShadowRadius,
-            Opacity = render.ShadowOpacity
-        };
+        overlay.BackgroundColor = isMainHeaderOverlay
+            ? Colors.Transparent
+            : CreateBackgroundColor(definition, render);
+
+        overlay.Shadow = isMainHeaderOverlay
+            ? null
+            : new Shadow
+            {
+                Brush = new SolidColorBrush(render.PrimaryColor),
+                Radius = render.ShadowRadius,
+                Opacity = render.ShadowOpacity
+            };
 
         StartAnimation(overlay, definition, render);
     }
@@ -569,6 +581,3 @@ public static class PlayerEffectEngine
         public GraphicsView? View { get; set; }
     }
 }
-
-
-
