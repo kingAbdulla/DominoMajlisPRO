@@ -221,6 +221,17 @@ public static class PlayerEffectEngine
         return state;
     }
 
+    static double ResolveEffectHostSize(Image overlay)
+    {
+        var width = overlay.Width > 1 ? overlay.Width : overlay.WidthRequest;
+        var height = overlay.Height > 1 ? overlay.Height : overlay.HeightRequest;
+        var iconSize = Math.Max(24, Math.Min(
+            width > 1 ? width : 72,
+            height > 1 ? height : 72));
+
+        return Math.Clamp(iconSize * 1.35, 42, 220);
+    }
+
     static void HideProceduralOverlay(Image overlay)
     {
         if (!ProceduralStates.TryGetValue(overlay, out var state) || state.View == null)
@@ -558,4 +569,5 @@ public static class PlayerEffectEngine
         public GraphicsView? View { get; set; }
     }
 }
+
 
