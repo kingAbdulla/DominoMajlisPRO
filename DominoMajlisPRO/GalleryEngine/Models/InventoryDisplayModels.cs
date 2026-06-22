@@ -14,7 +14,16 @@ public sealed record CatalogAssetDisplay(
     string EffectType = "",
     string AnimationType = "",
     int DurationMilliseconds = 0,
-    string EquipTarget = "")
+    string EquipTarget = "",
+    string PrimaryColorPresetId = "",
+    string SecondaryColorPresetId = "",
+    string CustomPrimaryColorHex = "",
+    string CustomSecondaryColorHex = "",
+    IReadOnlyList<string>? EffectLayerIds = null,
+    double EffectOpacity = 0,
+    double EffectScale = 0,
+    double EffectSpeed = 0,
+    double EffectIntensity = 0)
 {
     public bool HasDisplayMetadata =>
         !string.IsNullOrWhiteSpace(DisplayName) &&
