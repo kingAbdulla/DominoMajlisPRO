@@ -14,7 +14,6 @@ public partial class MainPage
             : 72;
 
         Border border = EnsureMainHeaderAvatarBorder();
-        var avatarClip = CreateAvatarClip(avatarSize);
 
         if (border.Parent is Grid outerHost)
         {
@@ -44,7 +43,7 @@ public partial class MainPage
             Radius = 18,
             Opacity = 0.45f
         };
-        border.Clip = avatarClip;
+        border.Clip = null;
 
         if (border.Content is Grid innerHost)
         {
@@ -55,13 +54,13 @@ public partial class MainPage
             innerHost.HorizontalOptions = LayoutOptions.Center;
             innerHost.VerticalOptions = LayoutOptions.Center;
             innerHost.BackgroundColor = Colors.Transparent;
-            innerHost.Clip = CreateAvatarClip(avatarSize);
+            innerHost.Clip = null;
             NormalizeProceduralEffectChildren(innerHost, avatarSize);
         }
 
-        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0, true);
-        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1, false);
-        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2, false);
+        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0);
+        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1);
+        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2);
         ConfigureProfileStatusBadge(avatarSize);
 
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
@@ -116,8 +115,7 @@ public partial class MainPage
     static void ConfigureHeaderAvatarImage(
         Image image,
         double size,
-        int zIndex,
-        bool clip)
+        int zIndex)
     {
         image.WidthRequest = size;
         image.HeightRequest = size;
@@ -129,7 +127,7 @@ public partial class MainPage
         image.ZIndex = zIndex;
         image.Scale = 1.0;
         image.Opacity = 1.0;
-        image.Clip = clip ? CreateAvatarClip(size) : null;
+        image.Clip = null;
         image.Shadow = null;
         image.BackgroundColor = Colors.Transparent;
     }
@@ -145,17 +143,6 @@ public partial class MainPage
         ProfileStatusBadge.Margin = new Thickness(0, 0, Math.Max(0, (avatarSize - 40) / 2.0), Math.Max(0, (avatarSize - 40) / 2.0));
     }
 
-    static EllipseGeometry CreateAvatarClip(double size)
-    {
-        double radius = size / 2.0;
-        return new EllipseGeometry
-        {
-            Center = new Point(radius, radius),
-            RadiusX = radius,
-            RadiusY = radius
-        };
-    }
-
     static void NormalizeProceduralEffectChildren(Grid host, double size)
     {
         foreach (var child in host.Children)
@@ -169,8 +156,7 @@ public partial class MainPage
                 graphicsView.HorizontalOptions = LayoutOptions.Fill;
                 graphicsView.VerticalOptions = LayoutOptions.Fill;
                 graphicsView.Scale = 1.0;
-                graphicsView.Opacity = Math.Min(graphicsView.Opacity <= 0 ? 1.0 : graphicsView.Opacity, 0.95);
-                graphicsView.Clip = CreateAvatarClip(size);
+                graphicsView.Clip = null;
                 graphicsView.BackgroundColor = Colors.Transparent;
                 graphicsView.InputTransparent = true;
                 graphicsView.ZIndex = 3;
@@ -179,6 +165,7 @@ public partial class MainPage
             {
                 image.BackgroundColor = Colors.Transparent;
                 image.Shadow = null;
+                image.Clip = null;
             }
         }
     }
