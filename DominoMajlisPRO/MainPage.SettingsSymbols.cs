@@ -9,6 +9,7 @@ public partial class MainPage
         base.OnHandlerChanged();
 
         ApplyMainHeaderAvatarShape();
+        _ = ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
 
         if (Handler == null || _settingsSymbolsTimerStarted)
             return;
@@ -20,6 +21,7 @@ public partial class MainPage
         {
             runs++;
             ApplyMainHeaderAvatarShape();
+            _ = ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
             NormalizeSettingsSymbols();
             RepairVisibleMainPageText(this);
             return Handler != null && runs < 16;
