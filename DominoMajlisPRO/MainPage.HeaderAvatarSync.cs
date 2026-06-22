@@ -1,6 +1,7 @@
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
+using Microsoft.Maui.Devices;
 
 namespace DominoMajlisPRO;
 
