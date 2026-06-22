@@ -1,4 +1,4 @@
-﻿namespace DominoMajlisPRO;
+namespace DominoMajlisPRO;
 
 public partial class MainPage
 {
@@ -19,6 +19,7 @@ public partial class MainPage
         Dispatcher.StartTimer(TimeSpan.FromMilliseconds(300), () =>
         {
             runs++;
+            ApplyMainHeaderAvatarShape();
             NormalizeSettingsSymbols();
             RepairVisibleMainPageText(this);
             return Handler != null && runs < 16;
@@ -68,7 +69,7 @@ public partial class MainPage
         if (!LooksBrokenMainText(text))
             return text;
 
-        return "ط؛ظٹط± ظ…طھط§ط­";
+        return "غير متاح";
     }
 
     static bool LooksBrokenMainText(string? value)
@@ -78,7 +79,7 @@ public partial class MainPage
 
         return value.Contains("?", StringComparison.Ordinal) ||
                value.Contains("â", StringComparison.Ordinal) ||
-               value.Contains("Ã", StringComparison.Ordinal);
+               value.Contains("Ã", StringComparison.Ordinal) ||
                value.Contains("أƒ", StringComparison.Ordinal);
     }
 
@@ -90,5 +91,3 @@ public partial class MainPage
         label.Text = isExpanded ? "-" : "+";
     }
 }
-
-
