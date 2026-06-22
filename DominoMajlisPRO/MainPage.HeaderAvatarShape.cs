@@ -14,6 +14,7 @@ public partial class MainPage
             : 72;
 
         Border border = EnsureMainHeaderAvatarBorder();
+        var avatarClip = CreateAvatarClip(avatarSize);
 
         if (border.Parent is Grid outerHost)
         {
@@ -42,6 +43,7 @@ public partial class MainPage
             Radius = 18,
             Opacity = 0.45f
         };
+        border.Clip = avatarClip;
 
         if (border.Content is Grid innerHost)
         {
@@ -51,12 +53,13 @@ public partial class MainPage
             innerHost.MinimumHeightRequest = avatarSize;
             innerHost.HorizontalOptions = LayoutOptions.Center;
             innerHost.VerticalOptions = LayoutOptions.Center;
-            innerHost.Clip = null;
+            innerHost.Clip = CreateAvatarClip(avatarSize);
+            ClipProceduralEffectChildren(innerHost, avatarSize);
         }
 
-        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0);
-        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1);
-        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2);
+        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0, true);
+        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1, false);
+        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2, false);
 
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
         HeaderAvatarFrameOverlay.Aspect = Aspect.AspectFit;
@@ -99,7 +102,11 @@ public partial class MainPage
         return newBorder;
     }
 
-    static void ConfigureHeaderAvatarImage(Image image, double size, int zIndex)
+    static void ConfigureHeaderAvatarImage(
+        Image image,
+        double size,
+        int zIndex,
+        bool clip)
     {
         image.WidthRequest = size;
         image.HeightRequest = size;
@@ -111,8 +118,37 @@ public partial class MainPage
         image.ZIndex = zIndex;
         image.Scale = 1.0;
         image.Opacity = 1.0;
-        image.Clip = null;
+        image.Clip = clip ? CreateAvatarClip(size) : null;
         image.Shadow = null;
         image.BackgroundColor = Colors.Transparent;
+    }
+
+    static EllipseGeometry CreateAvatarClip(double size)
+    {
+        double radius = size / 2.0;
+        return new EllipseGeometry
+        {
+            Center = new Point(radius, radius),
+            RadiusX = radius,
+            RadiusY = radius
+        };
+    }
+
+    static void ClipProceduralEffectChildren(Grid host, double size)
+    {
+        foreach (var child in host.Children)
+        {
+            if (child is GraphicsView graphicsView)
+            {
+                graphicsView.WidthRequest = size;
+                graphicsView.HeightRequest = size;
+                graphicsView.MinimumWidthRequest = size;
+                graphicsView.MinimumHeightRequest = size;
+                graphicsView.HorizontalOptions = LayoutOptions.Fill;
+                graphicsView.VerticalOptions = LayoutOptions.Fill;
+                graphicsView.Clip = CreateAvatarClip(size);
+                graphicsView.BackgroundColor = Colors.Transparent;
+            }
+        }
     }
 }
