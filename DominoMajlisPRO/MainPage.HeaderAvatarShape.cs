@@ -58,9 +58,9 @@ public partial class MainPage
             NormalizeProceduralEffectChildren(innerHost, avatarSize);
         }
 
-        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0);
-        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1);
-        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2);
+        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 0);
+        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 1);
+        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 2);
         ConfigureProfileStatusBadge(avatarSize);
 
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
@@ -158,7 +158,7 @@ public partial class MainPage
                 graphicsView.Clip = null;
                 graphicsView.BackgroundColor = Colors.Transparent;
                 graphicsView.InputTransparent = true;
-                graphicsView.ZIndex = 3;
+                graphicsView.ZIndex = 1;
             }
             else if (child is Image image)
             {
