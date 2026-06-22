@@ -1,4 +1,5 @@
-﻿using DominoMajlisPRO.GalleryEngine.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using Microsoft.Maui.Controls.Shapes;
 
@@ -173,10 +174,17 @@ public class PremiumGalleryCard : ContentView
             ? "gallery_lion.png"
             : item.Image;
 
-        _image.Source =
-            InventoryDisplayResolver.ResolveImageSource(
+        var isEffect = IsEffectItem(item);
+        _image.Source = isEffect
+            ? null
+            : InventoryDisplayResolver.ResolveImageSource(
                 imageName,
                 "gallery_lion.png");
+
+        if (isEffect)
+            ApplyEffectPreview(item);
+        else
+            PlayerEffectEngine.Apply(_image, null);
 
         _name.Text = string.IsNullOrWhiteSpace(item.Name)
             ? "عنصر المتجر"
@@ -201,6 +209,54 @@ public class PremiumGalleryCard : ContentView
     public void Bind(GalleryItem item, object? theme)
     {
         Bind(item);
+    }
+
+    private void ApplyEffectPreview(GalleryItem item)
+    {
+        var effect = new CatalogAssetDisplay(
+            item.Id,
+            StoreProductAssetType.Effect,
+            StoreProductOwnerScope.Player,
+            item.Name,
+            item.Name,
+            string.Empty,
+            string.Empty,
+            Array.Empty<string>(),
+            "Glow",
+            "Breathing",
+            0,
+            "PlayerAvatar",
+            "Gold",
+            "Gold",
+            string.Empty,
+            string.Empty,
+            new[] { "Glow", "Aura", "Pulse", "Particle" },
+            0.95,
+            1.0,
+            1.0,
+            1.0);
+
+        PlayerEffectEngine.Apply(_image, effect, 1.0);
+    }
+
+    private static bool IsEffectItem(GalleryItem item)
+    {
+        var key = $"{item.Id} {item.Name} {item.Subtitle} {item.Category} {item.Description} {item.Image}".ToLowerInvariant();
+
+        return key.Contains("effect") ||
+               key.Contains("effects") ||
+               key.Contains("effact") ||
+               key.Contains("تأثير") ||
+               key.Contains("تاثير") ||
+               key.Contains("glow") ||
+               key.Contains("aura") ||
+               key.Contains("pulse") ||
+               key.Contains("ring") ||
+               key.Contains("spark") ||
+               key.Contains("lightning") ||
+               key.Contains("برق") ||
+               key.Contains("هالة") ||
+               key.Contains("توهج");
     }
 
     private async Task ApplyDynamicBackgroundAsync(string imageName)
@@ -292,4 +348,5 @@ public class PremiumGalleryCard : ContentView
         };
     }
 }
+
 
