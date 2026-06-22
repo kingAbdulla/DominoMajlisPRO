@@ -67,6 +67,8 @@ public partial class MainPage
         ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1, true);
         ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2, true);
         ConfigureProfileStatusBadge(avatarSize);
+        ApplyMainHeaderTextPolish();
+        ApplyMainHeaderSecondaryPolish();
 
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
         HeaderAvatarFrameOverlay.Aspect = Aspect.AspectFit;
@@ -87,6 +89,8 @@ public partial class MainPage
             HeaderAvatarEffectOverlay,
             identity.Effect,
             MainHeaderAvatarEffectScale);
+
+        ApplyMainHeaderAvatarShape();
 
         Border border = EnsureMainHeaderAvatarBorder();
         border.Stroke = identity.Frame == null
@@ -178,6 +182,28 @@ public partial class MainPage
         ProfileStatusBadge.Margin = new Thickness(0, 0, Math.Max(0, (avatarSize - 40) / 2.0), Math.Max(0, (avatarSize - 40) / 2.0));
     }
 
+    void ApplyMainHeaderTextPolish()
+    {
+        HeaderPlayerNameLabel.FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 12 : 15;
+        HeaderPlayerNameLabel.TextColor = Colors.White;
+        HeaderPlayerNameLabel.VerticalOptions = LayoutOptions.End;
+        HeaderPlayerNameLabel.Margin = new Thickness(0, 0, 0, 0);
+
+        MemberLevelLabel.FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 9 : 11;
+        MemberLevelLabel.TextColor = Color.FromArgb("#D8B85A");
+        MemberLevelLabel.VerticalOptions = LayoutOptions.Start;
+        MemberLevelLabel.Margin = new Thickness(0, -1, 0, 0);
+    }
+
+    void ApplyMainHeaderSecondaryPolish()
+    {
+        MainPlayerHeaderSurface.Padding = DeviceInfo.Idiom == DeviceIdiom.Phone
+            ? new Thickness(1, 0)
+            : new Thickness(6, 2);
+
+        MainSeasonProgressBar.HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 10 : 12;
+    }
+
     static Geometry CreateCircleClip(double size)
     {
         double radius = size / 2.0;
@@ -191,6 +217,8 @@ public partial class MainPage
 
     static void NormalizeProceduralEffectChildren(Grid host, double size)
     {
+        var circleClip = CreateCircleClip(size);
+
         foreach (var child in host.Children)
         {
             if (child is GraphicsView graphicsView)
@@ -201,7 +229,7 @@ public partial class MainPage
                 graphicsView.MinimumHeightRequest = size;
                 graphicsView.HorizontalOptions = LayoutOptions.Fill;
                 graphicsView.VerticalOptions = LayoutOptions.Fill;
-                graphicsView.Clip = CreateCircleClip(size);
+                graphicsView.Clip = circleClip;
                 graphicsView.BackgroundColor = Colors.Transparent;
                 graphicsView.InputTransparent = true;
                 graphicsView.ZIndex = 3;
