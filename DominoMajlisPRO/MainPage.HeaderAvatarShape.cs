@@ -8,9 +8,9 @@ public partial class MainPage
 {
     const string HeaderAvatarOuterHostId = "MainHeaderAvatarOuterHost";
     const string HeaderAvatarInnerHostId = "MainHeaderAvatarInnerHost";
-    const double MainHeaderAvatarEffectScale = 1.02;
-    const double MainHeaderAvatarPhoneSize = 50;
-    const double MainHeaderAvatarTabletSize = 64;
+    const double MainHeaderAvatarEffectScale = 1.04;
+    const double MainHeaderAvatarPhoneSize = 54;
+    const double MainHeaderAvatarTabletSize = 68;
 
     void ApplyMainHeaderAvatarShape()
     {
@@ -41,9 +41,14 @@ public partial class MainPage
         border.VerticalOptions = LayoutOptions.Center;
         border.BackgroundColor = Color.FromArgb("#151515");
         border.Stroke = Color.FromArgb("#D4AF37");
-        border.StrokeThickness = 2;
+        border.StrokeThickness = 1.2;
         border.StrokeShape = new RoundRectangle { CornerRadius = 999 };
-        border.Shadow = null;
+        border.Shadow = new Shadow
+        {
+            Brush = new SolidColorBrush(Color.FromArgb("#D4AF37")),
+            Radius = 6,
+            Opacity = 0.20f
+        };
         border.Clip = CreateCircleClip(avatarSize);
 
         if (border.Content is Grid innerHost)
@@ -63,6 +68,10 @@ public partial class MainPage
         ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0, true);
         ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1, true);
         ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2, true);
+        HeaderPlayerAvatar.Scale = 1.14;
+        HeaderAvatarFrameOverlay.Scale = 0.96;
+        HeaderAvatarEffectOverlay.Scale = 1.0;
+
         ConfigureProfileStatusBadge(avatarSize);
         ApplyMainHeaderTextPolish();
         ApplyMainHeaderSecondaryPolish();
@@ -94,12 +103,17 @@ public partial class MainPage
             ? Color.FromArgb("#D4AF37")
             : Colors.Transparent;
         border.Shadow = identity.Effect == null
-            ? null
+            ? new Shadow
+            {
+                Brush = new SolidColorBrush(Color.FromArgb("#D4AF37")),
+                Radius = 6,
+                Opacity = 0.20f
+            }
             : new Shadow
             {
                 Brush = new SolidColorBrush(Color.FromArgb("#F2C14E")),
-                Radius = 8,
-                Opacity = 0.20f
+                Radius = 7,
+                Opacity = 0.22f
             };
     }
 
@@ -175,20 +189,20 @@ public partial class MainPage
         ProfileStatusBadge.HorizontalOptions = LayoutOptions.End;
         ProfileStatusBadge.VerticalOptions = LayoutOptions.End;
         ProfileStatusBadge.ZIndex = 20;
-        ProfileStatusBadge.Margin = new Thickness(0, 0, Math.Max(0, (avatarSize - 40) / 2.0), Math.Max(0, (avatarSize - 40) / 2.0));
+        ProfileStatusBadge.Margin = new Thickness(0, 0, 4, 4);
     }
 
     void ApplyMainHeaderTextPolish()
     {
-        HeaderPlayerNameLabel.FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 12 : 15;
+        HeaderPlayerNameLabel.FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 14 : 17;
         HeaderPlayerNameLabel.TextColor = Colors.White;
         HeaderPlayerNameLabel.VerticalOptions = LayoutOptions.End;
-        HeaderPlayerNameLabel.Margin = new Thickness(0, 0, 0, 0);
+        HeaderPlayerNameLabel.Margin = new Thickness(2, 0, 0, 0);
 
-        MemberLevelLabel.FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 9 : 11;
+        MemberLevelLabel.FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 11 : 13;
         MemberLevelLabel.TextColor = Color.FromArgb("#D8B85A");
         MemberLevelLabel.VerticalOptions = LayoutOptions.Start;
-        MemberLevelLabel.Margin = new Thickness(0, -1, 0, 0);
+        MemberLevelLabel.Margin = new Thickness(2, -1, 0, 0);
     }
 
     void ApplyMainHeaderSecondaryPolish()
@@ -198,6 +212,42 @@ public partial class MainPage
             : new Thickness(6, 2);
 
         MainSeasonProgressBar.HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 10 : 12;
+        TryPolishSettingsButton();
+    }
+
+    void TryPolishSettingsButton()
+    {
+        foreach (var child in MainPlayerHeaderSurface.Children)
+        {
+            if (child is VerticalStackLayout settingsStack)
+            {
+                settingsStack.Spacing = 3;
+
+                foreach (var item in settingsStack.Children)
+                {
+                    if (item is Grid settingsGrid)
+                    {
+                        settingsGrid.WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 43 : 50;
+                        settingsGrid.HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 43 : 50;
+
+                        foreach (var gridChild in settingsGrid.Children)
+                        {
+                            if (gridChild is Image image)
+                            {
+                                image.WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 35 : 40;
+                                image.HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 35 : 40;
+                                image.Aspect = Aspect.AspectFit;
+                            }
+                        }
+                    }
+                    else if (item is Label label)
+                    {
+                        label.FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 10 : 12;
+                        label.TextColor = Color.FromArgb("#C8B56A");
+                    }
+                }
+            }
+        }
     }
 
     static Geometry CreateCircleClip(double size)
@@ -228,7 +278,7 @@ public partial class MainPage
                 graphicsView.InputTransparent = true;
                 graphicsView.ZIndex = 3;
                 graphicsView.Scale = 1.0;
-                graphicsView.Opacity = 0.82;
+                graphicsView.Opacity = 0.60;
             }
             else if (child is Image image)
             {
