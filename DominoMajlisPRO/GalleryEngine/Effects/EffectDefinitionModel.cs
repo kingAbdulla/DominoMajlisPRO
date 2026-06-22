@@ -75,6 +75,7 @@ public sealed record EffectDefinitionModel(
     double Scale,
     double Speed,
     double Intensity,
+    int DurationMilliseconds = 0,
     string CustomPrimaryColorHex = "",
     string CustomSecondaryColorHex = "",
     string LegacyImagePath = "")
