@@ -23,55 +23,77 @@ public sealed class ProceduralEffectDrawable : IDrawable
 
         var center = dirtyRect.Center;
         var radius = Math.Min(dirtyRect.Width, dirtyRect.Height) / 2f;
+        if (radius <= 1)
+            return;
+
         var progress = (float)Math.Clamp(AnimationProgress, 0, 1);
-        var intensity = (float)Math.Clamp(Definition.Intensity, 0.1, 3.0);
-        var opacity = (float)Math.Clamp(RenderProfile.Opacity, 0.05, 1.0);
+        var intensity = (float)Math.Clamp(Definition.Intensity, 0.35, 3.0);
+        var opacity = (float)Math.Clamp(RenderProfile.Opacity, 0.08, 1.0);
         var primary = RenderProfile.PrimaryColor;
         var secondary = RenderProfile.SecondaryColor;
+        var breathing = 0.5f + (0.5f * MathF.Sin((progress * MathF.PI * 2f) - (MathF.PI / 2f)));
 
         canvas.SaveState();
         canvas.Alpha = opacity;
 
+        DrawSoftHalo(canvas, center, radius, primary, secondary, breathing, intensity);
+
         if (Definition.Layers.Contains(EffectLayerId.Shadow))
-            DrawShadow(canvas, center, radius, primary, progress, intensity);
+            DrawShadow(canvas, center, radius, primary, breathing, intensity);
 
         if (Definition.Layers.Contains(EffectLayerId.Aura))
-            DrawAura(canvas, center, radius, secondary, progress, intensity);
+            DrawAura(canvas, center, radius, secondary, progress, breathing, intensity);
 
         if (Definition.Layers.Contains(EffectLayerId.Glow))
-            DrawGlow(canvas, center, radius, primary, progress, intensity);
+            DrawGlow(canvas, center, radius, primary, secondary, breathing, intensity);
 
         if (Definition.Layers.Contains(EffectLayerId.Ring))
-            DrawRing(canvas, center, radius, primary, progress, intensity);
+            DrawRing(canvas, center, radius, primary, secondary, progress, intensity);
 
         if (Definition.Layers.Contains(EffectLayerId.Border))
-            DrawBorder(canvas, center, radius, secondary, progress, intensity);
+            DrawArcHighlights(canvas, center, radius, secondary, progress, intensity);
 
         if (Definition.Layers.Contains(EffectLayerId.Pulse))
-            DrawPulse(canvas, center, radius, primary, progress, intensity);
+            DrawPulse(canvas, center, radius, primary, secondary, progress, intensity);
 
         if (Definition.Layers.Contains(EffectLayerId.Particle))
             DrawParticles(canvas, center, radius, primary, secondary, progress, intensity);
 
+        DrawSparkles(canvas, center, radius, primary, secondary, progress, intensity);
         canvas.RestoreState();
+    }
+
+    static void DrawSoftHalo(
+        ICanvas canvas,
+        PointF center,
+        float radius,
+        Color primary,
+        Color secondary,
+        float breathing,
+        float intensity)
+    {
+        var outer = radius * (0.88f + (0.05f * breathing));
+        canvas.FillColor = secondary.WithAlpha(0.035f + (0.025f * intensity));
+        canvas.FillCircle(center.X, center.Y, outer);
+
+        canvas.FillColor = primary.WithAlpha(0.025f + (0.015f * breathing));
+        canvas.FillCircle(center.X, center.Y, radius * (0.72f + (0.04f * intensity)));
     }
 
     static void DrawGlow(
         ICanvas canvas,
         PointF center,
         float radius,
-        Color color,
-        float progress,
+        Color primary,
+        Color secondary,
+        float breathing,
         float intensity)
     {
-        var pulse = 1f + (0.10f * progress * intensity);
-        canvas.StrokeColor = color.WithAlpha(0.75f);
-        canvas.StrokeSize = 4f + (2f * intensity);
-        canvas.DrawCircle(center.X, center.Y, radius * 0.74f * pulse);
-
-        canvas.StrokeColor = color.WithAlpha(0.32f);
-        canvas.StrokeSize = 12f + (4f * intensity);
-        canvas.DrawCircle(center.X, center.Y, radius * 0.78f * pulse);
+        var pulse = 1f + (0.055f * breathing * intensity);
+        DrawCircleStroke(canvas, center, radius * 0.76f * pulse, primary.WithAlpha(0.92f), 2.2f + (0.65f * intensity));
+        DrawCircleStroke(canvas, center, radius * 0.79f * pulse, secondary.WithAlpha(0.55f), 5.4f + (1.7f * intensity));
+        DrawCircleStroke(canvas, center, radius * 0.84f * pulse, primary.WithAlpha(0.18f), 13f + (3.4f * intensity));
+        DrawCircleStroke(canvas, center, radius * 0.91f * pulse, secondary.WithAlpha(0.11f), 22f + (4.5f * intensity));
     }
 
     static void DrawAura(
@@ -80,34 +102,33 @@ public sealed class ProceduralEffectDrawable : IDrawable
         float radius,
         Color color,
         float progress,
+        float breathing,
         float intensity)
     {
-        var auraRadius = radius * (0.82f + (0.12f * progress * intensity));
-        canvas.FillColor = color.WithAlpha(0.12f);
+        var auraRadius = radius * (0.82f + (0.08f * breathing * intensity));
+        canvas.FillColor = color.WithAlpha(0.08f + (0.025f * breathing));
         canvas.FillCircle(center.X, center.Y, auraRadius);
-        canvas.StrokeColor = color.WithAlpha(0.22f);
-        canvas.StrokeSize = 8f + (3f * intensity);
-        canvas.DrawCircle(center.X, center.Y, auraRadius * 0.92f);
+
+        DrawCircleStroke(canvas, center, auraRadius * 0.92f, color.WithAlpha(0.22f), 7f + (2.2f * intensity));
+        DrawCircleStroke(canvas, center, auraRadius * (0.76f + (0.02f * progress)), color.WithAlpha(0.18f), 2f + intensity);
     }
 
     static void DrawRing(
         ICanvas canvas,
         PointF center,
         float radius,
-        Color color,
+        Color primary,
+        Color secondary,
         float progress,
         float intensity)
     {
-        canvas.StrokeColor = color.WithAlpha(0.9f);
-        canvas.StrokeSize = 3f + intensity;
-        canvas.DrawCircle(center.X, center.Y, radius * 0.82f);
-
-        canvas.StrokeColor = color.WithAlpha(0.42f);
-        canvas.StrokeSize = 2f;
-        canvas.DrawCircle(center.X, center.Y, radius * (0.68f + (0.05f * progress)));
+        var ring = radius * 0.82f;
+        DrawCircleStroke(canvas, center, ring, primary.WithAlpha(0.88f), 2.4f + (0.7f * intensity));
+        DrawCircleStroke(canvas, center, ring * 0.90f, secondary.WithAlpha(0.32f), 1.5f + (0.35f * intensity));
+        DrawCircleStroke(canvas, center, radius * (0.62f + (0.05f * progress)), primary.WithAlpha(0.24f), 1.8f);
     }
 
-    static void DrawBorder(
+    static void DrawArcHighlights(
         ICanvas canvas,
         PointF center,
         float radius,
@@ -115,24 +136,39 @@ public sealed class ProceduralEffectDrawable : IDrawable
         float progress,
         float intensity)
     {
-        canvas.StrokeColor = color.WithAlpha(0.78f);
-        canvas.StrokeSize = 2.5f + intensity;
-        canvas.DrawCircle(center.X, center.Y, radius * (0.62f + (0.02f * progress)));
+        var arcRadius = radius * 0.78f;
+        canvas.StrokeColor = color.WithAlpha(0.95f);
+        canvas.StrokeSize = 2.2f + (0.6f * intensity);
+        canvas.StrokeLineCap = LineCap.Round;
+
+        for (var i = 0; i < 4; i++)
+        {
+            var start = (progress * 360f) + (i * 90f) + 8f;
+            canvas.DrawArc(
+                center.X - arcRadius,
+                center.Y - arcRadius,
+                arcRadius * 2f,
+                arcRadius * 2f,
+                start,
+                start + 32f,
+                false,
+                false);
+        }
     }
 
     static void DrawPulse(
         ICanvas canvas,
         PointF center,
         float radius,
-        Color color,
+        Color primary,
+        Color secondary,
         float progress,
         float intensity)
     {
-        var pulseRadius = radius * (0.52f + (0.30f * progress));
-        var alpha = Math.Clamp(0.44f - (0.35f * progress), 0.05f, 0.44f);
-        canvas.StrokeColor = color.WithAlpha(alpha);
-        canvas.StrokeSize = 4f + (2f * intensity);
-        canvas.DrawCircle(center.X, center.Y, pulseRadius);
+        var pulseRadius = radius * (0.45f + (0.38f * progress));
+        var alpha = Math.Clamp(0.38f - (0.31f * progress), 0.035f, 0.38f);
+        DrawCircleStroke(canvas, center, pulseRadius, primary.WithAlpha(alpha), 3.2f + (1.3f * intensity));
+        DrawCircleStroke(canvas, center, pulseRadius * 0.86f, secondary.WithAlpha(alpha * 0.65f), 1.4f + intensity);
     }
 
     static void DrawShadow(
@@ -140,11 +176,14 @@ public sealed class ProceduralEffectDrawable : IDrawable
         PointF center,
         float radius,
         Color color,
-        float progress,
+        float breathing,
         float intensity)
     {
-        canvas.FillColor = color.WithAlpha(0.18f);
-        canvas.FillCircle(center.X, center.Y + (4f * intensity), radius * (0.64f + (0.04f * progress)));
+        canvas.FillColor = color.WithAlpha(0.12f + (0.035f * breathing));
+        canvas.FillCircle(
+            center.X,
+            center.Y + (3f * intensity),
+            radius * (0.68f + (0.035f * breathing)));
     }
 
     static void DrawParticles(
@@ -156,15 +195,58 @@ public sealed class ProceduralEffectDrawable : IDrawable
         float progress,
         float intensity)
     {
-        var count = 8;
-        var orbit = radius * (0.72f + (0.05f * progress));
+        var count = 14;
+        var orbit = radius * 0.86f;
         for (var index = 0; index < count; index++)
         {
-            var angle = ((MathF.PI * 2f) / count * index) + (MathF.PI * 2f * progress);
+            var phase = index / (float)count;
+            var angle = (MathF.PI * 2f * phase) + (MathF.PI * 2f * progress);
+            var wave = 0.5f + (0.5f * MathF.Sin((progress + phase) * MathF.PI * 2f));
+            var x = center.X + (MathF.Cos(angle) * (orbit + (4f * wave * intensity)));
+            var y = center.Y + (MathF.Sin(angle) * (orbit + (4f * wave * intensity)));
+            var size = 1.5f + (2.1f * wave) + (0.45f * intensity);
+            canvas.FillColor = (index % 2 == 0 ? primary : secondary).WithAlpha(0.38f + (0.42f * wave));
+            canvas.FillCircle(x, y, size);
+        }
+    }
+
+    static void DrawSparkles(
+        ICanvas canvas,
+        PointF center,
+        float radius,
+        Color primary,
+        Color secondary,
+        float progress,
+        float intensity)
+    {
+        var count = 8;
+        for (var index = 0; index < count; index++)
+        {
+            var phase = index / (float)count;
+            var angle = (MathF.PI * 2f * phase) - (MathF.PI * 2f * progress * 0.7f);
+            var wave = 0.5f + (0.5f * MathF.Sin((progress * 2f + phase) * MathF.PI * 2f));
+            var orbit = radius * (0.60f + (0.28f * wave));
             var x = center.X + (MathF.Cos(angle) * orbit);
             var y = center.Y + (MathF.Sin(angle) * orbit);
-            canvas.FillColor = (index % 2 == 0 ? primary : secondary).WithAlpha(0.80f);
-            canvas.FillCircle(x, y, 2.5f + intensity);
+            var sparkle = 3.5f + (2.2f * intensity * wave);
+            canvas.StrokeColor = (index % 2 == 0 ? primary : secondary).WithAlpha(0.28f + (0.48f * wave));
+            canvas.StrokeSize = 1.2f;
+            canvas.StrokeLineCap = LineCap.Round;
+            canvas.DrawLine(x - sparkle, y, x + sparkle, y);
+            canvas.DrawLine(x, y - sparkle, x, y + sparkle);
         }
+    }
+
+    static void DrawCircleStroke(
+        ICanvas canvas,
+        PointF center,
+        float radius,
+        Color color,
+        float strokeSize)
+    {
+        canvas.StrokeColor = color;
+        canvas.StrokeSize = strokeSize;
+        canvas.StrokeLineCap = LineCap.Round;
+        canvas.DrawCircle(center.X, center.Y, radius);
     }
 }
