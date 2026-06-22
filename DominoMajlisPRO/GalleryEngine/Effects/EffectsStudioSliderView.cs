@@ -106,7 +106,7 @@ public sealed class EffectsStudioSliderView : ContentView
         _titleLabel.TextColor = theme.TextPrimary;
         _valueLabel.TextColor = theme.TextMuted;
         _slider.MinimumTrackColor = theme.Accent;
-        _slider.MaximumTrackColor = theme.Stroke.Color;
+        _slider.MaximumTrackColor = theme.Stroke;
         _slider.ThumbColor = theme.Accent;
     }
 }
