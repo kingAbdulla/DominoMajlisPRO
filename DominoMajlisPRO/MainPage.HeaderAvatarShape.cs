@@ -8,7 +8,7 @@ public partial class MainPage
 {
     const string HeaderAvatarOuterHostId = "MainHeaderAvatarOuterHost";
     const string HeaderAvatarInnerHostId = "MainHeaderAvatarInnerHost";
-    const double MainHeaderAvatarEffectScale = 1.04;
+    const double MainHeaderAvatarEffectScale = 1.03;
     const double MainHeaderAvatarPhoneSize = 54;
     const double MainHeaderAvatarTabletSize = 68;
 
@@ -68,9 +68,9 @@ public partial class MainPage
         ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0, true);
         ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1, true);
         ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2, true);
-        HeaderPlayerAvatar.Scale = 1.14;
-        HeaderAvatarFrameOverlay.Scale = 0.96;
-        HeaderAvatarEffectOverlay.Scale = 1.0;
+        HeaderPlayerAvatar.Scale = 0.88;
+        HeaderAvatarFrameOverlay.Scale = 0.94;
+        HeaderAvatarEffectOverlay.Scale = 0.96;
 
         ConfigureProfileStatusBadge(avatarSize);
         ApplyMainHeaderTextPolish();
@@ -277,7 +277,7 @@ public partial class MainPage
                 graphicsView.BackgroundColor = Colors.Transparent;
                 graphicsView.InputTransparent = true;
                 graphicsView.ZIndex = 3;
-                graphicsView.Scale = 1.0;
+                graphicsView.Scale = 0.96;
                 graphicsView.Opacity = 0.60;
             }
             else if (child is Image image)
@@ -285,7 +285,7 @@ public partial class MainPage
                 image.BackgroundColor = Colors.Transparent;
                 image.Shadow = null;
                 image.Clip = CreateCircleClip(size);
-                image.Scale = 1.0;
+                image.Scale = 0.96;
             }
         }
     }
