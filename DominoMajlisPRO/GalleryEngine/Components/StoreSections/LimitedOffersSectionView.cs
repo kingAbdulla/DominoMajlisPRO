@@ -107,12 +107,32 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
             true,
             () => Task.CompletedTask,
             () => Task.CompletedTask,
+            previewKind: ResolvePreviewKind(card.StoreTypeId, card.AssetId, item.Name, item.Description),
             inventoryAssetId: card.AssetId,
             inventoryStoreTypeId: card.StoreTypeId,
             inventoryIsFree: isFree,
             inventoryProductId: card.ProductId,
             inventoryPrice: card.Price,
             inventoryCurrencyMetadata: card.CurrencyMetadata);
+    }
+
+    private static StoreProductPreviewKind ResolvePreviewKind(
+        string storeTypeId,
+        string assetId,
+        string name,
+        string description)
+    {
+        var canonical = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+        if (string.Equals(canonical, "Effect", StringComparison.OrdinalIgnoreCase))
+            return StoreProductPreviewKind.Effect;
+
+        var key = $"{storeTypeId} {assetId} {name} {description}".ToLowerInvariant();
+        return key.Contains("effect") ||
+               key.Contains("effact") ||
+               key.Contains("تأثير") ||
+               key.Contains("تاثير")
+            ? StoreProductPreviewKind.Effect
+            : StoreProductPreviewKind.Generic;
     }
 
     private static void AttachCardTap(PremiumGalleryCard card, Action action)
@@ -145,3 +165,4 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
         bool IsFree,
         string CurrencyMetadata);
 }
+
