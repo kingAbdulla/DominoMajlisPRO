@@ -281,8 +281,6 @@ internal sealed class StoreProductActionSheet : Grid
         AttachToPage(owner);
         ResetPreviewVisuals();
 
-        _image.Source =
-            InventoryDisplayResolver.ResolveImageSource(imagePath);
         _imagePath = imagePath;
         _name.Text = name;
         _rarity.Text = string.IsNullOrWhiteSpace(rarity) ? "COMMON" : rarity.ToUpperInvariant();
@@ -1114,6 +1112,7 @@ internal sealed class StoreProductActionSheet : Grid
         };
     }
 }
+
 
 
 
