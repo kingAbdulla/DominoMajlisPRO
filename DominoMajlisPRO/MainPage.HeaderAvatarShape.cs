@@ -62,6 +62,7 @@ public partial class MainPage
         ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0, true);
         ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1, false);
         ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2, false);
+        ConfigureProfileStatusBadge(avatarSize);
 
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
         HeaderAvatarFrameOverlay.Aspect = Aspect.AspectFit;
@@ -93,7 +94,12 @@ public partial class MainPage
         };
 
         foreach (var child in existingChildren)
+        {
+            if (ReferenceEquals(child, ProfileStatusBadge))
+                continue;
+
             newInnerHost.Children.Add(child);
+        }
 
         Border newBorder = new()
         {
@@ -103,6 +109,7 @@ public partial class MainPage
         };
 
         originalHost.Children.Add(newBorder);
+        originalHost.Children.Add(ProfileStatusBadge);
         return newBorder;
     }
 
@@ -125,6 +132,17 @@ public partial class MainPage
         image.Clip = clip ? CreateAvatarClip(size) : null;
         image.Shadow = null;
         image.BackgroundColor = Colors.Transparent;
+    }
+
+    void ConfigureProfileStatusBadge(double avatarSize)
+    {
+        double badgeSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 10 : 12;
+        ProfileStatusBadge.WidthRequest = badgeSize;
+        ProfileStatusBadge.HeightRequest = badgeSize;
+        ProfileStatusBadge.HorizontalOptions = LayoutOptions.End;
+        ProfileStatusBadge.VerticalOptions = LayoutOptions.End;
+        ProfileStatusBadge.ZIndex = 20;
+        ProfileStatusBadge.Margin = new Thickness(0, 0, Math.Max(0, (avatarSize - 40) / 2.0), Math.Max(0, (avatarSize - 40) / 2.0));
     }
 
     static EllipseGeometry CreateAvatarClip(double size)
