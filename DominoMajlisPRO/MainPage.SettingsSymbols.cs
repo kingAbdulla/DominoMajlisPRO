@@ -14,20 +14,15 @@ public partial class MainPage
             return;
 
         _settingsSymbolsTimerStarted = true;
-        int textRepairRuns = 0;
+        int runs = 0;
 
         Dispatcher.StartTimer(TimeSpan.FromMilliseconds(300), () =>
         {
+            runs++;
             ApplyMainHeaderAvatarShape();
-
-            if (textRepairRuns < 16)
-            {
-                textRepairRuns++;
-                NormalizeSettingsSymbols();
-                RepairVisibleMainPageText(this);
-            }
-
-            return Handler != null;
+            NormalizeSettingsSymbols();
+            RepairVisibleMainPageText(this);
+            return Handler != null && runs < 16;
         });
     }
 
