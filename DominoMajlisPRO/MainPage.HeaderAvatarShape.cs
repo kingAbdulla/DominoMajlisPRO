@@ -4,12 +4,6 @@ namespace DominoMajlisPRO;
 
 public partial class MainPage
 {
-    protected override void OnHandlerChanged()
-    {
-        base.OnHandlerChanged();
-        ApplyMainHeaderAvatarShape();
-    }
-
     void ApplyMainHeaderAvatarShape()
     {
         double avatarSize = DeviceInfo.Idiom == DeviceIdiom.Phone
