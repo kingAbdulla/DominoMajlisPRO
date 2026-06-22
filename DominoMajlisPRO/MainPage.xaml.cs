@@ -1147,10 +1147,14 @@ TextChangedEventArgs e)
                 HeaderAvatarFrameOverlay,
                 visualIdentity.Frame?.PreviewImage);
 
+            ApplyMainHeaderAvatarShape();
+
             PlayerEffectEngine.Apply(
                 HeaderAvatarEffectOverlay,
                 visualIdentity.Effect,
-                1.08);
+                1.18);
+
+            ApplyMainHeaderAvatarShape();
 
             HeaderPlayerAvatar.Source =
                 profile == null
