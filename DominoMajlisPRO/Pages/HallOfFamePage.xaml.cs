@@ -1,4 +1,4 @@
-using DominoMajlisPRO.Models;
+﻿using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 using System.Reflection;
@@ -681,7 +681,6 @@ public partial class HallOfFamePage : ContentPage
                 Aspect = Aspect.AspectFill
             });
         AddPlayerOverlay(avatar, identity?.Frame?.PreviewImage);
-        AddPlayerOverlay(avatar, identity?.Effect?.PreviewImage);
 
         layout.Children.Add(
             new Border
