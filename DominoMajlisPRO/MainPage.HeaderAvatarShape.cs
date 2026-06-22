@@ -9,12 +9,14 @@ public partial class MainPage
     const string HeaderAvatarOuterHostId = "MainHeaderAvatarOuterHost";
     const string HeaderAvatarInnerHostId = "MainHeaderAvatarInnerHost";
     const double MainHeaderAvatarEffectScale = 1.18;
+    const double MainHeaderAvatarPhoneSize = 58;
+    const double MainHeaderAvatarTabletSize = 72;
 
     void ApplyMainHeaderAvatarShape()
     {
         double avatarSize = DeviceInfo.Idiom == DeviceIdiom.Phone
-            ? 76
-            : 96;
+            ? MainHeaderAvatarPhoneSize
+            : MainHeaderAvatarTabletSize;
 
         Border border = EnsureMainHeaderAvatarBorder();
 
@@ -38,13 +40,13 @@ public partial class MainPage
         border.VerticalOptions = LayoutOptions.Center;
         border.BackgroundColor = Color.FromArgb("#151515");
         border.Stroke = Color.FromArgb("#D4AF37");
-        border.StrokeThickness = 3;
+        border.StrokeThickness = 2.2;
         border.StrokeShape = new RoundRectangle { CornerRadius = 999 };
         border.Shadow = new Shadow
         {
             Brush = new SolidColorBrush(Color.FromArgb("#D4AF37")),
-            Radius = 18,
-            Opacity = 0.45f
+            Radius = 14,
+            Opacity = 0.38f
         };
         border.Clip = CreateCircleClip(avatarSize);
 
@@ -96,8 +98,8 @@ public partial class MainPage
                 identity.Effect == null
                     ? Color.FromArgb("#D4AF37")
                     : Color.FromArgb("#F2C14E")),
-            Radius = identity.Effect == null ? 18 : 24,
-            Opacity = identity.Effect == null ? 0.45f : 0.65f
+            Radius = identity.Effect == null ? 14 : 18,
+            Opacity = identity.Effect == null ? 0.38f : 0.52f
         };
     }
 
@@ -167,7 +169,7 @@ public partial class MainPage
 
     void ConfigureProfileStatusBadge(double avatarSize)
     {
-        double badgeSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 10 : 12;
+        double badgeSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 8 : 10;
         ProfileStatusBadge.WidthRequest = badgeSize;
         ProfileStatusBadge.HeightRequest = badgeSize;
         ProfileStatusBadge.HorizontalOptions = LayoutOptions.End;
