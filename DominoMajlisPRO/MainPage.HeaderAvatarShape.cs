@@ -58,9 +58,9 @@ public partial class MainPage
             NormalizeProceduralEffectChildren(innerHost, avatarSize);
         }
 
-        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 0);
-        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 1);
-        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 2);
+        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 0, false);
+        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 1, true);
+        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 2, false);
         ConfigureProfileStatusBadge(avatarSize);
 
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
@@ -115,7 +115,8 @@ public partial class MainPage
     static void ConfigureHeaderAvatarImage(
         Image image,
         double size,
-        int zIndex)
+        int zIndex,
+        bool clip)
     {
         image.WidthRequest = size;
         image.HeightRequest = size;
@@ -127,7 +128,7 @@ public partial class MainPage
         image.ZIndex = zIndex;
         image.Scale = 1.0;
         image.Opacity = 1.0;
-        image.Clip = null;
+        image.Clip = clip ? CreateCircleClip(size) : null;
         image.Shadow = null;
         image.BackgroundColor = Colors.Transparent;
     }
@@ -141,6 +142,17 @@ public partial class MainPage
         ProfileStatusBadge.VerticalOptions = LayoutOptions.End;
         ProfileStatusBadge.ZIndex = 20;
         ProfileStatusBadge.Margin = new Thickness(0, 0, Math.Max(0, (avatarSize - 40) / 2.0), Math.Max(0, (avatarSize - 40) / 2.0));
+    }
+
+    static Geometry CreateCircleClip(double size)
+    {
+        double radius = size / 2.0;
+        return new EllipseGeometry
+        {
+            Center = new Point(radius, radius),
+            RadiusX = radius,
+            RadiusY = radius
+        };
     }
 
     static void NormalizeProceduralEffectChildren(Grid host, double size)
@@ -160,7 +172,7 @@ public partial class MainPage
                 graphicsView.InputTransparent = true;
                 graphicsView.ZIndex = 1;
             }
-            else if (child is Image image)
+            else if (child is Image image && !ReferenceEquals(image, HeaderPlayerAvatar))
             {
                 image.BackgroundColor = Colors.Transparent;
                 image.Shadow = null;
