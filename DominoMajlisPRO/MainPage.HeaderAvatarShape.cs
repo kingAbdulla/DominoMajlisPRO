@@ -168,6 +168,8 @@ public partial class MainPage
                 graphicsView.MinimumHeightRequest = size;
                 graphicsView.HorizontalOptions = LayoutOptions.Fill;
                 graphicsView.VerticalOptions = LayoutOptions.Fill;
+                graphicsView.Scale = 1.0;
+                graphicsView.Opacity = Math.Min(graphicsView.Opacity <= 0 ? 1.0 : graphicsView.Opacity, 0.95);
                 graphicsView.Clip = CreateAvatarClip(size);
                 graphicsView.BackgroundColor = Colors.Transparent;
                 graphicsView.InputTransparent = true;
