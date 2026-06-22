@@ -43,7 +43,7 @@ public partial class MainPage
             Radius = 18,
             Opacity = 0.45f
         };
-        border.Clip = null;
+        border.Clip = CreateCircleClip(avatarSize);
 
         if (border.Content is Grid innerHost)
         {
@@ -54,13 +54,13 @@ public partial class MainPage
             innerHost.HorizontalOptions = LayoutOptions.Center;
             innerHost.VerticalOptions = LayoutOptions.Center;
             innerHost.BackgroundColor = Colors.Transparent;
-            innerHost.Clip = null;
+            innerHost.Clip = CreateCircleClip(avatarSize);
             NormalizeProceduralEffectChildren(innerHost, avatarSize);
         }
 
-        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0, false);
-        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1, false);
-        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2, false);
+        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0, true);
+        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1, true);
+        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2, true);
         ConfigureProfileStatusBadge(avatarSize);
 
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
@@ -167,7 +167,7 @@ public partial class MainPage
                 graphicsView.MinimumHeightRequest = size;
                 graphicsView.HorizontalOptions = LayoutOptions.Fill;
                 graphicsView.VerticalOptions = LayoutOptions.Fill;
-                graphicsView.Clip = null;
+                graphicsView.Clip = CreateCircleClip(size);
                 graphicsView.BackgroundColor = Colors.Transparent;
                 graphicsView.InputTransparent = true;
                 graphicsView.ZIndex = 3;
@@ -176,7 +176,7 @@ public partial class MainPage
             {
                 image.BackgroundColor = Colors.Transparent;
                 image.Shadow = null;
-                image.Clip = null;
+                image.Clip = CreateCircleClip(size);
             }
         }
     }
