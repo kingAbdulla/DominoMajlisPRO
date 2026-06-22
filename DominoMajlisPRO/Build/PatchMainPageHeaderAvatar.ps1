@@ -2,9 +2,14 @@ $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $xamlPath = Join-Path $projectRoot 'MainPage.xaml'
+$codePath = Join-Path $projectRoot 'MainPage.xaml.cs'
 
 if (-not (Test-Path $xamlPath)) {
     throw "MainPage.xaml was not found at $xamlPath"
+}
+
+if (-not (Test-Path $codePath)) {
+    throw "MainPage.xaml.cs was not found at $codePath"
 }
 
 $text = Get-Content -LiteralPath $xamlPath -Raw -Encoding UTF8
@@ -65,13 +70,35 @@ $patchedBorderPattern = '(?s)\s*<Border\s+Grid\.Column="0"\s+WidthRequest="\{OnI
 if ([regex]::IsMatch($text, $oldGridPattern)) {
     $text = [regex]::Replace($text, $oldGridPattern, "`r`n$new", 1)
     Set-Content -LiteralPath $xamlPath -Value $text -Encoding UTF8 -NoNewline
-    exit 0
 }
-
-if ([regex]::IsMatch($text, $patchedBorderPattern)) {
+elseif ([regex]::IsMatch($text, $patchedBorderPattern)) {
     $text = [regex]::Replace($text, $patchedBorderPattern, "`r`n$new", 1)
     Set-Content -LiteralPath $xamlPath -Value $text -Encoding UTF8 -NoNewline
-    exit 0
+}
+elseif (-not ($text.Contains('x:Name="HeaderPlayerAvatar"') -and $text.Contains('WidthRequest="{OnIdiom Phone=76, Tablet=96}"'))) {
+    throw 'MainPage header avatar XAML block was not found. Patch not applied.'
 }
 
-throw 'MainPage header avatar XAML block was not found. Patch not applied.'
+$code = Get-Content -LiteralPath $codePath -Raw -Encoding UTF8
+
+$effectCallPattern = '(?s)PlayerEffectEngine\.Apply\(\s*HeaderAvatarEffectOverlay,\s*visualIdentity\.Effect,\s*1\.08\s*\);'
+$effectCallReplacement = @'
+ApplyMainHeaderAvatarShape();
+
+            PlayerEffectEngine.Apply(
+                HeaderAvatarEffectOverlay,
+                visualIdentity.Effect,
+                1.18);
+
+            ApplyMainHeaderAvatarShape();
+'@
+
+if ([regex]::IsMatch($code, $effectCallPattern)) {
+    $code = [regex]::Replace($code, $effectCallPattern, $effectCallReplacement, 1)
+    Set-Content -LiteralPath $codePath -Value $code -Encoding UTF8 -NoNewline
+}
+elseif (-not $code.Contains('visualIdentity.Effect,`r`n                1.18)') -and
+        -not $code.Contains('visualIdentity.Effect,
+                1.18)')) {
+    throw 'MainPage header effect call was not found. Code patch not applied.'
+}
