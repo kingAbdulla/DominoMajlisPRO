@@ -14,8 +14,22 @@ public partial class MainPage
             : 72;
 
         Border border = EnsureMainHeaderAvatarBorder();
+
+        if (border.Parent is Grid outerHost)
+        {
+            outerHost.WidthRequest = avatarSize;
+            outerHost.HeightRequest = avatarSize;
+            outerHost.MinimumWidthRequest = avatarSize;
+            outerHost.MinimumHeightRequest = avatarSize;
+            outerHost.HorizontalOptions = LayoutOptions.Center;
+            outerHost.VerticalOptions = LayoutOptions.Center;
+            outerHost.Clip = null;
+        }
+
         border.WidthRequest = avatarSize;
         border.HeightRequest = avatarSize;
+        border.MinimumWidthRequest = avatarSize;
+        border.MinimumHeightRequest = avatarSize;
         border.HorizontalOptions = LayoutOptions.Center;
         border.VerticalOptions = LayoutOptions.Center;
         border.BackgroundColor = Color.FromArgb("#151515");
@@ -33,8 +47,11 @@ public partial class MainPage
         {
             innerHost.WidthRequest = avatarSize;
             innerHost.HeightRequest = avatarSize;
+            innerHost.MinimumWidthRequest = avatarSize;
+            innerHost.MinimumHeightRequest = avatarSize;
             innerHost.HorizontalOptions = LayoutOptions.Center;
             innerHost.VerticalOptions = LayoutOptions.Center;
+            innerHost.Clip = null;
         }
 
         ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0);
@@ -86,6 +103,8 @@ public partial class MainPage
     {
         image.WidthRequest = size;
         image.HeightRequest = size;
+        image.MinimumWidthRequest = size;
+        image.MinimumHeightRequest = size;
         image.HorizontalOptions = LayoutOptions.Fill;
         image.VerticalOptions = LayoutOptions.Fill;
         image.InputTransparent = true;
