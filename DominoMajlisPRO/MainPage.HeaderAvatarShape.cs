@@ -173,6 +173,11 @@ public partial class MainPage
                 graphicsView.InputTransparent = true;
                 graphicsView.ZIndex = 3;
             }
+            else if (child is Image image && !ReferenceEquals(image, HeaderAvatarEffectOverlay))
+            {
+                image.BackgroundColor = Colors.Transparent;
+                image.Shadow = null;
+            }
         }
     }
 }
