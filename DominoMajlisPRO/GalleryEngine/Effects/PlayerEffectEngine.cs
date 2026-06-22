@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using DominoMajlisPRO.GalleryEngine.Models;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
@@ -173,7 +173,7 @@ public static class PlayerEffectEngine
         view.CancelAnimations();
         view.InputTransparent = true;
         view.IsVisible = true;
-        view.BackgroundColor = CreateBackgroundColor(definition, render);
+        view.BackgroundColor = Colors.Transparent;
         view.Opacity = render.Opacity;
         view.Scale = render.Scale;
         view.Rotation = 0;
@@ -558,3 +558,4 @@ public static class PlayerEffectEngine
         public GraphicsView? View { get; set; }
     }
 }
+
