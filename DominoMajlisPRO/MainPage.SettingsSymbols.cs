@@ -1,4 +1,4 @@
-namespace DominoMajlisPRO;
+﻿namespace DominoMajlisPRO;
 
 public partial class MainPage
 {
@@ -7,6 +7,8 @@ public partial class MainPage
     protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
+
+        ApplyMainHeaderAvatarShape();
 
         if (Handler == null || _settingsSymbolsTimerStarted)
             return;
@@ -66,7 +68,7 @@ public partial class MainPage
         if (!LooksBrokenMainText(text))
             return text;
 
-        return "غير متاح";
+        return "ط؛ظٹط± ظ…طھط§ط­";
     }
 
     static bool LooksBrokenMainText(string? value)
@@ -74,10 +76,10 @@ public partial class MainPage
         if (string.IsNullOrWhiteSpace(value))
             return false;
 
-        return value.Contains('�') ||
-               value.Contains("?�", StringComparison.Ordinal) ||
+        return value.Contains("?", StringComparison.Ordinal) ||
                value.Contains("â", StringComparison.Ordinal) ||
                value.Contains("Ã", StringComparison.Ordinal);
+               value.Contains("أƒ", StringComparison.Ordinal);
     }
 
     static void SetSymbol(Label? label, bool isExpanded)
@@ -88,3 +90,5 @@ public partial class MainPage
         label.Text = isExpanded ? "-" : "+";
     }
 }
+
+
