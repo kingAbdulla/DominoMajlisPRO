@@ -19,7 +19,10 @@ public partial class MainPage
             string playerId = currentUser.PlayerId;
             if (string.IsNullOrWhiteSpace(playerId))
             {
-                PlayerEffectEngine.Apply(HeaderAvatarEffectOverlay, null, 1.18);
+                PlayerEffectEngine.Apply(
+                    HeaderAvatarEffectOverlay,
+                    null,
+                    MainHeaderAvatarEffectScale);
                 return;
             }
 
@@ -29,16 +32,14 @@ public partial class MainPage
             if (syncVersion != headerEffectSyncVersion)
                 return;
 
-            PlayerEffectEngine.Apply(
-                HeaderAvatarEffectOverlay,
-                visualIdentity.Effect,
-                1.18);
-
-            ApplyMainHeaderAvatarShape();
+            ApplyMainHeaderAvatarIdentityVisuals(visualIdentity);
         }
         catch
         {
-            PlayerEffectEngine.Apply(HeaderAvatarEffectOverlay, null, 1.18);
+            PlayerEffectEngine.Apply(
+                HeaderAvatarEffectOverlay,
+                null,
+                MainHeaderAvatarEffectScale);
         }
     }
 }
