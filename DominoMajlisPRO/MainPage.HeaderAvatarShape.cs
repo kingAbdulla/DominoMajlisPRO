@@ -8,9 +8,9 @@ public partial class MainPage
 {
     const string HeaderAvatarOuterHostId = "MainHeaderAvatarOuterHost";
     const string HeaderAvatarInnerHostId = "MainHeaderAvatarInnerHost";
-    const double MainHeaderAvatarEffectScale = 1.18;
-    const double MainHeaderAvatarPhoneSize = 58;
-    const double MainHeaderAvatarTabletSize = 72;
+    const double MainHeaderAvatarEffectScale = 1.02;
+    const double MainHeaderAvatarPhoneSize = 50;
+    const double MainHeaderAvatarTabletSize = 64;
 
     void ApplyMainHeaderAvatarShape()
     {
@@ -30,6 +30,7 @@ public partial class MainPage
             outerHost.VerticalOptions = LayoutOptions.Center;
             outerHost.Clip = null;
             outerHost.BackgroundColor = Colors.Transparent;
+            outerHost.Shadow = null;
         }
 
         border.WidthRequest = avatarSize;
@@ -40,14 +41,9 @@ public partial class MainPage
         border.VerticalOptions = LayoutOptions.Center;
         border.BackgroundColor = Color.FromArgb("#151515");
         border.Stroke = Color.FromArgb("#D4AF37");
-        border.StrokeThickness = 2.2;
+        border.StrokeThickness = 2;
         border.StrokeShape = new RoundRectangle { CornerRadius = 999 };
-        border.Shadow = new Shadow
-        {
-            Brush = new SolidColorBrush(Color.FromArgb("#D4AF37")),
-            Radius = 14,
-            Opacity = 0.38f
-        };
+        border.Shadow = null;
         border.Clip = CreateCircleClip(avatarSize);
 
         if (border.Content is Grid innerHost)
@@ -60,6 +56,7 @@ public partial class MainPage
             innerHost.VerticalOptions = LayoutOptions.Center;
             innerHost.BackgroundColor = Colors.Transparent;
             innerHost.Clip = CreateCircleClip(avatarSize);
+            innerHost.Shadow = null;
             NormalizeProceduralEffectChildren(innerHost, avatarSize);
         }
 
@@ -96,15 +93,14 @@ public partial class MainPage
         border.Stroke = identity.Frame == null
             ? Color.FromArgb("#D4AF37")
             : Colors.Transparent;
-        border.Shadow = new Shadow
-        {
-            Brush = new SolidColorBrush(
-                identity.Effect == null
-                    ? Color.FromArgb("#D4AF37")
-                    : Color.FromArgb("#F2C14E")),
-            Radius = identity.Effect == null ? 14 : 18,
-            Opacity = identity.Effect == null ? 0.38f : 0.52f
-        };
+        border.Shadow = identity.Effect == null
+            ? null
+            : new Shadow
+            {
+                Brush = new SolidColorBrush(Color.FromArgb("#F2C14E")),
+                Radius = 8,
+                Opacity = 0.20f
+            };
     }
 
     Border EnsureMainHeaderAvatarBorder()
@@ -173,7 +169,7 @@ public partial class MainPage
 
     void ConfigureProfileStatusBadge(double avatarSize)
     {
-        double badgeSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 8 : 10;
+        double badgeSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 7 : 9;
         ProfileStatusBadge.WidthRequest = badgeSize;
         ProfileStatusBadge.HeightRequest = badgeSize;
         ProfileStatusBadge.HorizontalOptions = LayoutOptions.End;
@@ -217,8 +213,6 @@ public partial class MainPage
 
     static void NormalizeProceduralEffectChildren(Grid host, double size)
     {
-        var circleClip = CreateCircleClip(size);
-
         foreach (var child in host.Children)
         {
             if (child is GraphicsView graphicsView)
@@ -229,16 +223,19 @@ public partial class MainPage
                 graphicsView.MinimumHeightRequest = size;
                 graphicsView.HorizontalOptions = LayoutOptions.Fill;
                 graphicsView.VerticalOptions = LayoutOptions.Fill;
-                graphicsView.Clip = circleClip;
+                graphicsView.Clip = CreateCircleClip(size);
                 graphicsView.BackgroundColor = Colors.Transparent;
                 graphicsView.InputTransparent = true;
                 graphicsView.ZIndex = 3;
+                graphicsView.Scale = 1.0;
+                graphicsView.Opacity = 0.82;
             }
             else if (child is Image image)
             {
                 image.BackgroundColor = Colors.Transparent;
                 image.Shadow = null;
                 image.Clip = CreateCircleClip(size);
+                image.Scale = 1.0;
             }
         }
     }
