@@ -80,6 +80,7 @@ public static class PlayerEffectEngine
             scale,
             speed,
             intensity,
+            effect.DurationMilliseconds,
             effect.CustomPrimaryColorHex,
             effect.CustomSecondaryColorHex,
             ShouldUseLegacyImage(effect, key)
