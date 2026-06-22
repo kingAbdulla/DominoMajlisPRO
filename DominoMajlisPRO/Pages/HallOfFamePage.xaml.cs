@@ -680,6 +680,22 @@ public partial class HallOfFamePage : ContentPage
                 Source = avatarSource,
                 Aspect = Aspect.AspectFill
             });
+        if (identity?.Effect != null)
+        {
+            var effectOverlay = new Image
+            {
+                Aspect = Aspect.AspectFit,
+                InputTransparent = true,
+                HorizontalOptions = LayoutOptions.Fill,
+                VerticalOptions = LayoutOptions.Fill,
+                IsVisible = true,
+                ZIndex = 5
+            };
+
+            avatar.Add(effectOverlay);
+            PlayerEffectEngine.Apply(effectOverlay, identity.Effect, 1.28);
+        }
+
         AddPlayerOverlay(avatar, identity?.Frame?.PreviewImage);
 
         layout.Children.Add(
@@ -1606,6 +1622,7 @@ public partial class HallOfFamePage : ContentPage
         public int LegacyScore { get; set; }
     }
 }
+
 
 
 
