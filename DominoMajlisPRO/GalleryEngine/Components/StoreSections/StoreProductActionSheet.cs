@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Pages;
@@ -66,7 +66,6 @@ internal sealed class StoreProductActionSheet : Grid
     private int? _inventoryPrice;
     private string? _inventoryCurrencyMetadata;
     private InventoryProductContext? _inventoryContext;
-    private TeamAssetPayloadModel? _teamAssetPayload;
 
     public StoreProductActionSheet()
     {
@@ -93,10 +92,13 @@ internal sealed class StoreProductActionSheet : Grid
 
         _image = new Image
         {
+            WidthRequest = 168,
             HeightRequest = 168,
             Aspect = Aspect.AspectFit,
-            HorizontalOptions = LayoutOptions.Fill
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
         };
+
         _previewSurface = new Border
         {
             HeightRequest = 188,
@@ -107,6 +109,8 @@ internal sealed class StoreProductActionSheet : Grid
             StrokeShape = new RoundRectangle { CornerRadius = 20 },
             Content = new Grid
             {
+                HorizontalOptions = LayoutOptions.Fill,
+                VerticalOptions = LayoutOptions.Fill,
                 Children = { _image }
             }
         };
@@ -178,8 +182,7 @@ internal sealed class StoreProductActionSheet : Grid
         premiumTitle.HorizontalTextAlignment = TextAlignment.Center;
         premiumTitle.VerticalTextAlignment = TextAlignment.Center;
         titleRow.Add(premiumTitle, 1, 0);
-        var spacer = new BoxView { WidthRequest = 42, Opacity = 0 };
-        titleRow.Add(spacer, 2, 0);
+        titleRow.Add(new BoxView { WidthRequest = 42, Opacity = 0 }, 2, 0);
 
         _accentBar = new BoxView
         {
@@ -246,10 +249,7 @@ internal sealed class StoreProductActionSheet : Grid
         };
         Children.Add(_sheet);
 
-        _previewOverlay = new StoreProductPreviewOverlay
-        {
-            ZIndex = int.MaxValue
-        };
+        _previewOverlay = new StoreProductPreviewOverlay { ZIndex = int.MaxValue };
         Children.Add(_previewOverlay);
     }
 
@@ -281,6 +281,8 @@ internal sealed class StoreProductActionSheet : Grid
         AttachToPage(owner);
         ResetPreviewVisuals();
 
+        var isEffectPreview = IsEffectPreviewCandidate(previewKind, inventoryStoreTypeId, inventoryAssetId, name, description, imagePath);
+        _previewKind = isEffectPreview ? StoreProductPreviewKind.Effect : previewKind;
         _imagePath = imagePath;
         _name.Text = name;
         _rarity.Text = string.IsNullOrWhiteSpace(rarity) ? "COMMON" : rarity.ToUpperInvariant();
@@ -292,7 +294,6 @@ internal sealed class StoreProductActionSheet : Grid
         _action.IsEnabled = actionEnabled;
         _previewAction = previewAction;
         _primaryAction = primaryAction;
-        _previewKind = previewKind;
         _inventoryPlayerId = inventoryPlayerId;
         _inventoryAssetId = inventoryAssetId;
         _inventoryStoreTypeId = inventoryStoreTypeId;
@@ -303,7 +304,6 @@ internal sealed class StoreProductActionSheet : Grid
         _inventoryPrice = inventoryPrice;
         _inventoryCurrencyMetadata = inventoryCurrencyMetadata;
         _inventoryContext = CreateInventoryContext(price);
-        _teamAssetPayload = TeamAssetPayloadCatalog.Resolve(inventoryAssetId);
         _previewMessage.IsVisible = false;
         _isExecuting = false;
         _isClosing = false;
@@ -311,9 +311,7 @@ internal sealed class StoreProductActionSheet : Grid
         var accent = ResolveRarityAccent(rarity);
         _accentBar.Color = accent;
         _rarityBadge.Background = new SolidColorBrush(accent);
-        _rarityBadge.Stroke = string.Equals(rarity, "Immortal", StringComparison.OrdinalIgnoreCase)
-            ? PremiumGold
-            : accent;
+        _rarityBadge.Stroke = string.Equals(rarity, "Immortal", StringComparison.OrdinalIgnoreCase) ? PremiumGold : accent;
         _sheet.Stroke = accent;
 
         if (!string.IsNullOrWhiteSpace(walletBefore) || !string.IsNullOrWhiteSpace(walletAfter))
@@ -328,7 +326,7 @@ internal sealed class StoreProductActionSheet : Grid
         }
 
         SetControlsEnabled(true);
-        _action.IsEnabled = _teamAssetPayload != null || actionEnabled;
+        _action.IsEnabled = actionEnabled;
         _animationVersion++;
         var version = _animationVersion;
         _backdrop.CancelAnimations();
@@ -336,59 +334,72 @@ internal sealed class StoreProductActionSheet : Grid
         _backdrop.Opacity = 0;
         _sheet.TranslationY = 120;
         IsVisible = true;
+
+        if (isEffectPreview)
+            RenderEffectPreviewNow(version);
+        else
+            RenderImagePreview(imagePath);
+
         _ = AnimateOpenAsync(version);
         _ = RefreshInventoryStateAsync(version, inventoryPlayerId, inventoryAssetId);
     }
 
-    private async Task RenderEffectPreviewAsync(int version)
+    private void RenderImagePreview(string imagePath)
     {
-        if (!IsEffectPreviewCandidate(_previewKind, _inventoryStoreTypeId, _inventoryAssetId, _name.Text, _description.Text) ||
-            string.IsNullOrWhiteSpace(_inventoryAssetId))
-        {
-            PlayerEffectEngine.Apply(_image, null);
-            _image.IsVisible = true;
-            return;
-        }
+        PlayerEffectEngine.Apply(_image, null);
+        _image.Source = InventoryDisplayResolver.ResolveImageSource(imagePath);
+        _image.IsVisible = true;
+        _image.WidthRequest = 168;
+        _image.HeightRequest = 168;
+        _image.HorizontalOptions = LayoutOptions.Center;
+        _image.VerticalOptions = LayoutOptions.Center;
+    }
 
-        var effect = await StoreAssetCatalogService.ResolveAsync(
-            _inventoryAssetId,
-            "Effect");
-
+    private void RenderEffectPreviewNow(int version)
+    {
         if (version != _animationVersion || !IsVisible || _isClosing)
             return;
+
+        _image.Source = null;
+        _image.IsVisible = true;
+        _image.WidthRequest = 168;
+        _image.HeightRequest = 168;
+        _image.HorizontalOptions = LayoutOptions.Center;
+        _image.VerticalOptions = LayoutOptions.Center;
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
             if (version != _animationVersion || !IsVisible || _isClosing)
                 return;
 
-            effect ??= new CatalogAssetDisplay(
-                _inventoryAssetId!,
-                StoreProductAssetType.Effect,
-                StoreProductOwnerScope.Player,
-                _name.Text ?? "Effect",
-                _name.Text ?? "Effect",
-                string.Empty,
-                string.Empty,
-                Array.Empty<string>(),
-                "Glow",
-                "Breathing",
-                0,
-                "PlayerAvatar",
-                "Gold",
-                "Gold",
-                string.Empty,
-                string.Empty,
-                new[] { "Glow", "Aura", "Pulse", "Particle" },
-                0.95,
-                1.0,
-                1.0,
-                1.0);
-
-            _image.Source = null;
-            _image.IsVisible = true;
-            PlayerEffectEngine.Apply(_image, effect, 1.0);
+            PlayerEffectEngine.Apply(_image, BuildEffectDisplay(), 1.0);
         });
+    }
+
+    private CatalogAssetDisplay BuildEffectDisplay()
+    {
+        return new CatalogAssetDisplay(
+            string.IsNullOrWhiteSpace(_inventoryAssetId) ? (_name.Text ?? "Effect") : _inventoryAssetId,
+            StoreProductAssetType.Effect,
+            StoreProductOwnerScope.Player,
+            _name.Text ?? "Effect",
+            _name.Text ?? "Effect",
+            string.Empty,
+            string.Empty,
+            Array.Empty<string>(),
+            "Glow",
+            "Breathing",
+            0,
+            "PlayerAvatar",
+            "Gold",
+            "Gold",
+            string.Empty,
+            string.Empty,
+            new[] { "Glow", "Aura", "Pulse", "Particle" },
+            0.95,
+            1.0,
+            1.0,
+            1.0);
     }
 
     private static bool IsEffectPreviewCandidate(
@@ -396,7 +407,8 @@ internal sealed class StoreProductActionSheet : Grid
         string? storeTypeId,
         string? assetId,
         string? name,
-        string? description)
+        string? description,
+        string? imagePath = null)
     {
         if (previewKind == StoreProductPreviewKind.Effect)
             return true;
@@ -405,19 +417,28 @@ internal sealed class StoreProductActionSheet : Grid
         if (string.Equals(canonical, "Effect", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        var key = $"{storeTypeId} {assetId} {name} {description}".ToLowerInvariant();
+        var key = $"{storeTypeId} {assetId} {name} {description} {imagePath}".ToLowerInvariant();
         return key.Contains("effect") ||
+               key.Contains("effects") ||
                key.Contains("effact") ||
                key.Contains("تأثير") ||
-               key.Contains("تاثير");
+               key.Contains("تاثير") ||
+               key.Contains("glow") ||
+               key.Contains("aura") ||
+               key.Contains("pulse") ||
+               key.Contains("ring") ||
+               key.Contains("lightning") ||
+               key.Contains("spark") ||
+               key.Contains("برق") ||
+               key.Contains("هالة") ||
+               key.Contains("توهج");
     }
 
     private async Task RefreshInventoryStateAsync(int version, string? playerId, string? assetId)
     {
         if (_inventoryContext != null)
         {
-            var inventoryState =
-                await InventoryRouter.GetStateAsync(_inventoryContext);
+            var inventoryState = await InventoryRouter.GetStateAsync(_inventoryContext);
             if (version != _animationVersion || !IsVisible || _isClosing)
                 return;
 
@@ -429,19 +450,11 @@ internal sealed class StoreProductActionSheet : Grid
             return;
         }
 
-        if (_teamAssetPayload != null)
-        {
-            await RefreshTeamAssetStateAsync(version);
-            return;
-        }
-
         if (string.IsNullOrWhiteSpace(assetId))
             return;
 
-        var owner =
-            await ApplicationUserService.GetCurrentStoreOwnerAsync();
+        var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
         playerId = owner.PlayerId;
-
         if (version != _animationVersion || !IsVisible || _isClosing)
             return;
 
@@ -449,19 +462,8 @@ internal sealed class StoreProductActionSheet : Grid
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                if (version != _animationVersion ||
-                    !IsVisible ||
-                    _isClosing)
-                {
-                    return;
-                }
-
-                SetResolvedActionState(
-                    "أنشئ هوية لاعب للاقتناء",
-                    _inventoryIsFree == true
-                        ? "إنشاء هوية لاعب"
-                        : "شراء",
-                    true);
+                if (version == _animationVersion && IsVisible && !_isClosing)
+                    SetResolvedActionState("أنشئ هوية لاعب للاقتناء", _inventoryIsFree == true ? "إنشاء هوية لاعب" : "شراء", true);
             });
             return;
         }
@@ -482,9 +484,9 @@ internal sealed class StoreProductActionSheet : Grid
 
             var equipCapable = StoreEquipService.IsEquipCapable(_inventoryStoreTypeId);
             if (owned?.IsEquipped == true)
-                SetResolvedActionState("مجهز", "مجهز ✓", false);
+                SetResolvedActionState("✅ مجهز", "✅ مجهز", false);
             else if (owned != null)
-                SetResolvedActionState("مملوك", equipCapable ? "تجهيز" : "مملوك", equipCapable);
+                SetResolvedActionState("✅ مملوك", equipCapable ? "تجهيز" : "✅ مملوك", equipCapable);
             else if (_inventoryIsFree == true)
                 SetResolvedActionState("غير مملوك", "اقتناء", true);
             else
@@ -492,59 +494,40 @@ internal sealed class StoreProductActionSheet : Grid
         });
     }
 
-    private async Task RefreshTeamAssetStateAsync(int version)
+    private void ApplyInventoryState(InventoryState state)
     {
-        var payload = _teamAssetPayload;
-        if (payload == null)
-            return;
-
-        var owner =
-            await ApplicationUserService.GetCurrentStoreOwnerAsync();
-        PlayerOwnedStoreItem? owned = null;
-
-        if (!owner.IsGhost &&
-            owner.HasPlayerProfile &&
-            !string.IsNullOrWhiteSpace(owner.PlayerId))
+        if (state.RequiresIdentity)
         {
-            var inventory =
-                await PlayerInventoryService.GetInventoryForPlayerAsync(owner.PlayerId);
-            owned = inventory.FirstOrDefault(item =>
-                item.IsOwned &&
-                !item.IsExpired &&
-                SameId(item.AssetId, payload.TeamAssetId) &&
-                SameId(item.StoreTypeId, payload.TeamAssetTypeId));
+            SetResolvedActionState("أنشئ هوية لاعب للاقتناء", "إنشاء هوية لاعب", true);
+            return;
         }
 
-        if (version != _animationVersion || !IsVisible || _isClosing)
-            return;
-
-        MainThread.BeginInvokeOnMainThread(() =>
+        if (state.RequiresPlayer)
         {
-            if (version != _animationVersion || !IsVisible || _isClosing)
-                return;
+            SetResolvedActionState("تعذر ربط ملف اللاعب", "فتح حسابي", true);
+            return;
+        }
 
-            if (owner.IsGhost)
-                SetResolvedActionState(
-                    "أنشئ هوية لاعب للاقتناء",
-                    _inventoryIsFree == true
-                        ? "إنشاء هوية لاعب"
-                        : "شراء",
-                    true);
-            else if (!owner.HasPlayerProfile || string.IsNullOrWhiteSpace(owner.PlayerId))
-                SetResolvedActionState(
-                    "يرجى اختيار أو إنشاء فريق أولاً",
-                    _inventoryIsFree == true ? "اقتناء" : "شراء",
-                    true);
-            else if (owned != null)
-                SetResolvedActionState("\u0645\u0645\u0644\u0648\u0643", "\u0645\u0645\u0644\u0648\u0643 \u2713", false);
-            else if (_inventoryIsFree == true)
-                SetResolvedActionState("غير مملوك", "اقتناء", true);
-            else
-                SetResolvedActionState(
-                    "غير مملوك",
-                    "شراء",
-                    true);
-        });
+        if (state.RequiresTeam)
+        {
+            SetResolvedActionState("يرجى اختيار أو إنشاء فريق أولاً", "اقتناء", true);
+            return;
+        }
+
+        if (state.Route.OwnerScope == InventoryOwnerScope.Unsupported)
+        {
+            SetResolvedActionState("نوع العنصر غير مدعوم", "غير متاح", false);
+            return;
+        }
+
+        if (state.IsEquipped)
+            SetResolvedActionState("✅ مجهز", "✅ مجهز", false);
+        else if (state.IsOwned)
+            SetResolvedActionState("✅ مملوك", state.Route.Equipable ? "تجهيز" : "✅ مملوك", state.Route.Equipable);
+        else if (state.IsFree)
+            SetResolvedActionState("غير مملوك", "اقتناء", true);
+        else
+            SetResolvedActionState("غير مملوك", "شراء", true);
     }
 
     private void SetResolvedActionState(string state, string actionText, bool enabled)
@@ -553,60 +536,6 @@ internal sealed class StoreProductActionSheet : Grid
         _actionText = actionText;
         _action.Text = actionText;
         _action.IsEnabled = enabled;
-    }
-
-    private void ApplyInventoryState(InventoryState state)
-    {
-        if (state.RequiresIdentity)
-        {
-            SetResolvedActionState(
-                "أنشئ هوية لاعب للاقتناء",
-                "إنشاء هوية لاعب",
-                true);
-            return;
-        }
-
-        if (state.RequiresPlayer)
-        {
-            SetResolvedActionState(
-                "تعذر ربط ملف اللاعب",
-                "فتح حسابي",
-                true);
-            return;
-        }
-
-        if (state.RequiresTeam)
-        {
-            SetResolvedActionState(
-                "يرجى اختيار أو إنشاء فريق أولاً",
-                "اقتناء",
-                true);
-            return;
-        }
-
-        if (state.Route.OwnerScope == InventoryOwnerScope.Unsupported)
-        {
-            SetResolvedActionState(
-                "نوع العنصر غير مدعوم",
-                "غير متاح",
-                false);
-            return;
-        }
-
-        if (state.IsEquipped)
-            SetResolvedActionState("✅ مجهز", "✅ مجهز", false);
-        else if (state.IsOwned)
-            SetResolvedActionState(
-                "✅ مملوك",
-                state.Route.Equipable ? "تجهيز" : "✅ مملوك",
-                state.Route.Equipable);
-        else if (state.IsFree)
-            SetResolvedActionState("غير مملوك", "اقتناء", true);
-        else
-            SetResolvedActionState(
-                "غير مملوك",
-                "شراء",
-                true);
     }
 
     public void Hide()
@@ -649,7 +578,7 @@ internal sealed class StoreProductActionSheet : Grid
 
         IsVisible = false;
         _previewOverlay.HideImmediately();
-        ResetPreviewVisuals();
+        ResetPreviewVisuals(force: true);
         _previewMessage.IsVisible = false;
         _previewAction = null;
         _primaryAction = null;
@@ -685,56 +614,13 @@ internal sealed class StoreProductActionSheet : Grid
         }
     }
 
-    private async Task ShowPreviewAsync()
+    private void ResetPreviewVisuals(bool force = false)
     {
-        _isPreviewActive = true;
-        _image.CancelAnimations();
-        _previewSurface.CancelAnimations();
-
-        switch (_previewKind)
-        {
-            case StoreProductPreviewKind.Avatar:
-                _previewSurface.HeightRequest = 280;
-                _previewSurface.Background = new RadialGradientBrush
-                {
-                    Center = new Point(0.5, 0.45),
-                    Radius = 0.75,
-                    GradientStops =
-                    {
-                        new GradientStop(Color.FromArgb("#3A2A12"), 0),
-                        new GradientStop(PremiumBlack, 1)
-                    }
-                };
-                _previewSurface.StrokeShape = new RoundRectangle { CornerRadius = 28 };
-                _image.Aspect = Aspect.AspectFit;
-                break;
-
-            case StoreProductPreviewKind.Background:
-                _previewSurface.HeightRequest = 240;
-                _previewSurface.Padding = 0;
-                _previewSurface.Background = new SolidColorBrush(PremiumBlack);
-                _previewSurface.StrokeShape = new RoundRectangle { CornerRadius = 22 };
-                _image.Aspect = Aspect.AspectFill;
-                break;
-
-            default:
-                _previewSurface.HeightRequest = 230;
-                _previewSurface.Background = new SolidColorBrush(Color.FromArgb("#241B0C"));
-                _previewSurface.StrokeShape = new RoundRectangle { CornerRadius = 22 };
-                _image.Aspect = Aspect.AspectFit;
-                break;
-        }
-
-        _previewSurface.Scale = 0.96;
-        await _previewSurface.ScaleToAsync(1, 180, Easing.CubicOut);
-    }
-
-    private void ResetPreviewVisuals()
-    {
-        if (!_isPreviewActive && _previewSurface.HeightRequest == 188)
+        if (!force && !_isPreviewActive && _previewSurface.HeightRequest == 188)
             return;
 
         _image.CancelAnimations();
+        PlayerEffectEngine.Apply(_image, null);
         _previewSurface.CancelAnimations();
         _isPreviewActive = false;
         _previewSurface.Scale = 1;
@@ -743,6 +629,8 @@ internal sealed class StoreProductActionSheet : Grid
         _previewSurface.Background = new SolidColorBrush(Color.FromArgb("#10000000"));
         _previewSurface.StrokeShape = new RoundRectangle { CornerRadius = 20 };
         _image.Aspect = Aspect.AspectFit;
+        _image.Source = null;
+        _image.IsVisible = true;
     }
 
     private async void OnPrimaryClicked(object? sender, EventArgs e)
@@ -754,7 +642,7 @@ internal sealed class StoreProductActionSheet : Grid
         SetControlsEnabled(false);
         _action.Text = "جارٍ التنفيذ…";
 
-        var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(15));
         try
         {
             if (_previewOverlay.IsOpen)
@@ -768,7 +656,7 @@ internal sealed class StoreProductActionSheet : Grid
                     var completed = await Task.WhenAny(task, Task.Delay(-1, cts.Token));
                     if (completed != task)
                         throw new OperationCanceledException("Operation timed out.");
-                    await task; // propagate exceptions
+                    await task;
                 }
                 else
                 {
@@ -790,8 +678,6 @@ internal sealed class StoreProductActionSheet : Grid
         }
         finally
         {
-            cts.Cancel();
-            cts.Dispose();
             _isExecuting = false;
             if (IsVisible && !_isClosing)
             {
@@ -813,14 +699,10 @@ internal sealed class StoreProductActionSheet : Grid
     {
         if (string.IsNullOrWhiteSpace(_inventoryAssetId) ||
             string.IsNullOrWhiteSpace(_inventoryStoreTypeId))
-        {
             return null;
-        }
 
         return new InventoryProductContext(
-            string.IsNullOrWhiteSpace(_inventoryProductId)
-                ? _inventoryAssetId
-                : _inventoryProductId,
+            string.IsNullOrWhiteSpace(_inventoryProductId) ? _inventoryAssetId : _inventoryProductId,
             _inventoryAssetId,
             _inventoryStoreTypeId,
             _inventoryPrice,
@@ -833,8 +715,7 @@ internal sealed class StoreProductActionSheet : Grid
 
     private async Task ExecuteInventoryRouterActionAsync()
     {
-        var result =
-            await InventoryRouter.AcquireOrEquipAsync(_inventoryContext!);
+        var result = await InventoryRouter.AcquireOrEquipAsync(_inventoryContext!);
         if (result.State.RequiresIdentity)
         {
             await ShowCreateIdentityMessageAsync();
@@ -843,139 +724,32 @@ internal sealed class StoreProductActionSheet : Grid
 
         if (result.State.RequiresPlayer)
         {
-            await ShowMessageAsync(
-                "تعذر ربط ملف اللاعب بالحساب الحالي.");
+            await ShowMessageAsync("تعذر ربط ملف اللاعب بالحساب الحالي.");
             return;
         }
 
         if (result.State.RequiresTeam)
         {
-            await ShowMessageAsync(
-                "يرجى اختيار أو إنشاء فريق أولاً");
+            await ShowMessageAsync("يرجى اختيار أو إنشاء فريق أولاً");
             return;
         }
 
         if (result.PaidActionRequired)
         {
-            var checkout =
-                await StoreCheckoutService.PurchaseAsync(
-                    _inventoryContext!);
+            var checkout = await StoreCheckoutService.PurchaseAsync(_inventoryContext!);
             if (!checkout.Success)
             {
                 await ShowMessageAsync(checkout.Message);
                 return;
             }
 
-            _state.Text = checkout.WasEquipped
-                ? "✅ مجهز"
-                : "✅ مملوك";
+            _state.Text = checkout.WasEquipped ? "✅ مجهز" : "✅ مملوك";
         }
-    }
-
-    private bool HasTeamAssetContext() =>
-        _teamAssetPayload != null &&
-        !string.IsNullOrWhiteSpace(_teamAssetPayload.TeamAssetId) &&
-        !string.IsNullOrWhiteSpace(_teamAssetPayload.TeamAssetTypeId) &&
-        _inventoryIsFree.HasValue;
-
-    private async Task ExecuteTeamAssetActionAsync()
-    {
-        var payload = _teamAssetPayload!;
-        var owner =
-            await ApplicationUserService.GetCurrentStoreOwnerAsync();
-
-        if (owner.IsGhost)
-        {
-            await ShowCreateIdentityMessageAsync();
-            return;
-        }
-
-        if (!owner.HasPlayerProfile)
-        {
-            await ShowMessageAsync(
-                "تعذر ربط ملف اللاعب بالحساب الحالي.");
-            return;
-        }
-
-        var owned = await PlayerInventoryService.IsOwnedAsync(owner.PlayerId, payload.TeamAssetId);
-        if (owned)
-        {
-            AppEvents.RaiseStoreEconomyChanged(owner.PlayerId);
-            return;
-        }
-
-        if (_inventoryIsFree != true)
-        {
-            var checkout = await StoreCheckoutService.PurchaseAsync(
-                new InventoryProductContext(
-                    string.IsNullOrWhiteSpace(_inventoryProductId)
-                        ? payload.TeamAssetId
-                        : _inventoryProductId,
-                    payload.TeamAssetId,
-                    payload.TeamAssetTypeId,
-                    _inventoryPrice,
-                    false,
-                    _inventoryCurrencyMetadata,
-                    _price.Text,
-                    _inventorySeasonId,
-                    _inventoryCollectionId));
-            if (!checkout.Success)
-            {
-                await ShowMessageAsync(checkout.Message);
-            }
-            return;
-        }
-
-        var added = await PlayerInventoryService.AddOwnedItemWithoutNotificationAsync(
-            owner.PlayerId,
-            payload.TeamAssetId,
-            payload.TeamAssetTypeId,
-            "FreeAcquire",
-            seasonId: _inventorySeasonId,
-            collectionId: _inventoryCollectionId);
-
-        bool acquired = added || await PlayerInventoryService.IsOwnedAsync(owner.PlayerId, payload.TeamAssetId);
-        if (acquired)
-        {
-            // Ensure UI and other systems refresh after persistence completes.
-            AppEvents.RaiseStoreEconomyChanged(owner.PlayerId);
-        }
-    }
-
-    private static async Task<string?> ResolveActiveTeamIdAsync(
-        string playerId)
-    {
-        if (string.IsNullOrWhiteSpace(playerId))
-            return null;
-
-        var player = await PlayerProfileService.GetPlayerByIdAsync(playerId);
-        var currentTeamIds = (player?.CurrentTeamIds ?? string.Empty)
-            .Split(
-                ',',
-                StringSplitOptions.RemoveEmptyEntries |
-                StringSplitOptions.TrimEntries)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(2)
-            .ToList();
-
-        if (currentTeamIds.Count == 1)
-            return currentTeamIds[0];
-
-        if (currentTeamIds.Count > 1)
-            return null;
-
-        var team =
-            await TeamProfileService.GetTeamByPlayerIdAsync(playerId);
-        return string.IsNullOrWhiteSpace(team?.TeamId)
-            ? null
-            : team.TeamId.Trim();
     }
 
     private static async Task ShowCreateIdentityMessageAsync()
     {
-        var page =
-            Shell.Current?.CurrentPage ??
-            Application.Current?.Windows.FirstOrDefault()?.Page;
+        var page = Shell.Current?.CurrentPage ?? Application.Current?.Windows.FirstOrDefault()?.Page;
         if (page == null)
             return;
 
@@ -1011,41 +785,25 @@ internal sealed class StoreProductActionSheet : Grid
 
     private static Task ShowMessageAsync(string message)
     {
-        var page =
-            Shell.Current?.CurrentPage ??
-            Application.Current?.Windows.FirstOrDefault()?.Page;
-        return page?.DisplayAlert("متجر الفريق", message, "حسناً") ??
-               Task.CompletedTask;
+        var page = Shell.Current?.CurrentPage ?? Application.Current?.Windows.FirstOrDefault()?.Page;
+        return page?.DisplayAlert("متجر الفريق", message, "حسناً") ?? Task.CompletedTask;
     }
 
-    private static bool SameId(string? left, string? right) =>
-        string.Equals(
-            left?.Trim(),
-            right?.Trim(),
-            StringComparison.OrdinalIgnoreCase);
-
-    private static bool ResolveFreeState(
-        bool? declaredFree,
-        string? displayedPrice)
+    private static bool ResolveFreeState(bool? declaredFree, string? displayedPrice)
     {
         if (declaredFree == true)
             return true;
 
-        string price = displayedPrice?.Trim() ?? "";
+        string price = displayedPrice?.Trim() ?? string.Empty;
         if (price.Length == 0)
             return declaredFree ?? false;
 
         if (price.Contains("مجاني", StringComparison.OrdinalIgnoreCase) ||
             price.Contains("free", StringComparison.OrdinalIgnoreCase))
-        {
             return true;
-        }
 
-        string digits = new(price
-            .Where(char.IsDigit)
-            .ToArray());
-        return digits.Length > 0 &&
-               digits.All(digit => digit == '0');
+        string digits = new(price.Where(char.IsDigit).ToArray());
+        return digits.Length > 0 && digits.All(digit => digit == '0');
     }
 
     private void SetControlsEnabled(bool enabled)
@@ -1060,14 +818,11 @@ internal sealed class StoreProductActionSheet : Grid
     {
         if (actionText.Contains("استخدام", StringComparison.Ordinal))
             return "✅ استخدام";
-
         if (actionText.Contains("الحصول", StringComparison.Ordinal))
             return "🛒 الحصول";
-
         if (actionText.Contains("اقتناء", StringComparison.Ordinal) ||
             actionText.Contains("شراء", StringComparison.Ordinal))
             return "🛒 اقتناء";
-
         return actionText;
     }
 
@@ -1112,14 +867,3 @@ internal sealed class StoreProductActionSheet : Grid
         };
     }
 }
-
-
-
-
-
-
-
-
-
-
-
