@@ -344,7 +344,7 @@ internal sealed class StoreProductActionSheet : Grid
 
     private async Task RenderEffectPreviewAsync(int version)
     {
-        if (_previewKind != StoreProductPreviewKind.Effect ||
+        if (!IsEffectPreviewCandidate(_previewKind, _inventoryStoreTypeId, _inventoryAssetId, _name.Text, _description.Text) ||
             string.IsNullOrWhiteSpace(_inventoryAssetId))
         {
             PlayerEffectEngine.Apply(_image, null);
@@ -391,6 +391,27 @@ internal sealed class StoreProductActionSheet : Grid
             _image.IsVisible = true;
             PlayerEffectEngine.Apply(_image, effect, 1.0);
         });
+    }
+
+    private static bool IsEffectPreviewCandidate(
+        StoreProductPreviewKind previewKind,
+        string? storeTypeId,
+        string? assetId,
+        string? name,
+        string? description)
+    {
+        if (previewKind == StoreProductPreviewKind.Effect)
+            return true;
+
+        var canonical = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+        if (string.Equals(canonical, "Effect", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var key = $"{storeTypeId} {assetId} {name} {description}".ToLowerInvariant();
+        return key.Contains("effect") ||
+               key.Contains("effact") ||
+               key.Contains("تأثير") ||
+               key.Contains("تاثير");
     }
 
     private async Task RefreshInventoryStateAsync(int version, string? playerId, string? assetId)
@@ -1093,6 +1114,7 @@ internal sealed class StoreProductActionSheet : Grid
         };
     }
 }
+
 
 
 
