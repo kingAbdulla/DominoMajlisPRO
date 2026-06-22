@@ -155,7 +155,6 @@ public partial class MainPage
                 graphicsView.MinimumHeightRequest = size;
                 graphicsView.HorizontalOptions = LayoutOptions.Fill;
                 graphicsView.VerticalOptions = LayoutOptions.Fill;
-                graphicsView.Scale = 1.0;
                 graphicsView.Clip = null;
                 graphicsView.BackgroundColor = Colors.Transparent;
                 graphicsView.InputTransparent = true;
