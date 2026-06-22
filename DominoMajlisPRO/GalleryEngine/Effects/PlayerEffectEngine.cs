@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using DominoMajlisPRO.GalleryEngine.Models;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
@@ -7,7 +8,10 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 public static class PlayerEffectEngine
 {
     const string AnimationName = "DominoPlayerEffect";
+    const string ProceduralAnimationName = "DominoPlayerProceduralEffect";
     const string DefaultLegacyEffectImage = "fire_gold.png";
+
+    static readonly ConditionalWeakTable<Image, ProceduralOverlayState> ProceduralStates = new();
 
     public static void Apply(
         Image overlay,
@@ -24,6 +28,11 @@ public static class PlayerEffectEngine
 
         var definition = CreateDefinition(effect, baseScale);
         var render = CreateRenderProfile(definition);
+
+        if (!render.UseLegacyImage && TryApplyProcedural(overlay, definition, render))
+            return;
+
+        HideProceduralOverlay(overlay);
 
         overlay.InputTransparent = true;
         overlay.IsVisible = true;
@@ -136,6 +145,144 @@ public static class PlayerEffectEngine
             EffectPresetId.Pulse => render.PrimaryColor.WithAlpha(0.13f),
             EffectPresetId.Shadow => render.PrimaryColor.WithAlpha(0.20f),
             _ => Colors.Transparent
+        };
+    }
+
+    static bool TryApplyProcedural(
+        Image overlay,
+        EffectDefinitionModel definition,
+        EffectRenderProfile render)
+    {
+        var state = EnsureProceduralOverlay(overlay);
+        if (state?.View == null)
+            return false;
+
+        overlay.CancelAnimations();
+        overlay.Source = null;
+        overlay.BackgroundColor = Colors.Transparent;
+        overlay.Shadow = null;
+        overlay.IsVisible = false;
+        overlay.Opacity = 1;
+        overlay.Scale = 1;
+        overlay.Rotation = 0;
+
+        state.Drawable.Configure(definition, render);
+        state.Drawable.AnimationProgress = 0;
+
+        var view = state.View;
+        view.CancelAnimations();
+        view.InputTransparent = true;
+        view.IsVisible = true;
+        view.BackgroundColor = CreateBackgroundColor(definition, render);
+        view.Opacity = render.Opacity;
+        view.Scale = render.Scale;
+        view.Rotation = 0;
+        view.Invalidate();
+
+        StartProceduralAnimation(view, state.Drawable, definition, render);
+        return true;
+    }
+
+    static ProceduralOverlayState? EnsureProceduralOverlay(Image overlay)
+    {
+        if (overlay.Parent is not Layout parent)
+            return null;
+
+        var state = ProceduralStates.GetValue(
+            overlay,
+            _ => new ProceduralOverlayState(new ProceduralEffectDrawable()));
+
+        if (state.View?.Parent is Layout oldParent && !ReferenceEquals(oldParent, parent))
+            oldParent.Children.Remove(state.View);
+
+        if (state.View == null)
+        {
+            state.View = new GraphicsView
+            {
+                Drawable = state.Drawable,
+                InputTransparent = true,
+                IsVisible = false,
+                HorizontalOptions = LayoutOptions.Fill,
+                VerticalOptions = LayoutOptions.Fill
+            };
+        }
+
+        if (overlay.WidthRequest > 0)
+            state.View.WidthRequest = overlay.WidthRequest;
+        if (overlay.HeightRequest > 0)
+            state.View.HeightRequest = overlay.HeightRequest;
+
+        if (state.View.Parent == null)
+        {
+            parent.Children.Add(state.View);
+            state.View.ZIndex = overlay.ZIndex + 1;
+        }
+
+        return state;
+    }
+
+    static void HideProceduralOverlay(Image overlay)
+    {
+        if (!ProceduralStates.TryGetValue(overlay, out var state) || state.View == null)
+            return;
+
+        state.View.CancelAnimations();
+        state.Drawable.Configure(null, null);
+        state.Drawable.AnimationProgress = 0;
+        state.View.BackgroundColor = Colors.Transparent;
+        state.View.IsVisible = false;
+        state.View.Opacity = 1;
+        state.View.Scale = 1;
+        state.View.Rotation = 0;
+        state.View.Invalidate();
+    }
+
+    static void StartProceduralAnimation(
+        GraphicsView view,
+        ProceduralEffectDrawable drawable,
+        EffectDefinitionModel definition,
+        EffectRenderProfile render)
+    {
+        if (definition.AnimationId == EffectAnimationId.None)
+            return;
+
+        new Animation(v =>
+        {
+            drawable.AnimationProgress = v;
+            view.Opacity = definition.AnimationId == EffectAnimationId.Flash && v >= 0.5
+                ? 1
+                : render.Opacity;
+            view.Rotation = definition.AnimationId is EffectAnimationId.Rotate or EffectAnimationId.Orbit
+                ? 360 * v
+                : definition.AnimationId == EffectAnimationId.Lightning
+                    ? -6 + (12 * v)
+                    : 0;
+            view.Scale = render.Scale + ResolveProceduralScaleBoost(definition, v);
+            view.Invalidate();
+        }, 0, 1).Commit(
+            view,
+            ProceduralAnimationName,
+            16,
+            render.Duration,
+            Easing.SinInOut,
+            null,
+            () => view.IsVisible);
+    }
+
+    static double ResolveProceduralScaleBoost(
+        EffectDefinitionModel definition,
+        double progress)
+    {
+        return definition.AnimationId switch
+        {
+            EffectAnimationId.Lightning => progress < 0.5
+                ? 0.02
+                : 0.16 * definition.Intensity,
+            EffectAnimationId.Pulse or EffectAnimationId.Breathing => 0.12 * progress * definition.Intensity,
+            EffectAnimationId.Fade => 0.04 * progress * definition.Intensity,
+            EffectAnimationId.Flash => 0.10 * progress * definition.Intensity,
+            EffectAnimationId.Rotate or EffectAnimationId.Orbit => 0.05 * progress * definition.Intensity,
+            _ => 0.08 * progress * definition.Intensity
         };
     }
 
@@ -390,6 +537,7 @@ public static class PlayerEffectEngine
     static void Clear(Image overlay)
     {
         overlay.CancelAnimations();
+        HideProceduralOverlay(overlay);
         overlay.Source = null;
         overlay.BackgroundColor = Colors.Transparent;
         overlay.IsVisible = false;
@@ -397,5 +545,16 @@ public static class PlayerEffectEngine
         overlay.Scale = 1;
         overlay.Rotation = 0;
         overlay.Shadow = null;
+    }
+
+    sealed class ProceduralOverlayState
+    {
+        public ProceduralOverlayState(ProceduralEffectDrawable drawable)
+        {
+            Drawable = drawable;
+        }
+
+        public ProceduralEffectDrawable Drawable { get; }
+        public GraphicsView? View { get; set; }
     }
 }
