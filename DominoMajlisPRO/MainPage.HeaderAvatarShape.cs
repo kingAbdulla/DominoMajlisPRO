@@ -10,8 +10,8 @@ public partial class MainPage
     void ApplyMainHeaderAvatarShape()
     {
         double avatarSize = DeviceInfo.Idiom == DeviceIdiom.Phone
-            ? 58
-            : 72;
+            ? 76
+            : 96;
 
         Border border = EnsureMainHeaderAvatarBorder();
 
