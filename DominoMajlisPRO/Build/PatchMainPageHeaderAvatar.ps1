@@ -59,21 +59,19 @@ $new = @'
                                 </Border>
 '@
 
-if ($text.Contains('WidthRequest="{OnIdiom Phone=76, Tablet=96}"') -and
-    $text.Contains('x:Name="HeaderPlayerAvatar"') -and
-    $text.Contains('StrokeShape="RoundRectangle 999"')) {
-    $text = $text.Replace(
-        '<Image' + "`r`n" + '                                            x:Name="HeaderAvatarEffectOverlay"' + "`r`n" + '                                            Aspect="AspectFit"' + "`r`n" + '                                            InputTransparent="True"' + "`r`n" + '                                            IsVisible="False"/>' + "`r`n`r`n" + '                                        <Image' + "`r`n" + '                                            x:Name="HeaderPlayerAvatar"',
-        '<Image' + "`r`n" + '                                            x:Name="HeaderPlayerAvatar"')
+$oldGridPattern = '(?s)\s*<Grid\s+Grid\.Column="0"\s+WidthRequest="\{OnIdiom Phone=40, Tablet=48\}"\s+HeightRequest="\{OnIdiom Phone=40, Tablet=48\}"\s+VerticalOptions="Center">.*?x:Name="ProfileStatusBadge".*?</Border>\s*</Grid>\s*(?=<VerticalStackLayout\s+Grid\.Column="1")'
+$patchedBorderPattern = '(?s)\s*<Border\s+Grid\.Column="0"\s+WidthRequest="\{OnIdiom Phone=76, Tablet=96\}"\s+HeightRequest="\{OnIdiom Phone=76, Tablet=96\}".*?x:Name="ProfileStatusBadge".*?</Border>\s*</Grid>\s*</Border>\s*(?=<VerticalStackLayout\s+Grid\.Column="1")'
+
+if ([regex]::IsMatch($text, $oldGridPattern)) {
+    $text = [regex]::Replace($text, $oldGridPattern, "`r`n$new", 1)
+    Set-Content -LiteralPath $xamlPath -Value $text -Encoding UTF8 -NoNewline
     exit 0
 }
 
-$pattern = '(?s)\s*<Grid\s+Grid\.Column="0"\s+WidthRequest="\{OnIdiom Phone=40, Tablet=48\}"\s+HeightRequest="\{OnIdiom Phone=40, Tablet=48\}"\s+VerticalOptions="Center">.*?<Image\s+x:Name="HeaderPlayerAvatar".*?</Grid>\s*(?=<VerticalStackLayout\s+Grid\.Column="1")'
-
-$match = [regex]::Match($text, $pattern)
-if (-not $match.Success) {
-    throw 'MainPage header avatar XAML block was not found. Patch not applied.'
+if ([regex]::IsMatch($text, $patchedBorderPattern)) {
+    $text = [regex]::Replace($text, $patchedBorderPattern, "`r`n$new", 1)
+    Set-Content -LiteralPath $xamlPath -Value $text -Encoding UTF8 -NoNewline
+    exit 0
 }
 
-$text = [regex]::Replace($text, $pattern, "`r`n$new", 1)
-Set-Content -LiteralPath $xamlPath -Value $text -Encoding UTF8 -NoNewline
+throw 'MainPage header avatar XAML block was not found. Patch not applied.'
