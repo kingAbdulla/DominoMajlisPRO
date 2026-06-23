@@ -374,6 +374,8 @@ public partial class GamePage : ContentPage
             InventoryDisplayResolver.ResolveImageSource(
                 team2Identity.EmblemImagePath,
                 "shield_3d.png");
+        await TeamEffectEngine.ApplyAroundAsync(Team1Emblem, team1Id, 1.18);
+        await TeamEffectEngine.ApplyAroundAsync(Team2Emblem, team2Id, 1.18);
         ApplyTeamIdentityVisual(Team1Card, team1Identity);
         ApplyTeamIdentityVisual(Team2Card, team2Identity);
     }
@@ -633,7 +635,7 @@ public partial class GamePage : ContentPage
             info.Children.Add(
                 new Label
                 {
-                    Text = $"+{round.Points} ظ†ظ‚ط·ط©",
+                    Text = $"+{round.Points} نقطة",
                     TextColor =
                         round.WinnerTeamId == 1
                         ? Colors.Lime
@@ -755,7 +757,7 @@ public partial class GamePage : ContentPage
                         await DisplayPromptAsync(
                             "تعديل الجولة",
                             "أدخل النقاط الجديدة",
-                            "ط­ظپط¸",
+                            "حفظ",
                             "إلغاء",
                             keyboard: Keyboard.Numeric);
 
@@ -1161,7 +1163,7 @@ public partial class GamePage : ContentPage
             roundsHistory.Count.ToString();
 
         MatchTimeLabel.Text =
-            $"{(int)(DateTime.Now - currentMatch.MatchDate).TotalMinutes} ط¯ظ‚ظٹظ‚ط©";
+            $"{(int)(DateTime.Now - currentMatch.MatchDate).TotalMinutes} دقيقة";
 
         UpdateWinRate();
     }

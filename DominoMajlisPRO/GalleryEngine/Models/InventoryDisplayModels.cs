@@ -19,12 +19,15 @@ public sealed record CatalogAssetDisplay(
     string SecondaryColorPresetId = "",
     string CustomPrimaryColorHex = "",
     string CustomSecondaryColorHex = "",
-    IReadOnlyList<string>? EffectLayerIds = null,
-    double EffectOpacity = 0,
-    double EffectScale = 0,
-    double EffectSpeed = 0,
-    double EffectIntensity = 0)
+    IReadOnlyList<string>? EffectLayerIdsValue = null,
+    float EffectOpacity = 1,
+    float EffectScale = 1,
+    float EffectSpeed = 1,
+    float EffectIntensity = 1)
 {
+    public IReadOnlyList<string> EffectLayerIds =>
+        EffectLayerIdsValue ?? Array.Empty<string>();
+
     public bool HasDisplayMetadata =>
         !string.IsNullOrWhiteSpace(DisplayName) &&
         (!string.IsNullOrWhiteSpace(PreviewImage) ||

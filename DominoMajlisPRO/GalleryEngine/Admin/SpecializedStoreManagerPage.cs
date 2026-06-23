@@ -1,4 +1,4 @@
-using DominoMajlisPRO.GalleryEngine.Admin.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Canonical;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -44,37 +44,37 @@ public sealed class TeamColorsManagerPage : SpecializedStoreManagerPage
 public class SpecializedStoreManagerPage : ContentPage
 {
     private readonly SpecializedStoreManagerDefinition _definition;
-    private readonly Entry _titleEntry = new() { Placeholder = "العنوان / الاسم" };
-    private readonly Editor _descriptionEditor = new() { Placeholder = "الوصف", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 82 };
-    private readonly Entry _imageEntry = new() { Placeholder = "الصورة", IsReadOnly = true };
+    private readonly Entry _titleEntry = new() { Placeholder = "ط§ظ„ط¹ظ†ظˆط§ظ† / ط§ظ„ط§ط³ظ…" };
+    private readonly Editor _descriptionEditor = new() { Placeholder = "ط§ظ„ظˆطµظپ", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 82 };
+    private readonly Entry _imageEntry = new() { Placeholder = "ط§ظ„طµظˆط±ط©", IsReadOnly = true };
     private readonly Image _previewImage = new() { HeightRequest = 130, Aspect = Aspect.AspectFit, IsVisible = false };
-    private readonly Picker _assetIdPicker = new() { Title = "معرّف الأصل AssetId" };
-    private readonly Picker _assetTypePicker = new() { Title = "Asset Type / نوع الأصل" };
-    private readonly Picker _categoryPicker = new() { Title = "التصنيف" };
-    private readonly Entry _priceEntry = new() { Placeholder = "السعر", Keyboard = Keyboard.Numeric };
-    private readonly Picker _currencyPicker = new() { Title = "العملة" };
-    private readonly Picker _effectTypePicker = new() { Title = "نوع التأثير" };
-    private readonly Picker _animationTypePicker = new() { Title = "نوع الحركة" };
-    private readonly Entry _durationEntry = new() { Placeholder = "المدة بالمللي ثانية", Keyboard = Keyboard.Numeric };
-    private readonly Picker _equipTargetPicker = new() { Title = "هدف التجهيز" };
-    private readonly Picker _primaryEffectColorPicker = new() { Title = "اللون الأساسي" };
-    private readonly Picker _secondaryEffectColorPicker = new() { Title = "اللون الثانوي" };
-    private readonly Entry _customPrimaryColorEntry = new() { Placeholder = "لون أساسي مخصص #RRGGBB" };
-    private readonly Entry _customSecondaryColorEntry = new() { Placeholder = "لون ثانوي مخصص #RRGGBB" };
-    private readonly Editor _effectLayersEditor = new() { Placeholder = "طبقات التأثير", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 76, IsReadOnly = true, IsVisible = false };
+    private readonly Picker _assetIdPicker = new() { Title = "ظ…ط¹ط±ظ‘ظپ ط§ظ„ط£طµظ„ AssetId" };
+    private readonly Picker _assetTypePicker = new() { Title = "Asset Type / ظ†ظˆط¹ ط§ظ„ط£طµظ„" };
+    private readonly Picker _categoryPicker = new() { Title = "ط§ظ„طھطµظ†ظٹظپ" };
+    private readonly Entry _priceEntry = new() { Placeholder = "ط§ظ„ط³ط¹ط±", Keyboard = Keyboard.Numeric };
+    private readonly Picker _currencyPicker = new() { Title = "ط§ظ„ط¹ظ…ظ„ط©" };
+    private readonly Picker _effectTypePicker = new() { Title = "ظ†ظˆط¹ ط§ظ„طھط£ط«ظٹط±" };
+    private readonly Picker _animationTypePicker = new() { Title = "ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©" };
+    private readonly Entry _durationEntry = new() { Placeholder = "ط§ظ„ظ…ط¯ط© ط¨ط§ظ„ظ…ظ„ظ„ظٹ ط«ط§ظ†ظٹط©", Keyboard = Keyboard.Numeric };
+    private readonly Picker _equipTargetPicker = new() { Title = "ظ‡ط¯ظپ ط§ظ„طھط¬ظ‡ظٹط²" };
+    private readonly Picker _primaryEffectColorPicker = new() { Title = "ط§ظ„ظ„ظˆظ† ط§ظ„ط£ط³ط§ط³ظٹ" };
+    private readonly Picker _secondaryEffectColorPicker = new() { Title = "ط§ظ„ظ„ظˆظ† ط§ظ„ط«ط§ظ†ظˆظٹ" };
+    private readonly Entry _customPrimaryColorEntry = new() { Placeholder = "ظ„ظˆظ† ط£ط³ط§ط³ظٹ ظ…ط®طµطµ #RRGGBB" };
+    private readonly Entry _customSecondaryColorEntry = new() { Placeholder = "ظ„ظˆظ† ط«ط§ظ†ظˆظٹ ظ…ط®طµطµ #RRGGBB" };
+    private readonly Editor _effectLayersEditor = new() { Placeholder = "ط·ط¨ظ‚ط§طھ ط§ظ„طھط£ط«ظٹط±", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 76, IsReadOnly = true, IsVisible = false };
     private readonly EffectsLayerBuilderView _layerBuilder = new();
-    private readonly Entry _effectOpacityEntry = new() { Placeholder = "الشفافية 0.05 - 1.00", Keyboard = Keyboard.Numeric, IsVisible = false };
-    private readonly Entry _effectScaleEntry = new() { Placeholder = "الحجم 0.10 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
-    private readonly Entry _effectSpeedEntry = new() { Placeholder = "السرعة 0.25 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
-    private readonly Entry _effectIntensityEntry = new() { Placeholder = "الشدة 0.10 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
+    private readonly Entry _effectOpacityEntry = new() { Placeholder = "ط§ظ„ط´ظپط§ظپظٹط© 0.05 - 1.00", Keyboard = Keyboard.Numeric, IsVisible = false };
+    private readonly Entry _effectScaleEntry = new() { Placeholder = "ط§ظ„ط­ط¬ظ… 0.10 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
+    private readonly Entry _effectSpeedEntry = new() { Placeholder = "ط§ظ„ط³ط±ط¹ط© 0.25 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
+    private readonly Entry _effectIntensityEntry = new() { Placeholder = "ط§ظ„ط´ط¯ط© 0.10 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
     private readonly EffectsStudioPreviewView _effectsPreview = new();
-    private readonly EffectsStudioSliderView _opacitySlider = new("الشفافية", 0.05, 1.00, 0.74);
-    private readonly EffectsStudioSliderView _scaleSlider = new("الحجم", 0.10, 3.00, 1.18);
-    private readonly EffectsStudioSliderView _speedSlider = new("السرعة", 0.25, 3.00, 1.00);
-    private readonly EffectsStudioSliderView _intensitySlider = new("الشدة", 0.10, 3.00, 1.00);
-    private readonly Editor _bundleAssetsEditor = new() { Placeholder = "AssetType:AssetId — أصل واحد في كل سطر", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 92 };
-    private readonly Entry _discountEntry = new() { Placeholder = "نسبة الخصم", Keyboard = Keyboard.Numeric };
-    private readonly Entry _colorHexEntry = new() { Placeholder = "لون الفريق #RRGGBB" };
+    private readonly EffectsStudioSliderView _opacitySlider = new("ط§ظ„ط´ظپط§ظپظٹط©", 0.05, 1.00, 0.74);
+    private readonly EffectsStudioSliderView _scaleSlider = new("ط§ظ„ط­ط¬ظ…", 0.10, 3.00, 1.18);
+    private readonly EffectsStudioSliderView _speedSlider = new("ط§ظ„ط³ط±ط¹ط©", 0.25, 3.00, 1.00);
+    private readonly EffectsStudioSliderView _intensitySlider = new("ط§ظ„ط´ط¯ط©", 0.10, 3.00, 1.00);
+    private readonly Editor _bundleAssetsEditor = new() { Placeholder = "AssetType:AssetId â€” ط£طµظ„ ظˆط§ط­ط¯ ظپظٹ ظƒظ„ ط³ط·ط±", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 92 };
+    private readonly Entry _discountEntry = new() { Placeholder = "ظ†ط³ط¨ط© ط§ظ„ط®طµظ…", Keyboard = Keyboard.Numeric };
+    private readonly Entry _colorHexEntry = new() { Placeholder = "ظ„ظˆظ† ط§ظ„ظپط±ظٹظ‚ #RRGGBB" };
     private readonly Label _validationLabel = new() { FontSize = 11, IsVisible = false, HorizontalTextAlignment = TextAlignment.End };
     private readonly Label _modeTitle = new() { FontSize = 14, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.End };
     private readonly Label _modeSubtitle = new() { FontSize = 11, HorizontalTextAlignment = TextAlignment.End };
@@ -118,7 +118,7 @@ public class SpecializedStoreManagerPage : ContentPage
 
     private void BuildPage()
     {
-        var back = new Border { WidthRequest = 42, HeightRequest = 42, StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Content = new Label { Text = "‹", FontSize = 28, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } };
+        var back = new Border { WidthRequest = 42, HeightRequest = 42, StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Content = new Label { Text = "â€¹", FontSize = 28, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } };
         back.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PopAsync()) });
         var heading = new VerticalStackLayout { Spacing = 1, Children = { new Label { Text = _definition.Title, FontFamily = "Tajawal-Regular", FontSize = 25, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.End }, new Label { Text = _definition.Subtitle, FontFamily = "Tajawal-Regular", FontSize = 12, HorizontalTextAlignment = TextAlignment.End } } };
         var header = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 12 };
@@ -130,7 +130,7 @@ public class SpecializedStoreManagerPage : ContentPage
 
         var imageRow = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10 };
         imageRow.Add(_imageEntry, 0);
-        var pickImage = new Button { Text = _definition.IsBundle ? "اختيار أيقونة" : "اختيار صورة" };
+        var pickImage = new Button { Text = _definition.IsBundle ? "ط§ط®طھظٹط§ط± ط£ظٹظ‚ظˆظ†ط©" : "ط§ط®طھظٹط§ط± طµظˆط±ط©" };
         pickImage.Clicked += OnPickImageClicked;
         imageRow.Add(pickImage, 1);
 
@@ -179,11 +179,11 @@ public class SpecializedStoreManagerPage : ContentPage
         _formPanel.Content = form;
 
         var actions = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, RowDefinitions = { new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Auto) }, ColumnSpacing = 10, RowSpacing = 10 };
-        actions.Add(ActionButton("حفظ كمسودة", async () => await SaveDraftAsync()), 0, 0);
-        actions.Add(ActionButton("نشر", async () => await PublishAsync()), 1, 0);
-        actions.Add(ActionButton("إلغاء", () => { ClearFields(); return Task.CompletedTask; }), 0, 1);
-        actions.Add(ActionButton("المسودات", async () => await SelectRecordAsync(false)), 1, 1);
-        var published = ActionButton("العناصر المنشورة", async () => await SelectRecordAsync(true));
+        actions.Add(ActionButton("ط­ظپط¸ ظƒظ…ط³ظˆط¯ط©", async () => await SaveDraftAsync()), 0, 0);
+        actions.Add(ActionButton("ظ†ط´ط±", async () => await PublishAsync()), 1, 0);
+        actions.Add(ActionButton("ط¥ظ„ط؛ط§ط،", () => { ClearFields(); return Task.CompletedTask; }), 0, 1);
+        actions.Add(ActionButton("ط§ظ„ظ…ط³ظˆط¯ط§طھ", async () => await SelectRecordAsync(false)), 1, 1);
+        var published = ActionButton("ط§ظ„ط¹ظ†ط§طµط± ط§ظ„ظ…ظ†ط´ظˆط±ط©", async () => await SelectRecordAsync(true));
         actions.Add(published, 0, 2); Grid.SetColumnSpan(published, 2);
 
         var content = new VerticalStackLayout { Padding = new Thickness(16, 18, 16, 28), Spacing = 14, Children = { header, _modeCard, _formPanel, actions } };
@@ -284,9 +284,9 @@ public class SpecializedStoreManagerPage : ContentPage
         _bundleAssetsEditor.Unfocus();
         var assets = await StoreAssetCatalogService.LoadAsync();
         var labels = assets
-            .Select(asset => $"{asset.DisplayName} • {asset.AssetType}")
+            .Select(asset => $"{asset.DisplayName} â€¢ {asset.AssetType}")
             .ToArray();
-        var selected = await DisplayActionSheetAsync("اختيار أصل للحزمة", "إلغاء", null, labels);
+        var selected = await DisplayActionSheetAsync("ط§ط®طھظٹط§ط± ط£طµظ„ ظ„ظ„ط­ط²ظ…ط©", "ط¥ظ„ط؛ط§ط،", null, labels);
         var index = Array.IndexOf(labels, selected);
         if (index < 0)
             return;
@@ -311,14 +311,14 @@ public class SpecializedStoreManagerPage : ContentPage
                     .Select(group => group.First())
                     .OrderBy(asset => asset.DisplayName, StringComparer.CurrentCultureIgnoreCase));
         _assetIdPicker.ItemsSource = _assetChoices
-            .Select(asset => $"{asset.DisplayName} • {asset.AssetType}")
+            .Select(asset => $"{asset.DisplayName} â€¢ {asset.AssetType}")
             .ToList();
         _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => string.Equals(asset.AssetId, selectedId, StringComparison.OrdinalIgnoreCase));
     }
 
     private async void OnPickImageClicked(object? sender, EventArgs e)
     {
-        var result = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = _definition.IsBundle ? "اختيار أيقونة الحزمة" : "اختيار صورة الأصل", FileTypes = FilePickerFileType.Images });
+        var result = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = _definition.IsBundle ? "ط§ط®طھظٹط§ط± ط£ظٹظ‚ظˆظ†ط© ط§ظ„ط­ط²ظ…ط©" : "ط§ط®طھظٹط§ط± طµظˆط±ط© ط§ظ„ط£طµظ„", FileTypes = FilePickerFileType.Images });
         if (result == null) return;
         _imageEntry.Text = result.FullPath ?? result.FileName;
         _previewImage.Source =
@@ -332,7 +332,7 @@ public class SpecializedStoreManagerPage : ContentPage
         if (!TryBuildRecord(out var record, validateForPublish: false)) return;
         _currentRecord = await NewArrivalsAdminService.SaveDraftAsync(record);
         _editingPublished = false;
-        SetMode("Editing Draft", "تم حفظ المسودة", Color.FromArgb("#9B51E0"));
+        SetMode("Editing Draft", "طھظ… ط­ظپط¸ ط§ظ„ظ…ط³ظˆط¯ط©", Color.FromArgb("#9B51E0"));
     }
 
     private async Task PublishAsync()
@@ -341,23 +341,23 @@ public class SpecializedStoreManagerPage : ContentPage
         if (!NewArrivalsAdminService.ValidateForPublish(record, out var message)) { ShowError(message); return; }
         _currentRecord = _editingPublished ? await NewArrivalsAdminService.UpdatePublishedAsync(record) : await NewArrivalsAdminService.PublishAsync(record);
         ClearFields();
-        SetMode("Published", "تم النشر والنموذج جاهز لعنصر جديد", Color.FromArgb("#27AE60"));
+        SetMode("Published", "طھظ… ط§ظ„ظ†ط´ط± ظˆط§ظ„ظ†ظ…ظˆط°ط¬ ط¬ط§ظ‡ط² ظ„ط¹ظ†طµط± ط¬ط¯ظٹط¯", Color.FromArgb("#27AE60"));
     }
 
     private bool TryBuildRecord(out NewArrivalRecord record, bool validateForPublish)
     {
         record = BuildCurrentRecordForEffectsPreview();
-        if (!StoreProductAssetTypeCatalog.TryResolve(_assetTypePicker.SelectedCanonicalId(), out var assetType) || !_definition.AllowedTypes.Contains(assetType)) { ShowError("نوع الأصل غير مسموح في هذا المدير"); return false; }
+        if (!StoreProductAssetTypeCatalog.TryResolve(_assetTypePicker.SelectedCanonicalId(), out var assetType) || !_definition.AllowedTypes.Contains(assetType)) { ShowError("ظ†ظˆط¹ ط§ظ„ط£طµظ„ ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظپظٹ ظ‡ط°ط§ ط§ظ„ظ…ط¯ظٹط±"); return false; }
         _ = int.TryParse(_priceEntry.Text, out var price);
         _ = int.TryParse(_discountEntry.Text, out var discount);
         var currency = Enum.TryParse<NewArrivalCurrencyType>(_currencyPicker.SelectedCanonicalId(), out var parsedCurrency) ? parsedCurrency : NewArrivalCurrencyType.Gems;
         var bundleAssets = ParseLines(_bundleAssetsEditor.Text);
         var effectLayers = ParseLines(_effectLayersEditor.Text);
-        if (_definition.IsEffect && (string.IsNullOrWhiteSpace(_effectTypePicker.SelectedCanonicalId()) || string.IsNullOrWhiteSpace(_animationTypePicker.SelectedCanonicalId()) || record.DurationMilliseconds <= 0 || string.IsNullOrWhiteSpace(_equipTargetPicker.SelectedCanonicalId()))) { ShowError("أكمل نوع التأثير والحركة والمدة وهدف التجهيز"); return false; }
-        if (_definition.IsEffect && effectLayers.Count == 0) { ShowError("اختر طبقة تأثير واحدة على الأقل"); return false; }
-        if (_definition.IsBundle && (bundleAssets.Count < 2 || string.IsNullOrWhiteSpace(_imageEntry.Text))) { ShowError("الحزمة تحتاج أصلين على الأقل وأيقونة"); return false; }
-        if (_definition.IsBundle && bundleAssets.Any(item => !ValidBundleComponent(item))) { ShowError("صيغة مكونات الحزمة يجب أن تكون AssetType:AssetId"); return false; }
-        if (validateForPublish && string.IsNullOrWhiteSpace(_titleEntry.Text)) { ShowError("العنوان مطلوب"); return false; }
+        if (_definition.IsEffect && (string.IsNullOrWhiteSpace(_effectTypePicker.SelectedCanonicalId()) || string.IsNullOrWhiteSpace(_animationTypePicker.SelectedCanonicalId()) || record.DurationMilliseconds <= 0 || string.IsNullOrWhiteSpace(_equipTargetPicker.SelectedCanonicalId()))) { ShowError("ط£ظƒظ…ظ„ ظ†ظˆط¹ ط§ظ„طھط£ط«ظٹط± ظˆط§ظ„ط­ط±ظƒط© ظˆط§ظ„ظ…ط¯ط© ظˆظ‡ط¯ظپ ط§ظ„طھط¬ظ‡ظٹط²"); return false; }
+        if (_definition.IsEffect && effectLayers.Count == 0) { ShowError("ط§ط®طھط± ط·ط¨ظ‚ط© طھط£ط«ظٹط± ظˆط§ط­ط¯ط© ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„"); return false; }
+        if (_definition.IsBundle && (bundleAssets.Count < 2 || string.IsNullOrWhiteSpace(_imageEntry.Text))) { ShowError("ط§ظ„ط­ط²ظ…ط© طھط­طھط§ط¬ ط£طµظ„ظٹظ† ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„ ظˆط£ظٹظ‚ظˆظ†ط©"); return false; }
+        if (_definition.IsBundle && bundleAssets.Any(item => !ValidBundleComponent(item))) { ShowError("طµظٹط؛ط© ظ…ظƒظˆظ†ط§طھ ط§ظ„ط­ط²ظ…ط© ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† AssetType:AssetId"); return false; }
+        if (validateForPublish && string.IsNullOrWhiteSpace(_titleEntry.Text)) { ShowError("ط§ظ„ط¹ظ†ظˆط§ظ† ظ…ط·ظ„ظˆط¨"); return false; }
         var productId = _currentRecord?.ProductId ?? Guid.NewGuid().ToString();
         var assetId = _currentRecord?.AssetId;
         if (string.IsNullOrWhiteSpace(assetId))
@@ -399,7 +399,7 @@ public class SpecializedStoreManagerPage : ContentPage
             OwnerScope = StoreProductOwnerScope.Player.ToString(),
             Title = _titleEntry.Text?.Trim() ?? string.Empty,
             Description = _descriptionEditor.Text?.Trim() ?? string.Empty,
-            ButtonText = "عرض",
+            ButtonText = "ط¹ط±ط¶",
             ImagePath = _imageEntry.Text?.Trim() ?? string.Empty,
             Category = _categoryPicker.SelectedCanonicalId(),
             EffectType = _effectTypePicker.SelectedCanonicalId(),
@@ -411,10 +411,10 @@ public class SpecializedStoreManagerPage : ContentPage
             CustomPrimaryColorHex = _customPrimaryColorEntry.Text?.Trim() ?? string.Empty,
             CustomSecondaryColorHex = _customSecondaryColorEntry.Text?.Trim() ?? string.Empty,
             EffectLayerIds = ParseLines(_effectLayersEditor.Text),
-            EffectOpacity = Math.Clamp(opacity, 0.05, 1.0),
-            EffectScale = Math.Clamp(scale, 0.10, 3.0),
-            EffectSpeed = Math.Clamp(speed, 0.25, 3.0),
-            EffectIntensity = Math.Clamp(intensity, 0.10, 3.0)
+            EffectOpacity = (float)Math.Clamp(opacity, 0.05, 1.0),
+            EffectScale = (float)Math.Clamp(scale, 0.10, 3.0),
+            EffectSpeed = (float)Math.Clamp(speed, 0.25, 3.0),
+            EffectIntensity = (float)Math.Clamp(intensity, 0.10, 3.0)
         };
     }
 
@@ -439,7 +439,7 @@ public class SpecializedStoreManagerPage : ContentPage
 
         if (scoped.Count == 0)
         {
-            await DisplayAlertAsync(_definition.Title, "لا توجد عناصر", "حسناً");
+            await DisplayAlertAsync(_definition.Title, "ظ„ط§ طھظˆط¬ط¯ ط¹ظ†ط§طµط±", "ط­ط³ظ†ط§ظ‹");
             return;
         }
 
@@ -483,7 +483,7 @@ public class SpecializedStoreManagerPage : ContentPage
         _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => string.Equals(asset.AssetId, record.AssetId, StringComparison.OrdinalIgnoreCase));
         _categoryPicker.SelectCanonicalId(record.Category == "Ass" ? "Avatar" : record.Category);
         UpdateEffectsPreview();
-        SetMode(published ? "Editing Published" : "Editing Draft", published ? "تعديل أصل منشور" : "استكمال المسودة", published ? Color.FromArgb("#27AE60") : Color.FromArgb("#9B51E0"));
+        SetMode(published ? "Editing Published" : "Editing Draft", published ? "طھط¹ط¯ظٹظ„ ط£طµظ„ ظ…ظ†ط´ظˆط±" : "ط§ط³طھظƒظ…ط§ظ„ ط§ظ„ظ…ط³ظˆط¯ط©", published ? Color.FromArgb("#27AE60") : Color.FromArgb("#9B51E0"));
     }
 
     private void ClearFields()
@@ -504,7 +504,7 @@ public class SpecializedStoreManagerPage : ContentPage
         _effectTypePicker.SelectCanonicalId("Glow"); _animationTypePicker.SelectCanonicalId("Breathing"); _equipTargetPicker.SelectCanonicalId("PlayerEffect"); _primaryEffectColorPicker.SelectCanonicalId("Gold"); _secondaryEffectColorPicker.SelectCanonicalId("Gold");
         _validationLabel.IsVisible = false;
         UpdateEffectsPreview();
-        SetMode("New Product", "جاهز لإضافة أصل جديد", Color.FromArgb("#2F80ED"));
+        SetMode("New Product", "ط¬ط§ظ‡ط² ظ„ط¥ط¶ط§ظپط© ط£طµظ„ ط¬ط¯ظٹط¯", Color.FromArgb("#2F80ED"));
     }
 
     private static bool ValidBundleComponent(string value)
@@ -567,11 +567,12 @@ public class SpecializedStoreManagerPage : ContentPage
 
 public sealed record SpecializedStoreManagerDefinition(string Title, string Subtitle, IReadOnlyList<StoreProductAssetType> AllowedTypes, bool IsEffect = false, bool IsBundle = false, bool IsTeamColor = false)
 {
-    public static SpecializedStoreManagerDefinition Emblems { get; } = new("الشعارات", "نشر شعارات الفرق", new[] { StoreProductAssetType.Emblem });
-    public static SpecializedStoreManagerDefinition EmblemBackgrounds { get; } = new("خلفيات الشعارات", "نشر خلفيات هوية شعارات الفرق", new[] { StoreProductAssetType.EmblemBackground });
-    public static SpecializedStoreManagerDefinition Effects { get; } = new("التأثيرات", "نشر مؤثرات اللاعب القابلة للتجهيز", new[] { StoreProductAssetType.Effect }, IsEffect: true);
-    public static SpecializedStoreManagerDefinition Frames { get; } = new("الإطارات", "نشر إطارات هوية اللاعب", new[] { StoreProductAssetType.Frame });
-    public static SpecializedStoreManagerDefinition Titles { get; } = new("الألقاب", "نشر ألقاب هوية اللاعب", new[] { StoreProductAssetType.Title });
-    public static SpecializedStoreManagerDefinition Bundles { get; } = new("الحزم", "نشر حزم متعددة الأصول", new[] { StoreProductAssetType.Bundle }, IsBundle: true);
-    public static SpecializedStoreManagerDefinition TeamColors { get; } = new("ألوان الفرق", "نشر ألوان هوية الفرق", new[] { StoreProductAssetType.TeamColor }, IsTeamColor: true);
+    public static SpecializedStoreManagerDefinition Emblems { get; } = new("ط§ظ„ط´ط¹ط§ط±ط§طھ", "ظ†ط´ط± ط´ط¹ط§ط±ط§طھ ط§ظ„ظپط±ظ‚", new[] { StoreProductAssetType.Emblem });
+    public static SpecializedStoreManagerDefinition EmblemBackgrounds { get; } = new("ط®ظ„ظپظٹط§طھ ط§ظ„ط´ط¹ط§ط±ط§طھ", "ظ†ط´ط± ط®ظ„ظپظٹط§طھ ظ‡ظˆظٹط© ط´ط¹ط§ط±ط§طھ ط§ظ„ظپط±ظ‚", new[] { StoreProductAssetType.EmblemBackground });
+    public static SpecializedStoreManagerDefinition Effects { get; } = new("ط§ظ„طھط£ط«ظٹط±ط§طھ", "ظ†ط´ط± ظ…ط¤ط«ط±ط§طھ ط§ظ„ظ„ط§ط¹ط¨ ط§ظ„ظ‚ط§ط¨ظ„ط© ظ„ظ„طھط¬ظ‡ظٹط²", new[] { StoreProductAssetType.Effect }, IsEffect: true);
+    public static SpecializedStoreManagerDefinition Frames { get; } = new("ط§ظ„ط¥ط·ط§ط±ط§طھ", "ظ†ط´ط± ط¥ط·ط§ط±ط§طھ ظ‡ظˆظٹط© ط§ظ„ظ„ط§ط¹ط¨", new[] { StoreProductAssetType.Frame });
+    public static SpecializedStoreManagerDefinition Titles { get; } = new("ط§ظ„ط£ظ„ظ‚ط§ط¨", "ظ†ط´ط± ط£ظ„ظ‚ط§ط¨ ظ‡ظˆظٹط© ط§ظ„ظ„ط§ط¹ط¨", new[] { StoreProductAssetType.Title });
+    public static SpecializedStoreManagerDefinition Bundles { get; } = new("ط§ظ„ط­ط²ظ…", "ظ†ط´ط± ط­ط²ظ… ظ…طھط¹ط¯ط¯ط© ط§ظ„ط£طµظˆظ„", new[] { StoreProductAssetType.Bundle }, IsBundle: true);
+    public static SpecializedStoreManagerDefinition TeamColors { get; } = new("ط£ظ„ظˆط§ظ† ط§ظ„ظپط±ظ‚", "ظ†ط´ط± ط£ظ„ظˆط§ظ† ظ‡ظˆظٹط© ط§ظ„ظپط±ظ‚", new[] { StoreProductAssetType.TeamColor }, IsTeamColor: true);
 }
+

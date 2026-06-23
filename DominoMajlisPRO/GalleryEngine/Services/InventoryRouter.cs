@@ -22,7 +22,8 @@ public enum InventoryEquipTarget
     Title,
     Emblem,
     TeamColor,
-    EmblemBackground
+    EmblemBackground,
+    TeamEffect
 }
 
 public sealed record InventoryProductContext(
@@ -34,7 +35,9 @@ public sealed record InventoryProductContext(
     string? CurrencyMetadata,
     string? DisplayPrice,
     string? SeasonId = null,
-    string? CollectionId = null);
+    string? CollectionId = null,
+    DateTime? AvailableFrom = null,
+    DateTime? AvailableUntil = null);
 
 public sealed record InventoryRoute(
     InventoryOwnerScope OwnerScope,
@@ -51,7 +54,9 @@ public sealed record InventoryState(
     bool RequiresPlayer,
     bool RequiresTeam,
     string? PlayerId,
-    string? TeamId);
+    string? TeamId,
+    bool IsAvailable = true,
+    string? AvailabilityMessage = null);
 
 public sealed record InventoryActionResult(
     InventoryState State,
@@ -61,6 +66,34 @@ public sealed record InventoryActionResult(
 
 public static class InventoryRouter
 {
+    public static bool IsAvailable(InventoryProductContext product)
+    {
+        ArgumentNullException.ThrowIfNull(product);
+        var now = DateTime.Now;
+        return (!product.AvailableFrom.HasValue ||
+                product.AvailableFrom.Value <= now) &&
+               (!product.AvailableUntil.HasValue ||
+                product.AvailableUntil.Value >= now);
+    }
+
+    public static string? GetAvailabilityMessage(
+        InventoryProductContext product)
+    {
+        ArgumentNullException.ThrowIfNull(product);
+        var now = DateTime.Now;
+        if (product.AvailableFrom.HasValue &&
+            product.AvailableFrom.Value > now)
+        {
+            return "هذا العرض لم يبدأ بعد.";
+        }
+        if (product.AvailableUntil.HasValue &&
+            product.AvailableUntil.Value < now)
+        {
+            return "انتهت صلاحية هذا العرض.";
+        }
+        return null;
+    }
+
     public static bool IsFree(InventoryProductContext product)
     {
         ArgumentNullException.ThrowIfNull(product);
@@ -97,6 +130,8 @@ public static class InventoryRouter
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Frame, true);
         if (assetType == StoreProductAssetType.Effect)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Effect, true);
+        if (assetType == StoreProductAssetType.TeamEffect)
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamEffect, false);
         if (assetType == StoreProductAssetType.Title)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Title, true);
         if (assetType is StoreProductAssetType.Badge or StoreProductAssetType.SeasonReward)
@@ -131,7 +166,9 @@ public static class InventoryRouter
                 SameId(item.StoreTypeId, route.StoreTypeId));
             return new InventoryState(
                 route, free, owned != null, false,
-                false, false, false, owner.PlayerId, null);
+                false, false, false, owner.PlayerId, null,
+                IsAvailable(product),
+                GetAvailabilityMessage(product));
         }
 
         if (route.OwnerScope == InventoryOwnerScope.Player)
@@ -142,7 +179,9 @@ public static class InventoryRouter
                 SameId(item.AssetId, product.AssetId));
             return new InventoryState(
                 route, free, owned != null, owned?.IsEquipped == true,
-                false, false, false, owner.PlayerId, null);
+                false, false, false, owner.PlayerId, null,
+                IsAvailable(product),
+                GetAvailabilityMessage(product));
         }
 
         return new InventoryState(
@@ -160,6 +199,9 @@ public static class InventoryRouter
         {
             return new InventoryActionResult(before, false, false, false);
         }
+
+        if (!before.IsAvailable && !before.IsOwned)
+            return new InventoryActionResult(before, false, false, false);
 
         if (before.IsEquipped)
             return new InventoryActionResult(before, false, false, false);

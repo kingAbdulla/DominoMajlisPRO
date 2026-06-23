@@ -144,7 +144,7 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
         var price = isFree ? "مجاني" : string.Equals(item.Currency, "Coins", StringComparison.OrdinalIgnoreCase) ? $"🪙 {item.Price}" : $"💎 {item.Price}";
         _actionSheet.Show(this, item.Image, item.Name, "وصل حديثاً", item.Description, price, "غير مملوك",
             "اقتناء", true, () => Task.CompletedTask, () => Task.CompletedTask,
-            previewKind: ResolvePreviewKind(card.StoreTypeId, card.AssetId, item.Name, item.Description),
+            previewKind: ResolvePreviewKind(card.StoreTypeId),
             inventoryAssetId: card.AssetId,
             inventoryStoreTypeId: card.StoreTypeId,
             inventoryIsFree: isFree,
@@ -154,19 +154,8 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
     }
 
     private static StoreProductPreviewKind ResolvePreviewKind(
-        string storeTypeId,
-        string assetId,
-        string name,
-        string description)
+        string storeTypeId)
     {
-        var key = $"{storeTypeId} {assetId} {name} {description}".ToLowerInvariant();
-        if (key.Contains("effect") ||
-            key.Contains("effact") ||
-            key.Contains("تأثير") ||
-            key.Contains("تاثير"))
-        {
-            return StoreProductPreviewKind.Effect;
-        }
         var canonicalType =
             StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
         if (string.Equals(
@@ -181,6 +170,10 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
             canonicalType,
             StoreProductAssetType.Effect.ToString(),
             StringComparison.OrdinalIgnoreCase)
+                || string.Equals(
+                    canonicalType,
+                    StoreProductAssetType.TeamEffect.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
                 ? StoreProductPreviewKind.Effect
                 : StoreProductPreviewKind.Generic;
     }
@@ -217,4 +210,3 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
         bool IsFree,
         string CurrencyMetadata);
 }
-

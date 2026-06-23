@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
+using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -190,11 +190,11 @@ public partial class PlayerProfilesPage : ContentPage
             ? Color.FromArgb("#D4AF37")
             : Colors.Transparent;
         AccountAvatarFrame.Shadow = new Shadow
-        {
-            Brush = new SolidColorBrush(Color.FromArgb("#F2C14E")),
-            Radius = 18,
-            Opacity = 0.55f
-        };
+            {
+                Brush = new SolidColorBrush(Color.FromArgb("#F2C14E")),
+                Radius = 18,
+                Opacity = 0.55f
+            };
         if (identity.Title != null)
         {
             AccountRoleSessionLabel.Text =
@@ -227,7 +227,7 @@ public partial class PlayerProfilesPage : ContentPage
                 fallbackAvatar);
     }
 
-    void ApplyPlayerEffectOverlay(
+        void ApplyPlayerEffectOverlay(
         Image effectOverlay,
         DominoMajlisPRO.GalleryEngine.Models.CatalogAssetDisplay? effect)
     {
@@ -347,14 +347,14 @@ public partial class PlayerProfilesPage : ContentPage
     {
         accountHubExpanded = !accountHubExpanded;
         AccountHubContent.IsVisible = accountHubExpanded;
-        AccountHubArrowLabel.Text = accountHubExpanded ? "▲" : "▼";
+        AccountHubArrowLabel.Text = accountHubExpanded ? "⌃" : "⌄";
     }
 
     void OnCollectionHeaderTapped(object? sender, TappedEventArgs e)
     {
         collectionExpanded = !collectionExpanded;
         CollectionContent.IsVisible = collectionExpanded;
-        CollectionArrowLabel.Text = collectionExpanded ? "▲" : "▼";
+        CollectionArrowLabel.Text = collectionExpanded ? "⌃" : "⌄";
     }
 
     async void OnCreateIdentityClicked(object? sender, EventArgs e)
@@ -380,7 +380,7 @@ public partial class PlayerProfilesPage : ContentPage
             catch (Exception ex)
             {
                 await DisplayAlertAsync(
-                    "تعذر إنشاء الهوية",
+                    "تعذر ربط الملف",
                     ex.Message,
                     "حسناً");
             }
@@ -454,13 +454,13 @@ public partial class PlayerProfilesPage : ContentPage
         {
             await DisplayAlertAsync(
                 "تسجيل الدخول",
-                "لا توجد هويات محلية أخرى على هذا الجهاز.",
+                "لا توجد حسابات محفوظة على هذا الجهاز.",
                 "حسناً");
             return;
         }
 
         string? selected = await DisplayActionSheetAsync(
-            "اختر الهوية المحلية",
+            "اختر حساباً محفوظاً",
             "إلغاء",
             null,
             choices.Select(item => item.Label).ToArray());
@@ -479,7 +479,7 @@ public partial class PlayerProfilesPage : ContentPage
     {
         bool confirm = await DisplayAlertAsync(
             "تسجيل الخروج",
-            "هل تريد تسجيل الخروج من هذه الهوية؟ يمكنك تسجيل الدخول مرة أخرى لاحقاً.",
+            "سيتم إنهاء الجلسة فقط، ولن تُحذف الهوية أو بيانات اللاعب.",
             "تسجيل الخروج",
             "إلغاء");
 
@@ -509,7 +509,7 @@ public partial class PlayerProfilesPage : ContentPage
         {
             AccountHubContent.IsVisible = true;
             accountHubExpanded = true;
-            AccountHubArrowLabel.Text = "▲";
+            AccountHubArrowLabel.Text = "⌃";
             return;
         }
 
@@ -565,7 +565,7 @@ public partial class PlayerProfilesPage : ContentPage
             InventoryOwnerLabel.Text =
                 "سجّل الدخول إلى حساب لاعب لعرض المقتنيات.";
             InventoryItemsContainer.Children.Add(
-                CreateInventoryEmptyLabel("لا توجد مقتنيات مملوكة لهذا الحساب."));
+                CreateInventoryEmptyLabel("لا توجد مقتنيات مرتبطة بالضيف."));
             return;
         }
 
@@ -616,6 +616,12 @@ public partial class PlayerProfilesPage : ContentPage
                     item.IsEquipped,
                     async () =>
                     {
+                        if (SameId(item.AssetType, StoreProductAssetType.TeamEffect.ToString()))
+                        {
+                            await EquipTeamEffectFromInventoryAsync(playerId, item.AssetId);
+                            await LoadInventoryAsync();
+                            return;
+                        }
                         bool equipped =
                             await PlayerAssetInventoryService.EquipAsync(
                                 playerId,
@@ -630,6 +636,29 @@ public partial class PlayerProfilesPage : ContentPage
                         }
                     }));
         }
+    }
+
+    async Task EquipTeamEffectFromInventoryAsync(string playerId, string assetId)
+    {
+        var teams = (await TeamProfileService.LoadTeamsAsync())
+            .Where(team => TeamEffectEngine.IsManagedBy(team, playerId))
+            .ToList();
+        if (teams.Count == 0)
+        {
+            await DisplayAlert("مؤثر الفريق", "لا يوجد فريق تملكه أو تديره لتجهيز هذا المؤثر.", "حسناً");
+            return;
+        }
+
+        TeamProfileModel? selected = teams.Count == 1 ? teams[0] : null;
+        if (selected == null)
+        {
+            var labels = teams.Select(team => $"{team.TeamName} ({team.TeamId})").ToArray();
+            var choice = await DisplayActionSheet("اختر الفريق", "إلغاء", null, labels);
+            selected = teams.FirstOrDefault(team =>
+                string.Equals($"{team.TeamName} ({team.TeamId})", choice, StringComparison.Ordinal));
+        }
+        if (selected != null)
+            await TeamEffectEngine.EquipAsync(playerId, selected.TeamId, assetId);
     }
 
     void AddTeamInventorySection(
@@ -875,6 +904,23 @@ public partial class PlayerProfilesPage : ContentPage
             });
     }
 
+    static void AddPlayerEffect(
+        Grid container,
+        CatalogAssetDisplay? effect,
+        double baseScale = 1.16)
+    {
+        if (effect == null)
+            return;
+
+        var overlay = new Image
+        {
+            Aspect = Aspect.AspectFit,
+            InputTransparent = true
+        };
+        PlayerEffectEngine.Apply(overlay, effect, baseScale);
+        container.Add(overlay);
+    }
+
     static Color ParseColor(string value, string fallback)
     {
         try
@@ -1109,14 +1155,15 @@ public partial class PlayerProfilesPage : ContentPage
         avatar.Add(
             new Image
             {
-                Source = ResolvePlayerAvatarSource(player),
-
+                Source =
+                    ToOptionalImageSource(identity?.Avatar?.PreviewImage) ??
+                    ResolvePlayerAvatarSource(player),
                 Aspect = Aspect.AspectFill,
                 WidthRequest = 92,
                 HeightRequest = 92
             });
         AddIdentityOverlay(avatar, identity?.Frame?.PreviewImage);
-        AddIdentityOverlay(avatar, identity?.Effect?.PreviewImage);
+        AddPlayerEffect(avatar, identity?.Effect);
 
         return new Border
         {
@@ -1129,12 +1176,12 @@ public partial class PlayerProfilesPage : ContentPage
             StrokeThickness = 2,
             StrokeShape = new RoundRectangle { CornerRadius = 999 },
             Shadow = new Shadow
-            {
-                Brush = new SolidColorBrush(
-                    Color.FromArgb("#F2C14E")),
-                Radius = 18,
-                Opacity = 0.55f
-            },
+                {
+                    Brush = new SolidColorBrush(
+                        Color.FromArgb("#F2C14E")),
+                    Radius = 18,
+                    Opacity = 0.55f
+                },
             Content = avatar
         };
     }
@@ -1142,7 +1189,19 @@ public partial class PlayerProfilesPage : ContentPage
     static ImageSource ResolvePlayerAvatarSource(
         PlayerProfileModel player)
     {
-        return PlayerProfileService.GetPlayerImageSource(player);
+        var candidate =
+            player.UseCustomAvatar &&
+            !string.IsNullOrWhiteSpace(player.AvatarPath)
+                ? player.AvatarPath
+                : !string.IsNullOrWhiteSpace(player.ProfileImagePath)
+                    ? player.ProfileImagePath
+                    : !string.IsNullOrWhiteSpace(player.AvatarImage)
+                        ? player.AvatarImage
+                        : player.BuiltInAvatar;
+
+        return InventoryDisplayResolver.ResolveImageSource(
+            candidate,
+            "player_card.png");
     }
 
     View CreatePlayerInfoSection(
@@ -1391,3 +1450,9 @@ public partial class PlayerProfilesPage : ContentPage
         await Navigation.PopAsync();
     }
 }
+
+
+
+
+
+

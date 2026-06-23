@@ -87,6 +87,10 @@ public class TeamProfileModel
 
     public string EmblemBackgroundAssetId { get; set; } = "";
 
+    public string EquippedTeamEffectAssetId { get; set; } = "";
+
+    public string EquippedTeamEffectOwnerPlayerId { get; set; } = "";
+
     public bool IsSinglePlayer { get; set; }
 
     public string TeamColorName { get; set; } = "";

@@ -11,6 +11,7 @@ public static class AppEvents
     public static event Action<string>? StoreEconomyChanged;
     public static event Action<string>? StoreProgressChanged;
     public static event Action<string>? TeamAssetsChanged;
+    public static event Action<string>? TeamEffectChanged;
 
     static void SafeRaise(Action? action)
     {
@@ -58,6 +59,16 @@ public static class AppEvents
         SafeRaise(TeamAssetsChanged, teamId);
     }
 
+    public static void RaiseTeamEffectChanged(string teamId)
+    {
+        if (string.IsNullOrWhiteSpace(teamId))
+            return;
+
+        SafeRaise(TeamEffectChanged, teamId);
+        SafeRaise(TeamAssetsChanged, teamId);
+        SafeRaise(TeamsChanged);
+    }
+
     public static void RaiseDataChanged()
     {
         SafeRaise(DataChanged);
@@ -95,3 +106,4 @@ public static class AppEvents
         RaiseRankingsChanged();
     }
 }
+

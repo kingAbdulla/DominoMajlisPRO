@@ -379,6 +379,63 @@
             </CollectionView>
 
 
+            <VerticalStackLayout
+                x:Name="TeamEffectSection"
+                IsVisible="False"
+                Spacing="8">
+
+                <Label
+                    Text="مؤثر الفريق"
+                    FontSize="20"
+                    FontAttributes="Bold"
+                    TextColor="Gold"
+                    HorizontalOptions="Center"/>
+
+                <CollectionView
+                    x:Name="TeamEffectCarousel"
+                    HeightRequest="64"
+                    HorizontalOptions="Fill"
+                    SelectionMode="Single"
+                    SelectionChanged="OnTeamEffectSelectionChanged"
+                    ItemsUpdatingScrollMode="KeepScrollOffset">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout
+                            Orientation="Horizontal"
+                            ItemSpacing="10"
+                            SnapPointsAlignment="Center"
+                            SnapPointsType="MandatorySingle"/>
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="pages:TeamEffectCarouselItem">
+                            <Grid
+                                WidthRequest="64"
+                                HeightRequest="64"
+                                Loaded="OnTeamEffectItemLoaded">
+                                <Border
+                                    IsVisible="{Binding IsSelected}"
+                                    Stroke="Gold"
+                                    StrokeThickness="1.5"
+                                    BackgroundColor="#221A0C"
+                                    StrokeShape="RoundRectangle 30"/>
+                                <Image
+                                    Source="shield_3d.png"
+                                    WidthRequest="38"
+                                    HeightRequest="38"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"/>
+                                <Label
+                                    IsVisible="{Binding IsNone}"
+                                    Text="بدون"
+                                    FontSize="10"
+                                    TextColor="White"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="End"/>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
             <!-- Team Color -->
 
             <Label
@@ -554,6 +611,16 @@
                     MaximumHeightRequest="170"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"/>
+
+                            <Image
+                    x:Name="PreviewTeamEffectOverlay"
+                    Grid.Column="2"
+                    WidthRequest="155"
+                    HeightRequest="155"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    InputTransparent="True"
+                    IsVisible="False"/>
 
                             <Image
                     x:Name="PreviewEmblem"

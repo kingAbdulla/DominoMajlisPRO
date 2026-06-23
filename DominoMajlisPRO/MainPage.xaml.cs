@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.Models;
+using DominoMajlisPRO.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Pages;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -172,6 +172,8 @@ public partial class MainPage : ContentPage
         await RefreshLiveTeamIdentityAsync(selectedTeam1);
         PreviewTeam1Logo.Source =
             ResolveStoredImage(GetLiveEmblem(selectedTeam1));
+        await TeamEffectEngine.ApplyAroundAsync(
+            PreviewTeam1Logo, selectedTeam1.TeamId, 1.18);
         var color =
             GetTeamColor(GetLiveTeamColor(selectedTeam1));
 
@@ -194,7 +196,7 @@ public partial class MainPage : ContentPage
         {
             await DisplayAlert(
                 "تنبيه",
-                "لا توجد فرق متاحة حالياً",
+                "لا توجد فرق محفوظة",
                 "حسناً");
 
             return;
@@ -232,7 +234,7 @@ public partial class MainPage : ContentPage
         {
             await DisplayAlert(
                 "تنبيه",
-                "لا توجد فرق متاحة حالياً",
+                "لا توجد فرق محفوظة",
                 "حسناً");
 
             return;
@@ -279,6 +281,8 @@ public partial class MainPage : ContentPage
         await RefreshLiveTeamIdentityAsync(selectedTeam2);
         PreviewTeam2Logo.Source =
             ResolveStoredImage(GetLiveEmblem(selectedTeam2));
+        await TeamEffectEngine.ApplyAroundAsync(
+            PreviewTeam2Logo, selectedTeam2.TeamId, 1.18);
 
         UpdateMatchPreview();
     }
@@ -439,9 +443,10 @@ public partial class MainPage : ContentPage
                     x.PlayerId == duplicatePlayerId)
                 ?.PlayerName ?? duplicatePlayerId;
             await DisplayAlert(
-               "لا يمكن بدء المباراة",
-               $"اللاعب ({duplicatePlayerName}) موجود في الفريقين.\n\nيجب أن يكون كل لاعب ضمن فريق واحد فقط.",
-               "حسناً");
+    "لا يمكن بدء المباراة",
+    $"اللاعب ({duplicatePlayerName}) موجود في الفريقين.\n\nيجب أن يكون كل لاعب ضمن فريق واحد فقط.",
+    "حسناً");
+
 
             return;
         }
@@ -669,11 +674,11 @@ TextChangedEventArgs e)
     {
         return emblem switch
         {
-            "ًں¦…" => "eagle_3d.png",
-            "ًںگ؛" => "wolf_3d.png",
-            "ًں¦پ" => "lion_3d.png",
-            "ًںگ‰" => "dragon_3d.png",
-            "ًں‘‘" => "crown_3d.png",
+            "🦅" => "eagle_3d.png",
+            "🐺" => "wolf_3d.png",
+            "🦁" => "lion_3d.png",
+            "🐉" => "dragon_3d.png",
+            "👑" => "crown_3d.png",
             _ => "shield_3d.png"
         };
     }
@@ -1066,7 +1071,7 @@ TextChangedEventArgs e)
         }
         catch
         {
-            // طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط¶ط؛ط·
+            // تم إلغاء الضغط
         }
     }
 
@@ -1119,55 +1124,48 @@ TextChangedEventArgs e)
                 HeaderAvatarFrameOverlay.IsVisible = false;
                 HeaderAvatarEffectOverlay.IsVisible = false;
                 HeaderProfileBackgroundImage.IsVisible = false;
-
                 HeaderPlayerNameLabel.Text =
                     string.IsNullOrWhiteSpace(currentUser.DisplayName)
                         ? "اللاعب"
                         : currentUser.DisplayName;
-
                 MemberLevelLabel.Text =
                     ResolveHeaderRoleLabel(currentUser.Role);
-
                 return;
             }
 
             var profile =
                 await PlayerProfileService.GetPlayerByIdAsync(playerId);
-
             var visualIdentity =
                 await PlayerVisualIdentityResolver.ResolveAsync(playerId);
 
             if (refreshVersion != headerRefreshVersion)
                 return;
-
+            string avatarPath =
+                visualIdentity.Avatar?.PreviewImage ?? string.Empty;
             HeaderProfileBackgroundImage.Source = null;
             HeaderProfileBackgroundImage.IsVisible = false;
-
             ApplyHeaderOverlay(
                 HeaderAvatarFrameOverlay,
                 visualIdentity.Frame?.PreviewImage);
-
-            ApplyMainHeaderAvatarShape();
-
             PlayerEffectEngine.Apply(
                 HeaderAvatarEffectOverlay,
                 visualIdentity.Effect,
-                1.18);
+                1.08);
 
-            ApplyMainHeaderAvatarShape();
+            if (string.IsNullOrWhiteSpace(avatarPath))
+                avatarPath = ResolveHeaderAvatarFallback(profile);
 
             HeaderPlayerAvatar.Source =
-                profile == null
-                    ? DefaultHeaderAvatar
-                    : PlayerProfileService.GetPlayerImageSource(profile);
+                InventoryDisplayResolver.ResolveImageSource(
+                    avatarPath,
+                    DefaultHeaderAvatar);
 
             HeaderPlayerNameLabel.Text =
                 string.IsNullOrWhiteSpace(profile?.PlayerName)
-                    ? string.IsNullOrWhiteSpace(currentUser.DisplayName)
-                        ? "اللاعب"
-                        : currentUser.DisplayName
-                    : profile.PlayerName;
-
+                ? string.IsNullOrWhiteSpace(currentUser.DisplayName)
+                    ? "اللاعب"
+                    : currentUser.DisplayName
+                : profile.PlayerName;
             MemberLevelLabel.Text =
                 visualIdentity.Title != null
                     ? $"{ResolveHeaderRoleLabel(currentUser.Role)} • {visualIdentity.Title.DisplayName}"
@@ -1191,7 +1189,41 @@ TextChangedEventArgs e)
     }
 
     static ImageSource? ToHeaderImageSource(string? imagePath) =>
-        InventoryDisplayResolver.ResolveOptionalImageSource(imagePath);
+        InventoryDisplayResolver.ResolveOptionalImageSource(
+            imagePath);
+
+    static string ResolveHeaderAvatarFallback(
+        PlayerProfileModel? profile)
+    {
+        if (profile == null)
+            return DefaultHeaderAvatar;
+
+        if (profile.UseCustomAvatar &&
+            !string.IsNullOrWhiteSpace(profile.AvatarPath))
+        {
+            return profile.AvatarPath;
+        }
+
+        if (!string.IsNullOrWhiteSpace(profile.ProfileImagePath))
+            return profile.ProfileImagePath;
+
+        if (!string.IsNullOrWhiteSpace(profile.AvatarImage) &&
+            !string.Equals(
+                profile.AvatarImage,
+                "player_card.png",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return profile.AvatarImage;
+        }
+
+        return string.IsNullOrWhiteSpace(profile.BuiltInAvatar) ||
+               string.Equals(
+                   profile.BuiltInAvatar,
+                   "player_card.png",
+                   StringComparison.OrdinalIgnoreCase)
+            ? DefaultHeaderAvatar
+            : profile.BuiltInAvatar;
+    }
 
     static string ResolveHeaderRoleLabel(ApplicationUserRole role) =>
         role switch
@@ -1212,7 +1244,6 @@ TextChangedEventArgs e)
             PlayerProfileStatus.Normal => "Member",
             _ => "Guest"
         };
-
 
     // =========================
     // SETTINGS SHEET
@@ -1318,7 +1349,7 @@ TextChangedEventArgs e)
         state = !state;
 
         content.IsVisible = state;
-        arrow.Text = state ? "â–²" : "â–¼";
+        arrow.Text = state ? "▲" : "▼";
     }
 
     void OnDataSettingsTapped(object sender, TappedEventArgs e)
@@ -1372,9 +1403,9 @@ TextChangedEventArgs e)
             string backupPath =
                 await BackupService.CreateBackupAsync();
             await DisplayAlert(
-   "تم",
-   "تم إنشاء النسخة الاحتياطية بنجاح. احفظ الملف في مكان آمن.",
-   "حسناً");
+    "تم",
+    "تم إنشاء النسخة الاحتياطية بنجاح. احفظ الملف في مكان آمن.",
+    "حسناً");
 
             await Share.Default.RequestAsync(
                 new ShareFileRequest
@@ -1386,9 +1417,9 @@ TextChangedEventArgs e)
         catch (Exception ex)
         {
             await DisplayAlert(
-               "خطأ",
-               $"فشل إنشاء النسخة الاحتياطية:\n{ex.Message}",
-               "حسناً");
+                "خطأ",
+                $"فشل إنشاء النسخة الاحتياطية:\n{ex.Message}",
+                "حسناً");
         }
     }
 
@@ -1400,7 +1431,7 @@ TextChangedEventArgs e)
     TappedEventArgs e)
     {
         bool confirm =
-           await DisplayAlert(
+            await DisplayAlert(
                 "استعادة البيانات",
                 "سيتم استبدال البيانات الحالية بالبيانات الموجودة داخل النسخة الاحتياطية.\n\nسيتم إنشاء نسخة طارئة قبل الاستعادة.\n\nهل تريد المتابعة؟",
                 "استعادة",
@@ -1498,7 +1529,7 @@ TextChangedEventArgs e)
     TappedEventArgs e)
     {
         bool confirm =
-           await DisplayAlert(
+            await DisplayAlert(
                 "حذف التصنيفات",
                 "سيتم حذف التصنيفات فقط.\n\nلن يتم حذف الفرق أو سجل المباريات.\n\nيمكنك إعادة بناء التصنيفات لاحقاً.",
                 "حذف",
@@ -1578,9 +1609,9 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-                "اكتملت العملية",
+                "تنظيف البيانات",
                 "سيتم فحص ملفات البيانات وإصلاح الملفات الفارغة أو التالفة.\n\nلن يتم حذف الفرق أو المباريات السليمة.",
-                "اكتمل",
+                "تنظيف",
                 "إلغاء");
 
         if (!confirm)
@@ -1599,9 +1630,9 @@ TextChangedEventArgs e)
             AppEvents.RaiseDataChanged();
 
             await DisplayAlert(
-                  "تم",
-                  $"{result}\n\nتم إنشاء نسخة طارئة:\n{System.IO.Path.GetFileName(emergencyBackup)}",
-                  "حسناً");
+                "تم",
+                $"{result}\n\nتم إنشاء نسخة طارئة:\n{System.IO.Path.GetFileName(emergencyBackup)}",
+                "حسناً");
         }
         catch (Exception ex)
         {
@@ -1672,7 +1703,7 @@ TextChangedEventArgs e)
 
             string title =
                 result.HasProblems
-                ? "النسخة الحالية - لا يوجد تحديث"
+                ? "التشخيص - توجد ملاحظات"
                 : "التشخيص - سليم";
 
             await DisplayAlert(
@@ -1726,7 +1757,6 @@ TextChangedEventArgs e)
             LatestUpdatesContainer.Children.Add(
                 new Label
                 {
-
                     Text = $"✓ {update}",
                     TextColor = Colors.White,
                     FontSize = 14,
@@ -2197,7 +2227,7 @@ TextChangedEventArgs e)
     async Task UpgradeCurrentGhostAsync()
     {
         string? playerName = await DisplayPromptAsync(
-             "إنشاء هوية لاعب",
+            "إنشاء هوية لاعب",
             "أدخل اسم اللاعب الذي سيُربط بهذه الهوية المحلية:",
             "إنشاء",
             "إلغاء",
@@ -2212,7 +2242,7 @@ TextChangedEventArgs e)
                 .UpgradeGhostToMemberAsync(playerName);
 
             await DisplayAlertAsync(
-                 "تم",
+                "تم",
                 "تم إنشاء هوية اللاعب وربطها بالجلسة الحالية.",
                 "حسناً");
         }
@@ -2312,7 +2342,7 @@ TextChangedEventArgs e)
     {
         bool confirm =
             await DisplayAlert(
-               "الموافقة على حفظ البيانات",
+                "الموافقة على حفظ البيانات",
                 "سيتم حفظ معلومات اختيارية فقط لتحسين تجربة التطبيق.\n\nلن يتم حفظ عنوان السكن أو رقم الهاتف أو الموقع الجغرافي.\n\nهل توافق؟",
                 "أوافق",
                 "إلغاء");
@@ -2335,10 +2365,10 @@ TextChangedEventArgs e)
         PrivacyProfileOverlay.IsVisible = false;
         await RefreshProfileStatus();
         await DisplayAlert(
-           "تم",
+            "تم",
             "تم حفظ الملف الشخصي الاختياري بنجاح",
             "حسناً");
-
+     
     }
 
     async void OnDeletePrivacyProfileClicked(
@@ -2573,8 +2603,8 @@ TextChangedEventArgs e)
 
         DeveloperLockLastChangeLabel.Text =
             lockData.LastPasswordChange == DateTime.MinValue
-            ? "آخر تغيير لكلمة المرور: —"
-            : $"آخر تغيير لكلمة المرور: {lockData.LastPasswordChange:yyyy/MM/dd HH:mm}";
+            ? "آخر تغيير: —"
+            : $"آخر تغيير: {lockData.LastPasswordChange:yyyy/MM/dd HH:mm}";
 
         DeveloperPasswordEntry.Text = "";
         DeveloperConfirmPasswordEntry.Text = "";
@@ -2607,7 +2637,7 @@ TextChangedEventArgs e)
         if (string.IsNullOrWhiteSpace(password))
         {
             await DisplayAlert(
-               "تنبيه",
+                "تنبيه",
                 "أدخل كلمة مرور المطور",
                 "حسناً");
 
@@ -2627,7 +2657,7 @@ TextChangedEventArgs e)
         if (password != confirm)
         {
             await DisplayAlert(
-               "تنبيه",
+                "تنبيه",
                 "كلمة المرور وتأكيدها غير متطابقين",
                 "حسناً");
 
@@ -2638,7 +2668,6 @@ TextChangedEventArgs e)
 
         await DisplayAlert(
             "تم",
-              "تم",
             "تم حفظ كلمة مرور المطور",
             "حسناً");
 
@@ -2662,7 +2691,7 @@ TextChangedEventArgs e)
         {
             await SecurityLogService.AddAsync(
                 "SECURITY",
-                 "تم التحقق من قفل المطور",
+                "تم التحقق من قفل المطور",
                 "Developer password verified");
 
             await DisplayAlert(
@@ -2704,7 +2733,7 @@ TextChangedEventArgs e)
         bool confirm =
             await DisplayAlert(
                 "حذف السجلات المؤقتة",
-               "سيتم حذف السجلات المؤقتة فقط.\n\nالسجلات الدائمة ستبقى محفوظة.",
+                "سيتم حذف السجلات المؤقتة فقط.\n\nالسجلات الدائمة ستبقى محفوظة.",
                 "حذف",
                 "إلغاء");
 
@@ -2946,14 +2975,11 @@ TextChangedEventArgs e)
         HonorActivationKeyEntry.Text = "";
 
         await DisplayAlert(
-         "تم",
+            "تم",
             "تم حذف هوية الشرف من الجهاز. يمكنك الآن تفعيل Developer أو Founder أو Honor من جديد.",
             "حسناً");
     }
 }
-
-
-
 
 
 

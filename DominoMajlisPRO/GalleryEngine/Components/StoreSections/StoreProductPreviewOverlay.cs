@@ -1,7 +1,7 @@
-using DominoMajlisPRO.GalleryEngine.Admin.Models;
-using DominoMajlisPRO.GalleryEngine.Models;
-using DominoMajlisPRO.GalleryEngine.Services;
 using Microsoft.Maui.Controls.Shapes;
+using DominoMajlisPRO.GalleryEngine.Services;
+
+using DominoMajlisPRO.GalleryEngine.Models;
 
 namespace DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 
@@ -13,26 +13,27 @@ internal sealed record StoreProductPreviewRequest(
     string Price,
     string State,
     StoreProductPreviewKind Kind,
-    Color Accent);
+    Color Accent,
+    CatalogAssetDisplay? Effect = null);
 
 internal sealed class StoreProductPreviewOverlay : Grid
 {
-    static readonly Color Black = Color.FromArgb("#070707");
-    static readonly Color Gold = Color.FromArgb("#FFD76A");
-    static readonly Color GoldDark = Color.FromArgb("#8A642E");
-    static readonly Color Primary = Color.FromArgb("#FFF4D2");
-    static readonly Color Secondary = Color.FromArgb("#C8B58A");
+    private static readonly Color Black = Color.FromArgb("#070707");
+    private static readonly Color Gold = Color.FromArgb("#FFD76A");
+    private static readonly Color GoldDark = Color.FromArgb("#8A642E");
+    private static readonly Color Primary = Color.FromArgb("#FFF4D2");
+    private static readonly Color Secondary = Color.FromArgb("#C8B58A");
 
-    readonly Border _panel;
-    readonly ContentView _visualHost;
-    readonly Label _name;
-    readonly Label _description;
-    readonly Label _rarity;
-    readonly Border _rarityBadge;
-    readonly Label _priceState;
-    double _visualScale = 1;
-    int _animationVersion;
-    bool _isClosing;
+    private readonly Border _panel;
+    private readonly ContentView _visualHost;
+    private readonly Label _name;
+    private readonly Label _description;
+    private readonly Label _rarity;
+    private readonly Border _rarityBadge;
+    private readonly Label _priceState;
+    private double _visualScale = 1;
+    private int _animationVersion;
+    private bool _isClosing;
 
     public StoreProductPreviewOverlay()
     {
@@ -158,16 +159,13 @@ internal sealed class StoreProductPreviewOverlay : Grid
 
     public async Task HideAsync()
     {
-        if (!IsVisible || _isClosing)
-            return;
-
+        if (!IsVisible || _isClosing) return;
         _isClosing = true;
         var version = ++_animationVersion;
         this.CancelAnimations();
         _panel.CancelAnimations();
         await Task.WhenAll(this.FadeToAsync(0, 150, Easing.CubicIn), _panel.ScaleToAsync(0.94, 150, Easing.CubicIn));
-        if (version == _animationVersion)
-            HideImmediately();
+        if (version == _animationVersion) HideImmediately();
     }
 
     public void HideImmediately()
@@ -183,35 +181,31 @@ internal sealed class StoreProductPreviewOverlay : Grid
         _isClosing = false;
     }
 
-    async Task AnimateOpenAsync(int version, StoreProductPreviewKind kind)
+    private async Task AnimateOpenAsync(int version, StoreProductPreviewKind kind)
     {
         await Task.WhenAll(this.FadeToAsync(1, 180, Easing.CubicOut), _panel.ScaleToAsync(1, 220, Easing.CubicOut));
-        if (version != _animationVersion || _isClosing || kind != StoreProductPreviewKind.Effect)
-            return;
-
+        if (version != _animationVersion || _isClosing || kind != StoreProductPreviewKind.Effect) return;
         await _visualHost.ScaleToAsync(1.04, 220, Easing.SinInOut);
         await _visualHost.ScaleToAsync(1, 220, Easing.SinInOut);
     }
 
-    void SetScale(double scale)
+    private void SetScale(double scale)
     {
         _visualScale = scale;
         _visualHost.CancelAnimations();
         _ = _visualHost.ScaleToAsync(scale, 140, Easing.CubicOut);
     }
 
-    static View BuildVisual(StoreProductPreviewRequest request)
+    private static View BuildVisual(StoreProductPreviewRequest request)
     {
-        if (request.Kind == StoreProductPreviewKind.Effect || IsEffectRequest(request))
-            return EffectVisual(request);
-
         var image = new Image
         {
-            Source = InventoryDisplayResolver.ResolveImageSource(request.ImagePath),
+            Source =
+                InventoryDisplayResolver.ResolveImageSource(
+                    request.ImagePath),
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
         };
-
         return request.Kind switch
         {
             StoreProductPreviewKind.Avatar => AvatarVisual(image, request.Accent),
@@ -219,86 +213,44 @@ internal sealed class StoreProductPreviewOverlay : Grid
             StoreProductPreviewKind.Frame => FrameVisual(image, request.Accent),
             StoreProductPreviewKind.Badge => IdentityVisual(image, request),
             StoreProductPreviewKind.Season => BackgroundVisual(image, request),
+            StoreProductPreviewKind.Effect when request.Effect != null =>
+                EffectVisual(image, request.Effect, request.Accent),
             _ => PreviewCard(image, request.Accent)
         };
     }
 
-    static View EffectVisual(StoreProductPreviewRequest request)
+    private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent)
     {
-        var host = new EffectPreviewHostView(300);
-        host.Apply(BuildEffectDisplay(request), 1.0);
-        return PreviewCard(host, request.Accent);
+        image.Source = InventoryDisplayResolver.ResolveImageSource(
+            string.IsNullOrWhiteSpace(effect.PreviewImage) ? "shield_3d.png" : effect.PreviewImage,
+            "shield_3d.png");
+        image.WidthRequest = 190;
+        image.HeightRequest = 190;
+        image.HorizontalOptions = LayoutOptions.Center;
+        image.VerticalOptions = LayoutOptions.Center;
+        var layers = new Grid();
+        layers.Children.Add(IdentityEffectRenderer.Create(effect, 1.28));
+        layers.Children.Add(image);
+        return PreviewCard(layers, accent);
     }
 
-    static CatalogAssetDisplay BuildEffectDisplay(StoreProductPreviewRequest request)
-    {
-        return new CatalogAssetDisplay(
-            string.IsNullOrWhiteSpace(request.ImagePath) ? request.Name : request.ImagePath,
-            StoreProductAssetType.Effect,
-            StoreProductOwnerScope.Player,
-            request.Name,
-            request.Name,
-            string.Empty,
-            string.Empty,
-            Array.Empty<string>(),
-            "Glow",
-            "Breathing",
-            0,
-            "PlayerAvatar",
-            "Gold",
-            "Gold",
-            string.Empty,
-            string.Empty,
-            new[] { "Glow", "Aura", "Pulse", "Particle" },
-            0.95,
-            1.0,
-            1.0,
-            1.0);
-    }
-
-    static bool IsEffectRequest(StoreProductPreviewRequest request)
-    {
-        var key = $"{request.ImagePath} {request.Name} {request.Description} {request.Rarity}".ToLowerInvariant();
-        return key.Contains("effect") ||
-               key.Contains("effects") ||
-               key.Contains("effact") ||
-               key.Contains("تأثير") ||
-               key.Contains("تاثير") ||
-               key.Contains("glow") ||
-               key.Contains("aura") ||
-               key.Contains("pulse") ||
-               key.Contains("ring") ||
-               key.Contains("lightning") ||
-               key.Contains("spark") ||
-               key.Contains("برق") ||
-               key.Contains("هالة") ||
-               key.Contains("توهج");
-    }
-
-    static View AvatarVisual(Image image, Color accent)
+    private static View AvatarVisual(Image image, Color accent)
     {
         image.Aspect = Aspect.AspectFill;
         return new Border
         {
-            WidthRequest = 300,
-            HeightRequest = 300,
-            HorizontalOptions = LayoutOptions.Center,
-            Padding = 8,
+            WidthRequest = 300, HeightRequest = 300, HorizontalOptions = LayoutOptions.Center, Padding = 8,
             Background = new RadialGradientBrush
             {
-                Center = new Point(0.5, 0.45),
-                Radius = 0.7,
+                Center = new Point(0.5, 0.45), Radius = 0.7,
                 GradientStops = { new GradientStop(Color.FromArgb("#493618"), 0), new GradientStop(Black, 1) }
             },
-            Stroke = accent,
-            StrokeThickness = 3,
-            StrokeShape = new Ellipse(),
-            Shadow = Glow(accent),
+            Stroke = accent, StrokeThickness = 3, StrokeShape = new Ellipse(), Shadow = Glow(accent),
             Content = new Border { StrokeShape = new Ellipse(), Stroke = Gold, StrokeThickness = 1, Content = image }
         };
     }
 
-    static View BackgroundVisual(Image image, StoreProductPreviewRequest request)
+    private static View BackgroundVisual(Image image, StoreProductPreviewRequest request)
     {
         image.Aspect = Aspect.AspectFill;
         var title = Label(16, Primary, true, TextAlignment.End);
@@ -307,18 +259,14 @@ internal sealed class StoreProductPreviewOverlay : Grid
         grid.Children.Add(image);
         grid.Children.Add(new Border
         {
-            VerticalOptions = LayoutOptions.End,
-            Margin = 12,
-            Padding = new Thickness(14, 10),
-            Background = new SolidColorBrush(Color.FromArgb("#CC080808")),
-            Stroke = GoldDark,
-            StrokeShape = new RoundRectangle { CornerRadius = 14 },
-            Content = title
+            VerticalOptions = LayoutOptions.End, Margin = 12, Padding = new Thickness(14, 10),
+            Background = new SolidColorBrush(Color.FromArgb("#CC080808")), Stroke = GoldDark,
+            StrokeShape = new RoundRectangle { CornerRadius = 14 }, Content = title
         });
         return PreviewCard(grid, request.Accent);
     }
 
-    static View FrameVisual(Image frame, Color accent)
+    private static View FrameVisual(Image frame, Color accent)
     {
         frame.Aspect = Aspect.AspectFit;
         var portrait = Label(100, Secondary, true, TextAlignment.Center);
@@ -330,76 +278,31 @@ internal sealed class StoreProductPreviewOverlay : Grid
         return PreviewCard(layers, accent);
     }
 
-    static View IdentityVisual(Image image, StoreProductPreviewRequest request)
+    private static View IdentityVisual(Image image, StoreProductPreviewRequest request)
     {
         image.Aspect = Aspect.AspectFit;
-        var label = Label(18, Primary, true, TextAlignment.Center);
-        label.Text = request.Name;
-        var stack = new VerticalStackLayout
-        {
-            Spacing = 12,
-            VerticalOptions = LayoutOptions.Center,
-            Children = { image, label }
-        };
-        return PreviewCard(stack, request.Accent);
+        image.HeightRequest = 200;
+        var title = Label(18, Primary, true, TextAlignment.Center);
+        title.Text = request.Name;
+        return PreviewCard(new VerticalStackLayout { Spacing = 12, Padding = 20, Children = { image, title } }, request.Accent);
     }
 
-    static Border PreviewCard(View content, Color accent)
+    private static Border PreviewCard(View content, Color accent) => new()
     {
-        return new Border
-        {
-            HeightRequest = 340,
-            Padding = 10,
-            Background = new LinearGradientBrush
-            {
-                StartPoint = new Point(0, 0),
-                EndPoint = new Point(1, 1),
-                GradientStops =
-                {
-                    new GradientStop(Color.FromArgb("#21170B"), 0),
-                    new GradientStop(Black, 1)
-                }
-            },
-            Stroke = accent,
-            StrokeThickness = 1.6,
-            StrokeShape = new RoundRectangle { CornerRadius = 22 },
-            Shadow = Glow(accent),
-            Content = content
-        };
-    }
-
-    static Shadow Glow(Color accent) => new()
-    {
-        Brush = new SolidColorBrush(accent),
-        Radius = 22,
-        Opacity = 0.28f,
-        Offset = Point.Zero
+        Margin = 4, Padding = 8, Background = new SolidColorBrush(Color.FromArgb("#171109")),
+        Stroke = accent, StrokeThickness = 1.5, StrokeShape = new RoundRectangle { CornerRadius = 24 },
+        Shadow = Glow(accent), Content = content
     };
 
-    static Label Label(double size, Color color, bool bold, TextAlignment align)
+    private static Shadow Glow(Color accent) => new() { Brush = new SolidColorBrush(accent), Offset = new Point(0, 3), Radius = 22, Opacity = 0.38f };
+    private static Label Label(double size, Color color, bool bold, TextAlignment alignment) => new()
     {
-        return new Label
-        {
-            FontFamily = "Tajawal-Regular",
-            FontSize = size,
-            FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None,
-            TextColor = color,
-            HorizontalTextAlignment = align
-        };
-    }
-
-    static Button Button(string text, Color background, Color foreground)
+        FontFamily = "Tajawal-Regular", FontSize = size, TextColor = color,
+        FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None, HorizontalTextAlignment = alignment
+    };
+    private static Button Button(string text, Color background, Color foreground) => new()
     {
-        return new Button
-        {
-            Text = text,
-            FontFamily = "Tajawal-Regular",
-            HeightRequest = 48,
-            CornerRadius = 14,
-            BorderColor = GoldDark,
-            BorderWidth = 1,
-            BackgroundColor = background,
-            TextColor = foreground
-        };
-    }
+        Text = text, FontFamily = "Tajawal-Regular", FontSize = 13, HeightRequest = 44, Padding = new Thickness(8, 0),
+        CornerRadius = 14, BackgroundColor = background, TextColor = foreground, BorderColor = GoldDark, BorderWidth = 1
+    };
 }

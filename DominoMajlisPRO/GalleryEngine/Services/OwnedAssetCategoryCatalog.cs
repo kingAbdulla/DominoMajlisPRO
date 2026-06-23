@@ -33,6 +33,11 @@ public static class OwnedAssetCategoryCatalog
                 false),
             new OwnedAssetCategory(
                 "PLAYER ASSETS",
+                "Team Effects",
+                "TeamEffect",
+                false),
+            new OwnedAssetCategory(
+                "PLAYER ASSETS",
                 "Titles",
                 "Title",
                 false),

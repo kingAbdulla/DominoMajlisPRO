@@ -1,7 +1,8 @@
-﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
-using DominoMajlisPRO.GalleryEngine.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using Microsoft.Maui.Controls.Shapes;
+
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 
 namespace DominoMajlisPRO.GalleryEngine.Components;
 
@@ -14,6 +15,8 @@ public class PremiumGalleryCard : ContentView
     private readonly Label _name;
     private readonly Label _price;
     private readonly Label _currencyIcon;
+    private readonly Grid _contentGrid;
+    private IdentityEffectView? _effectView;
 
     public PremiumGalleryCard()
     {
@@ -125,7 +128,7 @@ public class PremiumGalleryCard : ContentView
             }
         };
 
-        var contentGrid = new Grid
+        _contentGrid = new Grid
         {
             RowDefinitions =
             {
@@ -140,10 +143,10 @@ public class PremiumGalleryCard : ContentView
             }
         };
 
-        contentGrid.Add(_image, 0, 0);
-        contentGrid.Add(badgeBorder, 0, 0);
-        contentGrid.Add(_name, 0, 1);
-        contentGrid.Add(priceRow, 0, 2);
+        _contentGrid.Add(_image, 0, 0);
+        _contentGrid.Add(badgeBorder, 0, 0);
+        _contentGrid.Add(_name, 0, 1);
+        _contentGrid.Add(priceRow, 0, 2);
 
         _root = new Border
         {
@@ -152,7 +155,7 @@ public class PremiumGalleryCard : ContentView
             StrokeThickness = 1.05,
             StrokeShape = new RoundRectangle { CornerRadius = 16 },
             Padding = new Thickness(0),
-            Content = contentGrid,
+            Content = _contentGrid,
             Shadow = CreateShadow(theme)
         };
 
@@ -174,17 +177,10 @@ public class PremiumGalleryCard : ContentView
             ? "gallery_lion.png"
             : item.Image;
 
-        var isEffect = IsEffectItem(item);
-        _image.Source = isEffect
-            ? null
-            : InventoryDisplayResolver.ResolveImageSource(
+        _image.Source =
+            InventoryDisplayResolver.ResolveImageSource(
                 imageName,
                 "gallery_lion.png");
-
-        if (isEffect)
-            ApplyEffectPreview(item);
-        else
-            PlayerEffectEngine.Apply(_image, null);
 
         _name.Text = string.IsNullOrWhiteSpace(item.Name)
             ? "عنصر المتجر"
@@ -202,61 +198,43 @@ public class PremiumGalleryCard : ContentView
                 : "جديد";
 
         _ = ApplyDynamicBackgroundAsync(imageName);
+        _ = ApplyEffectPreviewAsync(item.Id);
 
         ApplyResponsive();
+    }
+
+    private async Task ApplyEffectPreviewAsync(string assetId)
+    {
+        var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (_effectView != null)
+            {
+                _effectView.Clear();
+                _contentGrid.Children.Remove(_effectView);
+                _effectView = null;
+            }
+            if (asset?.AssetType is not (StoreProductAssetType.Effect or
+                StoreProductAssetType.TeamEffect))
+                return;
+
+            _image.Source = InventoryDisplayResolver.ResolveImageSource(
+                string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
+                "shield_3d.png");
+            _image.WidthRequest = 72;
+            _image.HeightRequest = 72;
+            _effectView = IdentityEffectRenderer.Create(asset, 1.22, lightweight: true);
+            _effectView.WidthRequest = 100;
+            _effectView.HeightRequest = 100;
+            _effectView.HorizontalOptions = LayoutOptions.Center;
+            _effectView.VerticalOptions = LayoutOptions.Center;
+            _contentGrid.Add(_effectView, 0, 0);
+        });
     }
 
     public void Bind(GalleryItem item, object? theme)
     {
         Bind(item);
-    }
-
-    private void ApplyEffectPreview(GalleryItem item)
-    {
-        var effect = new CatalogAssetDisplay(
-            item.Id,
-            StoreProductAssetType.Effect,
-            StoreProductOwnerScope.Player,
-            item.Name,
-            item.Name,
-            string.Empty,
-            string.Empty,
-            Array.Empty<string>(),
-            "Glow",
-            "Breathing",
-            0,
-            "PlayerAvatar",
-            "Gold",
-            "Gold",
-            string.Empty,
-            string.Empty,
-            new[] { "Glow", "Aura", "Pulse", "Particle" },
-            0.95,
-            1.0,
-            1.0,
-            1.0);
-
-        PlayerEffectEngine.Apply(_image, effect, 1.0);
-    }
-
-    private static bool IsEffectItem(GalleryItem item)
-    {
-        var key = $"{item.Id} {item.Name} {item.Subtitle} {item.Category} {item.Description} {item.Image}".ToLowerInvariant();
-
-        return key.Contains("effect") ||
-               key.Contains("effects") ||
-               key.Contains("effact") ||
-               key.Contains("تأثير") ||
-               key.Contains("تاثير") ||
-               key.Contains("glow") ||
-               key.Contains("aura") ||
-               key.Contains("pulse") ||
-               key.Contains("ring") ||
-               key.Contains("spark") ||
-               key.Contains("lightning") ||
-               key.Contains("برق") ||
-               key.Contains("هالة") ||
-               key.Contains("توهج");
     }
 
     private async Task ApplyDynamicBackgroundAsync(string imageName)
@@ -348,5 +326,4 @@ public class PremiumGalleryCard : ContentView
         };
     }
 }
-
 

@@ -1,4 +1,4 @@
-﻿namespace DominoMajlisPRO.GalleryEngine.Admin.Models;
+namespace DominoMajlisPRO.GalleryEngine.Admin.Models;
 
 public enum StoreProductAssetType
 {
@@ -6,6 +6,7 @@ public enum StoreProductAssetType
     ProfileBackground,
     Frame,
     Effect,
+    TeamEffect,
     Title,
     Emblem,
     TeamColor,
@@ -39,6 +40,7 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.ProfileBackground or
         StoreProductAssetType.Frame or
         StoreProductAssetType.Effect or
+        StoreProductAssetType.TeamEffect or
         StoreProductAssetType.Title or
         StoreProductAssetType.Badge or
         StoreProductAssetType.SeasonReward => StoreProductOwnerScope.Player,
@@ -94,9 +96,17 @@ public static class StoreProductAssetTypeCatalog
             return false;
         }
 
+        if (type is StoreProductAssetType.Effect or StoreProductAssetType.TeamEffect &&
+            !string.IsNullOrWhiteSpace(colorHex) &&
+            !IsValidColorHex(colorHex))
+        {
+            message = "لون المؤثر غير صالح. استخدم قيمة مثل #FFD700";
+            return false;
+        }
+
         if (RequiresImagePayload(type) && !IsValidImagePayload(imagePath))
         {
-            message = "نوع الأصل المحدد يتطلب صورة صالحة";
+            message = "نوع الأصل المحدد يتطلب صورة أو حمولة مرئية صالحة";
             return false;
         }
 
@@ -146,7 +156,7 @@ public static class StoreManagerAssetTypeScopes
             StoreProductAssetType.Emblem,
             StoreProductAssetType.EmblemBackground),
         "emblem-backgrounds" => Types(StoreProductAssetType.EmblemBackground),
-        "effects" => Types(StoreProductAssetType.Effect),
+        "effects" => Types(StoreProductAssetType.Effect, StoreProductAssetType.TeamEffect),
         "frames" => Types(StoreProductAssetType.Frame),
         "titles" => Types(StoreProductAssetType.Title),
         "team-colors" => Types(StoreProductAssetType.TeamColor),
@@ -166,5 +176,3 @@ public static class StoreManagerAssetTypeScopes
     private static IReadOnlyList<string> Types(params StoreProductAssetType[] types) =>
         types.Select(type => type.ToString()).ToArray();
 }
-
-

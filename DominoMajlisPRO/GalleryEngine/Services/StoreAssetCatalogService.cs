@@ -1,13 +1,12 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
-using DominoMajlisPRO.Localization;
 
 namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class StoreAssetCatalogService
 {
-    public const string IncompleteDisplayName = "Incomplete item";
+    public const string IncompleteDisplayName = "عنصر غير مكتمل البيانات";
 
     public static async Task<IReadOnlyList<CatalogAssetDisplay>> LoadAsync()
     {
@@ -156,6 +155,8 @@ public static class StoreAssetCatalogService
             return StoreProductAssetType.TeamColor;
         if (Same(assetType, TeamAssetTypes.EmblemBackground.TeamAssetTypeId))
             return StoreProductAssetType.EmblemBackground;
+        if (Same(assetType, TeamAssetTypes.Effect.TeamAssetTypeId))
+            return StoreProductAssetType.TeamEffect;
         return null;
     }
 
@@ -181,16 +182,16 @@ public static class StoreAssetCatalogService
         string customPrimaryColorHex = "",
         string customSecondaryColorHex = "",
         IReadOnlyList<string>? effectLayerIds = null,
-        double effectOpacity = 0,
-        double effectScale = 0,
-        double effectSpeed = 0,
-        double effectIntensity = 0) =>
+        float effectOpacity = 1,
+        float effectScale = 1,
+        float effectSpeed = 1,
+        float effectIntensity = 1) =>
         new(
             assetId.Trim(),
             assetType,
             ownerScope,
-            ArabicTextRecoveryService.RecoverDisplayText(displayName),
-            ArabicTextRecoveryService.RecoverDisplayText(arabicDisplayName),
+            displayName,
+            arabicDisplayName?.Trim() ?? string.Empty,
             previewImage?.Trim() ?? string.Empty,
             colorHex?.Trim() ?? string.Empty,
             products
@@ -209,7 +210,7 @@ public static class StoreAssetCatalogService
             secondaryColorPresetId?.Trim() ?? string.Empty,
             customPrimaryColorHex?.Trim() ?? string.Empty,
             customSecondaryColorHex?.Trim() ?? string.Empty,
-            effectLayerIds ?? Array.Empty<string>(),
+            effectLayerIds?.ToList() ?? new List<string>(),
             effectOpacity,
             effectScale,
             effectSpeed,
@@ -220,6 +221,8 @@ public static class StoreAssetCatalogService
             ? StoreProductAssetType.Emblem
             : Same(typeId, TeamAssetPayloadCatalog.TeamColorTypeId)
                 ? StoreProductAssetType.TeamColor
+                : Same(typeId, TeamAssetTypes.Effect.TeamAssetTypeId)
+                    ? StoreProductAssetType.TeamEffect
                 : StoreProductAssetType.EmblemBackground;
 
     private static string DisplayName(string? arabic, string? english) =>

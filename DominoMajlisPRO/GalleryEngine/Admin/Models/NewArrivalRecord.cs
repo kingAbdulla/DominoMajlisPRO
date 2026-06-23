@@ -1,4 +1,4 @@
-namespace DominoMajlisPRO.GalleryEngine.Admin.Models;
+﻿namespace DominoMajlisPRO.GalleryEngine.Admin.Models;
 
 public enum NewArrivalStatus
 {
@@ -31,16 +31,16 @@ public sealed class NewArrivalRecord
     public string EffectType { get; set; } = string.Empty;
     public string AnimationType { get; set; } = string.Empty;
     public int DurationMilliseconds { get; set; }
-    public string EquipTarget { get; set; } = string.Empty;
     public string PrimaryColorPresetId { get; set; } = string.Empty;
     public string SecondaryColorPresetId { get; set; } = string.Empty;
     public string CustomPrimaryColorHex { get; set; } = string.Empty;
     public string CustomSecondaryColorHex { get; set; } = string.Empty;
     public List<string> EffectLayerIds { get; set; } = new();
-    public double EffectOpacity { get; set; } = 0.74;
-    public double EffectScale { get; set; } = 1.18;
-    public double EffectSpeed { get; set; } = 1.0;
-    public double EffectIntensity { get; set; } = 1.0;
+    public float EffectOpacity { get; set; } = 1;
+    public float EffectScale { get; set; } = 1;
+    public float EffectSpeed { get; set; } = 1;
+    public float EffectIntensity { get; set; } = 1;
+    public string EquipTarget { get; set; } = string.Empty;
     public List<string> BundleAssetIds { get; set; } = new();
     public int DiscountPercent { get; set; }
     public int Price { get; set; }

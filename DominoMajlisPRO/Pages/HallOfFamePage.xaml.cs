@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.Models;
+using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 using System.Reflection;
@@ -436,14 +436,19 @@ public partial class HallOfFamePage : ContentPage
                 HorizontalTextAlignment = TextAlignment.Center
             });
 
-        layout.Children.Add(
-            new Image
-            {
-                Source = shield,
-                HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 62 : 88,
-                Aspect = Aspect.AspectFit,
-                HorizontalOptions = LayoutOptions.Center
-            });
+        var teamEmblem = new Image
+        {
+            Source = shield,
+            HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 62 : 88,
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Center
+        };
+        TeamEffectBehavior.SetTeamId(teamEmblem, team.Key);
+        layout.Children.Add(new Grid
+        {
+            HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 72 : 98,
+            Children = { teamEmblem }
+        });
 
         layout.Children.Add(
             new Label
@@ -558,7 +563,9 @@ public partial class HallOfFamePage : ContentPage
             CreatePlayerCardLayout(
                 rank,
                 borderColor,
-              PlayerProfileService.GetPlayerImageSource(player),
+                ToOptionalImageSource(
+                    identity?.Avatar?.PreviewImage) ??
+                PlayerProfileService.GetPlayerImageSource(player),
                 player.PlayerName,
                 identity?.Title == null
                     ? rankResult.DisplayName
@@ -645,6 +652,23 @@ public partial class HallOfFamePage : ContentPage
             });
     }
 
+    static void AddPlayerEffect(
+        Grid container,
+        CatalogAssetDisplay? effect,
+        double baseScale = 1.16)
+    {
+        if (effect == null)
+            return;
+
+        var overlay = new Image
+        {
+            Aspect = Aspect.AspectFit,
+            InputTransparent = true
+        };
+        PlayerEffectEngine.Apply(overlay, effect, baseScale);
+        container.Add(overlay);
+    }
+
     VerticalStackLayout CreatePlayerCardLayout(
         int rank,
         string borderColor,
@@ -680,23 +704,8 @@ public partial class HallOfFamePage : ContentPage
                 Source = avatarSource,
                 Aspect = Aspect.AspectFill
             });
-        if (identity?.Effect != null)
-        {
-            var effectOverlay = new Image
-            {
-                Aspect = Aspect.AspectFit,
-                InputTransparent = true,
-                HorizontalOptions = LayoutOptions.Fill,
-                VerticalOptions = LayoutOptions.Fill,
-                IsVisible = true,
-                ZIndex = 5
-            };
-
-            avatar.Add(effectOverlay);
-            PlayerEffectEngine.Apply(effectOverlay, identity.Effect, 1.28);
-        }
-
         AddPlayerOverlay(avatar, identity?.Frame?.PreviewImage);
+        AddPlayerEffect(avatar, identity?.Effect);
 
         layout.Children.Add(
             new Border
@@ -1622,10 +1631,6 @@ public partial class HallOfFamePage : ContentPage
         public int LegacyScore { get; set; }
     }
 }
-
-
-
-
 
 
 

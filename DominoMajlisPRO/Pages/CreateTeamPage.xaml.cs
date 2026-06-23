@@ -49,11 +49,29 @@ public sealed class TeamColorCarouselItem(string assetId, string colorHex, strin
 
 public sealed record EmblemBackgroundPickerItem(string AssetId, string Background, string DisplayName);
 
+public sealed class TeamEffectCarouselItem : INotifyPropertyChanged
+{
+    private bool _isSelected;
+    public TeamEffectCarouselItem(string assetId, string displayName, CatalogAssetDisplay? effect)
+    { AssetId = assetId; DisplayName = displayName; Effect = effect; }
+    public string AssetId { get; }
+    public string DisplayName { get; }
+    public CatalogAssetDisplay? Effect { get; }
+    public bool IsNone => Effect == null;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { if (_isSelected == value) return; _isSelected = value; PropertyChanged?.Invoke(this, new(nameof(IsSelected))); }
+    }
+    public event PropertyChangedEventHandler? PropertyChanged;
+}
+
 public partial class CreateTeamPage : ContentPage
 {
     private List<EmblemCarouselItem> emblemItems = new();
     private List<TeamColorCarouselItem> colorItems = new();
     private List<EmblemBackgroundPickerItem> backgroundItems = new();
+    private List<TeamEffectCarouselItem> teamEffectItems = new();
 
     List<PlayerProfileModel> allPlayers = new();
     private bool IsEditMode = false;
@@ -68,6 +86,8 @@ public partial class CreateTeamPage : ContentPage
 
     string selectedEmblemBackground = "Transparent";
     string selectedEmblemBackgroundAssetId = "default_background_transparent";
+    string selectedTeamEffectAssetId = "";
+    string selectedTeamEffectOwnerPlayerId = "";
 
     private TeamProfileModel? CurrentTeam = null;
     private bool _suppressSelectionHandlers = false;
@@ -84,6 +104,7 @@ public partial class CreateTeamPage : ContentPage
         EmblemCarousel.ItemsSource = emblemItems;
         ColorCarousel.ItemsSource = colorItems;
         EmblemBackgroundPicker.ItemsSource = backgroundItems;
+        TeamEffectCarousel.ItemsSource = teamEffectItems;
 
         OnTeamClicked(this, EventArgs.Empty);
 
@@ -167,6 +188,23 @@ public partial class CreateTeamPage : ContentPage
                 backgroundItems.Clear();
 
                 var catalog = await StoreAssetCatalogService.LoadAsync();
+                var storeOwner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
+                var ownedTeamEffects = new List<TeamEffectCarouselItem>();
+                if (!storeOwner.IsGhost && !string.IsNullOrWhiteSpace(storeOwner.PlayerId))
+                {
+                    var playerInventory = await PlayerInventoryService.LoadOwnedAsync(storeOwner.PlayerId);
+                    foreach (var owned in playerInventory.Where(item =>
+                                 string.Equals(StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId),
+                                     StoreProductAssetType.TeamEffect.ToString(),
+                                     StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var effect = StoreAssetCatalogService.Resolve(catalog, owned.AssetId,
+                            StoreProductAssetType.TeamEffect.ToString());
+                        if (effect != null)
+                            ownedTeamEffects.Add(new TeamEffectCarouselItem(
+                                owned.AssetId, effect.DisplayName, effect));
+                    }
+                }
 
                 foreach (var item in inventory)
                 {
@@ -222,6 +260,13 @@ public partial class CreateTeamPage : ContentPage
                 var newEmblems = emblemItems.ToList();
                 var newColors = colorItems.ToList();
                 var newBackgrounds = backgroundItems.ToList();
+                var newTeamEffects = ownedTeamEffects.Count == 0
+                    ? new List<TeamEffectCarouselItem>()
+                    : new[] { new TeamEffectCarouselItem("", "بدون تأثير", null) }
+                        .Concat(ownedTeamEffects
+                            .GroupBy(item => item.AssetId, StringComparer.OrdinalIgnoreCase)
+                            .Select(group => group.First()))
+                        .ToList();
 
                 // Suppress selection handlers while we replace ItemsSource.
                 bool prevSuppress = _suppressSelectionHandlers;
@@ -236,6 +281,9 @@ public partial class CreateTeamPage : ContentPage
                         emblemItems = newEmblems;
                         colorItems = newColors;
                         backgroundItems = newBackgrounds;
+                        teamEffectItems = newTeamEffects;
+                        TeamEffectCarousel.ItemsSource = newTeamEffects;
+                        TeamEffectSection.IsVisible = newTeamEffects.Count > 1;
                     });
 
                     // Restore selection after a short dispatch to avoid immediate selection events while RecyclerView updates.
@@ -249,6 +297,7 @@ public partial class CreateTeamPage : ContentPage
 
                     if (!SelectEmblemBackground(selectedEmblemBackgroundAssetId))
                         SelectEmblemBackground("default_background_transparent");
+                    SelectTeamEffectByAssetId(selectedTeamEffectAssetId, animate: false);
                 }
                 finally
                 {
@@ -513,6 +562,64 @@ public partial class CreateTeamPage : ContentPage
         return true;
     }
 
+    void OnTeamEffectSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressSelectionHandlers)
+            return;
+        if (e.CurrentSelection.FirstOrDefault() is TeamEffectCarouselItem selected)
+            SelectTeamEffectByAssetId(selected.AssetId, animate: true);
+    }
+
+    bool SelectTeamEffectByAssetId(string? assetId, bool animate)
+    {
+        var selected = teamEffectItems.FirstOrDefault(item =>
+            string.Equals(item.AssetId, assetId ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+            ?? teamEffectItems.FirstOrDefault(item => item.IsNone);
+        if (selected == null)
+        {
+            selectedTeamEffectAssetId = string.Empty;
+            selectedTeamEffectOwnerPlayerId = string.Empty;
+            IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
+            return false;
+        }
+
+        foreach (var item in teamEffectItems)
+            item.IsSelected = ReferenceEquals(item, selected);
+        selectedTeamEffectAssetId = selected.AssetId;
+        if (selected.Effect == null)
+        {
+            selectedTeamEffectOwnerPlayerId = string.Empty;
+            IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
+        }
+        else
+        {
+            IdentityEffectRenderer.Apply(PreviewTeamEffectOverlay, selected.Effect, 1.24);
+            _ = CaptureCurrentEffectOwnerAsync();
+        }
+        if (!ReferenceEquals(TeamEffectCarousel.SelectedItem, selected))
+            TeamEffectCarousel.SelectedItem = selected;
+        MainThread.BeginInvokeOnMainThread(() =>
+            TeamEffectCarousel.ScrollTo(selected, position: ScrollToPosition.Center, animate: animate));
+        return true;
+    }
+
+    async Task CaptureCurrentEffectOwnerAsync()
+    {
+        var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
+        selectedTeamEffectOwnerPlayerId = owner.PlayerId?.Trim() ?? string.Empty;
+    }
+
+    void OnTeamEffectItemLoaded(object? sender, EventArgs e)
+    {
+        if (sender is not Grid grid ||
+            grid.BindingContext is not TeamEffectCarouselItem { Effect: not null } item ||
+            grid.Children.OfType<IdentityEffectView>().Any())
+            return;
+        var effectView = IdentityEffectRenderer.Create(item.Effect, 1.16, lightweight: true);
+        effectView.ZIndex = 2;
+        grid.Children.Add(effectView);
+    }
+
     static Color SafeColor(string? value) =>
         string.IsNullOrWhiteSpace(value) ||
         (!value.StartsWith('#') && !string.Equals(value, "Transparent", StringComparison.OrdinalIgnoreCase))
@@ -625,7 +732,17 @@ public partial class CreateTeamPage : ContentPage
                 TeamColorAssetId = selectedColorAssetId,
 
                 EmblemBackground = selectedEmblemBackground,
-                EmblemBackgroundAssetId = selectedEmblemBackgroundAssetId
+                EmblemBackgroundAssetId = selectedEmblemBackgroundAssetId,
+                EquippedTeamEffectAssetId =
+                    selectedTeamEffectOwnerPlayerId == player1Id ||
+                    selectedTeamEffectOwnerPlayerId == player2Id
+                        ? selectedTeamEffectAssetId
+                        : string.Empty,
+                EquippedTeamEffectOwnerPlayerId =
+                    selectedTeamEffectOwnerPlayerId == player1Id ||
+                    selectedTeamEffectOwnerPlayerId == player2Id
+                        ? selectedTeamEffectOwnerPlayerId
+                        : string.Empty
             };
 
             teams.Add(team);
@@ -665,6 +782,16 @@ public partial class CreateTeamPage : ContentPage
 
         existing.EmblemBackground = selectedEmblemBackground;
         existing.EmblemBackgroundAssetId = selectedEmblemBackgroundAssetId;
+        if (selectedTeamEffectOwnerPlayerId == player1Id ||
+            selectedTeamEffectOwnerPlayerId == player2Id ||
+            string.IsNullOrWhiteSpace(selectedTeamEffectAssetId))
+        {
+            existing.EquippedTeamEffectAssetId = selectedTeamEffectAssetId;
+            existing.EquippedTeamEffectOwnerPlayerId =
+                string.IsNullOrWhiteSpace(selectedTeamEffectAssetId)
+                    ? string.Empty
+                    : selectedTeamEffectOwnerPlayerId;
+        }
 
         var rankings = await RankingService.LoadTeamsAsync();
 
@@ -690,6 +817,8 @@ public partial class CreateTeamPage : ContentPage
 
             rankingTeam.EmblemBackground = existing.EmblemBackground;
             rankingTeam.EmblemBackgroundAssetId = existing.EmblemBackgroundAssetId;
+            rankingTeam.EquippedTeamEffectAssetId = existing.EquippedTeamEffectAssetId;
+            rankingTeam.EquippedTeamEffectOwnerPlayerId = existing.EquippedTeamEffectOwnerPlayerId;
 
             string json =
                 System.Text.Json.JsonSerializer.Serialize(
@@ -936,6 +1065,8 @@ public partial class CreateTeamPage : ContentPage
         selectedEmblemBackgroundAssetId = string.IsNullOrWhiteSpace(team.EmblemBackgroundAssetId)
             ? "default_background_transparent"
             : team.EmblemBackgroundAssetId;
+        selectedTeamEffectAssetId = team.EquippedTeamEffectAssetId ?? string.Empty;
+        selectedTeamEffectOwnerPlayerId = team.EquippedTeamEffectOwnerPlayerId ?? string.Empty;
 
         PreviewEmblem.Source =
             InventoryDisplayResolver.ResolveImageSource(
@@ -985,6 +1116,9 @@ public partial class CreateTeamPage : ContentPage
 
         selectedEmblemBackground = "Transparent";
         selectedEmblemBackgroundAssetId = "default_background_transparent";
+        selectedTeamEffectAssetId = string.Empty;
+        selectedTeamEffectOwnerPlayerId = string.Empty;
+        IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
 
         PreviewEmblem.Source =
             InventoryDisplayResolver.ResolveImageSource(
