@@ -20,13 +20,10 @@ public sealed record IdentityEffectRenderProfile(
     bool UseLegacyImage,
     string LegacyImagePath)
 {
-    public static IdentityEffectRenderProfile From(
-        CatalogAssetDisplay effect,
-        double baseScale = 1.18)
+    public static IdentityEffectRenderProfile From(CatalogAssetDisplay effect, double baseScale = 1.18)
     {
         var definition = PlayerEffectEngine.CreateDefinition(effect, baseScale);
         var render = PlayerEffectEngine.CreateRenderProfile(definition);
-
         return new(
             effect.AssetId,
             definition.PresetId,
@@ -60,13 +57,9 @@ public sealed class IdentityEffectView : GraphicsView
 
     public string EffectKey { get; private set; } = string.Empty;
 
-    public void SetEffect(
-        IdentityEffectRenderProfile profile,
-        double baseScale = 1.18,
-        bool lightweight = false)
+    public void SetEffect(IdentityEffectRenderProfile profile, double baseScale = 1.18, bool lightweight = false)
     {
-        var key =
-            $"{profile.AssetId}|{profile.PresetId}|{profile.AnimationId}|{profile.PrimaryColor}|{profile.SecondaryColor}|{profile.Scale}|{profile.Speed}|{profile.Intensity}|{baseScale}|{lightweight}";
+        var key = $"{profile.AssetId}|{profile.PresetId}|{profile.AnimationId}|{profile.PrimaryColor}|{profile.SecondaryColor}|{profile.Scale}|{profile.Speed}|{profile.Intensity}|{baseScale}|{lightweight}";
         if (EffectKey == key)
             return;
 
@@ -132,10 +125,9 @@ internal sealed class IdentityEffectDrawable : IDrawable
 
         var cx = dirtyRect.Center.X;
         var cy = dirtyRect.Center.Y;
-        var baseRadius = Math.Min(dirtyRect.Width, dirtyRect.Height) * 0.34f * BaseScale * profile.Scale;
+        var baseRadius = Math.Min(dirtyRect.Width, dirtyRect.Height) * 0.30f * BaseScale * profile.Scale;
         var intro = ResolveIntroProgress(profile);
-        var introScale = 0.66f + (0.34f * EaseOutCubic(intro));
-        var radius = baseRadius * introScale;
+        var radius = baseRadius * (0.68f + 0.32f * EaseOutCubic(intro));
 
         DrawSignatureIntro(canvas, cx, cy, baseRadius, intro, profile);
 
@@ -157,10 +149,6 @@ internal sealed class IdentityEffectDrawable : IDrawable
             case EffectPresetId.Shadow:
                 DrawShadow(canvas, cx, cy, radius, profile);
                 break;
-            case EffectPresetId.Ring:
-            case EffectPresetId.Aura:
-            case EffectPresetId.Pulse:
-            case EffectPresetId.Glow:
             default:
                 DrawSimple(canvas, cx, cy, radius, profile);
                 break;
@@ -179,7 +167,6 @@ internal sealed class IdentityEffectDrawable : IDrawable
             EffectPresetId.Royal or EffectPresetId.Diamond => 0.95f,
             _ => 0.52f
         };
-
         return Math.Clamp(ElapsedSeconds / duration, 0f, 1f);
     }
 
@@ -189,20 +176,13 @@ internal sealed class IdentityEffectDrawable : IDrawable
         return (t * t * t) + 1f;
     }
 
-    private void DrawSignatureIntro(
-        ICanvas canvas,
-        float cx,
-        float cy,
-        float radius,
-        float intro,
-        IdentityEffectRenderProfile profile)
+    private void DrawSignatureIntro(ICanvas canvas, float cx, float cy, float radius, float intro, IdentityEffectRenderProfile profile)
     {
         if (intro >= 1f)
             return;
 
         var alpha = 1f - intro;
-        var burst = 0.35f + (0.95f * EaseOutCubic(intro));
-
+        var burst = 0.35f + 0.95f * EaseOutCubic(intro);
         switch (profile.PresetId)
         {
             case EffectPresetId.Fire:
@@ -220,9 +200,7 @@ internal sealed class IdentityEffectDrawable : IDrawable
                 for (var i = 0; i < 10; i++)
                 {
                     var angle = i / 10f * MathF.Tau;
-                    canvas.DrawLine(
-                        PointOn(cx, cy, radius * 0.35f * burst, angle),
-                        PointOn(cx, cy, radius * 1.18f * burst, angle));
+                    canvas.DrawLine(PointOn(cx, cy, radius * 0.35f * burst, angle), PointOn(cx, cy, radius * 1.18f * burst, angle));
                 }
                 break;
             default:
@@ -237,7 +215,6 @@ internal sealed class IdentityEffectDrawable : IDrawable
     {
         var count = Lightweight ? 10 : 18;
         DrawAura(canvas, cx, cy, radius, profile.PrimaryColor, 0.14f);
-
         for (var i = 0; i < count; i++)
         {
             var angle = i / (float)count * MathF.Tau + MathF.Sin(Phase * 2.7f + i) * 0.10f;
@@ -246,27 +223,21 @@ internal sealed class IdentityEffectDrawable : IDrawable
             var outer = PointOn(cx, cy - radius * 0.14f, radius * (1.05f + 0.28f * flicker), angle);
             var sideA = PointOn(cx, cy, radius * 0.94f, angle + 0.14f);
             var sideB = PointOn(cx, cy, radius * 0.94f, angle - 0.14f);
-
             var path = new PathF();
             path.MoveTo(inner.X, inner.Y);
             path.QuadTo(sideA.X, sideA.Y, outer.X, outer.Y);
             path.QuadTo(sideB.X, sideB.Y, inner.X, inner.Y);
             path.Close();
-
-            canvas.FillColor = (i % 3 == 0 ? profile.SecondaryColor : profile.PrimaryColor)
-                .WithAlpha((0.50f + 0.30f * flicker) * profile.Intensity / 1.4f);
+            canvas.FillColor = (i % 3 == 0 ? profile.SecondaryColor : profile.PrimaryColor).WithAlpha((0.50f + 0.30f * flicker) * profile.Intensity / 1.4f);
             canvas.FillPath(path);
         }
-
         DrawParticles(canvas, cx, cy, radius, profile.SecondaryColor, profile, upward: true);
     }
 
     private void DrawLightning(ICanvas canvas, float cx, float cy, float radius, IdentityEffectRenderProfile profile)
     {
-        var flash = ((int)(Phase * 9f)) % 6 != 0;
-        if (!flash)
+        if (((int)(Phase * 9f)) % 6 == 0)
             return;
-
         DrawAura(canvas, cx, cy, radius, profile.PrimaryColor, 0.10f);
         var count = Lightweight ? 3 : 7;
         for (var i = 0; i < count; i++)
@@ -293,17 +264,11 @@ internal sealed class IdentityEffectDrawable : IDrawable
             var center = PointOn(cx, cy, radius * (1.02f + 0.08f * MathF.Sin(i + Phase)), angle);
             var length = radius * (0.15f + 0.08f * (i % 3) / 2f);
             var tip = PointOn(center.X, center.Y, length, angle);
-
             canvas.StrokeColor = (i % 3 == 0 ? profile.SecondaryColor : profile.PrimaryColor).WithAlpha(0.90f);
             canvas.StrokeSize = 1.5f;
             canvas.DrawLine(center, tip);
-            canvas.DrawLine(
-                PointOn(center.X, center.Y, length * 0.45f, angle),
-                PointOn(center.X, center.Y, length * 0.45f, angle + 2.35f));
-            canvas.DrawLine(
-                PointOn(center.X, center.Y, length * 0.45f, angle),
-                PointOn(center.X, center.Y, length * 0.45f, angle - 2.35f));
-
+            canvas.DrawLine(PointOn(center.X, center.Y, length * 0.45f, angle), PointOn(center.X, center.Y, length * 0.45f, angle + 2.35f));
+            canvas.DrawLine(PointOn(center.X, center.Y, length * 0.45f, angle), PointOn(center.X, center.Y, length * 0.45f, angle - 2.35f));
             canvas.FillColor = profile.SecondaryColor.WithAlpha(0.55f);
             canvas.FillCircle(center, i % 4 == 0 ? 2.5f : 1.2f);
         }
@@ -319,10 +284,8 @@ internal sealed class IdentityEffectDrawable : IDrawable
             var angle = seed + Phase * (0.30f + (i % 4) * 0.08f);
             var point = PointOn(cx, cy, radius * (0.82f + (i % 5) * 0.10f), angle);
             var pulse = 0.25f + 0.75f * MathF.Abs(MathF.Sin(Phase * 3.2f + seed));
-            canvas.FillColor = (i % 4 == 0 ? profile.SecondaryColor : profile.PrimaryColor)
-                .WithAlpha(0.42f + 0.46f * pulse);
+            canvas.FillColor = (i % 4 == 0 ? profile.SecondaryColor : profile.PrimaryColor).WithAlpha(0.42f + 0.46f * pulse);
             canvas.FillCircle(point, (1.1f + 2.1f * pulse) * profile.Intensity);
-
             if (!Lightweight && pulse > 0.72f)
             {
                 canvas.StrokeColor = profile.SecondaryColor.WithAlpha(0.70f);
@@ -346,14 +309,11 @@ internal sealed class IdentityEffectDrawable : IDrawable
     private void DrawSimple(ICanvas canvas, float cx, float cy, float radius, IdentityEffectRenderProfile profile)
     {
         var pulse = 0.92f + 0.08f * MathF.Sin(Phase * MathF.Tau);
-
         if (profile.Layers.Contains(EffectLayerId.Aura) || profile.PresetId == EffectPresetId.Aura)
             DrawAura(canvas, cx, cy, radius, profile.SecondaryColor, 0.16f);
-
         canvas.StrokeColor = profile.PrimaryColor.WithAlpha(profile.PresetId == EffectPresetId.Glow ? 0.35f : 0.86f);
         canvas.StrokeSize = (profile.PresetId == EffectPresetId.Aura ? 10f : 5f) * profile.Intensity;
         canvas.DrawCircle(cx, cy, radius * pulse);
-
         if (profile.PresetId == EffectPresetId.Pulse || profile.Layers.Contains(EffectLayerId.Pulse))
         {
             canvas.StrokeColor = profile.SecondaryColor.WithAlpha(0.35f);
@@ -368,18 +328,10 @@ internal sealed class IdentityEffectDrawable : IDrawable
         canvas.FillCircle(cx, cy, radius * (1.16f + 0.03f * MathF.Sin(Phase * 2f)));
     }
 
-    private void DrawParticles(
-        ICanvas canvas,
-        float cx,
-        float cy,
-        float radius,
-        Color color,
-        IdentityEffectRenderProfile profile,
-        bool upward)
+    private void DrawParticles(ICanvas canvas, float cx, float cy, float radius, Color color, IdentityEffectRenderProfile profile, bool upward)
     {
         if (Lightweight)
             return;
-
         for (var i = 0; i < 10; i++)
         {
             var seed = i * 1.713f;
@@ -392,13 +344,7 @@ internal sealed class IdentityEffectDrawable : IDrawable
         }
     }
 
-    private static void DrawLightningBolt(
-        ICanvas canvas,
-        float startX,
-        float startY,
-        float endX,
-        float endY,
-        float offset)
+    private static void DrawLightningBolt(ICanvas canvas, float startX, float startY, float endX, float endY, float offset)
     {
         var a = new PointF(startX, startY);
         var e = new PointF(endX, endY);
@@ -434,11 +380,7 @@ public static class IdentityEffectRenderer
     private static readonly ConditionalWeakTable<Image, Holder> Views = new();
     private static readonly ConditionalWeakTable<Image, Holder> AroundViews = new();
 
-    public static void Apply(
-        Image slot,
-        CatalogAssetDisplay? effect,
-        double baseScale = 1.18,
-        bool lightweight = false)
+    public static void Apply(Image slot, CatalogAssetDisplay? effect, double baseScale = 1.18, bool lightweight = false)
     {
         if (effect == null)
         {
@@ -447,7 +389,7 @@ public static class IdentityEffectRenderer
         }
 
         var holder = Views.GetOrCreateValue(slot);
-        if (TryAttach(slot, holder, out var view))
+        if (TryAttach(slot, holder, 1.00, out var view))
         {
             view.SetEffect(IdentityEffectRenderProfile.From(effect, baseScale), baseScale, lightweight);
             slot.IsVisible = false;
@@ -463,36 +405,26 @@ public static class IdentityEffectRenderer
     {
         if (!Views.TryGetValue(slot, out var holder))
             return;
-
         if (holder.LoadedHandler != null)
         {
             slot.Loaded -= holder.LoadedHandler;
             holder.LoadedHandler = null;
         }
-
         holder.View?.Clear();
         if (holder.View?.Parent is Layout layout)
             layout.Children.Remove(holder.View);
-
         holder.View = null;
         slot.IsVisible = false;
     }
 
-    public static IdentityEffectView Create(
-        CatalogAssetDisplay effect,
-        double baseScale = 1.18,
-        bool lightweight = false)
+    public static IdentityEffectView Create(CatalogAssetDisplay effect, double baseScale = 1.18, bool lightweight = false)
     {
         var view = new IdentityEffectView();
         view.SetEffect(IdentityEffectRenderProfile.From(effect, baseScale), baseScale, lightweight);
         return view;
     }
 
-    public static void ApplyAround(
-        Image emblem,
-        CatalogAssetDisplay? effect,
-        double baseScale = 1.18,
-        bool lightweight = false)
+    public static void ApplyAround(Image emblem, CatalogAssetDisplay? effect, double baseScale = 1.18, bool lightweight = false)
     {
         var holder = AroundViews.GetOrCreateValue(emblem);
         if (effect == null)
@@ -504,7 +436,7 @@ public static class IdentityEffectRenderer
             return;
         }
 
-        if (!TryAttach(emblem, holder, out var view))
+        if (!TryAttach(emblem, holder, 1.72, out var view))
             return;
 
         view.ZIndex = Math.Max(0, emblem.ZIndex - 1);
@@ -512,11 +444,12 @@ public static class IdentityEffectRenderer
         view.SetEffect(IdentityEffectRenderProfile.From(effect, baseScale), baseScale, lightweight);
     }
 
-    private static bool TryAttach(Image slot, Holder holder, out IdentityEffectView view)
+    private static bool TryAttach(Image slot, Holder holder, double visualScale, out IdentityEffectView view)
     {
         if (holder.View?.Parent != null)
         {
             view = holder.View;
+            ApplyScaledSize(slot, view, visualScale);
             return true;
         }
 
@@ -530,11 +463,11 @@ public static class IdentityEffectRenderer
         {
             HorizontalOptions = slot.HorizontalOptions,
             VerticalOptions = slot.VerticalOptions,
-            WidthRequest = slot.WidthRequest,
-            HeightRequest = slot.HeightRequest,
             Margin = slot.Margin,
             ZIndex = Math.Max(slot.ZIndex, 1)
         };
+
+        ApplyScaledSize(slot, view, visualScale);
 
         if (parent is Grid)
         {
@@ -546,5 +479,20 @@ public static class IdentityEffectRenderer
 
         parent.Children.Add(view);
         return true;
+    }
+
+    private static void ApplyScaledSize(Image source, IdentityEffectView view, double visualScale)
+    {
+        var width = source.WidthRequest > 0 ? source.WidthRequest : source.Width;
+        var height = source.HeightRequest > 0 ? source.HeightRequest : source.Height;
+
+        if (width > 0)
+            view.WidthRequest = width * visualScale;
+        if (height > 0)
+            view.HeightRequest = height * visualScale;
+
+        view.HorizontalOptions = LayoutOptions.Center;
+        view.VerticalOptions = LayoutOptions.Center;
+        view.InputTransparent = true;
     }
 }
