@@ -31,17 +31,22 @@ public partial class CreateTeamPage
                 ? "اسم الفريق"
                 : TeamNameEntry.Text.Trim();
 
-            PreviewPlayer1.Text = string.IsNullOrWhiteSpace(Player1Entry.Text)
+            var player1 = string.IsNullOrWhiteSpace(Player1Entry.Text)
                 ? "اللاعب الأول"
                 : Player1Entry.Text.Trim();
 
-            PreviewPlayer2.Text = isTeamMode
-                ? string.IsNullOrWhiteSpace(Player2Entry.Text)
-                    ? "اللاعب الثاني"
-                    : Player2Entry.Text.Trim()
-                : string.Empty;
+            var player2 = string.IsNullOrWhiteSpace(Player2Entry.Text)
+                ? "اللاعب الثاني"
+                : Player2Entry.Text.Trim();
 
+            // The preview grid is rendered visually right-to-left: column 2 is the right slot
+            // and column 0 is the left slot. Keep Player1 on the right and Player2 on the left.
+            PreviewPlayer1.Text = isTeamMode ? player2 : player1;
+            PreviewPlayer2.Text = isTeamMode ? player1 : string.Empty;
             PreviewPlayer2.IsVisible = isTeamMode;
+
+            PreviewMode.Text = isTeamMode ? "فريق" : "فردي";
+            SaveButtonText.Text = IsEditMode ? "تحديث الفريق" : "إنشاء الفريق";
         }
         catch
         {
