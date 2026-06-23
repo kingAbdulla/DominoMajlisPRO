@@ -25,16 +25,7 @@ public static class TeamEffectEngine
         double baseScale = 1.18,
         bool lightweight = false)
     {
-        if (team == null || string.IsNullOrWhiteSpace(team.EquippedTeamEffectAssetId))
-        {
-            IdentityEffectRenderer.Clear(overlaySlot);
-            return;
-        }
-
-        var effect = await StoreAssetCatalogService.ResolveAsync(
-            team.EquippedTeamEffectAssetId,
-            StoreProductAssetType.TeamEffect.ToString());
-
+        var effect = await ResolveTeamEffectAsync(team);
         if (effect == null)
         {
             IdentityEffectRenderer.Clear(overlaySlot);
@@ -56,11 +47,21 @@ public static class TeamEffectEngine
         if (!string.IsNullOrWhiteSpace(assetId))
         {
             var inventory = await PlayerInventoryService.LoadOwnedAsync(playerId);
-            if (!inventory.Any(item =>
-                    string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId),
-                        StoreProductAssetType.TeamEffect.ToString(),
-                        StringComparison.OrdinalIgnoreCase)))
+            var catalog = await StoreAssetCatalogService.LoadAsync();
+            var ownsEligibleEffect = false;
+
+            foreach (var item in inventory.Where(item =>
+                         string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase)))
+            {
+                var effect = ResolveTeamEffectFromCatalog(catalog, item.AssetId, item.StoreTypeId);
+                if (effect != null)
+                {
+                    ownsEligibleEffect = true;
+                    break;
+                }
+            }
+
+            if (!ownsEligibleEffect)
                 return false;
         }
 
@@ -93,16 +94,60 @@ public static class TeamEffectEngine
             ? null
             : await TeamProfileService.GetTeamByIdAsync(teamId);
 
-        CatalogAssetDisplay? effect = null;
-        if (!string.IsNullOrWhiteSpace(team?.EquippedTeamEffectAssetId))
-        {
-            effect = await StoreAssetCatalogService.ResolveAsync(
-                team.EquippedTeamEffectAssetId,
-                StoreProductAssetType.TeamEffect.ToString());
-        }
-
+        var effect = await ResolveTeamEffectAsync(team);
         IdentityEffectRenderer.ApplyAround(emblem, effect, baseScale, lightweight);
     }
+
+    private static async Task<CatalogAssetDisplay?> ResolveTeamEffectAsync(TeamProfileModel? team)
+    {
+        if (team == null || string.IsNullOrWhiteSpace(team.EquippedTeamEffectAssetId))
+            return null;
+
+        var catalog = await StoreAssetCatalogService.LoadAsync();
+        return ResolveTeamEffectFromCatalog(
+            catalog,
+            team.EquippedTeamEffectAssetId,
+            StoreProductAssetType.TeamEffect.ToString());
+    }
+
+    private static CatalogAssetDisplay? ResolveTeamEffectFromCatalog(
+        IReadOnlyList<CatalogAssetDisplay> catalog,
+        string? assetId,
+        string? storeTypeId)
+    {
+        if (string.IsNullOrWhiteSpace(assetId))
+            return null;
+
+        var canonicalTypeId = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+
+        if (string.Equals(canonicalTypeId, StoreProductAssetType.TeamEffect.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            var teamTyped = StoreAssetCatalogService.Resolve(
+                catalog,
+                assetId,
+                StoreProductAssetType.TeamEffect.ToString());
+            if (teamTyped != null)
+                return teamTyped;
+        }
+
+        // Compatibility for effects published before TeamEffect became a canonical type.
+        // CreateTeamPage preview was already able to see these records, but MainPage/GamePage
+        // could not because they resolved only TeamEffect. This is the root cause of the
+        // "preview works, runtime pages do not" mismatch.
+        var legacyEffect = StoreAssetCatalogService.Resolve(
+            catalog,
+            assetId,
+            StoreProductAssetType.Effect.ToString());
+
+        return legacyEffect != null && IsTeamEffectTarget(legacyEffect)
+            ? legacyEffect
+            : null;
+    }
+
+    private static bool IsTeamEffectTarget(CatalogAssetDisplay effect) =>
+        effect.AssetType == StoreProductAssetType.TeamEffect ||
+        string.Equals(effect.EquipTarget, "TeamEffect", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(effect.EquipTarget, "Team", StringComparison.OrdinalIgnoreCase);
 }
 
 public static class TeamEffectBehavior
