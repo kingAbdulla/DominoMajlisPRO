@@ -1,8 +1,11 @@
+using DominoMajlisPRO.GalleryEngine.Services;
+
 namespace DominoMajlisPRO;
 
 public partial class MainPage
 {
     bool _settingsSymbolsTimerStarted;
+    bool _mainTeamEffectsTimerStarted;
 
     protected override void OnHandlerChanged()
     {
@@ -10,6 +13,7 @@ public partial class MainPage
 
         ApplyMainHeaderAvatarShape();
         _ = ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
+        _ = RefreshMainPreviewTeamEffectsAsync();
 
         if (Handler == null || _settingsSymbolsTimerStarted)
             return;
@@ -22,10 +26,48 @@ public partial class MainPage
             runs++;
             ApplyMainHeaderAvatarShape();
             _ = ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
+            _ = RefreshMainPreviewTeamEffectsAsync();
             NormalizeSettingsSymbols();
             RepairVisibleMainPageText(this);
             return Handler != null && runs < 16;
         });
+
+        if (!_mainTeamEffectsTimerStarted)
+        {
+            _mainTeamEffectsTimerStarted = true;
+            int effectRuns = 0;
+
+            Dispatcher.StartTimer(TimeSpan.FromMilliseconds(500), () =>
+            {
+                effectRuns++;
+                _ = RefreshMainPreviewTeamEffectsAsync();
+                return Handler != null && effectRuns < 8;
+            });
+        }
+    }
+
+    async Task RefreshMainPreviewTeamEffectsAsync()
+    {
+        try
+        {
+            if (selectedTeam1 != null && !string.IsNullOrWhiteSpace(selectedTeam1.TeamId))
+                await TeamEffectEngine.ApplyAroundAsync(
+                    PreviewTeam1Logo,
+                    selectedTeam1.TeamId,
+                    1.18,
+                    lightweight: true);
+
+            if (selectedTeam2 != null && !string.IsNullOrWhiteSpace(selectedTeam2.TeamId))
+                await TeamEffectEngine.ApplyAroundAsync(
+                    PreviewTeam2Logo,
+                    selectedTeam2.TeamId,
+                    1.18,
+                    lightweight: true);
+        }
+        catch
+        {
+            // Main preview effects are visual-only and must never block the home page.
+        }
     }
 
     void NormalizeSettingsSymbols()
