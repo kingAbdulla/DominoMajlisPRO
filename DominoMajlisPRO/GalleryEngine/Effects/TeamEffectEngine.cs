@@ -7,7 +7,7 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class TeamEffectEngine
 {
-    private const double DefaultTeamEffectScale = 0.86;
+    public const double DefaultTeamEffectScale = 0.86;
 
     public static async Task ApplyAsync(
         Image overlaySlot,
@@ -247,7 +247,7 @@ public static class TeamEffectBehavior
         _ = TeamEffectEngine.ApplyAroundAsync(
             image,
             GetTeamId(image),
-            DefaultTeamEffectScale,
+            TeamEffectEngine.DefaultTeamEffectScale,
             GetLightweight(image));
     }
 }
