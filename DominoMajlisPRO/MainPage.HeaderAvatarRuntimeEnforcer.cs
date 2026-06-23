@@ -4,6 +4,7 @@ public partial class MainPage
 {
     static MainPage()
     {
+        var passCount = 0;
         Application.Current?.Dispatcher.StartTimer(
             TimeSpan.FromMilliseconds(250),
             () =>
@@ -11,12 +12,10 @@ public partial class MainPage
                 var page = ResolveActivePage(Application.Current?.Windows.FirstOrDefault()?.Page);
 
                 if (page is MainPage mainPage)
-                {
                     mainPage.ApplyMainHeaderAvatarShape();
-                    _ = mainPage.ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
-                }
 
-                return true;
+                passCount++;
+                return passCount < 4;
             });
     }
 
