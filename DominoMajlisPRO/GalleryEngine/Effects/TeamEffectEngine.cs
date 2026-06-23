@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
@@ -35,7 +35,11 @@ public static class TeamEffectEngine
             team.EquippedTeamEffectAssetId,
             StoreProductAssetType.TeamEffect.ToString());
 
-        if (effect == null) { IdentityEffectRenderer.Clear(overlaySlot); return; }
+        if (effect == null)
+        {
+            IdentityEffectRenderer.Clear(overlaySlot);
+            return;
+        }
 
         IdentityEffectRenderer.Apply(overlaySlot, effect, baseScale, lightweight);
     }
@@ -88,14 +92,13 @@ public static class TeamEffectEngine
         var team = string.IsNullOrWhiteSpace(teamId)
             ? null
             : await TeamProfileService.GetTeamByIdAsync(teamId);
+
         CatalogAssetDisplay? effect = null;
         if (!string.IsNullOrWhiteSpace(team?.EquippedTeamEffectAssetId))
         {
             effect = await StoreAssetCatalogService.ResolveAsync(
                 team.EquippedTeamEffectAssetId,
                 StoreProductAssetType.TeamEffect.ToString());
-
-            
         }
 
         IdentityEffectRenderer.ApplyAround(emblem, effect, baseScale, lightweight);
@@ -107,38 +110,97 @@ public static class TeamEffectBehavior
     public static readonly BindableProperty TeamIdProperty = BindableProperty.CreateAttached(
         "TeamId", typeof(string), typeof(TeamEffectBehavior), string.Empty,
         propertyChanged: OnTeamIdChanged);
+
     public static readonly BindableProperty LightweightProperty = BindableProperty.CreateAttached(
-        "Lightweight", typeof(bool), typeof(TeamEffectBehavior), false);
+        "Lightweight", typeof(bool), typeof(TeamEffectBehavior), false,
+        propertyChanged: OnLightweightChanged);
+
     private static readonly BindableProperty IsHookedProperty = BindableProperty.CreateAttached(
         "IsHooked", typeof(bool), typeof(TeamEffectBehavior), false);
+
+    private static readonly BindableProperty RefreshHandlerProperty = BindableProperty.CreateAttached(
+        "RefreshHandler", typeof(Action<string>), typeof(TeamEffectBehavior), null);
 
     public static string GetTeamId(BindableObject view) => (string)view.GetValue(TeamIdProperty);
     public static void SetTeamId(BindableObject view, string value) => view.SetValue(TeamIdProperty, value);
     public static bool GetLightweight(BindableObject view) => (bool)view.GetValue(LightweightProperty);
     public static void SetLightweight(BindableObject view, bool value) => view.SetValue(LightweightProperty, value);
 
+    private static Action<string>? GetRefreshHandler(BindableObject view) =>
+        (Action<string>?)view.GetValue(RefreshHandlerProperty);
+
+    private static void SetRefreshHandler(BindableObject view, Action<string>? value) =>
+        view.SetValue(RefreshHandlerProperty, value);
+
     private static void OnTeamIdChanged(BindableObject bindable, object oldValue, object newValue)
     {
         if (bindable is not Image image)
             return;
-        if (image.IsLoaded)
-        {
-            _ = TeamEffectEngine.ApplyAroundAsync(
-                image, newValue?.ToString(), 1.18, GetLightweight(image));
-            return;
-        }
+
+        EnsureHooked(image);
+        Refresh(image);
+    }
+
+    private static void OnLightweightChanged(BindableObject bindable, object oldValue, object newValue)
+    {
+        if (bindable is Image image)
+            Refresh(image);
+    }
+
+    private static void EnsureHooked(Image image)
+    {
         if ((bool)image.GetValue(IsHookedProperty))
             return;
+
         image.SetValue(IsHookedProperty, true);
         image.Loaded += OnImageLoaded;
+        image.Unloaded += OnImageUnloaded;
+
+        Action<string> handler = changedTeamId =>
+        {
+            var currentTeamId = GetTeamId(image);
+            if (string.IsNullOrWhiteSpace(currentTeamId) ||
+                !string.Equals(currentTeamId, changedTeamId, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            MainThread.BeginInvokeOnMainThread(() => Refresh(image));
+        };
+
+        SetRefreshHandler(image, handler);
+        AppEvents.TeamEffectChanged += handler;
     }
 
     private static void OnImageLoaded(object? sender, EventArgs e)
     {
         if (sender is Image image)
-            _ = TeamEffectEngine.ApplyAroundAsync(
-                image, GetTeamId(image), 1.18, GetLightweight(image));
+            Refresh(image);
+    }
+
+    private static void OnImageUnloaded(object? sender, EventArgs e)
+    {
+        if (sender is not Image image)
+            return;
+
+        image.Loaded -= OnImageLoaded;
+        image.Unloaded -= OnImageUnloaded;
+
+        var handler = GetRefreshHandler(image);
+        if (handler != null)
+            AppEvents.TeamEffectChanged -= handler;
+
+        SetRefreshHandler(image, null);
+        image.SetValue(IsHookedProperty, false);
+    }
+
+    private static void Refresh(Image image)
+    {
+        if (!image.IsLoaded)
+            return;
+
+        _ = TeamEffectEngine.ApplyAroundAsync(
+            image,
+            GetTeamId(image),
+            1.18,
+            GetLightweight(image));
     }
 }
-
-
