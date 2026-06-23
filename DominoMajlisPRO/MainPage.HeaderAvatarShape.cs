@@ -1,6 +1,5 @@
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
-using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO;
 
@@ -39,10 +38,11 @@ public partial class MainPage
         border.MinimumHeightRequest = avatarSize;
         border.HorizontalOptions = LayoutOptions.Center;
         border.VerticalOptions = LayoutOptions.Center;
-        border.BackgroundColor = Color.FromArgb("#151515");
-        border.Stroke = Color.FromArgb("#D4AF37");
-        border.StrokeThickness = 3;
-        border.StrokeShape = new RoundRectangle { CornerRadius = 999 };
+        border.BackgroundColor = Colors.Transparent;
+        border.Stroke = Colors.Transparent;
+        border.StrokeThickness = 0;
+        border.StrokeShape = null;
+        border.Shadow = null;
         border.Clip = null;
 
         if (border.Content is Grid innerHost)
@@ -88,20 +88,6 @@ public partial class MainPage
             MainHeaderAvatarEffectScale);
 
         ApplyMainHeaderAvatarShape();
-
-        Border border = EnsureMainHeaderAvatarBorder();
-        border.Stroke = identity.Frame == null
-            ? Color.FromArgb("#D4AF37")
-            : Colors.Transparent;
-        border.Shadow = new Shadow
-        {
-            Brush = new SolidColorBrush(
-                identity.Effect == null
-                    ? Color.FromArgb("#D4AF37")
-                    : Color.FromArgb("#F2C14E")),
-            Radius = identity.Effect == null ? 18 : 24,
-            Opacity = identity.Effect == null ? 0.45f : 0.65f
-        };
     }
 
     Border EnsureMainHeaderAvatarBorder()
@@ -139,6 +125,9 @@ public partial class MainPage
         {
             StyleId = HeaderAvatarOuterHostId,
             Padding = 0,
+            BackgroundColor = Colors.Transparent,
+            Stroke = Colors.Transparent,
+            StrokeThickness = 0,
             Content = newInnerHost
         };
 
