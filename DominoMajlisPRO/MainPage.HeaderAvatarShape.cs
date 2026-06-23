@@ -8,9 +8,9 @@ public partial class MainPage
 {
     const string HeaderAvatarOuterHostId = "MainHeaderAvatarOuterHost";
     const string HeaderAvatarInnerHostId = "MainHeaderAvatarInnerHost";
-    const double MainHeaderAvatarEffectScale = 1.03;
-    const double MainHeaderAvatarPhoneSize = 54;
-    const double MainHeaderAvatarTabletSize = 68;
+    const double MainHeaderAvatarEffectScale = 1.18;
+    const double MainHeaderAvatarPhoneSize = 58;
+    const double MainHeaderAvatarTabletSize = 72;
 
     void ApplyMainHeaderAvatarShape()
     {
@@ -41,15 +41,9 @@ public partial class MainPage
         border.VerticalOptions = LayoutOptions.Center;
         border.BackgroundColor = Color.FromArgb("#151515");
         border.Stroke = Color.FromArgb("#D4AF37");
-        border.StrokeThickness = 1.2;
+        border.StrokeThickness = 3;
         border.StrokeShape = new RoundRectangle { CornerRadius = 999 };
-        border.Shadow = new Shadow
-        {
-            Brush = new SolidColorBrush(Color.FromArgb("#D4AF37")),
-            Radius = 6,
-            Opacity = 0.20f
-        };
-        border.Clip = CreateCircleClip(avatarSize);
+        border.Clip = null;
 
         if (border.Content is Grid innerHost)
         {
@@ -60,17 +54,14 @@ public partial class MainPage
             innerHost.HorizontalOptions = LayoutOptions.Center;
             innerHost.VerticalOptions = LayoutOptions.Center;
             innerHost.BackgroundColor = Colors.Transparent;
-            innerHost.Clip = CreateCircleClip(avatarSize);
+            innerHost.Clip = null;
             innerHost.Shadow = null;
             NormalizeProceduralEffectChildren(innerHost, avatarSize);
         }
 
-        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0, true);
-        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1, true);
-        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2, true);
-        HeaderPlayerAvatar.Scale = 0.88;
-        HeaderAvatarFrameOverlay.Scale = 0.94;
-        HeaderAvatarEffectOverlay.Scale = 0.96;
+        ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0);
+        ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1);
+        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2);
 
         ConfigureProfileStatusBadge(avatarSize);
         ApplyMainHeaderTextPolish();
@@ -79,7 +70,7 @@ public partial class MainPage
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
         HeaderAvatarFrameOverlay.Aspect = Aspect.AspectFit;
         HeaderAvatarEffectOverlay.Aspect = Aspect.AspectFit;
-        HeaderAvatarEffectOverlay.StyleId = "MainHeaderAvatarEffectOverlay";
+        HeaderAvatarEffectOverlay.StyleId = string.Empty;
     }
 
     void ApplyMainHeaderAvatarIdentityVisuals(PlayerVisualIdentity identity)
@@ -102,19 +93,15 @@ public partial class MainPage
         border.Stroke = identity.Frame == null
             ? Color.FromArgb("#D4AF37")
             : Colors.Transparent;
-        border.Shadow = identity.Effect == null
-            ? new Shadow
-            {
-                Brush = new SolidColorBrush(Color.FromArgb("#D4AF37")),
-                Radius = 6,
-                Opacity = 0.20f
-            }
-            : new Shadow
-            {
-                Brush = new SolidColorBrush(Color.FromArgb("#F2C14E")),
-                Radius = 7,
-                Opacity = 0.22f
-            };
+        border.Shadow = new Shadow
+        {
+            Brush = new SolidColorBrush(
+                identity.Effect == null
+                    ? Color.FromArgb("#D4AF37")
+                    : Color.FromArgb("#F2C14E")),
+            Radius = identity.Effect == null ? 18 : 24,
+            Opacity = identity.Effect == null ? 0.45f : 0.65f
+        };
     }
 
     Border EnsureMainHeaderAvatarBorder()
@@ -163,8 +150,7 @@ public partial class MainPage
     static void ConfigureHeaderAvatarImage(
         Image image,
         double size,
-        int zIndex,
-        bool clip)
+        int zIndex)
     {
         image.WidthRequest = size;
         image.HeightRequest = size;
@@ -176,7 +162,7 @@ public partial class MainPage
         image.ZIndex = zIndex;
         image.Scale = 1.0;
         image.Opacity = 1.0;
-        image.Clip = clip ? CreateCircleClip(size) : null;
+        image.Clip = null;
         image.Shadow = null;
         image.BackgroundColor = Colors.Transparent;
     }
@@ -250,17 +236,6 @@ public partial class MainPage
         }
     }
 
-    static Geometry CreateCircleClip(double size)
-    {
-        double radius = size / 2.0;
-        return new EllipseGeometry
-        {
-            Center = new Point(radius, radius),
-            RadiusX = radius,
-            RadiusY = radius
-        };
-    }
-
     static void NormalizeProceduralEffectChildren(Grid host, double size)
     {
         foreach (var child in host.Children)
@@ -273,19 +248,19 @@ public partial class MainPage
                 graphicsView.MinimumHeightRequest = size;
                 graphicsView.HorizontalOptions = LayoutOptions.Fill;
                 graphicsView.VerticalOptions = LayoutOptions.Fill;
-                graphicsView.Clip = CreateCircleClip(size);
+                graphicsView.Clip = null;
                 graphicsView.BackgroundColor = Colors.Transparent;
                 graphicsView.InputTransparent = true;
                 graphicsView.ZIndex = 3;
-                graphicsView.Scale = 0.96;
-                graphicsView.Opacity = 0.60;
+                graphicsView.Scale = 1.0;
+                graphicsView.Opacity = 1.0;
             }
             else if (child is Image image)
             {
                 image.BackgroundColor = Colors.Transparent;
                 image.Shadow = null;
-                image.Clip = CreateCircleClip(size);
-                image.Scale = 0.96;
+                image.Clip = null;
+                image.Scale = 1.0;
             }
         }
     }
