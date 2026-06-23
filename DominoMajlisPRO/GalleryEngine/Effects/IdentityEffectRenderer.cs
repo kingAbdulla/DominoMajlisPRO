@@ -298,65 +298,57 @@ internal sealed class IdentityEffectDrawable : IDrawable
 
     private void DrawShadow(ICanvas canvas, float cx, float cy, float radius, IdentityEffectRenderProfile profile)
     {
-        var pulse = 0.94f + 0.06f * MathF.Sin(Phase * MathF.Tau);
-        canvas.FillColor = profile.PrimaryColor.WithAlpha(0.18f);
-        canvas.FillCircle(cx, cy, radius * 1.10f * pulse);
-        canvas.StrokeColor = profile.SecondaryColor.WithAlpha(0.38f);
-        canvas.StrokeSize = 6f * profile.Intensity;
-        canvas.DrawCircle(cx, cy, radius * 1.02f * pulse);
+        DrawAura(canvas, cx, cy, radius, profile.PrimaryColor, 0.22f);
+        canvas.StrokeColor = profile.SecondaryColor.WithAlpha(0.50f);
+        canvas.StrokeSize = 3f;
+        canvas.DrawCircle(cx, cy, radius * (0.92f + 0.04f * MathF.Sin(Phase * 2.0f)));
     }
 
     private void DrawSimple(ICanvas canvas, float cx, float cy, float radius, IdentityEffectRenderProfile profile)
     {
-        var pulse = 0.92f + 0.08f * MathF.Sin(Phase * MathF.Tau);
-        if (profile.Layers.Contains(EffectLayerId.Aura) || profile.PresetId == EffectPresetId.Aura)
-            DrawAura(canvas, cx, cy, radius, profile.SecondaryColor, 0.16f);
-        canvas.StrokeColor = profile.PrimaryColor.WithAlpha(profile.PresetId == EffectPresetId.Glow ? 0.35f : 0.86f);
-        canvas.StrokeSize = (profile.PresetId == EffectPresetId.Aura ? 10f : 5f) * profile.Intensity;
-        canvas.DrawCircle(cx, cy, radius * pulse);
-        if (profile.PresetId == EffectPresetId.Pulse || profile.Layers.Contains(EffectLayerId.Pulse))
-        {
-            canvas.StrokeColor = profile.SecondaryColor.WithAlpha(0.35f);
-            canvas.StrokeSize = 2f;
-            canvas.DrawCircle(cx, cy, radius * (1.05f + 0.18f * ((MathF.Sin(Phase * 3f) + 1f) / 2f)));
-        }
+        DrawAura(canvas, cx, cy, radius, profile.PrimaryColor, 0.10f);
+        canvas.StrokeColor = profile.PrimaryColor.WithAlpha(0.56f);
+        canvas.StrokeSize = 2.4f;
+        canvas.DrawCircle(cx, cy, radius * (1.00f + 0.05f * MathF.Sin(Phase * 2.2f)));
     }
 
     private void DrawAura(ICanvas canvas, float cx, float cy, float radius, Color color, float alpha)
     {
         canvas.FillColor = color.WithAlpha(alpha);
-        canvas.FillCircle(cx, cy, radius * (1.16f + 0.03f * MathF.Sin(Phase * 2f)));
+        canvas.FillCircle(cx, cy, radius * 1.45f);
     }
 
     private void DrawParticles(ICanvas canvas, float cx, float cy, float radius, Color color, IdentityEffectRenderProfile profile, bool upward)
     {
-        if (Lightweight)
-            return;
-        for (var i = 0; i < 10; i++)
+        var count = Lightweight ? 5 : 10;
+        for (var i = 0; i < count; i++)
         {
-            var seed = i * 1.713f;
-            var travel = (Phase * 0.45f + i * 0.13f) % 1f;
-            var angle = seed + MathF.Sin(Phase + i);
-            var point = PointOn(cx, cy, radius * (0.72f + travel * 0.48f), angle);
-            var y = upward ? point.Y - radius * 0.32f * travel : point.Y;
-            canvas.FillColor = color.WithAlpha((1f - travel) * 0.62f);
-            canvas.FillCircle(point.X, y, (1.1f + 1.8f * (1f - travel)) * profile.Intensity);
+            var seed = i * 1.73f;
+            var progress = (Phase * (0.16f + (i % 3) * 0.03f) + i * 0.31f) % 1f;
+            var angle = seed + MathF.Sin(Phase * 0.8f + i) * 0.28f;
+            var distance = radius * (0.60f + progress * 0.78f);
+            var point = PointOn(cx, cy + (upward ? radius * 0.28f : 0), distance, angle);
+            canvas.FillColor = color.WithAlpha((1f - progress) * 0.62f);
+            canvas.FillCircle(point, 1.2f + 1.8f * (1f - progress));
         }
     }
 
-    private static void DrawLightningBolt(ICanvas canvas, float startX, float startY, float endX, float endY, float offset)
+    private static PointF PointOn(float cx, float cy, float r, float angle) =>
+        new(cx + MathF.Cos(angle) * r, cy + MathF.Sin(angle) * r);
+
+    private static void DrawLightningBolt(ICanvas canvas, float x1, float y1, float x2, float y2, float jitter)
     {
-        var a = new PointF(startX, startY);
-        var e = new PointF(endX, endY);
-        var b = Lerp(a, e, 0.32f, offset);
-        var c = Lerp(a, e, 0.62f, -offset * 0.85f);
-        canvas.DrawLine(a, b);
-        canvas.DrawLine(b, c);
-        canvas.DrawLine(c, e);
+        var p0 = new PointF(x1, y1);
+        var p3 = new PointF(x2, y2);
+        var p1 = Lerp(p0, p3, 0.35f, MathF.Sin(PhaseSeed(x1, y1) * 12.7f) * jitter);
+        var p2 = Lerp(p0, p3, 0.72f, MathF.Cos(PhaseSeed(x2, y2) * 8.9f) * jitter);
+        canvas.DrawLine(p0, p1);
+        canvas.DrawLine(p1, p2);
+        canvas.DrawLine(p2, p3);
     }
 
-    private static PointF PointOn(float x, float y, float radius, float angle) =>
-        new(x + MathF.Cos(angle) * radius, y + MathF.Sin(angle) * radius);
+    private static float PhaseSeed(float x, float y) =>
+        MathF.Abs(MathF.Sin(x * 12.9898f + y * 78.233f) * 43758.5453f);
 
     private static PointF Lerp(PointF a, PointF b, float t, float offset)
     {
@@ -436,7 +428,7 @@ public static class IdentityEffectRenderer
             return;
         }
 
-        if (!TryAttach(emblem, holder, 1.72, out var view))
+        if (!TryAttach(emblem, holder, 1.02, out var view))
             return;
 
         view.ZIndex = Math.Max(0, emblem.ZIndex - 1);
@@ -464,7 +456,8 @@ public static class IdentityEffectRenderer
             HorizontalOptions = slot.HorizontalOptions,
             VerticalOptions = slot.VerticalOptions,
             Margin = slot.Margin,
-            ZIndex = Math.Max(slot.ZIndex, 1)
+            ZIndex = Math.Max(slot.ZIndex, 1),
+            Clip = new EllipseGeometry()
         };
 
         ApplyScaledSize(slot, view, visualScale);
