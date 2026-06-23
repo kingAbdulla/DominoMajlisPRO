@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO;
 
@@ -41,7 +42,7 @@ public partial class MainPage
         border.BackgroundColor = Colors.Transparent;
         border.Stroke = Colors.Transparent;
         border.StrokeThickness = 0;
-        border.StrokeShape = null;
+        border.StrokeShape = new RoundRectangle { CornerRadius = 999 };
         border.Shadow = null;
         border.Clip = null;
 
@@ -61,7 +62,7 @@ public partial class MainPage
 
         ConfigureHeaderAvatarImage(HeaderPlayerAvatar, avatarSize, 0);
         ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1);
-        ConfigureHeaderAvatarImage(HeaderAvatarEffectOverlay, avatarSize, 2);
+        ConfigureHeaderAvatarEffectImage(HeaderAvatarEffectOverlay, avatarSize, 2);
 
         ConfigureProfileStatusBadge(avatarSize);
         ApplyMainHeaderTextPolish();
@@ -128,6 +129,7 @@ public partial class MainPage
             BackgroundColor = Colors.Transparent,
             Stroke = Colors.Transparent,
             StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 999 },
             Content = newInnerHost
         };
 
@@ -154,6 +156,16 @@ public partial class MainPage
         image.Clip = null;
         image.Shadow = null;
         image.BackgroundColor = Colors.Transparent;
+    }
+
+    static void ConfigureHeaderAvatarEffectImage(
+        Image image,
+        double size,
+        int zIndex)
+    {
+        ConfigureHeaderAvatarImage(image, size, zIndex);
+        image.BackgroundColor = Colors.Transparent;
+        image.Shadow = null;
     }
 
     void ConfigureProfileStatusBadge(double avatarSize)
