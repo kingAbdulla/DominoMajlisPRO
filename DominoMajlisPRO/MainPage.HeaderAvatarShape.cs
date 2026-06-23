@@ -8,6 +8,7 @@ public partial class MainPage
 {
     const string HeaderAvatarOuterHostId = "MainHeaderAvatarOuterHost";
     const string HeaderAvatarInnerHostId = "MainHeaderAvatarInnerHost";
+    const string MainHeaderEffectOverlayStyleId = "MainHeaderAvatarEffectOverlay";
     const double MainHeaderAvatarEffectScale = 1.18;
     const double MainHeaderAvatarPhoneSize = 58;
     const double MainHeaderAvatarTabletSize = 72;
@@ -71,24 +72,39 @@ public partial class MainPage
         HeaderPlayerAvatar.Aspect = Aspect.AspectFill;
         HeaderAvatarFrameOverlay.Aspect = Aspect.AspectFit;
         HeaderAvatarEffectOverlay.Aspect = Aspect.AspectFit;
-        HeaderAvatarEffectOverlay.StyleId = string.Empty;
+        HeaderAvatarEffectOverlay.StyleId = MainHeaderEffectOverlayStyleId;
     }
 
     void ApplyMainHeaderAvatarIdentityVisuals(PlayerVisualIdentity identity)
     {
         ApplyMainHeaderAvatarShape();
 
-        var frameSource =
-            ToHeaderImageSource(identity.Frame?.PreviewImage);
-        HeaderAvatarFrameOverlay.Source = frameSource;
-        HeaderAvatarFrameOverlay.IsVisible = frameSource != null;
+        HeaderAvatarFrameOverlay.Source = null;
+        HeaderAvatarFrameOverlay.IsVisible = false;
 
+        HeaderAvatarEffectOverlay.StyleId = MainHeaderEffectOverlayStyleId;
         PlayerEffectEngine.Apply(
             HeaderAvatarEffectOverlay,
             identity.Effect,
             MainHeaderAvatarEffectScale);
 
-        ApplyMainHeaderAvatarShape();
+        RemoveHeaderAvatarDecorativeRings();
+    }
+
+    void RemoveHeaderAvatarDecorativeRings()
+    {
+        Border border = EnsureMainHeaderAvatarBorder();
+        border.BackgroundColor = Colors.Transparent;
+        border.Stroke = Colors.Transparent;
+        border.StrokeThickness = 0;
+        border.Shadow = null;
+        border.Clip = null;
+
+        HeaderAvatarFrameOverlay.Source = null;
+        HeaderAvatarFrameOverlay.IsVisible = false;
+        HeaderAvatarFrameOverlay.Opacity = 0;
+        HeaderAvatarFrameOverlay.Shadow = null;
+        HeaderAvatarFrameOverlay.BackgroundColor = Colors.Transparent;
     }
 
     Border EnsureMainHeaderAvatarBorder()
@@ -164,6 +180,7 @@ public partial class MainPage
         int zIndex)
     {
         ConfigureHeaderAvatarImage(image, size, zIndex);
+        image.StyleId = MainHeaderEffectOverlayStyleId;
         image.BackgroundColor = Colors.Transparent;
         image.Shadow = null;
     }
@@ -249,19 +266,14 @@ public partial class MainPage
                 graphicsView.MinimumHeightRequest = size;
                 graphicsView.HorizontalOptions = LayoutOptions.Fill;
                 graphicsView.VerticalOptions = LayoutOptions.Fill;
-                graphicsView.Clip = null;
                 graphicsView.BackgroundColor = Colors.Transparent;
                 graphicsView.InputTransparent = true;
                 graphicsView.ZIndex = 3;
-                graphicsView.Scale = 1.0;
-                graphicsView.Opacity = 1.0;
             }
             else if (child is Image image)
             {
                 image.BackgroundColor = Colors.Transparent;
                 image.Shadow = null;
-                image.Clip = null;
-                image.Scale = 1.0;
             }
         }
     }
