@@ -7,10 +7,12 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class TeamEffectEngine
 {
+    private const double DefaultTeamEffectScale = 0.86;
+
     public static async Task ApplyAsync(
         Image overlaySlot,
         string? teamId,
-        double baseScale = 1.18,
+        double baseScale = DefaultTeamEffectScale,
         bool lightweight = false)
     {
         var team = string.IsNullOrWhiteSpace(teamId)
@@ -22,7 +24,7 @@ public static class TeamEffectEngine
     public static async Task ApplyAsync(
         Image overlaySlot,
         TeamProfileModel? team,
-        double baseScale = 1.18,
+        double baseScale = DefaultTeamEffectScale,
         bool lightweight = false)
     {
         var effect = await ResolveTeamEffectAsync(team);
@@ -87,7 +89,7 @@ public static class TeamEffectEngine
     public static async Task ApplyAroundAsync(
         Image emblem,
         string? teamId,
-        double baseScale = 1.18,
+        double baseScale = DefaultTeamEffectScale,
         bool lightweight = false)
     {
         var team = string.IsNullOrWhiteSpace(teamId)
@@ -245,7 +247,7 @@ public static class TeamEffectBehavior
         _ = TeamEffectEngine.ApplyAroundAsync(
             image,
             GetTeamId(image),
-            1.18,
+            DefaultTeamEffectScale,
             GetLightweight(image));
     }
 }
