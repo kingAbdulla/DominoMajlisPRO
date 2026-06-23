@@ -7,7 +7,7 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class TeamEffectEngine
 {
-    public const double DefaultTeamEffectScale = 0.86;
+    public const double DefaultTeamEffectScale = 0.38;
 
     public static async Task ApplyAsync(
         Image overlaySlot,
