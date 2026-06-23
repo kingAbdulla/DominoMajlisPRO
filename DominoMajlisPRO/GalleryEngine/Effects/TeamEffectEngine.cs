@@ -1,4 +1,4 @@
-using DominoMajlisPRO.GalleryEngine.Admin.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
@@ -34,6 +34,9 @@ public static class TeamEffectEngine
         var effect = await StoreAssetCatalogService.ResolveAsync(
             team.EquippedTeamEffectAssetId,
             StoreProductAssetType.TeamEffect.ToString());
+
+        if (effect == null) { IdentityEffectRenderer.Clear(overlaySlot); return; }
+
         IdentityEffectRenderer.Apply(overlaySlot, effect, baseScale, lightweight);
     }
 
@@ -87,9 +90,14 @@ public static class TeamEffectEngine
             : await TeamProfileService.GetTeamByIdAsync(teamId);
         CatalogAssetDisplay? effect = null;
         if (!string.IsNullOrWhiteSpace(team?.EquippedTeamEffectAssetId))
+        {
             effect = await StoreAssetCatalogService.ResolveAsync(
                 team.EquippedTeamEffectAssetId,
                 StoreProductAssetType.TeamEffect.ToString());
+
+            
+        }
+
         IdentityEffectRenderer.ApplyAround(emblem, effect, baseScale, lightweight);
     }
 }
@@ -132,3 +140,5 @@ public static class TeamEffectBehavior
                 image, GetTeamId(image), 1.18, GetLightweight(image));
     }
 }
+
+

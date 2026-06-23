@@ -1,4 +1,4 @@
-using DominoMajlisPRO.Models;
+﻿using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
@@ -52,17 +52,38 @@ public sealed record EmblemBackgroundPickerItem(string AssetId, string Backgroun
 public sealed class TeamEffectCarouselItem : INotifyPropertyChanged
 {
     private bool _isSelected;
-    public TeamEffectCarouselItem(string assetId, string displayName, CatalogAssetDisplay? effect)
-    { AssetId = assetId; DisplayName = displayName; Effect = effect; }
+
+    public TeamEffectCarouselItem(
+        string assetId,
+        string displayName,
+        CatalogAssetDisplay? effect,
+        string ownerPlayerId = "")
+    {
+        AssetId = assetId;
+        DisplayName = displayName;
+        Effect = effect;
+        OwnerPlayerId = ownerPlayerId?.Trim() ?? string.Empty;
+    }
+
     public string AssetId { get; }
     public string DisplayName { get; }
     public CatalogAssetDisplay? Effect { get; }
+    public string OwnerPlayerId { get; }
     public bool IsNone => Effect == null;
+
     public bool IsSelected
     {
         get => _isSelected;
-        set { if (_isSelected == value) return; _isSelected = value; PropertyChanged?.Invoke(this, new(nameof(IsSelected))); }
+        set
+        {
+            if (_isSelected == value)
+                return;
+
+            _isSelected = value;
+            PropertyChanged?.Invoke(this, new(nameof(IsSelected)));
+        }
     }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 }
 
@@ -190,9 +211,21 @@ public partial class CreateTeamPage : ContentPage
                 var catalog = await StoreAssetCatalogService.LoadAsync();
                 var storeOwner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
                 var ownedTeamEffects = new List<TeamEffectCarouselItem>();
-                if (!storeOwner.IsGhost && !string.IsNullOrWhiteSpace(storeOwner.PlayerId))
+
+                var teamEffectOwnerIds = new[]
+                    {
+                        player1?.PlayerId ?? ownerTeam?.Player1Id,
+                        player2?.PlayerId ?? (isTeamMode ? ownerTeam?.Player2Id : null),
+                        storeOwner.IsGhost ? null : storeOwner.PlayerId
+                    }
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .Select(id => id!.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                foreach (var ownerPlayerId in teamEffectOwnerIds)
                 {
-                    var playerInventory = await PlayerInventoryService.LoadOwnedAsync(storeOwner.PlayerId);
+                    var playerInventory = await PlayerInventoryService.LoadOwnedAsync(ownerPlayerId);
                     foreach (var owned in playerInventory.Where(item =>
                                  string.Equals(StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId),
                                      StoreProductAssetType.TeamEffect.ToString(),
@@ -200,9 +233,15 @@ public partial class CreateTeamPage : ContentPage
                     {
                         var effect = StoreAssetCatalogService.Resolve(catalog, owned.AssetId,
                             StoreProductAssetType.TeamEffect.ToString());
-                        if (effect != null)
-                            ownedTeamEffects.Add(new TeamEffectCarouselItem(
-                                owned.AssetId, effect.DisplayName, effect));
+
+                        if (effect == null)
+                            continue;
+
+                        ownedTeamEffects.Add(new TeamEffectCarouselItem(
+                            owned.AssetId,
+                            string.IsNullOrWhiteSpace(effect.DisplayName) ? owned.AssetId : effect.DisplayName,
+                            effect,
+                            ownerPlayerId));
                     }
                 }
 
@@ -262,9 +301,9 @@ public partial class CreateTeamPage : ContentPage
                 var newBackgrounds = backgroundItems.ToList();
                 var newTeamEffects = ownedTeamEffects.Count == 0
                     ? new List<TeamEffectCarouselItem>()
-                    : new[] { new TeamEffectCarouselItem("", "بدون تأثير", null) }
+                    : new[] { new TeamEffectCarouselItem("", "ط¨ط¯ظˆظ† طھط£ط«ظٹط±", null) }
                         .Concat(ownedTeamEffects
-                            .GroupBy(item => item.AssetId, StringComparer.OrdinalIgnoreCase)
+                            .GroupBy(item => $"{item.AssetId}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
                             .Select(group => group.First()))
                         .ToList();
 
@@ -329,7 +368,7 @@ public partial class CreateTeamPage : ContentPage
         AddColorIfMissing("default_color_blue", "#006DFF", "blue_color.png", "Blue");
         AddColorIfMissing("default_color_gold", "#FFD700", "gold_color.png", "Gold");
 
-        AddBackgroundIfMissing("default_background_transparent", "Transparent", "بدون خلفية");
+        AddBackgroundIfMissing("default_background_transparent", "Transparent", "ط¨ط¯ظˆظ† ط®ظ„ظپظٹط©");
     }
 
     void AddSavedIdentityIfMissing(TeamProfileModel team)
@@ -388,14 +427,14 @@ public partial class CreateTeamPage : ContentPage
 
     void OnSingleClicked(object sender, EventArgs e)
     {
-        PreviewMode.Text = "فردي";
+        PreviewMode.Text = "ظپط±ط¯ظٹ";
         isTeamMode = false;
 
         Player2Layout.IsVisible = false;
         PreviewPlayer2.IsVisible = false;
 
         string player1 = string.IsNullOrWhiteSpace(Player1Entry.Text)
-            ? "اللاعب الأول"
+            ? "ط§ظ„ظ„ط§ط¹ط¨ ط§ظ„ط£ظˆظ„"
             : Player1Entry.Text;
 
         PreviewPlayer1.Text = player1;
@@ -413,7 +452,7 @@ public partial class CreateTeamPage : ContentPage
 
     void OnTeamClicked(object sender, EventArgs e)
     {
-        PreviewMode.Text = "فريق";
+        PreviewMode.Text = "ظپط±ظٹظ‚";
         isTeamMode = true;
 
         Player2Layout.IsVisible = true;
@@ -580,6 +619,7 @@ public partial class CreateTeamPage : ContentPage
             selectedTeamEffectAssetId = string.Empty;
             selectedTeamEffectOwnerPlayerId = string.Empty;
             IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
+            IdentityEffectRenderer.ApplyAround(PreviewEmblem, null);
             return false;
         }
 
@@ -590,11 +630,13 @@ public partial class CreateTeamPage : ContentPage
         {
             selectedTeamEffectOwnerPlayerId = string.Empty;
             IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
+            IdentityEffectRenderer.ApplyAround(PreviewEmblem, null);
         }
         else
         {
-            IdentityEffectRenderer.Apply(PreviewTeamEffectOverlay, selected.Effect, 1.24);
-            _ = CaptureCurrentEffectOwnerAsync();
+            selectedTeamEffectOwnerPlayerId = selected.OwnerPlayerId;
+            IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
+            IdentityEffectRenderer.ApplyAround(PreviewEmblem, selected.Effect, 1.18, lightweight: true);
         }
         if (!ReferenceEquals(TeamEffectCarousel.SelectedItem, selected))
             TeamEffectCarousel.SelectedItem = selected;
@@ -663,7 +705,7 @@ public partial class CreateTeamPage : ContentPage
     {
         if (string.IsNullOrWhiteSpace(TeamNameEntry.Text))
         {
-            await DisplayAlert("تنبيه", "أدخل اسم الفريق", "حسناً");
+            await DisplayAlert("طھظ†ط¨ظٹظ‡", "ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ظپط±ظٹظ‚", "ط­ط³ظ†ط§ظ‹");
             return;
         }
 
@@ -683,7 +725,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (!string.IsNullOrWhiteSpace(player2) && normalizedPlayer1 == normalizedPlayer2)
         {
-            await DisplayAlert("لا يمكن إنشاء الفريق", "لا يمكن إضافة نفس اللاعب مرتين داخل الفريق", "حسناً");
+            await DisplayAlert("ظ„ط§ ظٹظ…ظƒظ† ط¥ظ†ط´ط§ط، ط§ظ„ظپط±ظٹظ‚", "ظ„ط§ ظٹظ…ظƒظ† ط¥ط¶ط§ظپط© ظ†ظپط³ ط§ظ„ظ„ط§ط¹ط¨ ظ…ط±طھظٹظ† ط¯ط§ط®ظ„ ط§ظ„ظپط±ظٹظ‚", "ط­ط³ظ†ط§ظ‹");
             return;
         }
 
@@ -695,7 +737,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (duplicateName)
         {
-            await DisplayAlert("تنبيه", "اسم الفريق مستخدم مسبقاً", "حسناً");
+            await DisplayAlert("طھظ†ط¨ظٹظ‡", "ط§ط³ظ… ط§ظ„ظپط±ظٹظ‚ ظ…ط³طھط®ط¯ظ… ظ…ط³ط¨ظ‚ط§ظ‹", "ط­ط³ظ†ط§ظ‹");
             return;
         }
 
@@ -704,7 +746,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (TeamCompositionExists(teams, player1Id, player2Id))
         {
-            await DisplayAlert("تنبيه", "هذه التشكيلة تمتلك فريقاً مسبقاً", "حسناً");
+            await DisplayAlert("طھظ†ط¨ظٹظ‡", "ظ‡ط°ظ‡ ط§ظ„طھط´ظƒظٹظ„ط© طھظ…طھظ„ظƒ ظپط±ظٹظ‚ط§ظ‹ ظ…ط³ط¨ظ‚ط§ظ‹", "ط­ط³ظ†ط§ظ‹");
             return;
         }
 
@@ -752,7 +794,7 @@ public partial class CreateTeamPage : ContentPage
             AppEvents.RaiseDataChanged();
             AppEvents.RaiseTeamAssetsChanged(team.TeamId);
 
-            await DisplayAlert("تم", "تم إنشاء الفريق", "ممتاز");
+            await DisplayAlert("طھظ…", "طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظپط±ظٹظ‚", "ظ…ظ…طھط§ط²");
 
             ResetForm();
 
@@ -838,7 +880,7 @@ public partial class CreateTeamPage : ContentPage
         AppEvents.RaiseDataChanged();
         AppEvents.RaiseTeamAssetsChanged(existing.TeamId);
 
-        await DisplayAlert("تم", "تم تحديث الفريق", "ممتاز");
+        await DisplayAlert("طھظ…", "طھظ… طھط­ط¯ظٹط« ط§ظ„ظپط±ظٹظ‚", "ظ…ظ…طھط§ط²");
 
         ResetForm();
 
@@ -857,7 +899,7 @@ public partial class CreateTeamPage : ContentPage
     {
         PreviewTeamName.Text =
             string.IsNullOrWhiteSpace(TeamNameEntry.Text)
-                ? "اسم الفريق"
+                ? "ط§ط³ظ… ط§ظ„ظپط±ظٹظ‚"
                 : TeamNameEntry.Text;
     }
 
@@ -868,12 +910,12 @@ public partial class CreateTeamPage : ContentPage
 
         string player1 =
             string.IsNullOrWhiteSpace(Player1Entry.Text)
-                ? "اللاعب الأول"
+                ? "ط§ظ„ظ„ط§ط¹ط¨ ط§ظ„ط£ظˆظ„"
                 : Player1Entry.Text;
 
         string player2 =
             string.IsNullOrWhiteSpace(Player2Entry.Text)
-                ? "اللاعب الثاني"
+                ? "ط§ظ„ظ„ط§ط¹ط¨ ط§ظ„ط«ط§ظ†ظٹ"
                 : Player2Entry.Text;
 
         PreviewPlayer1.Text = player1;
@@ -891,10 +933,10 @@ public partial class CreateTeamPage : ContentPage
 
         bool confirm =
             await DisplayAlert(
-                "حذف الفريق",
-                $"هل تريد حذف {team.TeamName} ؟",
-                "نعم",
-                "إلغاء");
+                "ط­ط°ظپ ط§ظ„ظپط±ظٹظ‚",
+                $"ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ {team.TeamName} طں",
+                "ظ†ط¹ظ…",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -935,10 +977,10 @@ public partial class CreateTeamPage : ContentPage
     {
         bool confirm =
             await DisplayAlert(
-                "حذف جميع الفرق",
-                "سيتم حذف جميع الفرق المحفوظة نهائياً، هل أنت متأكد؟",
-                "نعم",
-                "إلغاء");
+                "ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚",
+                "ط³ظٹطھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚ ط§ظ„ظ…ط­ظپظˆط¸ط© ظ†ظ‡ط§ط¦ظٹط§ظ‹طŒ ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں",
+                "ظ†ط¹ظ…",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -966,7 +1008,7 @@ public partial class CreateTeamPage : ContentPage
         Player1Entry.Text = "";
         Player2Entry.Text = "";
 
-        await DisplayAlert("تم", "تم حذف جميع الفرق", "ممتاز");
+        await DisplayAlert("طھظ…", "طھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚", "ظ…ظ…طھط§ط²");
     }
 
     async void OnSelectTeamClicked(object sender, EventArgs e)
@@ -991,10 +1033,10 @@ public partial class CreateTeamPage : ContentPage
     {
         bool confirm =
             await DisplayAlert(
-                "حذف جميع الفرق",
-                "سيتم حذف جميع الفرق المحفوظة نهائياً، هل أنت متأكد؟",
-                "نعم",
-                "إلغاء");
+                "ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚",
+                "ط³ظٹطھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚ ط§ظ„ظ…ط­ظپظˆط¸ط© ظ†ظ‡ط§ط¦ظٹط§ظ‹طŒ ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں",
+                "ظ†ط¹ظ…",
+                "ط¥ظ„ط؛ط§ط،");
 
         if (!confirm)
             return;
@@ -1010,7 +1052,7 @@ public partial class CreateTeamPage : ContentPage
         Player1Entry.Text = "";
         Player2Entry.Text = "";
 
-        await DisplayAlert("تم", "تم حذف جميع الفرق", "ممتاز");
+        await DisplayAlert("طھظ…", "طھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚", "ظ…ظ…طھط§ط²");
     }
 
     void LoadTeam(TeamProfileModel team)
@@ -1075,7 +1117,7 @@ public partial class CreateTeamPage : ContentPage
         PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
         PreviewEmblemBackground.BackgroundColor = SafeColor(selectedEmblemBackground);
 
-        SaveButtonText.Text = "تحديث الفريق";
+        SaveButtonText.Text = "طھط­ط¯ظٹط« ط§ظ„ظپط±ظٹظ‚";
 
         ApplyLoadedEmblem();
         ApplyLoadedColor();
@@ -1127,7 +1169,7 @@ public partial class CreateTeamPage : ContentPage
         PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
         PreviewEmblemBackground.BackgroundColor = Colors.Transparent;
 
-        SaveButtonText.Text = "إنشاء الفريق";
+        SaveButtonText.Text = "ط¥ظ†ط´ط§ط، ط§ظ„ظپط±ظٹظ‚";
 
         _ = LoadOwnedTeamAssetsAsync();
     }
@@ -1238,10 +1280,10 @@ public partial class CreateTeamPage : ContentPage
         {
             bool useExisting =
                 await DisplayAlert(
-                    "لاعب مشابه",
-                    $"تم العثور على لاعب مشابه:\n\n{similarPlayer.PlayerName}\n({similarPlayer.PlayerId})\n\nهل تقصد هذا اللاعب؟",
-                    "نعم",
-                    "لا");
+                    "ظ„ط§ط¹ط¨ ظ…ط´ط§ط¨ظ‡",
+                    $"طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ„ط§ط¹ط¨ ظ…ط´ط§ط¨ظ‡:\n\n{similarPlayer.PlayerName}\n({similarPlayer.PlayerId})\n\nظ‡ظ„ طھظ‚طµط¯ ظ‡ط°ط§ ط§ظ„ظ„ط§ط¹ط¨طں",
+                    "ظ†ط¹ظ…",
+                    "ظ„ط§");
 
             if (useExisting)
                 return similarPlayer.PlayerId;
@@ -1339,3 +1381,4 @@ public partial class CreateTeamPage : ContentPage
         await PlayerProfileService.SavePlayersAsync(players);
     }
 }
+

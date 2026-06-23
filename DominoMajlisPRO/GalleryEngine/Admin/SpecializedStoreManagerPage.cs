@@ -576,3 +576,4 @@ public sealed record SpecializedStoreManagerDefinition(string Title, string Subt
     public static SpecializedStoreManagerDefinition TeamColors { get; } = new("ط£ظ„ظˆط§ظ† ط§ظ„ظپط±ظ‚", "ظ†ط´ط± ط£ظ„ظˆط§ظ† ظ‡ظˆظٹط© ط§ظ„ظپط±ظ‚", new[] { StoreProductAssetType.TeamColor }, IsTeamColor: true);
 }
 
+
