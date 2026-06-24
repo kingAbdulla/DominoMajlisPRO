@@ -4,6 +4,7 @@ using Microsoft.Maui.Controls.Shapes;
 using System.Reflection;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 
 namespace DominoMajlisPRO.Pages;
 
@@ -15,6 +16,16 @@ public partial class HallOfFamePage : ContentPage
     IReadOnlyDictionary<string, TeamIdentityModel> teamIdentities =
         new Dictionary<string, TeamIdentityModel>(
             StringComparer.OrdinalIgnoreCase);
+    
+    // VisualEventBus subscription tokens
+    IDisposable? teamEmblemChangedSubscription;
+    IDisposable? teamColorChangedSubscription;
+    IDisposable? teamEffectChangedSubscription;
+    IDisposable? teamEmblemBackgroundChangedSubscription;
+    IDisposable? playerAvatarChangedSubscription;
+    IDisposable? playerProfileBackgroundChangedSubscription;
+    IDisposable? playerFrameChangedSubscription;
+    IDisposable? playerEffectChangedSubscription;
 
     const string CardGlass = "#151515";
     const string BronzeStroke = "#5B3B18";
@@ -45,6 +56,32 @@ public partial class HallOfFamePage : ContentPage
         AppEvents.TeamsChanged += OnHallDataChanged;
         AppEvents.RankingsChanged += OnHallDataChanged;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
+        
+        // Subscribe to VisualEventBus identity events
+        teamEmblemChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemChanged);
+        teamColorChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamColorChanged);
+        teamEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEffectChanged);
+        teamEmblemBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemBackgroundChanged);
+        playerAvatarChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerAvatarChanged);
+        playerProfileBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerProfileBackgroundChanged);
+        playerFrameChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerFrameChanged);
+        playerEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerEffectChanged);
 
         await LoadHallOfFameAsync();
     }
@@ -52,6 +89,16 @@ public partial class HallOfFamePage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        
+        // Dispose VisualEventBus subscriptions
+        teamEmblemChangedSubscription?.Dispose();
+        teamColorChangedSubscription?.Dispose();
+        teamEffectChangedSubscription?.Dispose();
+        teamEmblemBackgroundChangedSubscription?.Dispose();
+        playerAvatarChangedSubscription?.Dispose();
+        playerProfileBackgroundChangedSubscription?.Dispose();
+        playerFrameChangedSubscription?.Dispose();
+        playerEffectChangedSubscription?.Dispose();
 
         AppEvents.DataChanged -= OnHallDataChanged;
         AppEvents.PlayerProfileChanged -= OnHallDataChanged;
@@ -71,6 +118,35 @@ public partial class HallOfFamePage : ContentPage
     }
 
     void OnTeamAssetsChanged(string teamId) => OnHallDataChanged();
+
+    // VisualEventBus identity event handler - reuse existing refresh path
+    // Filtering is deferred by architecture to avoid false negatives
+    void HandleVisualIdentityEvent(EventEntry eventEntry)
+    {
+        if (eventEntry.EventData == null)
+            return;
+        
+        // Validate payload contains either TeamId or PlayerId
+        bool hasTeamId = eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.TeamId);
+        bool hasPlayerId = eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.PlayerId);
+        
+        if (!hasTeamId && !hasPlayerId)
+            return;
+        
+        // Conservative behavior: always refresh on valid identity events
+        OnHallDataChanged();
+    }
+
+    // Individual event handlers
+    void OnTeamEmblemChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnTeamColorChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnTeamEffectChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnTeamEmblemBackgroundChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+
+    void OnPlayerAvatarChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnPlayerProfileBackgroundChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnPlayerFrameChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnPlayerEffectChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
 
     async Task LoadHallOfFameAsync()
     {
