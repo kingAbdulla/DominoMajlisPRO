@@ -26,6 +26,7 @@ public static class PlayerVisualIdentityResolver
         var catalogTask = StoreAssetCatalogService.LoadAsync();
         var session = await ApplicationUserService.EnsureCurrentSessionAsync();
         var appUserId = session.ApplicationUserId ?? string.Empty;
+        _ = appUserId;
         var inventoryTask =
             PlayerAssetInventoryService.GetInventoryForPlayerAsync(resolvedPlayerId);
         await Task.WhenAll(catalogTask, inventoryTask);
@@ -65,17 +66,41 @@ public static class PlayerVisualIdentityResolver
         IReadOnlyList<CatalogAssetDisplay> catalog,
         string assetType)
     {
-        var item = inventory.FirstOrDefault(candidate =>
+        var strictItem = inventory.FirstOrDefault(candidate =>
             string.Equals(
                 StoreAssetCatalogService.CanonicalTypeId(
                     candidate.StoreTypeId),
                 assetType,
-                StringComparison.OrdinalIgnoreCase));
-        return item == null
+                StringComparison.OrdinalIgnoreCase) &&
+            StoreAssetCatalogService.Resolve(
+                catalog,
+                candidate.AssetId,
+                assetType) != null);
+
+        if (strictItem != null)
+        {
+            return StoreAssetCatalogService.Resolve(
+                catalog,
+                strictItem.AssetId,
+                assetType);
+        }
+
+        // Recovery path for older inventory rows whose StoreTypeId was saved before
+        // the canonical picker/type migration. The asset is accepted only when the
+        // catalog itself confirms the requested canonical type; this prevents a
+        // TeamEffect from being rendered as a player Effect and keeps the player/team
+        // separation intact.
+        var fallbackItem = inventory.FirstOrDefault(candidate =>
+            StoreAssetCatalogService.Resolve(
+                catalog,
+                candidate.AssetId,
+                assetType) != null);
+
+        return fallbackItem == null
             ? null
             : StoreAssetCatalogService.Resolve(
                 catalog,
-                item.AssetId,
+                fallbackItem.AssetId,
                 assetType);
     }
 
