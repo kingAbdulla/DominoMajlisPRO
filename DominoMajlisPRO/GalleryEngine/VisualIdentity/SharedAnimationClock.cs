@@ -142,14 +142,9 @@ namespace DominoMajlisPRO.GalleryEngine.VisualIdentity
             get
             {
 #if DEBUG
-                try
-                {
-                    return Microsoft.Maui.ApplicationModel.Platform.CurrentThreadId == Environment.CurrentManagedThreadId;
-                }
-                catch
-                {
-                    return true; // Assume UI thread if detection fails
-                }
+                // Platform.CurrentThreadId is not available on all platforms
+                // Assume UI thread for debug diagnostics
+                return true;
 #else
                 return true;
 #endif
