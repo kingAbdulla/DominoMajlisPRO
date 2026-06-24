@@ -3,6 +3,7 @@ using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using System.ComponentModel;
 using System.Threading;
 
@@ -790,6 +791,46 @@ public partial class CreateTeamPage : ContentPage
             teams.Add(team);
 
             await TeamProfileService.SaveTeamsAsync(teams);
+            
+            // Publish to VisualEventBus for Living Visual Identity Engine
+            var newTeamEmblemPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, team.TeamId },
+                { VisualIdentityPayloadKeys.EmblemAssetId, team.EmblemAssetId },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            // No previous emblem for new team
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEmblemChanged, newTeamEmblemPayload, isSticky: true, stickyExpirationMs: 0);
+            
+            // Publish TeamColorChanged for new team
+            var newTeamColorPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, team.TeamId },
+                { VisualIdentityPayloadKeys.PrimaryColorHex, team.ColorHex },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamColorChanged, newTeamColorPayload, isSticky: true, stickyExpirationMs: 0);
+            
+            // Publish TeamEffectChanged for new team if effect equipped
+            if (!string.IsNullOrWhiteSpace(team.EquippedTeamEffectAssetId))
+            {
+                var newTeamEffectPayload = new Dictionary<string, object>
+                {
+                    { VisualIdentityPayloadKeys.TeamId, team.TeamId },
+                    { VisualIdentityPayloadKeys.EffectAssetId, team.EquippedTeamEffectAssetId },
+                    { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+                };
+                VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEffectChanged, newTeamEffectPayload, isSticky: true, stickyExpirationMs: 0);
+            }
+            
+            // Publish TeamEmblemBackgroundChanged for new team
+            var newTeamEmblemBackgroundPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, team.TeamId },
+                { VisualIdentityPayloadKeys.BackgroundAssetId, team.EmblemBackgroundAssetId },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEmblemBackgroundChanged, newTeamEmblemBackgroundPayload, isSticky: true, stickyExpirationMs: 0);
 
             AppEvents.RaiseDataChanged();
             AppEvents.RaiseTeamAssetsChanged(team.TeamId);
@@ -805,6 +846,14 @@ public partial class CreateTeamPage : ContentPage
 
         if (existing == null)
             return;
+
+        // Capture previous identity values before changing
+        var previousEmblemAssetId = existing.EmblemAssetId;
+        var previousColorHex = existing.ColorHex;
+        var previousTeamColorAssetId = existing.TeamColorAssetId;
+        var previousEmblemBackground = existing.EmblemBackground;
+        var previousEmblemBackgroundAssetId = existing.EmblemBackgroundAssetId;
+        var previousTeamEffectAssetId = existing.EquippedTeamEffectAssetId;
 
         existing.TeamName = TeamNameEntry.Text;
 
@@ -876,6 +925,69 @@ public partial class CreateTeamPage : ContentPage
         }
 
         await TeamProfileService.SaveTeamsAsync(teams);
+        
+        // Publish to VisualEventBus for Living Visual Identity Engine
+        if (!string.Equals(
+            previousEmblemAssetId,
+            existing.EmblemAssetId,
+            StringComparison.OrdinalIgnoreCase))
+        {
+            var existingTeamEmblemPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, existing.TeamId },
+                { VisualIdentityPayloadKeys.EmblemAssetId, existing.EmblemAssetId },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            if (!string.IsNullOrWhiteSpace(previousEmblemAssetId))
+            {
+                existingTeamEmblemPayload[
+                    VisualIdentityPayloadKeys.PreviousEmblemAssetId] =
+                    previousEmblemAssetId;
+            }
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEmblemChanged, existingTeamEmblemPayload, isSticky: true, stickyExpirationMs: 0);
+        }
+        
+        // Publish TeamColorChanged if color changed
+        if (!string.Equals(previousColorHex, existing.ColorHex, StringComparison.OrdinalIgnoreCase))
+        {
+            var teamColorPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, existing.TeamId },
+                { VisualIdentityPayloadKeys.PrimaryColorHex, existing.ColorHex },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            if (!string.IsNullOrWhiteSpace(previousColorHex))
+                teamColorPayload[VisualIdentityPayloadKeys.PreviousPrimaryColorHex] = previousColorHex;
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamColorChanged, teamColorPayload, isSticky: true, stickyExpirationMs: 0);
+        }
+        
+        // Publish TeamEffectChanged if effect changed
+        if (!string.Equals(previousTeamEffectAssetId, existing.EquippedTeamEffectAssetId, StringComparison.OrdinalIgnoreCase))
+        {
+            var teamEffectPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, existing.TeamId },
+                { VisualIdentityPayloadKeys.EffectAssetId, existing.EquippedTeamEffectAssetId },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            if (!string.IsNullOrWhiteSpace(previousTeamEffectAssetId))
+                teamEffectPayload[VisualIdentityPayloadKeys.PreviousEffectAssetId] = previousTeamEffectAssetId;
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEffectChanged, teamEffectPayload, isSticky: true, stickyExpirationMs: 0);
+        }
+        
+        // Publish TeamEmblemBackgroundChanged if background changed
+        if (!string.Equals(previousEmblemBackgroundAssetId, existing.EmblemBackgroundAssetId, StringComparison.OrdinalIgnoreCase))
+        {
+            var emblemBackgroundPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, existing.TeamId },
+                { VisualIdentityPayloadKeys.BackgroundAssetId, existing.EmblemBackgroundAssetId },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            if (!string.IsNullOrWhiteSpace(previousEmblemBackgroundAssetId))
+                emblemBackgroundPayload[VisualIdentityPayloadKeys.PreviousBackgroundAssetId] = previousEmblemBackgroundAssetId;
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEmblemBackgroundChanged, emblemBackgroundPayload, isSticky: true, stickyExpirationMs: 0);
+        }
 
         AppEvents.RaiseDataChanged();
         AppEvents.RaiseTeamAssetsChanged(existing.TeamId);
