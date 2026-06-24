@@ -38,9 +38,13 @@ public static class PlayerInventoryService
     private static async Task<bool> AddOwnedItemCoreAsync(string playerId, string assetId, string storeTypeId, string source, DateTime? expireAt, string? seasonId, string? collectionId, bool raiseEvent)
     {
         ValidateIdentity(playerId, assetId);
+        
+        // Resolve ApplicationUserId from current session for identity isolation
+        var appUserId = (await ApplicationUserService.EnsureCurrentSessionAsync()).ApplicationUserId ?? string.Empty;
+        
         var added = await AddOwnedAsync(new PlayerOwnedStoreItem
         {
-            ApplicationUserId = string.Empty,
+            ApplicationUserId = appUserId,
             PlayerId = playerId,
             AssetId = assetId,
             ItemId = assetId,
@@ -65,6 +69,13 @@ public static class PlayerInventoryService
     {
         Normalize(owned);
         ValidateIdentity(owned.PlayerId, owned.AssetId);
+        
+        // Validate ApplicationUserId for identity isolation
+        if (owned.IsOwned && string.IsNullOrWhiteSpace(owned.ApplicationUserId))
+        {
+            throw new InvalidOperationException("ApplicationUserId is required for owned inventory items.");
+        }
+        
         await Gate.WaitAsync();
         try
         {
@@ -158,7 +169,10 @@ public static class PlayerInventoryService
     {
         var records = group.OrderByDescending(x => x.IsEquipped).ThenByDescending(x => x.PurchasedAt).ToList();
         var merged = records[0];
-        merged.ApplicationUserId = string.Empty;
+        
+        // Preserve ApplicationUserId from source records for identity isolation
+        merged.ApplicationUserId = records.Select(r => r.ApplicationUserId).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+        
         merged.IsOwned = records.Any(x => x.IsOwned);
         merged.IsEquipped = records.Any(x => x.IsEquipped) && !records.All(x => x.IsExpired);
         merged.EquippedAt = records.Where(x => x.IsEquipped).Select(x => x.EquippedAt).OrderByDescending(x => x).FirstOrDefault();
@@ -177,7 +191,10 @@ public static class PlayerInventoryService
     {
         var before = $"{item.InventoryItemId}|{item.ApplicationUserId}|{item.PlayerId}|{item.AssetId}|{item.StoreTypeId}|{item.AssetType}|{item.PurchasedAt:O}|{item.Source}|{item.ItemId}|{item.AcquiredAt:O}|{item.IsExpired}";
         item.InventoryItemId = string.IsNullOrWhiteSpace(item.InventoryItemId) ? Guid.NewGuid().ToString() : item.InventoryItemId.Trim();
-        item.ApplicationUserId = string.Empty;
+        
+        // Preserve ApplicationUserId if present for identity isolation
+        item.ApplicationUserId = item.ApplicationUserId?.Trim() ?? string.Empty;
+        
         item.PlayerId = item.PlayerId?.Trim() ?? string.Empty;
         item.AssetId = !string.IsNullOrWhiteSpace(item.AssetId) ? item.AssetId.Trim() : !string.IsNullOrWhiteSpace(item.ItemId) ? item.ItemId.Trim() : Guid.NewGuid().ToString();
         item.ItemId = item.AssetId;
