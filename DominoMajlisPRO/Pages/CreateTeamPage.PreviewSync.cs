@@ -65,7 +65,6 @@ public partial class CreateTeamPage
                 ? "اللاعب الثاني"
                 : Player2Entry.Text.Trim();
 
-            // The preview card is visually RTL. Keep player 1 in the right slot and player 2 in the left slot.
             PreviewPlayer1.Text = isTeamMode ? player2 : player1;
             PreviewPlayer2.Text = isTeamMode ? player1 : string.Empty;
             PreviewPlayer2.IsVisible = isTeamMode;
@@ -75,7 +74,6 @@ public partial class CreateTeamPage
         }
         catch
         {
-            // Preview text sync is visual-only and must never block CreateTeamPage.
         }
     }
 
@@ -148,7 +146,6 @@ public partial class CreateTeamPage
         }
         catch
         {
-            // Effect choice synchronization is visual-only here; save validation remains in OnSaveClicked.
         }
         finally
         {
@@ -207,22 +204,20 @@ public partial class CreateTeamPage
         if (string.IsNullOrWhiteSpace(assetId))
             return null;
 
-        var canonicalTypeId = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
-
-        if (string.Equals(canonicalTypeId, StoreProductAssetType.TeamEffect.ToString(), StringComparison.OrdinalIgnoreCase))
-        {
-            var teamTyped = StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.TeamEffect.ToString());
-            if (teamTyped != null)
-                return teamTyped;
-        }
+        var teamTyped = StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.TeamEffect.ToString());
+        if (teamTyped != null)
+            return teamTyped;
 
         var legacy = StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.Effect.ToString());
         if (legacy == null)
             return null;
 
+        var canonicalTypeId = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
         return legacy.AssetType == StoreProductAssetType.TeamEffect ||
                string.Equals(legacy.EquipTarget, "TeamEffect", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(legacy.EquipTarget, "Team", StringComparison.OrdinalIgnoreCase)
+               string.Equals(legacy.EquipTarget, "Team", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(canonicalTypeId, StoreProductAssetType.Effect.ToString(), StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(canonicalTypeId, StoreProductAssetType.TeamEffect.ToString(), StringComparison.OrdinalIgnoreCase)
             ? legacy
             : null;
     }
