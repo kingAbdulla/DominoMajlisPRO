@@ -103,6 +103,18 @@ namespace DominoMajlisPRO.GalleryEngine.VisualIdentity
         /// </summary>
         public const string TeamEffectChanged = "TeamEffectChanged";
 
+        /// <summary>
+        /// Event name for team emblem background changes.
+        /// Category: EventCategory.Team
+        /// 
+        /// Expected Payload Fields:
+        /// - "TeamId" (string): The team ID whose emblem background changed
+        /// - "BackgroundAssetId" (string): The new background asset ID
+        /// - "PreviousBackgroundAssetId" (string, optional): The previous background asset ID
+        /// - "TimestampUtc" (DateTimeOffset): UTC event timestamp
+        /// </summary>
+        public const string TeamEmblemBackgroundChanged = "TeamEmblemBackgroundChanged";
+
         #endregion
     }
 }
