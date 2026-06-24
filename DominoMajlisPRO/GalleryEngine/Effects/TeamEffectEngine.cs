@@ -120,28 +120,24 @@ public static class TeamEffectEngine
         if (string.IsNullOrWhiteSpace(assetId))
             return null;
 
-        var canonicalTypeId = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+        var teamTyped = StoreAssetCatalogService.Resolve(
+            catalog,
+            assetId,
+            StoreProductAssetType.TeamEffect.ToString());
+        if (teamTyped != null)
+            return teamTyped;
 
-        if (string.Equals(canonicalTypeId, StoreProductAssetType.TeamEffect.ToString(), StringComparison.OrdinalIgnoreCase))
-        {
-            var teamTyped = StoreAssetCatalogService.Resolve(
-                catalog,
-                assetId,
-                StoreProductAssetType.TeamEffect.ToString());
-            if (teamTyped != null)
-                return teamTyped;
-        }
-
-        // Compatibility for effects published before TeamEffect became a canonical type.
-        // CreateTeamPage preview was already able to see these records, but MainPage/GamePage
-        // could not because they resolved only TeamEffect. This is the root cause of the
-        // "preview works, runtime pages do not" mismatch.
         var legacyEffect = StoreAssetCatalogService.Resolve(
             catalog,
             assetId,
             StoreProductAssetType.Effect.ToString());
+        if (legacyEffect == null)
+            return null;
 
-        return legacyEffect != null && IsTeamEffectTarget(legacyEffect)
+        var canonicalTypeId = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+        return IsTeamEffectTarget(legacyEffect) ||
+               string.Equals(canonicalTypeId, StoreProductAssetType.Effect.ToString(), StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(canonicalTypeId, StoreProductAssetType.TeamEffect.ToString(), StringComparison.OrdinalIgnoreCase)
             ? legacyEffect
             : null;
     }
