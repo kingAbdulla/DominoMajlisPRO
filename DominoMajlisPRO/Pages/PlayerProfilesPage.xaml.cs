@@ -161,6 +161,9 @@ public partial class PlayerProfilesPage : ContentPage
         // Stage C2: PlayerId available for event filtering
         eventEntry.EventData.TryGetValue(VisualIdentityPayloadKeys.PlayerId, out var playerIdObject);
         
+        // Conservative filtering: Page displays ALL players, so any player identity change is potentially relevant.
+        // Cannot safely filter without knowing current view state or scroll position.
+        // Preserve existing refresh behavior to avoid false negatives.
         _ = MainThread.InvokeOnMainThreadAsync(async () => await LoadPlayersAsync());
     }
 
@@ -175,8 +178,33 @@ public partial class PlayerProfilesPage : ContentPage
         // Stage C2: TeamId available for event filtering
         eventEntry.EventData.TryGetValue(VisualIdentityPayloadKeys.TeamId, out var teamIdObject);
         
+        if (teamIdObject is not string teamId || string.IsNullOrWhiteSpace(teamId))
+            return;
+        
+        // Conservative filtering: Only refresh if team belongs to current user
+        if (string.IsNullOrWhiteSpace(currentUser?.PlayerId))
+        {
+            // Cannot determine relevance - preserve existing behavior
+            _ = MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await RefreshCollectionProgressAsync();
+                if (InventoryOverlay.IsVisible)
+                    await LoadInventoryAsync();
+            });
+            return;
+        }
+        
+        // Check if team belongs to current user (reuse existing logic from OnTeamAssetsChanged)
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
+            var team = await TeamProfileService.GetTeamByPlayerIdAsync(currentUser.PlayerId);
+            if (!string.Equals(team?.TeamId, teamId, StringComparison.OrdinalIgnoreCase))
+            {
+                // Event is for a different team - safely skip refresh
+                return;
+            }
+            
+            // Team belongs to current user - proceed with refresh
             await RefreshCollectionProgressAsync();
             if (InventoryOverlay.IsVisible)
                 await LoadInventoryAsync();
