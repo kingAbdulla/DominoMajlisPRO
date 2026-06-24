@@ -301,7 +301,7 @@ public partial class CreateTeamPage : ContentPage
                 var newBackgrounds = backgroundItems.ToList();
                 var newTeamEffects = ownedTeamEffects.Count == 0
                     ? new List<TeamEffectCarouselItem>()
-                    : new[] { new TeamEffectCarouselItem("", "ط¨ط¯ظˆظ† طھط£ط«ظٹط±", null) }
+                    : new[] { new TeamEffectCarouselItem("", "مؤثرات الفريق", null) }
                         .Concat(ownedTeamEffects
                             .GroupBy(item => $"{item.AssetId}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
                             .Select(group => group.First()))
@@ -452,7 +452,7 @@ public partial class CreateTeamPage : ContentPage
 
     void OnTeamClicked(object sender, EventArgs e)
     {
-        PreviewMode.Text = "ظپط±ظٹظ‚";
+        PreviewMode.Text = "فريق";
         isTeamMode = true;
 
         Player2Layout.IsVisible = true;
@@ -705,7 +705,7 @@ public partial class CreateTeamPage : ContentPage
     {
         if (string.IsNullOrWhiteSpace(TeamNameEntry.Text))
         {
-            await DisplayAlert("طھظ†ط¨ظٹظ‡", "ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ظپط±ظٹظ‚", "ط­ط³ظ†ط§ظ‹");
+            await DisplayAlert("تنبيه", "أدخل اسم الفريق", "حسناً");
             return;
         }
 
@@ -725,7 +725,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (!string.IsNullOrWhiteSpace(player2) && normalizedPlayer1 == normalizedPlayer2)
         {
-            await DisplayAlert("ظ„ط§ ظٹظ…ظƒظ† ط¥ظ†ط´ط§ط، ط§ظ„ظپط±ظٹظ‚", "ظ„ط§ ظٹظ…ظƒظ† ط¥ط¶ط§ظپط© ظ†ظپط³ ط§ظ„ظ„ط§ط¹ط¨ ظ…ط±طھظٹظ† ط¯ط§ط®ظ„ ط§ظ„ظپط±ظٹظ‚", "ط­ط³ظ†ط§ظ‹");
+            await DisplayAlert("لا يمكن إنشاء الفريق", "لا يمكن إضافة نفس اللاعب مرتين داخل الفريق", "حسناً");
             return;
         }
 
@@ -737,7 +737,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (duplicateName)
         {
-            await DisplayAlert("طھظ†ط¨ظٹظ‡", "ط§ط³ظ… ط§ظ„ظپط±ظٹظ‚ ظ…ط³طھط®ط¯ظ… ظ…ط³ط¨ظ‚ط§ظ‹", "ط­ط³ظ†ط§ظ‹");
+            await DisplayAlert("تنبيه", "اسم الفريق مستخدم مسبقاً", "حسناً");
             return;
         }
 
@@ -746,7 +746,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (TeamCompositionExists(teams, player1Id, player2Id))
         {
-            await DisplayAlert("طھظ†ط¨ظٹظ‡", "ظ‡ط°ظ‡ ط§ظ„طھط´ظƒظٹظ„ط© طھظ…طھظ„ظƒ ظپط±ظٹظ‚ط§ظ‹ ظ…ط³ط¨ظ‚ط§ظ‹", "ط­ط³ظ†ط§ظ‹");
+            await DisplayAlert("تنبيه", "هذه التشكيلة تمتلك فريقاً مسبقاً", "حسناً");
             return;
         }
 
@@ -794,7 +794,7 @@ public partial class CreateTeamPage : ContentPage
             AppEvents.RaiseDataChanged();
             AppEvents.RaiseTeamAssetsChanged(team.TeamId);
 
-            await DisplayAlert("طھظ…", "طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظپط±ظٹظ‚", "ظ…ظ…طھط§ط²");
+            await DisplayAlert("تم", "تم إنشاء الفريق", "ممتاز");
 
             ResetForm();
 
@@ -880,7 +880,7 @@ public partial class CreateTeamPage : ContentPage
         AppEvents.RaiseDataChanged();
         AppEvents.RaiseTeamAssetsChanged(existing.TeamId);
 
-        await DisplayAlert("طھظ…", "طھظ… طھط­ط¯ظٹط« ط§ظ„ظپط±ظٹظ‚", "ظ…ظ…طھط§ط²");
+        await DisplayAlert("تم", "تم تحديث الفريق", "ممتاز");
 
         ResetForm();
 
@@ -899,7 +899,7 @@ public partial class CreateTeamPage : ContentPage
     {
         PreviewTeamName.Text =
             string.IsNullOrWhiteSpace(TeamNameEntry.Text)
-                ? "ط§ط³ظ… ط§ظ„ظپط±ظٹظ‚"
+                ? "اسم الفريق"
                 : TeamNameEntry.Text;
     }
 
@@ -910,12 +910,12 @@ public partial class CreateTeamPage : ContentPage
 
         string player1 =
             string.IsNullOrWhiteSpace(Player1Entry.Text)
-                ? "ط§ظ„ظ„ط§ط¹ط¨ ط§ظ„ط£ظˆظ„"
+                ? "اللاعب الأول"
                 : Player1Entry.Text;
 
         string player2 =
             string.IsNullOrWhiteSpace(Player2Entry.Text)
-                ? "ط§ظ„ظ„ط§ط¹ط¨ ط§ظ„ط«ط§ظ†ظٹ"
+                ? "اللاعب الثاني"
                 : Player2Entry.Text;
 
         PreviewPlayer1.Text = player1;
@@ -933,10 +933,10 @@ public partial class CreateTeamPage : ContentPage
 
         bool confirm =
             await DisplayAlert(
-                "ط­ط°ظپ ط§ظ„ظپط±ظٹظ‚",
-                $"ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ {team.TeamName} طں",
-                "ظ†ط¹ظ…",
-                "ط¥ظ„ط؛ط§ط،");
+                "حذف الفريق",
+                $"هل تريد حذف {team.TeamName} ؟",
+                "نعم",
+                "إلغاء");
 
         if (!confirm)
             return;
@@ -977,10 +977,10 @@ public partial class CreateTeamPage : ContentPage
     {
         bool confirm =
             await DisplayAlert(
-                "ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚",
-                "ط³ظٹطھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚ ط§ظ„ظ…ط­ظپظˆط¸ط© ظ†ظ‡ط§ط¦ظٹط§ظ‹طŒ ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں",
-                "ظ†ط¹ظ…",
-                "ط¥ظ„ط؛ط§ط،");
+                "حذف جميع الفرق",
+                "سيتم حذف جميع الفرق المحفوظة نهائياً، هل أنت متأكد؟",
+                "نعم",
+                "إلغاء");
 
         if (!confirm)
             return;
@@ -1008,7 +1008,7 @@ public partial class CreateTeamPage : ContentPage
         Player1Entry.Text = "";
         Player2Entry.Text = "";
 
-        await DisplayAlert("طھظ…", "طھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚", "ظ…ظ…طھط§ط²");
+        await DisplayAlert("تم", "تم حذف جميع الفرق", "ممتاز");
     }
 
     async void OnSelectTeamClicked(object sender, EventArgs e)
@@ -1033,10 +1033,10 @@ public partial class CreateTeamPage : ContentPage
     {
         bool confirm =
             await DisplayAlert(
-                "ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚",
-                "ط³ظٹطھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚ ط§ظ„ظ…ط­ظپظˆط¸ط© ظ†ظ‡ط§ط¦ظٹط§ظ‹طŒ ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں",
-                "ظ†ط¹ظ…",
-                "ط¥ظ„ط؛ط§ط،");
+                "حذف جميع الفرق",
+                "سيتم حذف جميع الفرق المحفوظة نهائياً، هل أنت متأكد؟",
+                "نعم",
+                "إلغاء");
 
         if (!confirm)
             return;
@@ -1052,7 +1052,7 @@ public partial class CreateTeamPage : ContentPage
         Player1Entry.Text = "";
         Player2Entry.Text = "";
 
-        await DisplayAlert("طھظ…", "طھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚", "ظ…ظ…طھط§ط²");
+        await DisplayAlert("تم", "تم حذف جميع الفرق", "ممتاز");
     }
 
     void LoadTeam(TeamProfileModel team)
@@ -1117,7 +1117,7 @@ public partial class CreateTeamPage : ContentPage
         PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
         PreviewEmblemBackground.BackgroundColor = SafeColor(selectedEmblemBackground);
 
-        SaveButtonText.Text = "طھط­ط¯ظٹط« ط§ظ„ظپط±ظٹظ‚";
+        SaveButtonText.Text = "تحديث الفريق‚";
 
         ApplyLoadedEmblem();
         ApplyLoadedColor();
@@ -1169,7 +1169,7 @@ public partial class CreateTeamPage : ContentPage
         PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
         PreviewEmblemBackground.BackgroundColor = Colors.Transparent;
 
-        SaveButtonText.Text = "ط¥ظ†ط´ط§ط، ط§ظ„ظپط±ظٹظ‚";
+        SaveButtonText.Text = "إنشاء الفريق";
 
         _ = LoadOwnedTeamAssetsAsync();
     }
