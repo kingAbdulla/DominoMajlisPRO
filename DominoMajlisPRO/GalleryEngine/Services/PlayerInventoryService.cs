@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Services;
@@ -107,6 +108,13 @@ public static class PlayerInventoryService
                 target.StoreTypeId = NormalizeStoreType(requestedStoreType);
                 target.AssetType = target.StoreTypeId;
             }
+            
+            // Capture previous equipped asset for the same StoreTypeId
+            var previousAsset = records.FirstOrDefault(x => Same(x.PlayerId, playerId) && 
+                string.Equals(x.StoreTypeId, target.StoreTypeId, StringComparison.OrdinalIgnoreCase) && 
+                x.IsEquipped && IsActiveOwned(x));
+            var previousAssetId = previousAsset?.AssetId;
+            
             foreach (var x in records.Where(x => Same(x.PlayerId, playerId) && string.Equals(x.StoreTypeId, target.StoreTypeId, StringComparison.OrdinalIgnoreCase)))
             {
                 x.IsEquipped = false;
@@ -115,6 +123,46 @@ public static class PlayerInventoryService
             target.IsEquipped = true;
             target.EquippedAt = DateTime.UtcNow;
             await SaveAsync(records);
+            
+            // Publish VisualEventBus identity events for specific asset types
+            var storeTypeId = target.StoreTypeId.ToLowerInvariant();
+            if (storeTypeId == "profilebackground")
+            {
+                var payload = new Dictionary<string, object>
+                {
+                    { VisualIdentityPayloadKeys.PlayerId, playerId },
+                    { VisualIdentityPayloadKeys.BackgroundAssetId, assetId },
+                    { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+                };
+                if (!string.IsNullOrWhiteSpace(previousAssetId))
+                    payload[VisualIdentityPayloadKeys.PreviousBackgroundAssetId] = previousAssetId;
+                VisualEventBus.Publish(EventCategory.Player, VisualIdentityEventNames.PlayerProfileBackgroundChanged, payload, true, 0);
+            }
+            else if (storeTypeId == "frame")
+            {
+                var payload = new Dictionary<string, object>
+                {
+                    { VisualIdentityPayloadKeys.PlayerId, playerId },
+                    { VisualIdentityPayloadKeys.FrameAssetId, assetId },
+                    { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+                };
+                if (!string.IsNullOrWhiteSpace(previousAssetId))
+                    payload[VisualIdentityPayloadKeys.PreviousFrameAssetId] = previousAssetId;
+                VisualEventBus.Publish(EventCategory.Player, VisualIdentityEventNames.PlayerFrameChanged, payload, true, 0);
+            }
+            else if (storeTypeId == "effect")
+            {
+                var payload = new Dictionary<string, object>
+                {
+                    { VisualIdentityPayloadKeys.PlayerId, playerId },
+                    { VisualIdentityPayloadKeys.EffectAssetId, assetId },
+                    { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+                };
+                if (!string.IsNullOrWhiteSpace(previousAssetId))
+                    payload[VisualIdentityPayloadKeys.PreviousEffectAssetId] = previousAssetId;
+                VisualEventBus.Publish(EventCategory.Player, VisualIdentityEventNames.PlayerEffectChanged, payload, true, 0);
+            }
+            
             if (raiseEvent) AppEvents.RaiseStoreEconomyChanged(playerId);
             return true;
         }
