@@ -3,6 +3,7 @@ using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using System.ComponentModel;
 using System.Threading;
 
@@ -301,7 +302,7 @@ public partial class CreateTeamPage : ContentPage
                 var newBackgrounds = backgroundItems.ToList();
                 var newTeamEffects = ownedTeamEffects.Count == 0
                     ? new List<TeamEffectCarouselItem>()
-                    : new[] { new TeamEffectCarouselItem("", "ط¨ط¯ظˆظ† طھط£ط«ظٹط±", null) }
+                    : new[] { new TeamEffectCarouselItem("", "مؤثرات الفريق", null) }
                         .Concat(ownedTeamEffects
                             .GroupBy(item => $"{item.AssetId}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
                             .Select(group => group.First()))
@@ -452,7 +453,7 @@ public partial class CreateTeamPage : ContentPage
 
     void OnTeamClicked(object sender, EventArgs e)
     {
-        PreviewMode.Text = "ظپط±ظٹظ‚";
+        PreviewMode.Text = "فريق";
         isTeamMode = true;
 
         Player2Layout.IsVisible = true;
@@ -705,7 +706,7 @@ public partial class CreateTeamPage : ContentPage
     {
         if (string.IsNullOrWhiteSpace(TeamNameEntry.Text))
         {
-            await DisplayAlert("طھظ†ط¨ظٹظ‡", "ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ظپط±ظٹظ‚", "ط­ط³ظ†ط§ظ‹");
+            await DisplayAlert("تنبيه", "أدخل اسم الفريق", "حسناً");
             return;
         }
 
@@ -725,7 +726,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (!string.IsNullOrWhiteSpace(player2) && normalizedPlayer1 == normalizedPlayer2)
         {
-            await DisplayAlert("ظ„ط§ ظٹظ…ظƒظ† ط¥ظ†ط´ط§ط، ط§ظ„ظپط±ظٹظ‚", "ظ„ط§ ظٹظ…ظƒظ† ط¥ط¶ط§ظپط© ظ†ظپط³ ط§ظ„ظ„ط§ط¹ط¨ ظ…ط±طھظٹظ† ط¯ط§ط®ظ„ ط§ظ„ظپط±ظٹظ‚", "ط­ط³ظ†ط§ظ‹");
+            await DisplayAlert("لا يمكن إنشاء الفريق", "لا يمكن إضافة نفس اللاعب مرتين داخل الفريق", "حسناً");
             return;
         }
 
@@ -737,7 +738,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (duplicateName)
         {
-            await DisplayAlert("طھظ†ط¨ظٹظ‡", "ط§ط³ظ… ط§ظ„ظپط±ظٹظ‚ ظ…ط³طھط®ط¯ظ… ظ…ط³ط¨ظ‚ط§ظ‹", "ط­ط³ظ†ط§ظ‹");
+            await DisplayAlert("تنبيه", "اسم الفريق مستخدم مسبقاً", "حسناً");
             return;
         }
 
@@ -746,7 +747,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (TeamCompositionExists(teams, player1Id, player2Id))
         {
-            await DisplayAlert("طھظ†ط¨ظٹظ‡", "ظ‡ط°ظ‡ ط§ظ„طھط´ظƒظٹظ„ط© طھظ…طھظ„ظƒ ظپط±ظٹظ‚ط§ظ‹ ظ…ط³ط¨ظ‚ط§ظ‹", "ط­ط³ظ†ط§ظ‹");
+            await DisplayAlert("تنبيه", "هذه التشكيلة تمتلك فريقاً مسبقاً", "حسناً");
             return;
         }
 
@@ -790,11 +791,51 @@ public partial class CreateTeamPage : ContentPage
             teams.Add(team);
 
             await TeamProfileService.SaveTeamsAsync(teams);
+            
+            // Publish to VisualEventBus for Living Visual Identity Engine
+            var newTeamEmblemPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, team.TeamId },
+                { VisualIdentityPayloadKeys.EmblemAssetId, team.EmblemAssetId },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            // No previous emblem for new team
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEmblemChanged, newTeamEmblemPayload, isSticky: true, stickyExpirationMs: 0);
+            
+            // Publish TeamColorChanged for new team
+            var newTeamColorPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, team.TeamId },
+                { VisualIdentityPayloadKeys.PrimaryColorHex, team.ColorHex },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamColorChanged, newTeamColorPayload, isSticky: true, stickyExpirationMs: 0);
+            
+            // Publish TeamEffectChanged for new team if effect equipped
+            if (!string.IsNullOrWhiteSpace(team.EquippedTeamEffectAssetId))
+            {
+                var newTeamEffectPayload = new Dictionary<string, object>
+                {
+                    { VisualIdentityPayloadKeys.TeamId, team.TeamId },
+                    { VisualIdentityPayloadKeys.EffectAssetId, team.EquippedTeamEffectAssetId },
+                    { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+                };
+                VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEffectChanged, newTeamEffectPayload, isSticky: true, stickyExpirationMs: 0);
+            }
+            
+            // Publish TeamEmblemBackgroundChanged for new team
+            var newTeamEmblemBackgroundPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, team.TeamId },
+                { VisualIdentityPayloadKeys.BackgroundAssetId, team.EmblemBackgroundAssetId },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEmblemBackgroundChanged, newTeamEmblemBackgroundPayload, isSticky: true, stickyExpirationMs: 0);
 
             AppEvents.RaiseDataChanged();
             AppEvents.RaiseTeamAssetsChanged(team.TeamId);
 
-            await DisplayAlert("طھظ…", "طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظپط±ظٹظ‚", "ظ…ظ…طھط§ط²");
+            await DisplayAlert("تم", "تم إنشاء الفريق", "ممتاز");
 
             ResetForm();
 
@@ -805,6 +846,14 @@ public partial class CreateTeamPage : ContentPage
 
         if (existing == null)
             return;
+
+        // Capture previous identity values before changing
+        var previousEmblemAssetId = existing.EmblemAssetId;
+        var previousColorHex = existing.ColorHex;
+        var previousTeamColorAssetId = existing.TeamColorAssetId;
+        var previousEmblemBackground = existing.EmblemBackground;
+        var previousEmblemBackgroundAssetId = existing.EmblemBackgroundAssetId;
+        var previousTeamEffectAssetId = existing.EquippedTeamEffectAssetId;
 
         existing.TeamName = TeamNameEntry.Text;
 
@@ -876,11 +925,74 @@ public partial class CreateTeamPage : ContentPage
         }
 
         await TeamProfileService.SaveTeamsAsync(teams);
+        
+        // Publish to VisualEventBus for Living Visual Identity Engine
+        if (!string.Equals(
+            previousEmblemAssetId,
+            existing.EmblemAssetId,
+            StringComparison.OrdinalIgnoreCase))
+        {
+            var existingTeamEmblemPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, existing.TeamId },
+                { VisualIdentityPayloadKeys.EmblemAssetId, existing.EmblemAssetId },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            if (!string.IsNullOrWhiteSpace(previousEmblemAssetId))
+            {
+                existingTeamEmblemPayload[
+                    VisualIdentityPayloadKeys.PreviousEmblemAssetId] =
+                    previousEmblemAssetId;
+            }
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEmblemChanged, existingTeamEmblemPayload, isSticky: true, stickyExpirationMs: 0);
+        }
+        
+        // Publish TeamColorChanged if color changed
+        if (!string.Equals(previousColorHex, existing.ColorHex, StringComparison.OrdinalIgnoreCase))
+        {
+            var teamColorPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, existing.TeamId },
+                { VisualIdentityPayloadKeys.PrimaryColorHex, existing.ColorHex },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            if (!string.IsNullOrWhiteSpace(previousColorHex))
+                teamColorPayload[VisualIdentityPayloadKeys.PreviousPrimaryColorHex] = previousColorHex;
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamColorChanged, teamColorPayload, isSticky: true, stickyExpirationMs: 0);
+        }
+        
+        // Publish TeamEffectChanged if effect changed
+        if (!string.Equals(previousTeamEffectAssetId, existing.EquippedTeamEffectAssetId, StringComparison.OrdinalIgnoreCase))
+        {
+            var teamEffectPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, existing.TeamId },
+                { VisualIdentityPayloadKeys.EffectAssetId, existing.EquippedTeamEffectAssetId },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            if (!string.IsNullOrWhiteSpace(previousTeamEffectAssetId))
+                teamEffectPayload[VisualIdentityPayloadKeys.PreviousEffectAssetId] = previousTeamEffectAssetId;
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEffectChanged, teamEffectPayload, isSticky: true, stickyExpirationMs: 0);
+        }
+        
+        // Publish TeamEmblemBackgroundChanged if background changed
+        if (!string.Equals(previousEmblemBackgroundAssetId, existing.EmblemBackgroundAssetId, StringComparison.OrdinalIgnoreCase))
+        {
+            var emblemBackgroundPayload = new Dictionary<string, object>
+            {
+                { VisualIdentityPayloadKeys.TeamId, existing.TeamId },
+                { VisualIdentityPayloadKeys.BackgroundAssetId, existing.EmblemBackgroundAssetId },
+                { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+            };
+            if (!string.IsNullOrWhiteSpace(previousEmblemBackgroundAssetId))
+                emblemBackgroundPayload[VisualIdentityPayloadKeys.PreviousBackgroundAssetId] = previousEmblemBackgroundAssetId;
+            VisualEventBus.Publish(EventCategory.Team, VisualIdentityEventNames.TeamEmblemBackgroundChanged, emblemBackgroundPayload, isSticky: true, stickyExpirationMs: 0);
+        }
 
         AppEvents.RaiseDataChanged();
         AppEvents.RaiseTeamAssetsChanged(existing.TeamId);
 
-        await DisplayAlert("طھظ…", "طھظ… طھط­ط¯ظٹط« ط§ظ„ظپط±ظٹظ‚", "ظ…ظ…طھط§ط²");
+        await DisplayAlert("تم", "تم تحديث الفريق", "ممتاز");
 
         ResetForm();
 
@@ -899,7 +1011,7 @@ public partial class CreateTeamPage : ContentPage
     {
         PreviewTeamName.Text =
             string.IsNullOrWhiteSpace(TeamNameEntry.Text)
-                ? "ط§ط³ظ… ط§ظ„ظپط±ظٹظ‚"
+                ? "اسم الفريق"
                 : TeamNameEntry.Text;
     }
 
@@ -910,12 +1022,12 @@ public partial class CreateTeamPage : ContentPage
 
         string player1 =
             string.IsNullOrWhiteSpace(Player1Entry.Text)
-                ? "ط§ظ„ظ„ط§ط¹ط¨ ط§ظ„ط£ظˆظ„"
+                ? "اللاعب الأول"
                 : Player1Entry.Text;
 
         string player2 =
             string.IsNullOrWhiteSpace(Player2Entry.Text)
-                ? "ط§ظ„ظ„ط§ط¹ط¨ ط§ظ„ط«ط§ظ†ظٹ"
+                ? "اللاعب الثاني"
                 : Player2Entry.Text;
 
         PreviewPlayer1.Text = player1;
@@ -933,10 +1045,10 @@ public partial class CreateTeamPage : ContentPage
 
         bool confirm =
             await DisplayAlert(
-                "ط­ط°ظپ ط§ظ„ظپط±ظٹظ‚",
-                $"ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ {team.TeamName} طں",
-                "ظ†ط¹ظ…",
-                "ط¥ظ„ط؛ط§ط،");
+                "حذف الفريق",
+                $"هل تريد حذف {team.TeamName} ؟",
+                "نعم",
+                "إلغاء");
 
         if (!confirm)
             return;
@@ -977,10 +1089,10 @@ public partial class CreateTeamPage : ContentPage
     {
         bool confirm =
             await DisplayAlert(
-                "ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚",
-                "ط³ظٹطھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚ ط§ظ„ظ…ط­ظپظˆط¸ط© ظ†ظ‡ط§ط¦ظٹط§ظ‹طŒ ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں",
-                "ظ†ط¹ظ…",
-                "ط¥ظ„ط؛ط§ط،");
+                "حذف جميع الفرق",
+                "سيتم حذف جميع الفرق المحفوظة نهائياً، هل أنت متأكد؟",
+                "نعم",
+                "إلغاء");
 
         if (!confirm)
             return;
@@ -1008,7 +1120,7 @@ public partial class CreateTeamPage : ContentPage
         Player1Entry.Text = "";
         Player2Entry.Text = "";
 
-        await DisplayAlert("طھظ…", "طھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚", "ظ…ظ…طھط§ط²");
+        await DisplayAlert("تم", "تم حذف جميع الفرق", "ممتاز");
     }
 
     async void OnSelectTeamClicked(object sender, EventArgs e)
@@ -1033,10 +1145,10 @@ public partial class CreateTeamPage : ContentPage
     {
         bool confirm =
             await DisplayAlert(
-                "ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚",
-                "ط³ظٹطھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚ ط§ظ„ظ…ط­ظپظˆط¸ط© ظ†ظ‡ط§ط¦ظٹط§ظ‹طŒ ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں",
-                "ظ†ط¹ظ…",
-                "ط¥ظ„ط؛ط§ط،");
+                "حذف جميع الفرق",
+                "سيتم حذف جميع الفرق المحفوظة نهائياً، هل أنت متأكد؟",
+                "نعم",
+                "إلغاء");
 
         if (!confirm)
             return;
@@ -1052,7 +1164,7 @@ public partial class CreateTeamPage : ContentPage
         Player1Entry.Text = "";
         Player2Entry.Text = "";
 
-        await DisplayAlert("طھظ…", "طھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ظپط±ظ‚", "ظ…ظ…طھط§ط²");
+        await DisplayAlert("تم", "تم حذف جميع الفرق", "ممتاز");
     }
 
     void LoadTeam(TeamProfileModel team)
@@ -1117,7 +1229,7 @@ public partial class CreateTeamPage : ContentPage
         PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
         PreviewEmblemBackground.BackgroundColor = SafeColor(selectedEmblemBackground);
 
-        SaveButtonText.Text = "طھط­ط¯ظٹط« ط§ظ„ظپط±ظٹظ‚";
+        SaveButtonText.Text = "تحديث الفريق‚";
 
         ApplyLoadedEmblem();
         ApplyLoadedColor();
@@ -1169,7 +1281,7 @@ public partial class CreateTeamPage : ContentPage
         PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
         PreviewEmblemBackground.BackgroundColor = Colors.Transparent;
 
-        SaveButtonText.Text = "ط¥ظ†ط´ط§ط، ط§ظ„ظپط±ظٹظ‚";
+        SaveButtonText.Text = "إنشاء الفريق";
 
         _ = LoadOwnedTeamAssetsAsync();
     }
