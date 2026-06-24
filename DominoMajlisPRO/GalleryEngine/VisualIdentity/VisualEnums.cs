@@ -3,7 +3,9 @@ namespace DominoMajlisPRO.GalleryEngine.VisualIdentity
     /// <summary>
     /// Shared enums for Visual Identity systems.
     /// Part of Phase 1 Foundation implementation.
+    /// Phase 2.1 Runtime Integration: Compatible and Locked.
     /// No duplicate enum definitions found in project - this is the single source of truth.
+    /// Do not modify unless a functional bug is discovered.
     /// </summary>
 
     /// <summary>
@@ -347,6 +349,30 @@ namespace DominoMajlisPRO.GalleryEngine.VisualIdentity
         Lite,
         VeryLite,
         Emergency
+    }
+
+    /// <summary>
+    /// Visual owner types for visual identity runtime context.
+    /// Used to distinguish between player-owned, team-owned, and system-owned effects.
+    /// </summary>
+    public enum VisualOwnerType
+    {
+        Player,
+        Team,
+        System
+    }
+
+    /// <summary>
+    /// Visual identity engine state for Living Visual Identity Engine.
+    /// Used by VisualIdentityEngine to report runtime state.
+    /// </summary>
+    public enum VisualIdentityEngineState
+    {
+        Stopped,
+        Initializing,
+        Running,
+        Paused,
+        ShuttingDown
     }
 
     /// <summary>
