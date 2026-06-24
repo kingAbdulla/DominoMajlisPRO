@@ -1279,12 +1279,11 @@ public partial class CreateTeamPage : ContentPage
         if (similarPlayer != null)
         {
             bool useExisting =
-                await DisplayAlert(
-                    "ظ„ط§ط¹ط¨ ظ…ط´ط§ط¨ظ‡",
-                    $"طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ„ط§ط¹ط¨ ظ…ط´ط§ط¨ظ‡:\n\n{similarPlayer.PlayerName}\n({similarPlayer.PlayerId})\n\nظ‡ظ„ طھظ‚طµط¯ ظ‡ط°ط§ ط§ظ„ظ„ط§ط¹ط¨طں",
-                    "ظ†ط¹ظ…",
-                    "ظ„ط§");
-
+      await DisplayAlert(
+                    "لاعب مشابه",
+                    $"تم العثور على لاعب مشابه:\n\n{similarPlayer.PlayerName}\n({similarPlayer.PlayerId})\n\nهل تقصد هذا اللاعب؟",
+                    "نعم",
+                    "لا");
             if (useExisting)
                 return similarPlayer.PlayerId;
         }
