@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin.Services;
 
@@ -12,7 +13,7 @@ public static class LimitedOffersAdminService
     public static async Task<LimitedOfferRecord> SaveDraftAsync(LimitedOfferRecord record)
     {
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
+        EnsureWritableAssetId(record);
         var assetId = GetAssetId(record);
         var existing = records.FirstOrDefault(item => item.Status == LimitedOfferStatus.Draft && SameAssetId(item, assetId));
         var saved = PrepareForSave(record, existing);
@@ -59,7 +60,7 @@ public static class LimitedOffersAdminService
         if (!ValidateForPublish(record, out var message))
             throw new InvalidOperationException(message);
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
+        EnsureWritableAssetId(record);
         var assetId = GetAssetId(record);
         var existing = records
             .Where(item => SameAssetId(item, assetId))
@@ -83,7 +84,7 @@ public static class LimitedOffersAdminService
         if (!ValidateForPublish(record, out var message))
             throw new InvalidOperationException(message);
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
+        EnsureWritableAssetId(record);
         var assetId = GetAssetId(record);
         var existing = records.FirstOrDefault(item => item.Status == LimitedOfferStatus.Published && SameAssetId(item, assetId))
             ?? throw new InvalidOperationException("تعذر العثور على العرض المنشور");
@@ -227,7 +228,7 @@ public static class LimitedOffersAdminService
 
     private static LimitedOfferRecord PrepareForSave(LimitedOfferRecord record, LimitedOfferRecord? existing)
     {
-        EnsureAssetId(record);
+        EnsureWritableAssetId(record);
         record.CreatedAt = existing?.CreatedAt ?? (record.CreatedAt == default ? DateTime.UtcNow : record.CreatedAt);
         record.UpdatedAt = DateTime.UtcNow;
         return record;
@@ -249,8 +250,15 @@ public static class LimitedOffersAdminService
         record.IsFree = record.DiscountPrice == 0 || record.CurrencyType == LimitedOfferCurrencyType.Free;
     }
 
+    private static void EnsureWritableAssetId(LimitedOfferRecord record)
+    {
+        EnsureAssetId(record);
+        if (string.IsNullOrWhiteSpace(record.AssetId))
+            record.AssetId = CanonicalAssetIdentityService.GenerateCanonicalAssetId(record.StoreTypeId, record.Title);
+    }
+
     private static bool SameAssetId(LimitedOfferRecord record, string assetId) =>
-        string.Equals(GetAssetId(record), assetId, StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(GetAssetId(record), assetId);
 
     private static async Task SetStatusAsync(string assetId, LimitedOfferStatus status)
     {
