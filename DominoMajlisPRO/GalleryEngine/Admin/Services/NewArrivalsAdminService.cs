@@ -13,9 +13,7 @@ public static class NewArrivalsAdminService
     public static async Task<NewArrivalRecord> SaveDraftAsync(NewArrivalRecord record)
     {
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
-        EnsureNoCollision(record, records);
-        
+        EnsureUniqueAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records.FirstOrDefault(item => item.Status == NewArrivalStatus.Draft && SameAssetId(item, assetId));
         var saved = PrepareForSave(record, existing);
@@ -62,9 +60,7 @@ public static class NewArrivalsAdminService
             throw new InvalidOperationException(message);
 
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
-        EnsureNoCollision(record, records);
-
+        EnsureUniqueAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records
             .Where(item => SameAssetId(item, assetId))
@@ -90,9 +86,7 @@ public static class NewArrivalsAdminService
             throw new InvalidOperationException(message);
 
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
-        EnsureNoCollision(record, records);
-
+        EnsureUniqueAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records.FirstOrDefault(item => item.Status == NewArrivalStatus.Published && SameAssetId(item, assetId))
             ?? throw new InvalidOperationException("تعذر العثور على العنصر المنشور");
@@ -266,14 +260,9 @@ public static class NewArrivalsAdminService
         record.ProductId = productId;
         record.Id = productId;
         
-        if (string.IsNullOrWhiteSpace(record.AssetId))
-        {
-            record.AssetId = CanonicalAssetIdentityService.GenerateCanonicalAssetId(record.StoreTypeId, record.Title);
-        }
-        else
-        {
-            record.AssetId = record.AssetId.Trim();
-        }
+        record.AssetId = string.IsNullOrWhiteSpace(record.AssetId)
+            ? string.Empty
+            : record.AssetId.Trim();
 
         record.StoreTypeId = record.StoreTypeId?.Trim() ?? string.Empty;
         record.OwnerScope = record.OwnerScope?.Trim() ?? string.Empty;
@@ -281,13 +270,18 @@ public static class NewArrivalsAdminService
         record.IsFree = record.Price == 0 || record.CurrencyType == NewArrivalCurrencyType.Free;
     }
 
-    private static void EnsureNoCollision(NewArrivalRecord record, IEnumerable<NewArrivalRecord> allRecords)
+    private static void EnsureUniqueAssetId(NewArrivalRecord record, IReadOnlyList<NewArrivalRecord> allRecords)
     {
-        var assetId = GetAssetId(record);
-        var collision = allRecords.FirstOrDefault(r => CanonicalAssetIdentityService.SameAssetId(GetAssetId(r), assetId) && r.ProductId != record.ProductId);
-        if (collision != null)
+        EnsureAssetId(record);
+        if (string.IsNullOrWhiteSpace(record.AssetId))
         {
-            throw new InvalidOperationException($"المعرف {assetId} مستخدم بالفعل لعنصر آخر. يرجى تغيير اسم العنصر أو نوعه لتوليد معرف فريد.");
+            var existingAssetIds = allRecords
+                .Where(r => r.ProductId != record.ProductId)
+                .Select(GetAssetId);
+            record.AssetId = CanonicalAssetIdentityService.GenerateUniqueCanonicalAssetId(
+                record.StoreTypeId,
+                record.Title,
+                existingAssetIds);
         }
     }
 
