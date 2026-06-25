@@ -2,6 +2,7 @@ using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 using System.Reflection;
+using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.VisualIdentity;
@@ -520,6 +521,7 @@ public partial class HallOfFamePage : ContentPage
             HorizontalOptions = LayoutOptions.Center
         };
         TeamEffectBehavior.SetTeamId(teamEmblem, team.Key);
+        LivingEmblemBehavior.Attach(teamEmblem, team.Key);
         layout.Children.Add(new Grid
         {
             HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 72 : 98,

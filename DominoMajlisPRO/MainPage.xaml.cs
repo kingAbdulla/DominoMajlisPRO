@@ -1,6 +1,7 @@
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Pages;
+using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using DominoMajlisPRO.Pages;
@@ -221,6 +222,7 @@ public partial class MainPage : ContentPage
             ResolveStoredImage(GetLiveEmblem(selectedTeam1));
         await TeamEffectEngine.ApplyAroundAsync(
             PreviewTeam1Logo, selectedTeam1.TeamId, 1.18);
+        LivingEmblemBehavior.Attach(PreviewTeam1Logo, selectedTeam1.TeamId);
         var color =
             GetTeamColor(GetLiveTeamColor(selectedTeam1));
 
@@ -330,6 +332,7 @@ public partial class MainPage : ContentPage
             ResolveStoredImage(GetLiveEmblem(selectedTeam2));
         await TeamEffectEngine.ApplyAroundAsync(
             PreviewTeam2Logo, selectedTeam2.TeamId, 1.18);
+        LivingEmblemBehavior.Attach(PreviewTeam2Logo, selectedTeam2.TeamId);
 
         UpdateMatchPreview();
     }

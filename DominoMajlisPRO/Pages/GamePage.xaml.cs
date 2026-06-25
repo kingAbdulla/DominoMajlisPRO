@@ -1,5 +1,6 @@
 ﻿using DominoMajlisPRO.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using DominoMajlisPRO.Services;
@@ -433,6 +434,8 @@ public partial class GamePage : ContentPage
                 "shield_3d.png");
         await TeamEffectEngine.ApplyAroundAsync(Team1Emblem, team1Id, 1.18);
         await TeamEffectEngine.ApplyAroundAsync(Team2Emblem, team2Id, 1.18);
+        LivingEmblemBehavior.Attach(Team1Emblem, team1Id);
+        LivingEmblemBehavior.Attach(Team2Emblem, team2Id);
         ApplyTeamIdentityVisual(Team1Card, team1Identity);
         ApplyTeamIdentityVisual(Team2Card, team2Identity);
     }

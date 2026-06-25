@@ -1,5 +1,6 @@
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
+using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using Microsoft.Maui.Controls.Shapes;
@@ -155,6 +156,7 @@ public partial class MatchDetailsPage : ContentPage
                     team1Identity?.EmblemImagePath ?? team1.Emblem,
                     "shield_3d.png");
             await TeamEffectEngine.ApplyAroundAsync(Team1Emblem, match.Team1Id, 1.16);
+            LivingEmblemBehavior.Attach(Team1Emblem, match.Team1Id);
             Team1Border.Stroke =
                 SafeColor(
                     team1Identity?.TeamColorHex,
@@ -197,6 +199,7 @@ public partial class MatchDetailsPage : ContentPage
                     team2Identity?.EmblemImagePath ?? team2.Emblem,
                     "shield_3d.png");
             await TeamEffectEngine.ApplyAroundAsync(Team2Emblem, match.Team2Id, 1.16);
+            LivingEmblemBehavior.Attach(Team2Emblem, match.Team2Id);
             Team2Border.Stroke =
                 SafeColor(
                     team2Identity?.TeamColorHex,

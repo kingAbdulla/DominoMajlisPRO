@@ -5,6 +5,7 @@ using Microsoft.Maui.Graphics;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.VisualIdentity;
+using DominoMajlisPRO.GalleryEngine.Effects;
 namespace DominoMajlisPRO.Pages;
 
 public partial class RankingsPage : ContentPage
@@ -567,6 +568,29 @@ public partial class RankingsPage : ContentPage
                     LayoutOptions.Center
             };
 
+        var champEmblGrid = new Grid
+        {
+            WidthRequest = 70,
+            HeightRequest = 70,
+            HorizontalOptions = LayoutOptions.Center
+        };
+        var champEmblImage = new Image
+        {
+            Source = InventoryDisplayResolver.ResolveImageSource(
+                teamIdentities.TryGetValue(team.TeamId, out var champIdentity)
+                    ? champIdentity.EmblemImagePath
+                    : (team.Emblem ?? "shield_3d.png"),
+                "shield_3d.png"),
+            WidthRequest = 52,
+            HeightRequest = 52,
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+        LivingEmblemBehavior.Attach(champEmblImage, team.TeamId);
+        champEmblGrid.Children.Add(champEmblImage);
+        rankSection.Children.Add(champEmblGrid);
+
         rankSection.Children.Add(
             new Image
             {
@@ -868,6 +892,30 @@ public partial class RankingsPage : ContentPage
             TextAlignment.Center
     });
 
+
+        var emblSize = position switch { 1 => 56.0, 2 => 44.0, _ => 40.0 };
+        var emblGrid = new Grid
+        {
+            WidthRequest = emblSize * 1.32,
+            HeightRequest = emblSize * 1.32,
+            HorizontalOptions = LayoutOptions.Center
+        };
+        var emblImage = new Image
+        {
+            Source = InventoryDisplayResolver.ResolveImageSource(
+                teamIdentities.TryGetValue(team.TeamId, out var podiumIdentity)
+                    ? podiumIdentity.EmblemImagePath
+                    : (team.Emblem ?? "shield_3d.png"),
+                "shield_3d.png"),
+            WidthRequest = emblSize,
+            HeightRequest = emblSize,
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+        LivingEmblemBehavior.Attach(emblImage, team.TeamId);
+        emblGrid.Children.Add(emblImage);
+        layout.Children.Add(emblGrid);
 
         layout.Children.Add(
 
@@ -1438,8 +1486,11 @@ public partial class RankingsPage : ContentPage
         SheetRankIcon.Source =
             GetRankIcon(team.Rank);
 
-        SheetRankIcon.Source =
-            GetRankIcon(team.Rank);
+        teamIdentities.TryGetValue(team.TeamId, out var sheetIdentity);
+        SheetRankIcon.Source = InventoryDisplayResolver.ResolveImageSource(
+            sheetIdentity?.EmblemImagePath ?? team.Emblem ?? "shield_3d.png",
+            "shield_3d.png");
+        LivingEmblemBehavior.Attach(SheetRankIcon, team.TeamId);
 
         SheetTeamName.Text =
             team.TeamName;

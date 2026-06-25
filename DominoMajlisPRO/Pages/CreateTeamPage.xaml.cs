@@ -4,6 +4,7 @@ using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.VisualIdentity;
+using DominoMajlisPRO.GalleryEngine.Effects;
 using System.ComponentModel;
 using System.Threading;
 
@@ -111,6 +112,7 @@ public partial class CreateTeamPage : ContentPage
     string selectedTeamEffectAssetId = "";
     string selectedTeamEffectOwnerPlayerId = "";
 
+    private LivingTeamEmblemView? _previewEmblemGlow;
     private TeamProfileModel? CurrentTeam = null;
     private bool _suppressSelectionHandlers = false;
     private bool _suppressTeamPlayersChanged = false;
@@ -512,12 +514,50 @@ public partial class CreateTeamPage : ContentPage
                 selectedEmblem,
                 "shield_3d.png");
 
+        ApplyPreviewEmblemGlow(selectedEmblemAssetId);
+
         if (!ReferenceEquals(EmblemCarousel.SelectedItem, selected))
             EmblemCarousel.SelectedItem = selected;
 
         if (!_isReloadingOwnedAssets)
             Dispatcher.Dispatch(() =>
                 EmblemCarousel.ScrollTo(selected, position: ScrollToPosition.Center, animate: animate));
+    }
+
+    void ApplyPreviewEmblemGlow(string? emblemAssetId)
+    {
+        if (PreviewEmblem.Parent is not Layout glowParent) return;
+
+        if (_previewEmblemGlow == null)
+        {
+            _previewEmblemGlow = new LivingTeamEmblemView
+            {
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                InputTransparent = true,
+                BackgroundColor = Colors.Transparent
+            };
+
+            var w = PreviewEmblem.WidthRequest > 0 ? PreviewEmblem.WidthRequest : 80;
+            var h = PreviewEmblem.HeightRequest > 0 ? PreviewEmblem.HeightRequest : 80;
+            _previewEmblemGlow.WidthRequest = w * 1.32;
+            _previewEmblemGlow.HeightRequest = h * 1.32;
+            _previewEmblemGlow.MinimumWidthRequest = _previewEmblemGlow.WidthRequest;
+            _previewEmblemGlow.MinimumHeightRequest = _previewEmblemGlow.HeightRequest;
+
+            if (glowParent is Grid)
+            {
+                Grid.SetRow(_previewEmblemGlow, Grid.GetRow(PreviewEmblem));
+                Grid.SetColumn(_previewEmblemGlow, Grid.GetColumn(PreviewEmblem));
+                Grid.SetRowSpan(_previewEmblemGlow, Grid.GetRowSpan(PreviewEmblem));
+                Grid.SetColumnSpan(_previewEmblemGlow, Grid.GetColumnSpan(PreviewEmblem));
+            }
+
+            _previewEmblemGlow.ZIndex = Math.Max(0, PreviewEmblem.ZIndex - 1);
+            glowParent.Children.Add(_previewEmblemGlow);
+        }
+
+        _previewEmblemGlow.SetEmblem(emblemAssetId);
     }
 
     void OnColorSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -1273,6 +1313,7 @@ public partial class CreateTeamPage : ContentPage
             InventoryDisplayResolver.ResolveImageSource(
                 selectedEmblem,
                 "shield_3d.png");
+        ApplyPreviewEmblemGlow(selectedEmblemAssetId);
         PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
         PreviewEmblemBackground.BackgroundColor = Colors.Transparent;
 
