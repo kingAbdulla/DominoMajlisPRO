@@ -361,7 +361,7 @@ public class SpecializedStoreManagerPage : ContentPage
         var productId = _currentRecord?.ProductId ?? Guid.NewGuid().ToString();
         var assetId = _currentRecord?.AssetId;
         if (string.IsNullOrWhiteSpace(assetId))
-            assetId = GenerateAssetId(assetType, _titleEntry.Text);
+            assetId = CanonicalAssetIdentityService.GenerateCanonicalAssetId(assetType.ToString(), _titleEntry.Text);
 
         record.Id = productId;
         record.ProductId = productId;
@@ -531,30 +531,8 @@ public class SpecializedStoreManagerPage : ContentPage
 
     private static string GenerateAssetId(
         StoreProductAssetType assetType,
-        string? title)
-    {
-        var slug = new string((title ?? string.Empty)
-            .Trim()
-            .ToLowerInvariant()
-            .Select(character =>
-                char.IsLetterOrDigit(character) ? character : '-')
-            .ToArray());
-        while (slug.Contains("--", StringComparison.Ordinal))
-            slug = slug.Replace("--", "-", StringComparison.Ordinal);
-        slug = slug.Trim('-');
-        if (string.IsNullOrWhiteSpace(slug))
-            slug = "asset";
-
-        var typeSlug = assetType switch
-        {
-            StoreProductAssetType.ProfileBackground => "profile-background",
-            StoreProductAssetType.EmblemBackground => "emblem-background",
-            StoreProductAssetType.TeamColor => "team-color",
-            _ => assetType.ToString().ToLowerInvariant()
-        };
-        var suffix = Guid.NewGuid().ToString("N")[..6];
-        return $"{typeSlug}-{slug}-{suffix}";
-    }
+        string? title) =>
+        CanonicalAssetIdentityService.GenerateCanonicalAssetId(assetType.ToString(), title);
 
     private string SelectedAssetId() => _assetIdPicker.SelectedIndex >= 0 && _assetIdPicker.SelectedIndex < _assetChoices.Count ? _assetChoices[_assetIdPicker.SelectedIndex].AssetId : string.Empty;
     private void ShowError(string message) { _validationLabel.Text = message; _validationLabel.IsVisible = true; }
