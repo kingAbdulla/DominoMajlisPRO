@@ -120,7 +120,7 @@ public partial class CreateTeamPage
                         continue;
 
                     if (effects.Any(existing =>
-                            string.Equals(existing.AssetId, item.AssetId, StringComparison.OrdinalIgnoreCase) &&
+                            CanonicalAssetIdentityService.SameAssetId(existing.AssetId, item.AssetId) &&
                             string.Equals(existing.OwnerPlayerId, owner.PlayerId, StringComparison.OrdinalIgnoreCase)))
                         continue;
 
@@ -141,7 +141,7 @@ public partial class CreateTeamPage
                 var previousSelection = selectedTeamEffectAssetId;
                 var previousOwner = selectedTeamEffectOwnerPlayerId;
                 var orderedEffects = effects
-                    .GroupBy(item => $"{item.AssetId}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
+                    .GroupBy(item => $"{CanonicalAssetIdentityService.NormalizeForComparison(item.AssetId)}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
                     .Select(group => group.First())
                     .OrderBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase)
                     .ToList();
@@ -156,7 +156,7 @@ public partial class CreateTeamPage
                 TeamEffectSection.IsVisible = teamEffectItems.Count > 1;
 
                 var selected = teamEffectItems.FirstOrDefault(item =>
-                                   string.Equals(item.AssetId, previousSelection, StringComparison.OrdinalIgnoreCase) &&
+                                   CanonicalAssetIdentityService.SameAssetId(item.AssetId, previousSelection) &&
                                    (string.IsNullOrWhiteSpace(previousOwner) ||
                                     string.Equals(item.OwnerPlayerId, previousOwner, StringComparison.OrdinalIgnoreCase)))
                                ?? teamEffectItems.FirstOrDefault(item => item.IsNone)

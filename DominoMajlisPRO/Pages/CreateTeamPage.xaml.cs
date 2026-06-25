@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.Models;
+using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
@@ -304,7 +304,7 @@ public partial class CreateTeamPage : ContentPage
                     ? new List<TeamEffectCarouselItem>()
                     : new[] { new TeamEffectCarouselItem("", "مؤثرات الفريق", null) }
                         .Concat(ownedTeamEffects
-                            .GroupBy(item => $"{item.AssetId}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
+                            .GroupBy(item => $"{CanonicalAssetIdentityService.NormalizeForComparison(item.AssetId)}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
                             .Select(group => group.First()))
                         .ToList();
 
@@ -396,7 +396,7 @@ public partial class CreateTeamPage : ContentPage
     {
         bool exists =
             emblemItems.Any(item =>
-                string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase)
+                CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId)
                 || string.Equals(item.ImagePath, imagePath, StringComparison.OrdinalIgnoreCase));
 
         if (!exists)
@@ -407,7 +407,7 @@ public partial class CreateTeamPage : ContentPage
     {
         bool exists =
             colorItems.Any(item =>
-                string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase)
+                CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId)
                 || string.Equals(item.ImagePath, imagePath, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(item.ColorHex, colorHex, StringComparison.OrdinalIgnoreCase));
 
@@ -419,7 +419,7 @@ public partial class CreateTeamPage : ContentPage
     {
         bool exists =
             backgroundItems.Any(item =>
-                string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase)
+                CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId)
                 || string.Equals(item.Background, background, StringComparison.OrdinalIgnoreCase));
 
         if (!exists)
@@ -483,7 +483,7 @@ public partial class CreateTeamPage : ContentPage
     bool SelectEmblemByAssetId(string assetId, bool animate)
     {
         var selected = emblemItems.FirstOrDefault(item =>
-            string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase));
+            CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId));
 
         if (selected == null)
             return false;
@@ -537,7 +537,7 @@ public partial class CreateTeamPage : ContentPage
     bool SelectColorByAssetId(string assetId, bool animate)
     {
         var selected = colorItems.FirstOrDefault(item =>
-            string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase));
+            CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId));
 
         if (selected == null)
             return false;
@@ -588,7 +588,7 @@ public partial class CreateTeamPage : ContentPage
     bool SelectEmblemBackground(string assetId)
     {
         var selected = backgroundItems.FirstOrDefault(item =>
-            string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase));
+            CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId));
 
         if (selected == null)
             return false;
@@ -613,7 +613,7 @@ public partial class CreateTeamPage : ContentPage
     bool SelectTeamEffectByAssetId(string? assetId, bool animate)
     {
         var selected = teamEffectItems.FirstOrDefault(item =>
-            string.Equals(item.AssetId, assetId ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+            CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId))
             ?? teamEffectItems.FirstOrDefault(item => item.IsNone);
         if (selected == null)
         {
@@ -962,7 +962,7 @@ public partial class CreateTeamPage : ContentPage
         }
         
         // Publish TeamEffectChanged if effect changed
-        if (!string.Equals(previousTeamEffectAssetId, existing.EquippedTeamEffectAssetId, StringComparison.OrdinalIgnoreCase))
+        if (!CanonicalAssetIdentityService.SameAssetId(previousTeamEffectAssetId, existing.EquippedTeamEffectAssetId))
         {
             var teamEffectPayload = new Dictionary<string, object>
             {
@@ -976,7 +976,7 @@ public partial class CreateTeamPage : ContentPage
         }
         
         // Publish TeamEmblemBackgroundChanged if background changed
-        if (!string.Equals(previousEmblemBackgroundAssetId, existing.EmblemBackgroundAssetId, StringComparison.OrdinalIgnoreCase))
+        if (!CanonicalAssetIdentityService.SameAssetId(previousEmblemBackgroundAssetId, existing.EmblemBackgroundAssetId))
         {
             var emblemBackgroundPayload = new Dictionary<string, object>
             {

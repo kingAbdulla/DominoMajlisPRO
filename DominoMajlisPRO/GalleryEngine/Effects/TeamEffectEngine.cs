@@ -54,7 +54,7 @@ public static class TeamEffectEngine
             var ownsEligibleEffect = false;
 
             foreach (var item in inventory.Where(item =>
-                         string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase)))
+                         CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId)))
             {
                 var effect = ResolveTeamEffectFromCatalog(catalog, item.AssetId, item.StoreTypeId);
                 if (effect != null)

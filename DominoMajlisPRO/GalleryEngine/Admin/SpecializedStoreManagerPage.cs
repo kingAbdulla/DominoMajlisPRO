@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Canonical;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -307,13 +307,13 @@ public class SpecializedStoreManagerPage : ContentPage
             _assetChoices.AddRange(
                 (await StoreAssetCatalogService.LoadAsync())
                     .Where(asset => asset.AssetType == selectedType)
-                    .GroupBy(asset => asset.AssetId, StringComparer.OrdinalIgnoreCase)
+                    .GroupBy(asset => CanonicalAssetIdentityService.NormalizeForComparison(asset.AssetId), StringComparer.Ordinal)
                     .Select(group => group.First())
                     .OrderBy(asset => asset.DisplayName, StringComparer.CurrentCultureIgnoreCase));
         _assetIdPicker.ItemsSource = _assetChoices
             .Select(asset => $"{asset.DisplayName} • {asset.AssetType}")
             .ToList();
-        _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => string.Equals(asset.AssetId, selectedId, StringComparison.OrdinalIgnoreCase));
+        _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => CanonicalAssetIdentityService.SameAssetId(asset.AssetId, selectedId));
     }
 
     private async void OnPickImageClicked(object? sender, EventArgs e)
@@ -489,7 +489,7 @@ public class SpecializedStoreManagerPage : ContentPage
         SyncLayerBuilderFromEditor();
         if (!string.IsNullOrWhiteSpace(record.ImagePath)) { _previewImage.Source = InventoryDisplayResolver.ResolveOptionalImageSource(record.ImagePath); _previewImage.IsVisible = _previewImage.Source != null; }
         await LoadAssetChoicesAsync();
-        _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => string.Equals(asset.AssetId, record.AssetId, StringComparison.OrdinalIgnoreCase));
+        _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => CanonicalAssetIdentityService.SameAssetId(asset.AssetId, record.AssetId));
         _categoryPicker.SelectCanonicalId(record.Category == "Ass" ? "Avatar" : record.Category);
         UpdateEffectsPreview();
         SetMode(published ? "Editing Published" : "Editing Draft", published ? "تعديل أصل منشور" : "استكمال المسودة", published ? Color.FromArgb("#27AE60") : Color.FromArgb("#9B51E0"));
