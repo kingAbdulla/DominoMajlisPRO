@@ -9,7 +9,8 @@ public static class CanonicalAssetIdentityService
         var prefix = GetCanonicalPrefix(storeTypeId);
         
         var slug = Regex.Replace(title?.Trim() ?? "", @"[^a-zA-Z0-9\s]", "");
-        slug = Regex.Replace(slug, @"\s+", "_").ToUpper().Trim('_');
+        slug = Regex.Replace(slug, @"\s+", "_").ToUpper();
+        slug = Regex.Replace(slug, @"_+", "_").Trim('_');
 
         if (string.IsNullOrWhiteSpace(slug))
             slug = "UNNAMED_ASSET";
@@ -42,6 +43,30 @@ public static class CanonicalAssetIdentityService
         if (!IsCanonicalAssetId(assetId))
         {
             throw new InvalidOperationException($"المعرف {assetId} ليس معرفاً أصلياً (Canonical) صالحاً.");
+        }
+    }
+
+    public static string GenerateUniqueCanonicalAssetId(
+        string storeTypeId,
+        string title,
+        IEnumerable<string> existingAssetIds)
+    {
+        var normalizedExisting = new HashSet<string>(
+            existingAssetIds.Select(NormalizeForComparison),
+            StringComparer.Ordinal);
+
+        var baseId = GenerateCanonicalAssetId(storeTypeId, title);
+
+        if (!normalizedExisting.Contains(NormalizeForComparison(baseId)))
+            return baseId;
+
+        var counter = 2;
+        while (true)
+        {
+            var candidate = $"{baseId}_{counter}";
+            if (!normalizedExisting.Contains(NormalizeForComparison(candidate)))
+                return candidate;
+            counter++;
         }
     }
 
