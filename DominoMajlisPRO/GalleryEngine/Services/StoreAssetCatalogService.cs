@@ -1,4 +1,4 @@
-using DominoMajlisPRO.GalleryEngine.Admin.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
 
@@ -238,7 +238,7 @@ public static class StoreAssetCatalogService
             : fallback?.Trim() ?? string.Empty;
 
     private static bool Same(string? left, string? right) =>
-        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(left, right);
 
     private sealed record ProductLink(
         string ProductId,
