@@ -244,7 +244,7 @@ public static class PlayerInventoryService
         item.ApplicationUserId = item.ApplicationUserId?.Trim() ?? string.Empty;
         
         item.PlayerId = item.PlayerId?.Trim() ?? string.Empty;
-        item.AssetId = !string.IsNullOrWhiteSpace(item.AssetId) ? item.AssetId.Trim() : !string.IsNullOrWhiteSpace(item.ItemId) ? item.ItemId.Trim() : Guid.NewGuid().ToString();
+        item.AssetId = !string.IsNullOrWhiteSpace(item.AssetId) ? item.AssetId.Trim() : !string.IsNullOrWhiteSpace(item.ItemId) ? item.ItemId.Trim() : string.Empty;
         item.ItemId = item.AssetId;
         item.StoreTypeId = NormalizeStoreType(!string.IsNullOrWhiteSpace(item.StoreTypeId) ? item.StoreTypeId : !string.IsNullOrWhiteSpace(item.AssetType) ? item.AssetType : item.ItemType.ToString());
         item.AssetType = item.StoreTypeId;
@@ -258,7 +258,7 @@ public static class PlayerInventoryService
     }
 
     private static bool IsActiveOwned(PlayerOwnedStoreItem item) => item.IsOwned && !item.IsExpired;
-    private static bool Same(string? left, string? right) => string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+    private static bool Same(string? left, string? right) => CanonicalAssetIdentityService.SameAssetId(left, right);
     private static string OwnershipKey(PlayerOwnedStoreItem item) => $"{item.PlayerId}|{item.AssetId}";
     private static string EquippedTypeKey(PlayerOwnedStoreItem item) => $"{item.PlayerId}|{item.StoreTypeId}";
     private static string NormalizeStoreType(string? value) => string.IsNullOrWhiteSpace(value) ? UnknownStoreType : value.Trim();
