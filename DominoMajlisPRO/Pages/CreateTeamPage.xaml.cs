@@ -1379,6 +1379,18 @@ public partial class CreateTeamPage : ContentPage
         if (existing != null)
             return existing.PlayerId;
 
+        if (IsEditMode && CurrentTeam != null)
+        {
+            if (!string.IsNullOrWhiteSpace(CurrentTeam.Player1Id) &&
+                players.Any(x => string.Equals(x.PlayerId, CurrentTeam.Player1Id, StringComparison.OrdinalIgnoreCase) &&
+                    IsVerySimilarName(x.PlayerName, playerName)))
+                return CurrentTeam.Player1Id;
+            if (!string.IsNullOrWhiteSpace(CurrentTeam.Player2Id) &&
+                players.Any(x => string.Equals(x.PlayerId, CurrentTeam.Player2Id, StringComparison.OrdinalIgnoreCase) &&
+                    IsVerySimilarName(x.PlayerName, playerName)))
+                return CurrentTeam.Player2Id;
+        }
+
         var similarPlayer =
             players.FirstOrDefault(x =>
                 IsVerySimilarName(x.PlayerName, playerName));

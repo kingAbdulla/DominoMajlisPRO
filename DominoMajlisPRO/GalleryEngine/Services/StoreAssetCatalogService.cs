@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
 
@@ -140,7 +140,7 @@ public static class StoreAssetCatalogService
                 Same(item.AssetId, assetId) &&
                 (canonicalType == null || item.AssetType == canonicalType))
             .ToList();
-        return matches.Count == 1 ? matches[0] : null;
+        return matches.Count > 0 ? matches[0] : null;
     }
 
     public static StoreProductAssetType? CanonicalType(string? assetType)
