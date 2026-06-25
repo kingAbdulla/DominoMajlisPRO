@@ -109,7 +109,7 @@ public static class NewArrivalsAdminService
                 StoreCmsOrderingEngine.ByFeaturedAndSortOrder(published, item => item.IsFeatured, item => item.SortOrder),
                 item => item.PublishedAt,
                 item => item.UpdatedAt)
-            .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
             .ToList();
     }
 
@@ -290,7 +290,7 @@ public static class NewArrivalsAdminService
 
     private static IReadOnlyList<NewArrivalRecord> DistinctLatest(IEnumerable<NewArrivalRecord> records) => records
         .OrderByDescending(item => item.UpdatedAt)
-        .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+        .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
         .ToList();
 
     private static async Task<List<NewArrivalRecord>> LoadRecordsAsync()

@@ -31,7 +31,7 @@ public static class LimitedOffersAdminService
         (await LoadRecordsAsync())
             .Where(item => item.Status == LimitedOfferStatus.Draft)
             .OrderByDescending(item => item.UpdatedAt)
-            .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
             .ToList();
 
     public static Task<IReadOnlyList<LimitedOfferRecord>> LoadAllDrafts() => LoadAllDraftsAsync();
@@ -101,7 +101,7 @@ public static class LimitedOffersAdminService
 
     public static async Task<IReadOnlyList<LimitedOfferRecord>> LoadPublishedAsync() =>
         Order((await LoadRecordsAsync()).Where(item => item.Status == LimitedOfferStatus.Published))
-            .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
             .ToList();
 
     public static Task<IReadOnlyList<LimitedOfferRecord>> LoadPublished() => LoadPublishedAsync();
@@ -111,7 +111,7 @@ public static class LimitedOffersAdminService
         var now = DateTime.Now;
         return Order((await LoadRecordsAsync()).Where(item =>
                 item.Status == LimitedOfferStatus.Published && item.StartsAt <= now && item.EndsAt >= now))
-            .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
             .ToList();
     }
 
@@ -119,7 +119,7 @@ public static class LimitedOffersAdminService
         (await LoadRecordsAsync())
             .Where(item => item.Status != LimitedOfferStatus.Draft)
             .OrderByDescending(item => item.UpdatedAt)
-            .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
             .ToList();
 
     public static async Task HidePublishedAsync(string assetId)
