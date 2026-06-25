@@ -99,15 +99,15 @@ public partial class CreateTeamPage : ContentPage
     private bool IsEditMode = false;
 
     string selectedEmblem = "shield_3d.png";
-    string selectedEmblemAssetId = "default_emblem_shield";
+    string selectedEmblemAssetId = "team-emblem-shield-3d";
 
     bool isTeamMode = true;
 
     string selectedColor = "#FFD700";
-    string selectedColorAssetId = "default_color_gold";
+    string selectedColorAssetId = "team-color-gold";
 
     string selectedEmblemBackground = "Transparent";
-    string selectedEmblemBackgroundAssetId = "default_background_transparent";
+    string selectedEmblemBackgroundAssetId = "emblem-background-transparent";
     string selectedTeamEffectAssetId = "";
     string selectedTeamEffectOwnerPlayerId = "";
 
@@ -336,7 +336,7 @@ public partial class CreateTeamPage : ContentPage
                         SelectColorByHex(selectedColor, animate: false);
 
                     if (!SelectEmblemBackground(selectedEmblemBackgroundAssetId))
-                        SelectEmblemBackground("default_background_transparent");
+                        SelectEmblemBackground("emblem-background-transparent");
                     SelectTeamEffectByAssetId(selectedTeamEffectAssetId, animate: false);
                 }
                 finally
@@ -355,21 +355,16 @@ public partial class CreateTeamPage : ContentPage
 
     void AddDefaultVisualAssets()
     {
-        AddEmblemIfMissing("default_emblem_dragon", "dragon_3d.png", "Dragon");
-        AddEmblemIfMissing("default_emblem_crown", "crown_3d.png", "Crown");
-        AddEmblemIfMissing("default_emblem_wolf", "wolf_3d.png", "Wolf");
-        AddEmblemIfMissing("default_emblem_shield", "shield_3d.png", "Shield");
-        AddEmblemIfMissing("default_emblem_lion", "lion_3d.png", "Lion");
-        AddEmblemIfMissing("default_emblem_eagle", "eagle_3d.png", "Eagle");
-
-        AddColorIfMissing("default_color_black", "#111111", "black_color.png", "Black");
-        AddColorIfMissing("default_color_purple", "#7B1FFF", "purple_color.png", "Purple");
-        AddColorIfMissing("default_color_red", "#E50000", "red_color.png", "Red");
-        AddColorIfMissing("default_color_green", "#00A000", "green_color.png", "Green");
-        AddColorIfMissing("default_color_blue", "#006DFF", "blue_color.png", "Blue");
-        AddColorIfMissing("default_color_gold", "#FFD700", "gold_color.png", "Gold");
-
-        AddBackgroundIfMissing("default_background_transparent", "Transparent", "ط¨ط¯ظˆظ† ط®ظ„ظپظٹط©");
+        foreach (var payload in TeamAssetPayloadCatalog.GetDefaultTeamPayloads())
+        {
+            var typeId = payload.TeamAssetTypeId;
+            if (string.Equals(typeId, TeamAssetTypes.Emblem.TeamAssetTypeId, StringComparison.OrdinalIgnoreCase))
+                AddEmblemIfMissing(payload.TeamAssetId, payload.ImagePath ?? string.Empty, payload.EnglishDisplayName ?? payload.TeamAssetId);
+            else if (string.Equals(typeId, TeamAssetPayloadCatalog.TeamColorTypeId, StringComparison.OrdinalIgnoreCase))
+                AddColorIfMissing(payload.TeamAssetId, payload.ColorHex ?? string.Empty, payload.ImagePath ?? string.Empty, payload.EnglishDisplayName ?? payload.TeamAssetId);
+            else if (string.Equals(typeId, TeamAssetTypes.EmblemBackground.TeamAssetTypeId, StringComparison.OrdinalIgnoreCase))
+                AddBackgroundIfMissing(payload.TeamAssetId, payload.BackgroundColorHex ?? payload.BackgroundImagePath ?? string.Empty, payload.EnglishDisplayName ?? payload.TeamAssetId);
+        }
     }
 
     void AddSavedIdentityIfMissing(TeamProfileModel team)
@@ -1200,7 +1195,7 @@ public partial class CreateTeamPage : ContentPage
             ? team.EmblemAssetId
             : emblemItems.FirstOrDefault(item =>
                 string.Equals(item.ImagePath, selectedEmblem, StringComparison.OrdinalIgnoreCase))?.AssetId
-              ?? "default_emblem_shield";
+              ?? "team-emblem-shield-3d";
 
         selectedColor = string.IsNullOrWhiteSpace(team.ColorHex)
             ? "#FFD700"
@@ -1210,14 +1205,14 @@ public partial class CreateTeamPage : ContentPage
             ? team.TeamColorAssetId
             : colorItems.FirstOrDefault(item =>
                 string.Equals(item.ColorHex, selectedColor, StringComparison.OrdinalIgnoreCase))?.AssetId
-              ?? "default_color_gold";
+              ?? "team-color-gold";
 
         selectedEmblemBackground = string.IsNullOrWhiteSpace(team.EmblemBackground)
             ? "Transparent"
             : team.EmblemBackground;
 
         selectedEmblemBackgroundAssetId = string.IsNullOrWhiteSpace(team.EmblemBackgroundAssetId)
-            ? "default_background_transparent"
+            ? "emblem-background-transparent"
             : team.EmblemBackgroundAssetId;
         selectedTeamEffectAssetId = team.EquippedTeamEffectAssetId ?? string.Empty;
         selectedTeamEffectOwnerPlayerId = team.EquippedTeamEffectOwnerPlayerId ?? string.Empty;
@@ -1248,7 +1243,7 @@ public partial class CreateTeamPage : ContentPage
             SelectColorByHex(selectedColor, animate: true);
 
         if (!SelectEmblemBackground(selectedEmblemBackgroundAssetId))
-            SelectEmblemBackground("default_background_transparent");
+            SelectEmblemBackground("emblem-background-transparent");
     }
 
     void ResetForm()
@@ -1263,13 +1258,13 @@ public partial class CreateTeamPage : ContentPage
         Player2Entry.Text = "";
 
         selectedEmblem = "shield_3d.png";
-        selectedEmblemAssetId = "default_emblem_shield";
+        selectedEmblemAssetId = "team-emblem-shield-3d";
 
         selectedColor = "#FFD700";
-        selectedColorAssetId = "default_color_gold";
+        selectedColorAssetId = "team-color-gold";
 
         selectedEmblemBackground = "Transparent";
-        selectedEmblemBackgroundAssetId = "default_background_transparent";
+        selectedEmblemBackgroundAssetId = "emblem-background-transparent";
         selectedTeamEffectAssetId = string.Empty;
         selectedTeamEffectOwnerPlayerId = string.Empty;
         IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);

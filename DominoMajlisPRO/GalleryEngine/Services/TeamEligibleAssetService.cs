@@ -74,7 +74,7 @@ public static class TeamEligibleAssetService
                 TeamId = teamId?.Trim() ?? string.Empty,
                 TeamAssetId = payload.TeamAssetId,
                 TeamAssetTypeId = payload.TeamAssetTypeId,
-                IsOwned = false,
+                IsOwned = true,
                 AcquiredAt = new DateTime(
                     2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                 Source = "Default"
