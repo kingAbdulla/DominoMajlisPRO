@@ -111,7 +111,7 @@ public static class StoreEquipService
     }
 
     private static bool SameId(string? left, string? right) =>
-        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(left, right);
 
     private static void ValidateIdentity(string playerId, string assetId, string? storeTypeId = null)
     {
