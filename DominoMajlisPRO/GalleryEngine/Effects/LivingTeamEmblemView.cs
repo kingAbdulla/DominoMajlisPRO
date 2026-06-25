@@ -1,47 +1,65 @@
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.VisualIdentity;
+using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 
 namespace DominoMajlisPRO.GalleryEngine.Effects;
 
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  Phase 2.5-C  —  Living Emblem Behavior Engine                  ║
+// ║                                                                  ║
+// ║  Architecture:                                                   ║
+// ║    EmblemVisualDna          — fully editable per-emblem DNA      ║
+// ║    EmblemBehaviorProfile    — DNA + palette per emblem type      ║
+// ║    EmblemBehaviorState      — state enum per emblem              ║
+// ║    EmblemTimelineStep       — one step in a behavior timeline    ║
+// ║    EmblemBehaviorTimeline   — ordered timeline for one type      ║
+// ║    EmblemBehaviorBrain      — state machine + timeline + random  ║
+// ║    EmblemRenderFrame        — immutable snapshot sent to renderer║
+// ║    IEmblemBehaviorRenderer  — renderer contract (draw only)      ║
+// ║    EmblemBehaviorRendererResolver — static zero-alloc lookup     ║
+// ║    Per-emblem renderers     — 6 sealed classes                   ║
+// ║    LivingEmblemDrawable     — thin orchestrator                  ║
+// ║    LivingTeamEmblemView     — public GraphicsView widget         ║
+// ║                                                                  ║
+// ║  WYSIWYG contract:                                               ║
+// ║    Preview = Published = Runtime (same component, same pipeline) ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
 // ══════════════════════════════════════════════════════════════════
-// EmblemVisualPalette  — single source of truth for all glow colors
-// Change colors here; renderers read from EmblemAnimProfile.
+// EmblemVisualPalette  — single source of truth for all glow colors.
+// Renderers read from EmblemRenderFrame which is populated from DNA.
+// No inline hex literals anywhere else in this file.
 // ══════════════════════════════════════════════════════════════════
 internal static class EmblemVisualPalette
 {
-    // Dragon — fiery orange + warm gold accent
     public static readonly Color DragonPrimary   = Color.FromArgb("#FF6B00");
     public static readonly Color DragonSecondary = Color.FromArgb("#FFD700");
     public static readonly Color DragonSmoke1    = Color.FromArgb("#802200");
     public static readonly Color DragonSmoke2    = Color.FromArgb("#552200");
     public static readonly Color DragonEyeGlow   = Color.FromArgb("#FFB830");
 
-    // Lion — golden majesty + warm orange accent
     public static readonly Color LionPrimary     = Color.FromArgb("#FFD700");
     public static readonly Color LionSecondary   = Color.FromArgb("#FFA500");
     public static readonly Color LionSheen       = Color.FromArgb("#FFD700");
 
-    // Eagle — sky blue + white flash
     public static readonly Color EaglePrimary    = Color.FromArgb("#00BFFF");
     public static readonly Color EagleSecondary  = Color.FromArgb("#FFFFFF");
     public static readonly Color EagleStreak     = Color.FromArgb("#FFFFFF");
     public static readonly Color EagleGlint      = Color.FromArgb("#80DFFF");
 
-    // Wolf — ice blue + cold white
     public static readonly Color WolfPrimary     = Color.FromArgb("#9ECFFF");
     public static readonly Color WolfSecondary   = Color.FromArgb("#E0F0FF");
     public static readonly Color WolfFrost       = Color.FromArgb("#C8E8FF");
     public static readonly Color WolfIceGlint    = Color.FromArgb("#DDEFFF");
 
-    // Crown — royal gold + warm gold accent
     public static readonly Color CrownPrimary    = Color.FromArgb("#FFD700");
     public static readonly Color CrownSecondary  = Color.FromArgb("#E8C060");
     public static readonly Color CrownSparkle    = Color.FromArgb("#FFE860");
 
-    // Shield — silver steel + cool white highlight
     public static readonly Color ShieldPrimary   = Color.FromArgb("#C0C8D8");
     public static readonly Color ShieldSecondary = Color.FromArgb("#E8F0FF");
     public static readonly Color ShieldArc       = Color.FromArgb("#E0E8FF");
@@ -49,19 +67,14 @@ internal static class EmblemVisualPalette
 }
 
 // ══════════════════════════════════════════════════════════════════
-// EmblemPerformanceSettings  — PerformanceMode → timer interval
-// Ready for DeviceProfiler integration (Phase 2.5-C).
-// Timer interval is resolved once at Attach time, not per-frame.
+// EmblemPerformanceSettings  — DeviceProfile → timer interval.
+// Resolved once at Attach time. Never called inside Draw().
 // ══════════════════════════════════════════════════════════════════
 internal static class EmblemPerformanceSettings
 {
-    // TODO Phase 2.5-C: replace with DeviceProfiler.CurrentProfile lookup
-    // when PerformanceManager is wired to LivingEmblemBehavior context.
     public static TimeSpan GetTimerInterval()
     {
-        // Map DeviceProfile → safe frame interval
-        var profile = DeviceProfiler.CurrentProfile;
-        return profile switch
+        return DeviceProfiler.CurrentProfile switch
         {
             DeviceProfile.VeryLite => TimeSpan.FromMilliseconds(100), // ~10 fps
             DeviceProfile.Lite     => TimeSpan.FromMilliseconds(80),  // ~12 fps
@@ -74,35 +87,63 @@ internal static class EmblemPerformanceSettings
 }
 
 // ══════════════════════════════════════════════════════════════════
-// EmblemAnimProfile  — per-emblem glow + Visual DNA seed values
-// Colors come from EmblemVisualPalette (no inline hex literals).
-// Visual DNA fields are read by renderers — no hardcoding there.
-// Future fields (HeatStrength, SparkDensity, etc.) can be added
-// here without touching any renderer.
+// EmblemVisualDna  — all visual parameters, fully editable.
+// Renderer consumes ONLY these values. No hardcoded constants
+// inside any renderer. Future DNA fields are added here only.
+// Developer Studio publishes these values → same as runtime render.
 // ══════════════════════════════════════════════════════════════════
-internal sealed record EmblemAnimProfile(
+internal sealed record EmblemVisualDna(
+    // ── Palette ──────────────────────────────────────────────────
     Color PrimaryGlow,
     Color SecondaryGlow,
-    float GlowAlpha,         // 0–1 (calm 80 %)
-    float PulseAmplitude,    // 0–1 subtle breathing
-    float Speed,             // breathing cycles / second
-    string BehaviorId,       // matches IEmblemBehaviorRenderer.BehaviorId
-    // ── Visual DNA seed fields (Phase 2.5-B foundation) ────────────
-    float GlowStrength,      // multiplier on glow radius (1.0 = default)
-    float HeatStrength,      // warmth overlay intensity — used by Dragon/Lion
-    float ReflectionStrength,// metallic surface reflection — used by Shield/Crown
-    float SmokeDensity,      // smoke wisp density — used by Dragon
-    float EyeGlow,           // eye highlight intensity — used by Dragon/Eagle
-    float PulseStrength)     // secondary-ring pulse weight — used by Lion/Wolf
+    Color Accent1,           // smoke1 / sheen / streak / frost / sparkle / arc
+    Color Accent2,           // smoke2 / — / glint / iceGlint / — / sheen
+    Color AccentEye,         // eye glow color
+    // ── Glow / aura ──────────────────────────────────────────────
+    float GlowAlpha,         // outer glow base opacity  0–1
+    float GlowStrength,      // glow radius multiplier   0.8–1.4
+    float AuraRadius,        // extra aura ring radius   0–1
+    float PulseAmplitude,    // breathing depth          0–0.25
+    float PulseSpeed,        // breathing cycles/sec
+    float PulseCurve,        // sinusoidal curve shaping 0–1 (0=linear,1=smooth)
+    // ── State machine speed ──────────────────────────────────────
+    float BrainSpeed,        // global timeline scale    0.5–2.0
+    // ── Smoke ─────────────────────────────────────────────────────
+    float SmokeDensity,      // wisp render weight       0–1
+    float SmokeSpeed,        // wisp drift speed         0–1
+    // ── Eye ───────────────────────────────────────────────────────
+    float EyeGlow,           // eye intensity            0–1
+    float EyeBlinkInterval,  // seconds between blinks   1–6
+    // ── Reflection / metal ────────────────────────────────────────
+    float ReflectionStrength,// arc/sheen intensity      0–1
+    // ── Heat ──────────────────────────────────────────────────────
+    float HeatStrength,      // warmth overlay           0–1
+    float HeatRadius,        // warmth radius scale      0–1
+    // ── Particles / sparkle ───────────────────────────────────────
+    float SparkCount,        // dot count multiplier     0–1
+    float SparkLifetime,     // individual spark duration 0–1
+    // ── Secondary ring / dignity ─────────────────────────────────
+    float PulseStrength,     // secondary ring weight    0–1
+    // ── Wing / head ───────────────────────────────────────────────
+    float WingAmplitude,     // wing twitch scale        0–1
+    float HeadRotation);     // head movement scale      0–1
+
+// ══════════════════════════════════════════════════════════════════
+// EmblemBehaviorProfile  — associates DNA + behavior ID + type.
+// One profile per EmblemType. Future variants get their own profile
+// without touching any renderer (data-driven, no renderer dup).
+// ══════════════════════════════════════════════════════════════════
+internal sealed record EmblemBehaviorProfile(
+    EmblemType Type,
+    string BehaviorId,
+    EmblemVisualDna Dna)
 {
-    // ── Canonical AssetId → EmblemType (no string sniffing) ─────────
-    // Source of truth: TeamAssetPayloadCatalog canonical IDs.
-    private static EmblemType ResolveType(string? assetId)
+    // ── Canonical AssetId → EmblemType (exact match, no Contains) ──
+    public static EmblemType ResolveType(string? assetId)
     {
         var id = assetId?.Trim() ?? string.Empty;
         if (string.IsNullOrEmpty(id)) return EmblemType.Shield;
 
-        // Exact canonical match first
         if (string.Equals(id, "team-emblem-dragon-3d", StringComparison.OrdinalIgnoreCase)) return EmblemType.Dragon;
         if (string.Equals(id, "team-emblem-lion-3d",   StringComparison.OrdinalIgnoreCase)) return EmblemType.Lion;
         if (string.Equals(id, "team-emblem-eagle-3d",  StringComparison.OrdinalIgnoreCase)) return EmblemType.Eagle;
@@ -110,8 +151,6 @@ internal sealed record EmblemAnimProfile(
         if (string.Equals(id, "team-emblem-crown-3d",  StringComparison.OrdinalIgnoreCase)) return EmblemType.Crown;
         if (string.Equals(id, "team-emblem-shield-3d", StringComparison.OrdinalIgnoreCase)) return EmblemType.Shield;
 
-        // Alias / filename fallback (dragon_3d.png, lion-3d, etc.)
-        // Uses catalog normalization aliases — still exact key, not substring.
         var norm = id.ToLowerInvariant();
         if (norm is "dragon_3d" or "dragon_3d.png" or "emblem-dragon-3d" or "dragon-3d") return EmblemType.Dragon;
         if (norm is "lion_3d"   or "lion_3d.png"   or "emblem-lion-3d"   or "lion-3d")   return EmblemType.Lion;
@@ -120,70 +159,416 @@ internal sealed record EmblemAnimProfile(
         if (norm is "crown_3d"  or "crown_3d.png"  or "emblem-crown-3d"  or "crown-3d")  return EmblemType.Crown;
         if (norm is "shield_3d" or "shield_3d.png" or "emblem-shield-3d" or "shield-3d") return EmblemType.Shield;
 
-        return EmblemType.Shield; // safe default
+        return EmblemType.Shield;
     }
 
-    public static EmblemAnimProfile For(string? emblemAssetId)
+    // ── Default profiles  (Developer Studio publishes these values) ─
+    public static EmblemBehaviorProfile For(string? emblemAssetId) =>
+        ForType(ResolveType(emblemAssetId));
+
+    public static EmblemBehaviorProfile ForType(EmblemType t) => t switch
     {
-        return ResolveType(emblemAssetId) switch
-        {
-            EmblemType.Dragon => new(
-                EmblemVisualPalette.DragonPrimary, EmblemVisualPalette.DragonSecondary,
-                0.24f, 0.14f, 0.72f, "FireBreath",
-                GlowStrength: 1.10f, HeatStrength: 0.70f, ReflectionStrength: 0.0f,
-                SmokeDensity: 0.65f, EyeGlow: 0.80f, PulseStrength: 0.55f),
+        EmblemType.Dragon => new(EmblemType.Dragon, "FireBreath", new EmblemVisualDna(
+            PrimaryGlow: EmblemVisualPalette.DragonPrimary,
+            SecondaryGlow: EmblemVisualPalette.DragonSecondary,
+            Accent1: EmblemVisualPalette.DragonSmoke1,
+            Accent2: EmblemVisualPalette.DragonSmoke2,
+            AccentEye: EmblemVisualPalette.DragonEyeGlow,
+            GlowAlpha: 0.32f, GlowStrength: 1.12f, AuraRadius: 0.18f,
+            PulseAmplitude: 0.16f, PulseSpeed: 0.72f, PulseCurve: 0.80f,
+            BrainSpeed: 1.00f,
+            SmokeDensity: 0.90f, SmokeSpeed: 0.55f,
+            EyeGlow: 1.00f, EyeBlinkInterval: 2.8f,
+            ReflectionStrength: 0.0f,
+            HeatStrength: 0.85f, HeatRadius: 0.60f,
+            SparkCount: 0.0f, SparkLifetime: 0.0f,
+            PulseStrength: 0.65f,
+            WingAmplitude: 0.0f, HeadRotation: 0.20f)),
 
-            EmblemType.Lion => new(
-                EmblemVisualPalette.LionPrimary, EmblemVisualPalette.LionSecondary,
-                0.22f, 0.11f, 0.65f, "Roar",
-                GlowStrength: 1.05f, HeatStrength: 0.45f, ReflectionStrength: 0.10f,
-                SmokeDensity: 0.0f,  EyeGlow: 0.0f,  PulseStrength: 0.80f),
+        EmblemType.Lion => new(EmblemType.Lion, "Roar", new EmblemVisualDna(
+            PrimaryGlow: EmblemVisualPalette.LionPrimary,
+            SecondaryGlow: EmblemVisualPalette.LionSecondary,
+            Accent1: EmblemVisualPalette.LionSheen,
+            Accent2: EmblemVisualPalette.LionSheen,
+            AccentEye: EmblemVisualPalette.LionPrimary,
+            GlowAlpha: 0.30f, GlowStrength: 1.08f, AuraRadius: 0.14f,
+            PulseAmplitude: 0.13f, PulseSpeed: 0.65f, PulseCurve: 0.70f,
+            BrainSpeed: 1.00f,
+            SmokeDensity: 0.0f, SmokeSpeed: 0.0f,
+            EyeGlow: 0.0f, EyeBlinkInterval: 3.5f,
+            ReflectionStrength: 0.15f,
+            HeatStrength: 0.65f, HeatRadius: 0.40f,
+            SparkCount: 0.0f, SparkLifetime: 0.0f,
+            PulseStrength: 1.00f,
+            WingAmplitude: 0.0f, HeadRotation: 0.35f)),
 
-            EmblemType.Eagle => new(
-                EmblemVisualPalette.EaglePrimary, EmblemVisualPalette.EagleSecondary,
-                0.20f, 0.10f, 0.82f, "WingPulse",
-                GlowStrength: 1.00f, HeatStrength: 0.0f,  ReflectionStrength: 0.20f,
-                SmokeDensity: 0.0f,  EyeGlow: 0.60f, PulseStrength: 0.40f),
+        EmblemType.Eagle => new(EmblemType.Eagle, "WingPulse", new EmblemVisualDna(
+            PrimaryGlow: EmblemVisualPalette.EaglePrimary,
+            SecondaryGlow: EmblemVisualPalette.EagleSecondary,
+            Accent1: EmblemVisualPalette.EagleStreak,
+            Accent2: EmblemVisualPalette.EagleGlint,
+            AccentEye: EmblemVisualPalette.EagleGlint,
+            GlowAlpha: 0.28f, GlowStrength: 1.04f, AuraRadius: 0.12f,
+            PulseAmplitude: 0.12f, PulseSpeed: 0.82f, PulseCurve: 0.60f,
+            BrainSpeed: 1.00f,
+            SmokeDensity: 0.0f, SmokeSpeed: 0.0f,
+            EyeGlow: 0.85f, EyeBlinkInterval: 1.8f,
+            ReflectionStrength: 0.55f,
+            HeatStrength: 0.0f, HeatRadius: 0.0f,
+            SparkCount: 0.0f, SparkLifetime: 0.0f,
+            PulseStrength: 0.50f,
+            WingAmplitude: 0.70f, HeadRotation: 0.0f)),
 
-            EmblemType.Wolf => new(
-                EmblemVisualPalette.WolfPrimary, EmblemVisualPalette.WolfSecondary,
-                0.19f, 0.10f, 0.76f, "FrostBreath",
-                GlowStrength: 0.95f, HeatStrength: 0.0f,  ReflectionStrength: 0.30f,
-                SmokeDensity: 0.0f,  EyeGlow: 0.0f,  PulseStrength: 0.75f),
+        EmblemType.Wolf => new(EmblemType.Wolf, "FrostBreath", new EmblemVisualDna(
+            PrimaryGlow: EmblemVisualPalette.WolfPrimary,
+            SecondaryGlow: EmblemVisualPalette.WolfSecondary,
+            Accent1: EmblemVisualPalette.WolfFrost,
+            Accent2: EmblemVisualPalette.WolfIceGlint,
+            AccentEye: EmblemVisualPalette.WolfIceGlint,
+            GlowAlpha: 0.26f, GlowStrength: 0.98f, AuraRadius: 0.16f,
+            PulseAmplitude: 0.12f, PulseSpeed: 0.76f, PulseCurve: 0.50f,
+            BrainSpeed: 1.00f,
+            SmokeDensity: 0.0f, SmokeSpeed: 0.0f,
+            EyeGlow: 0.0f, EyeBlinkInterval: 4.0f,
+            ReflectionStrength: 0.55f,
+            HeatStrength: 0.0f, HeatRadius: 0.0f,
+            SparkCount: 0.0f, SparkLifetime: 0.0f,
+            PulseStrength: 0.95f,
+            WingAmplitude: 0.0f, HeadRotation: 0.25f)),
 
-            EmblemType.Crown => new(
-                EmblemVisualPalette.CrownPrimary, EmblemVisualPalette.CrownSecondary,
-                0.26f, 0.14f, 0.62f, "RoyalSparkle",
-                GlowStrength: 1.15f, HeatStrength: 0.0f,  ReflectionStrength: 0.60f,
-                SmokeDensity: 0.0f,  EyeGlow: 0.0f,  PulseStrength: 0.50f),
+        EmblemType.Crown => new(EmblemType.Crown, "RoyalSparkle", new EmblemVisualDna(
+            PrimaryGlow: EmblemVisualPalette.CrownPrimary,
+            SecondaryGlow: EmblemVisualPalette.CrownSecondary,
+            Accent1: EmblemVisualPalette.CrownSparkle,
+            Accent2: EmblemVisualPalette.CrownSparkle,
+            AccentEye: EmblemVisualPalette.CrownPrimary,
+            GlowAlpha: 0.34f, GlowStrength: 1.18f, AuraRadius: 0.22f,
+            PulseAmplitude: 0.16f, PulseSpeed: 0.62f, PulseCurve: 0.90f,
+            BrainSpeed: 1.00f,
+            SmokeDensity: 0.0f, SmokeSpeed: 0.0f,
+            EyeGlow: 0.0f, EyeBlinkInterval: 5.0f,
+            ReflectionStrength: 0.90f,
+            HeatStrength: 0.0f, HeatRadius: 0.0f,
+            SparkCount: 0.80f, SparkLifetime: 0.65f,
+            PulseStrength: 0.60f,
+            WingAmplitude: 0.0f, HeadRotation: 0.0f)),
 
-            _ => new( // Shield + unknown
-                EmblemVisualPalette.ShieldPrimary, EmblemVisualPalette.ShieldSecondary,
-                0.18f, 0.08f, 0.68f, "DefensivePulse",
-                GlowStrength: 0.90f, HeatStrength: 0.0f,  ReflectionStrength: 0.80f,
-                SmokeDensity: 0.0f,  EyeGlow: 0.0f,  PulseStrength: 0.30f),
-        };
+        _ => new(EmblemType.Shield, "DefensivePulse", new EmblemVisualDna(  // Shield + unknown
+            PrimaryGlow: EmblemVisualPalette.ShieldPrimary,
+            SecondaryGlow: EmblemVisualPalette.ShieldSecondary,
+            Accent1: EmblemVisualPalette.ShieldArc,
+            Accent2: EmblemVisualPalette.ShieldSheen,
+            AccentEye: EmblemVisualPalette.ShieldSecondary,
+            GlowAlpha: 0.24f, GlowStrength: 0.94f, AuraRadius: 0.10f,
+            PulseAmplitude: 0.10f, PulseSpeed: 0.68f, PulseCurve: 0.40f,
+            BrainSpeed: 1.00f,
+            SmokeDensity: 0.0f, SmokeSpeed: 0.0f,
+            EyeGlow: 0.0f, EyeBlinkInterval: 6.0f,
+            ReflectionStrength: 1.00f,
+            HeatStrength: 0.0f, HeatRadius: 0.0f,
+            SparkCount: 0.0f, SparkLifetime: 0.0f,
+            PulseStrength: 0.40f,
+            WingAmplitude: 0.0f, HeadRotation: 0.0f)),
+    };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EmblemBehaviorState  — per-emblem state machine states.
+// One enum covers all emblems; unused states are simply never entered
+// by a given emblem's timeline.
+// ══════════════════════════════════════════════════════════════════
+internal enum EmblemBehaviorState
+{
+    // Universal
+    Idle = 0,
+    Breathing,
+    // Dragon
+    Preparing,
+    FireCharge,
+    // FireBreath — future
+    Cooldown,
+    // Lion
+    EyeMovement,
+    HeadMovement,
+    RoarCharge,
+    // Roar — future
+    Recover,
+    // Eagle
+    EyeGlint,
+    WingTwitch,
+    FeatherMotion,
+    WingPulse,
+    // FullFlight — future
+    // Wolf
+    ColdBreath,
+    EarMovement,
+    EyeBlink,
+    FrostWind,
+    // Howl — future
+    // Shield
+    ReflectionSweep,
+    MetallicPulse,
+    GuardianMode,
+    // Crown
+    RoyalGlow,
+    GemPulse,
+    SparkRain,
+    RoyalAura,
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EmblemTimelineStep  — one step in a behavior timeline.
+// Duration: seconds. NextState drives the transition.
+// ══════════════════════════════════════════════════════════════════
+internal readonly struct EmblemTimelineStep
+{
+    public readonly EmblemBehaviorState State;
+    public readonly float Duration;          // seconds
+    public EmblemTimelineStep(EmblemBehaviorState s, float d) { State = s; Duration = d; }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EmblemBehaviorTimeline  — ordered timeline for one emblem type.
+// No allocations — steps is a pre-allocated readonly array.
+// The engine loops back to step 0 after the last step.
+// ══════════════════════════════════════════════════════════════════
+internal static class EmblemBehaviorTimeline
+{
+    // ── Dragon: Idle → Breathing → Preparing → FireCharge → Cooldown → loop ──
+    private static readonly EmblemTimelineStep[] Dragon =
+    [
+        new(EmblemBehaviorState.Idle,        2.5f),
+        new(EmblemBehaviorState.Breathing,   1.2f),
+        new(EmblemBehaviorState.Preparing,   0.8f),
+        new(EmblemBehaviorState.FireCharge,  1.0f),
+        new(EmblemBehaviorState.Cooldown,    1.5f),
+    ];
+
+    // ── Lion: Idle → Breathing → EyeMovement → HeadMovement → RoarCharge → Recover → loop ──
+    private static readonly EmblemTimelineStep[] Lion =
+    [
+        new(EmblemBehaviorState.Idle,        2.8f),
+        new(EmblemBehaviorState.Breathing,   1.0f),
+        new(EmblemBehaviorState.EyeMovement, 0.6f),
+        new(EmblemBehaviorState.HeadMovement,0.8f),
+        new(EmblemBehaviorState.RoarCharge,  0.9f),
+        new(EmblemBehaviorState.Recover,     1.2f),
+    ];
+
+    // ── Eagle: Idle → EyeGlint → WingTwitch → FeatherMotion → WingPulse → loop ──
+    private static readonly EmblemTimelineStep[] Eagle =
+    [
+        new(EmblemBehaviorState.Idle,          2.2f),
+        new(EmblemBehaviorState.EyeGlint,      0.5f),
+        new(EmblemBehaviorState.WingTwitch,    0.7f),
+        new(EmblemBehaviorState.FeatherMotion, 0.9f),
+        new(EmblemBehaviorState.WingPulse,     1.1f),
+    ];
+
+    // ── Wolf: Idle → ColdBreath → EarMovement → EyeBlink → FrostWind → loop ──
+    private static readonly EmblemTimelineStep[] Wolf =
+    [
+        new(EmblemBehaviorState.Idle,         2.6f),
+        new(EmblemBehaviorState.ColdBreath,   0.8f),
+        new(EmblemBehaviorState.EarMovement,  0.6f),
+        new(EmblemBehaviorState.EyeBlink,     0.3f),
+        new(EmblemBehaviorState.FrostWind,    1.2f),
+    ];
+
+    // ── Crown: Idle → RoyalGlow → GemPulse → SparkRain → RoyalAura → loop ──
+    private static readonly EmblemTimelineStep[] Crown =
+    [
+        new(EmblemBehaviorState.Idle,         2.0f),
+        new(EmblemBehaviorState.RoyalGlow,    0.8f),
+        new(EmblemBehaviorState.GemPulse,     0.6f),
+        new(EmblemBehaviorState.SparkRain,    1.2f),
+        new(EmblemBehaviorState.RoyalAura,    1.0f),
+    ];
+
+    // ── Shield: Idle → ReflectionSweep → MetallicPulse → GuardianMode → loop ──
+    private static readonly EmblemTimelineStep[] Shield =
+    [
+        new(EmblemBehaviorState.Idle,             3.0f),
+        new(EmblemBehaviorState.ReflectionSweep,  1.0f),
+        new(EmblemBehaviorState.MetallicPulse,    0.8f),
+        new(EmblemBehaviorState.GuardianMode,     1.2f),
+    ];
+
+    public static ReadOnlySpan<EmblemTimelineStep> For(EmblemType t) => t switch
+    {
+        EmblemType.Dragon => Dragon,
+        EmblemType.Lion   => Lion,
+        EmblemType.Eagle  => Eagle,
+        EmblemType.Wolf   => Wolf,
+        EmblemType.Crown  => Crown,
+        _                 => Shield,
+    };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EmblemRenderFrame  — immutable snapshot passed to renderer.
+// The Brain computes this every tick. Renderer draws it. Period.
+// No decisions inside the renderer. No profile access in renderer.
+// ══════════════════════════════════════════════════════════════════
+internal readonly struct EmblemRenderFrame
+{
+    // Geometry
+    public readonly float Cx;
+    public readonly float Cy;
+    public readonly float R;             // effective glow radius (already GlowStrength-scaled)
+    // Breathing
+    public readonly float Breath;        // 1 + amplitude * sin(phase*tau)
+    public readonly float Sin;           // sin(phase*tau)
+    public readonly float SinHalf;       // sin(phase*tau*0.5)
+    // State
+    public readonly EmblemBehaviorState State;
+    public readonly float StateProgress; // 0→1 within current state
+    // DNA (fully resolved — renderer reads these, nothing else)
+    public readonly float GlowAlpha;
+    public readonly float SmokeDensity;
+    public readonly float SmokeSpeed;
+    public readonly float EyeGlow;
+    public readonly float EyeBlinkInterval;
+    public readonly float ReflectionStrength;
+    public readonly float HeatStrength;
+    public readonly float HeatRadius;
+    public readonly float SparkCount;
+    public readonly float SparkLifetime;
+    public readonly float PulseStrength;
+    public readonly float WingAmplitude;
+    public readonly float HeadRotation;
+    public readonly float AuraRadius;
+    // Colors (resolved from palette via DNA)
+    public readonly Color PrimaryGlow;
+    public readonly Color SecondaryGlow;
+    public readonly Color Accent1;
+    public readonly Color Accent2;
+    public readonly Color AccentEye;
+    // Randomization offsets (per-instance, deterministic per seed)
+    public readonly float RandSmoke;     // 0–1 random smoke timing offset
+    public readonly float RandBlink;     // 0–1 random blink timing offset
+    public readonly float RandPulse;     // 0–1 random pulse phase offset
+    public readonly float RandSpark;     // 0–1 random sparkle phase offset
+
+    public EmblemRenderFrame(
+        float cx, float cy, float r, float breath, float sin, float sinHalf,
+        EmblemBehaviorState state, float stateProgress,
+        EmblemVisualDna dna,
+        float randSmoke, float randBlink, float randPulse, float randSpark)
+    {
+        Cx = cx; Cy = cy; R = r;
+        Breath = breath; Sin = sin; SinHalf = sinHalf;
+        State = state; StateProgress = stateProgress;
+        GlowAlpha = dna.GlowAlpha;
+        SmokeDensity = dna.SmokeDensity; SmokeSpeed = dna.SmokeSpeed;
+        EyeGlow = dna.EyeGlow; EyeBlinkInterval = dna.EyeBlinkInterval;
+        ReflectionStrength = dna.ReflectionStrength;
+        HeatStrength = dna.HeatStrength; HeatRadius = dna.HeatRadius;
+        SparkCount = dna.SparkCount; SparkLifetime = dna.SparkLifetime;
+        PulseStrength = dna.PulseStrength;
+        WingAmplitude = dna.WingAmplitude; HeadRotation = dna.HeadRotation;
+        AuraRadius = dna.AuraRadius;
+        PrimaryGlow = dna.PrimaryGlow; SecondaryGlow = dna.SecondaryGlow;
+        Accent1 = dna.Accent1; Accent2 = dna.Accent2; AccentEye = dna.AccentEye;
+        RandSmoke = randSmoke; RandBlink = randBlink;
+        RandPulse = randPulse; RandSpark = randSpark;
     }
 }
 
 // ══════════════════════════════════════════════════════════════════
-// IEmblemBehaviorRenderer  — per-emblem draw contract
-// Each renderer handles only its own emblem personality.
-// No allocations inside Draw — all math is stack-only floats.
+// EmblemBehaviorBrain  — state machine + timeline + randomization.
+// One instance per LivingTeamEmblemView (per image).
+// Owns the random seed → each team animates independently.
+// Brain decides everything; renderer draws the resulting frame.
+// ══════════════════════════════════════════════════════════════════
+internal sealed class EmblemBehaviorBrain
+{
+    private readonly EmblemBehaviorProfile _profile;
+    // Randomization — unique per instance, deterministic per seed
+    private readonly float _randStartDelay;   // seconds, initial idle extra
+    private readonly float _randSmoke;        // smoke timing offset
+    private readonly float _randBlink;        // blink timing offset
+    private readonly float _randPulse;        // pulse phase offset
+    private readonly float _randSpark;        // sparkle phase offset
+
+    // Timeline state — no allocations after construction
+    private int   _stepIndex;
+    private float _stepElapsed;    // seconds into current step
+    private float _totalElapsed;   // seconds since brain started
+
+    public EmblemBehaviorState CurrentState  { get; private set; } = EmblemBehaviorState.Idle;
+    public float               StateProgress { get; private set; }
+
+    public EmblemBehaviorBrain(EmblemBehaviorProfile profile, int instanceSeed)
+    {
+        _profile = profile;
+        var rng = new Random(instanceSeed);
+        _randStartDelay = (float)(rng.NextDouble() * 1.5);  // 0–1.5 sec random start offset
+        _randSmoke      = (float)rng.NextDouble();
+        _randBlink      = (float)rng.NextDouble();
+        _randPulse      = (float)rng.NextDouble();
+        _randSpark      = (float)rng.NextDouble();
+    }
+
+    // Called every timer tick. deltaSeconds = timer interval in seconds.
+    public void Tick(float deltaSeconds)
+    {
+        _totalElapsed += deltaSeconds;
+
+        // Respect initial random start delay (holds in Idle)
+        if (_totalElapsed < _randStartDelay) return;
+
+        var dna      = _profile.Dna;
+        var timeline = EmblemBehaviorTimeline.For(_profile.Type);
+        if (timeline.Length == 0) return;
+
+        _stepElapsed += deltaSeconds * dna.BrainSpeed;
+
+        ref readonly var step = ref timeline[_stepIndex];
+        if (_stepElapsed >= step.Duration)
+        {
+            _stepElapsed -= step.Duration;
+            _stepIndex    = (_stepIndex + 1) % timeline.Length;
+        }
+
+        ref readonly var current = ref timeline[_stepIndex];
+        CurrentState  = current.State;
+        StateProgress = current.Duration > 0f
+            ? Math.Clamp(_stepElapsed / current.Duration, 0f, 1f)
+            : 0f;
+    }
+
+    // Build an immutable RenderFrame from current state. Stack-only, no alloc.
+    public EmblemRenderFrame BuildFrame(float cx, float cy, float rectSize)
+    {
+        var dna = _profile.Dna;
+        float r   = rectSize * 0.36f * dna.GlowStrength;
+        float sin     = MathF.Sin(_totalElapsed * dna.PulseSpeed * MathF.Tau);
+        float sinHalf = MathF.Sin(_totalElapsed * dna.PulseSpeed * MathF.Tau * 0.5f);
+        float breath  = 1f + dna.PulseAmplitude * sin;
+
+        return new EmblemRenderFrame(
+            cx, cy, r, breath, sin, sinHalf,
+            CurrentState, StateProgress,
+            dna,
+            _randSmoke, _randBlink, _randPulse, _randSpark);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// IEmblemBehaviorRenderer  — renderer contract.
+// Receives only EmblemRenderFrame — makes ZERO decisions.
+// No profile access. No animation logic. Pure draw calls.
+// No allocations inside Draw.
 // ══════════════════════════════════════════════════════════════════
 internal interface IEmblemBehaviorRenderer
 {
     string BehaviorId { get; }
-
-    // phase    = elapsed * profile.Speed (pre-computed by caller)
-    // sin/sinH = pre-computed sin values to avoid redundant trig in caller
-    void Draw(ICanvas canvas, float cx, float cy, float r,
-              EmblemAnimProfile profile, float breath, float sin, float sinHalf);
+    void Draw(ICanvas canvas, in EmblemRenderFrame frame);
 }
 
 // ══════════════════════════════════════════════════════════════════
 // EmblemBehaviorRendererResolver  — zero-allocation static lookup
-// Array search over 6 entries is cheaper than Dictionary<> alloc.
 // ══════════════════════════════════════════════════════════════════
 internal static class EmblemBehaviorRendererResolver
 {
@@ -196,7 +581,6 @@ internal static class EmblemBehaviorRendererResolver
         new CrownEmblemBehaviorRenderer(),
         new ShieldEmblemBehaviorRenderer(),
     ];
-
     private static readonly IEmblemBehaviorRenderer _default = _all[5]; // Shield
 
     public static IEmblemBehaviorRenderer Resolve(string behaviorId)
@@ -209,171 +593,206 @@ internal static class EmblemBehaviorRendererResolver
 
 // ══════════════════════════════════════════════════════════════════
 // Per-emblem renderer implementations
-// Foundation only — heavy FutureBehaviors (FireBreath, Roar, etc.)
-// are NOT implemented here; they are registered as BehaviorId only.
+// Each renderer draws ONLY what the RenderFrame tells it to.
+// No hardcoded constants. No animation decisions. No profile reads.
+// Future renderers: add class + register in resolver. No dup needed.
 // ══════════════════════════════════════════════════════════════════
 
-// ── Dragon: smoke wisps + warm eye-glow hint ─────────────────────
-// Future: FireBreath full (NOT implemented)
+// ── Dragon: smoke wisps (Idle/Breathing/Preparing) + eye glow + heat pulse ──
 internal sealed class DragonEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string BehaviorId => "FireBreath";
 
-    public void Draw(ICanvas c, float cx, float cy, float r,
-                     EmblemAnimProfile p, float breath, float sin, float sinHalf)
+    public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
-        float smokeR = r * 0.22f * p.SmokeDensity * breath;
-        float absSin = MathF.Abs(sin);
+        float absSin  = MathF.Abs(f.Sin);
+        float smokeR  = f.R * 0.22f * f.SmokeDensity * f.Breath;
+        // State-aware smoke intensity: stronger during Preparing / FireCharge
+        float stateBoost = f.State is EmblemBehaviorState.Preparing or EmblemBehaviorState.FireCharge
+            ? 1f + f.StateProgress * 0.5f : 1f;
 
-        // wisp 1 — up-left drift
-        c.FillColor = EmblemVisualPalette.DragonSmoke1.WithAlpha(0.10f + 0.06f * absSin);
-        c.FillCircle(cx - r * 0.35f, cy - r * (0.80f + 0.12f * sin), smokeR);
+        // smoke wisp 1 — drifts up-left, randomized phase
+        float wispY1 = f.R * (0.80f + 0.12f * MathF.Sin((f.Sin + f.RandSmoke) * MathF.Tau));
+        c.FillColor = f.Accent1.WithAlpha((0.10f + 0.06f * absSin) * stateBoost);
+        c.FillCircle(f.Cx - f.R * 0.35f, f.Cy - wispY1, smokeR);
 
-        // wisp 2 — up-right
-        c.FillColor = EmblemVisualPalette.DragonSmoke2.WithAlpha(0.08f + 0.05f * absSin);
-        c.FillCircle(cx + r * 0.20f, cy - r * (0.70f + 0.09f * sin), smokeR * 0.75f);
+        // smoke wisp 2 — drifts up-right, independent random offset
+        float wispY2 = f.R * (0.70f + 0.09f * MathF.Sin((f.Sin + f.RandSmoke * 0.7f) * MathF.Tau));
+        c.FillColor = f.Accent2.WithAlpha((0.08f + 0.05f * absSin) * stateBoost);
+        c.FillCircle(f.Cx + f.R * 0.20f, f.Cy - wispY2, smokeR * 0.75f);
 
-        // eye-glow hint — intensity driven by EyeGlow DNA field
-        c.FillColor = EmblemVisualPalette.DragonEyeGlow.WithAlpha((0.28f + 0.18f * absSin) * p.EyeGlow);
-        c.FillCircle(cx, cy - r * 0.32f, r * 0.09f * breath);
+        // eye glow — blinks on EyeMovement-equivalent (Breathing state peak)
+        float eyeAlpha = (0.28f + 0.18f * absSin) * f.EyeGlow * stateBoost;
+        c.FillColor = f.AccentEye.WithAlpha(eyeAlpha);
+        c.FillCircle(f.Cx, f.Cy - f.R * 0.32f, f.R * 0.09f * f.Breath);
+
+        // heat pulse during FireCharge
+        if (f.State == EmblemBehaviorState.FireCharge && f.HeatStrength > 0f)
+        {
+            float heatAlpha = f.StateProgress * f.HeatStrength * 0.25f;
+            c.FillColor = f.PrimaryGlow.WithAlpha(heatAlpha);
+            c.FillCircle(f.Cx, f.Cy, f.R * (1.0f + f.HeatRadius * f.StateProgress));
+        }
     }
 }
 
-// ── Lion: dignity pulse ring + warm top sheen ────────────────────
-// Future: Roar (NOT implemented)
+// ── Lion: dignity ring (stronger in RoarCharge) + warm sheen ──────
 internal sealed class LionEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string BehaviorId => "Roar";
 
-    public void Draw(ICanvas c, float cx, float cy, float r,
-                     EmblemAnimProfile p, float breath, float sin, float sinHalf)
+    public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
-        float absHalf = MathF.Abs(sinHalf);
-        // PulseStrength DNA field drives dignity ring weight
-        float dignityR = r * (1.55f + 0.18f * absHalf * p.PulseStrength) * breath;
+        float absHalf = MathF.Abs(f.SinHalf);
+        // Dignity ring pulsed by PulseStrength + state
+        float ringBoost = f.State == EmblemBehaviorState.RoarCharge
+            ? 1f + f.StateProgress * 0.4f * f.PulseStrength : 1f;
+        float dignityR = f.R * (1.55f + 0.18f * absHalf * f.PulseStrength) * f.Breath * ringBoost;
 
-        c.StrokeColor = p.SecondaryGlow.WithAlpha(0.13f + 0.10f * (1f - absHalf));
-        c.StrokeSize = 1.2f;
-        c.DrawCircle(cx, cy, dignityR);
+        c.StrokeColor = f.SecondaryGlow.WithAlpha(0.13f + 0.10f * (1f - absHalf));
+        c.StrokeSize  = 1.2f;
+        c.DrawCircle(f.Cx, f.Cy, dignityR);
 
-        float sheenR = r * 0.28f;
-        c.FillColor = EmblemVisualPalette.LionSheen.WithAlpha((0.07f + 0.05f * absHalf) * p.HeatStrength);
-        c.FillEllipse(cx - sheenR * 0.6f, cy - r * 0.38f, sheenR * 1.2f, sheenR * 0.7f);
+        // warm sheen — HeadMovement state boosts it
+        float sheenBoost = f.State == EmblemBehaviorState.HeadMovement
+            ? 1f + f.StateProgress * 0.35f : 1f;
+        float sheenR  = f.R * 0.28f;
+        c.FillColor   = f.Accent1.WithAlpha((0.07f + 0.05f * absHalf) * f.HeatStrength * sheenBoost);
+        c.FillEllipse(f.Cx - sheenR * 0.6f, f.Cy - f.R * 0.38f, sheenR * 1.2f, sheenR * 0.7f);
     }
 }
 
-// ── Eagle: shimmer streak + eye glint ────────────────────────────
-// Future: WingPulse full (NOT implemented)
+// ── Eagle: shimmer streak (WingPulse state) + eye glint (EyeGlint) ──
 internal sealed class EagleEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string BehaviorId => "WingPulse";
 
-    public void Draw(ICanvas c, float cx, float cy, float r,
-                     EmblemAnimProfile p, float breath, float sin, float sinHalf)
+    public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
-        float absSin = MathF.Abs(sin);
-        // ReflectionStrength drives shimmer intensity
-        float streakAlpha = (0.15f + 0.12f * absSin) * p.ReflectionStrength;
-        float streakW = r * (1.60f + 0.20f * absSin) * breath;
-        float streakH = r * 0.16f;
+        float absSin = MathF.Abs(f.Sin);
+        // Shimmer strongest during WingPulse + FeatherMotion states
+        float wingBoost = f.State is EmblemBehaviorState.WingPulse or EmblemBehaviorState.FeatherMotion
+            ? 1f + f.StateProgress * f.WingAmplitude * 0.5f : 1f;
+        float streakAlpha = (0.15f + 0.12f * absSin) * f.ReflectionStrength * wingBoost;
+        float streakW     = f.R * (1.60f + 0.20f * absSin) * f.Breath * wingBoost;
+        float streakH     = f.R * 0.16f;
 
-        c.FillColor = EmblemVisualPalette.EagleStreak.WithAlpha(streakAlpha);
-        c.FillEllipse(cx - streakW * 0.5f, cy - streakH * 0.5f, streakW, streakH);
+        c.FillColor = f.Accent1.WithAlpha(streakAlpha);
+        c.FillEllipse(f.Cx - streakW * 0.5f, f.Cy - streakH * 0.5f, streakW, streakH);
 
-        // EyeGlow DNA field drives glint intensity
-        c.FillColor = EmblemVisualPalette.EagleGlint.WithAlpha((0.35f + 0.20f * absSin) * p.EyeGlow);
-        c.FillCircle(cx, cy - r * 0.30f, r * 0.08f * breath);
+        // Eye glint — amplified during EyeGlint state, uses random blink offset
+        float blinkMod = f.State == EmblemBehaviorState.EyeGlint
+            ? 1f + f.StateProgress * 0.6f : 1f;
+        float eyeAlpha = (0.35f + 0.20f * absSin) * f.EyeGlow * blinkMod;
+        c.FillColor = f.Accent2.WithAlpha(eyeAlpha);
+        c.FillCircle(f.Cx + f.RandBlink * f.R * 0.05f, f.Cy - f.R * 0.30f, f.R * 0.08f * f.Breath);
     }
 }
 
-// ── Wolf: frost halo + icy glint ─────────────────────────────────
-// Future: FrostBreath full (NOT implemented)
+// ── Wolf: frost halo (FrostWind) + icy glint (EyeBlink) ──────────
 internal sealed class WolfEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string BehaviorId => "FrostBreath";
 
-    public void Draw(ICanvas c, float cx, float cy, float r,
-                     EmblemAnimProfile p, float breath, float sin, float sinHalf)
+    public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
-        float absHalf = MathF.Abs(sinHalf);
-        // PulseStrength DNA field scales frost ring radius
-        float frostR = r * (1.50f + 0.14f * absHalf * p.PulseStrength) * breath;
+        float absHalf = MathF.Abs(f.SinHalf);
+        // Frost ring expands during FrostWind + ColdBreath states
+        float frostBoost = f.State is EmblemBehaviorState.FrostWind or EmblemBehaviorState.ColdBreath
+            ? 1f + f.StateProgress * 0.3f * f.PulseStrength : 1f;
+        float frostR = f.R * (1.50f + 0.14f * absHalf * f.PulseStrength) * f.Breath * frostBoost;
 
-        c.StrokeColor = EmblemVisualPalette.WolfFrost.WithAlpha(0.16f + 0.10f * (1f - absHalf));
-        c.StrokeSize = 1.8f;
-        c.DrawCircle(cx, cy, frostR);
+        c.StrokeColor = f.Accent1.WithAlpha(0.16f + 0.10f * (1f - absHalf));
+        c.StrokeSize  = 1.8f;
+        c.DrawCircle(f.Cx, f.Cy, frostR);
 
-        // ReflectionStrength DNA field drives icy glint
-        float glintW = r * 0.30f * breath;
-        c.FillColor = EmblemVisualPalette.WolfIceGlint.WithAlpha((0.18f + 0.10f * absHalf) * p.ReflectionStrength);
-        c.FillEllipse(cx + r * 0.15f, cy - r * 0.42f, glintW, r * 0.10f);
+        // Icy glint — randomized position offset for visual uniqueness per instance
+        float glintAlpha = (0.18f + 0.10f * absHalf) * f.ReflectionStrength;
+        float glintX = f.Cx + f.R * (0.15f + f.RandBlink * 0.08f);
+        float glintW = f.R * 0.30f * f.Breath;
+        c.FillColor = f.Accent2.WithAlpha(glintAlpha);
+        c.FillEllipse(glintX, f.Cy - f.R * 0.42f, glintW, f.R * 0.10f);
     }
 }
 
-// ── Crown: sparkle dots + royal cross-shine ──────────────────────
-// Future: RoyalSparkle advanced (NOT implemented)
+// ── Crown: sparkle constellation (SparkRain) + royal cross-shine ──
 internal sealed class CrownEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string BehaviorId => "RoyalSparkle";
 
-    public void Draw(ICanvas c, float cx, float cy, float r,
-                     EmblemAnimProfile p, float breath, float sin, float sinHalf)
+    public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
-        float absSin = MathF.Abs(sin);
-        float dotR = r * 0.07f * breath;
-        float dist = r * 1.52f;
-        // ReflectionStrength DNA field scales sparkle brightness
-        float twinkle = (0.20f + 0.18f * absSin) * p.ReflectionStrength;
+        float absSin = MathF.Abs(f.Sin);
+        // Sparkle intensity strongest during SparkRain + RoyalAura
+        float sparkBoost = f.State is EmblemBehaviorState.SparkRain or EmblemBehaviorState.RoyalAura
+            ? 1f + f.StateProgress * f.SparkCount * 0.5f : 1f;
+        float dotR    = f.R * 0.07f * f.Breath;
+        float dist    = f.R * 1.52f;
+        float twinkle = (0.20f + 0.18f * absSin) * f.ReflectionStrength * sparkBoost;
 
-        c.FillColor = EmblemVisualPalette.CrownSparkle.WithAlpha(twinkle);
-        c.FillCircle(cx, cy - dist, dotR);
-        c.FillCircle(cx + dist, cy, dotR * 0.85f);
-        c.FillCircle(cx, cy + dist * 0.80f, dotR * 0.70f);
-        c.FillCircle(cx - dist, cy, dotR * 0.85f);
+        // Four cardinal sparkle dots — RandSpark gives each instance unique phase offset
+        float sparkPhase = f.RandSpark * MathF.Tau;
+        c.FillColor = f.Accent1.WithAlpha(twinkle);
+        c.FillCircle(f.Cx + dist * MathF.Sin(sparkPhase),        f.Cy - dist * MathF.Cos(sparkPhase),        dotR);
+        c.FillCircle(f.Cx + dist * MathF.Sin(sparkPhase + 1.57f), f.Cy - dist * MathF.Cos(sparkPhase + 1.57f), dotR * 0.85f);
+        c.FillCircle(f.Cx + dist * MathF.Sin(sparkPhase + 3.14f), f.Cy - dist * MathF.Cos(sparkPhase + 3.14f), dotR * 0.70f);
+        c.FillCircle(f.Cx + dist * MathF.Sin(sparkPhase + 4.71f), f.Cy - dist * MathF.Cos(sparkPhase + 4.71f), dotR * 0.85f);
 
-        float shineLen = r * 0.50f;
-        float shineAlpha = (0.09f + 0.07f * absSin) * p.ReflectionStrength;
-        c.StrokeColor = p.PrimaryGlow.WithAlpha(shineAlpha);
-        c.StrokeSize = 1.0f;
-        c.DrawLine(cx - shineLen, cy, cx + shineLen, cy);
-        c.DrawLine(cx, cy - shineLen * 0.70f, cx, cy + shineLen * 0.70f);
+        // Royal cross-shine
+        float shineLen   = f.R * 0.50f;
+        float shineAlpha = (0.09f + 0.07f * absSin) * f.ReflectionStrength;
+        c.StrokeColor = f.PrimaryGlow.WithAlpha(shineAlpha);
+        c.StrokeSize  = 1.0f;
+        c.DrawLine(f.Cx - shineLen, f.Cy, f.Cx + shineLen, f.Cy);
+        c.DrawLine(f.Cx, f.Cy - shineLen * 0.70f, f.Cx, f.Cy + shineLen * 0.70f);
     }
 }
 
-// ── Shield: metallic arc + top sheen ─────────────────────────────
-// Future: DefensivePulse advanced (NOT implemented)
+// ── Shield: metallic arc sweep (ReflectionSweep) + top sheen ──────
 internal sealed class ShieldEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string BehaviorId => "DefensivePulse";
 
-    public void Draw(ICanvas c, float cx, float cy, float r,
-                     EmblemAnimProfile p, float breath, float sin, float sinHalf)
+    public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
-        float absHalf = MathF.Abs(sinHalf);
-        float arcR = r * 1.08f * breath;
-        // ReflectionStrength DNA field drives metallic arc brightness
-        float arcAlpha = (0.18f + 0.12f * absHalf) * p.ReflectionStrength;
+        float absHalf = MathF.Abs(f.SinHalf);
+        // Arc sweeps during ReflectionSweep + GuardianMode states
+        float arcBoost = f.State is EmblemBehaviorState.ReflectionSweep or EmblemBehaviorState.GuardianMode
+            ? 1f + f.StateProgress * 0.3f : 1f;
+        float arcR     = f.R * 1.08f * f.Breath;
+        float arcAlpha = (0.18f + 0.12f * absHalf) * f.ReflectionStrength * arcBoost;
 
-        c.StrokeColor = EmblemVisualPalette.ShieldArc.WithAlpha(arcAlpha);
-        c.StrokeSize = 2.2f;
-        c.DrawArc(cx - arcR, cy - arcR, arcR * 2f, arcR * 2f, 120, 80, false, false);
+        c.StrokeColor = f.Accent1.WithAlpha(arcAlpha);
+        c.StrokeSize  = 2.2f;
+        // Arc angle subtly shifts with RandPulse for per-instance uniqueness
+        float arcStart = 120f + f.RandPulse * 15f;
+        c.DrawArc(f.Cx - arcR, f.Cy - arcR, arcR * 2f, arcR * 2f, arcStart, 80, false, false);
 
-        float sheenW = r * 0.90f * breath;
-        c.FillColor = EmblemVisualPalette.ShieldSheen.WithAlpha((0.09f + 0.07f * absHalf) * p.ReflectionStrength);
-        c.FillEllipse(cx - sheenW * 0.5f, cy - r * 0.28f, sheenW, r * 0.22f);
+        // Metallic pulse ring during MetallicPulse state
+        if (f.State == EmblemBehaviorState.MetallicPulse)
+        {
+            float pulseAlpha = f.StateProgress * f.ReflectionStrength * 0.18f;
+            c.StrokeColor = f.SecondaryGlow.WithAlpha(pulseAlpha);
+            c.StrokeSize  = 1.0f;
+            c.DrawCircle(f.Cx, f.Cy, f.R * (1.20f + f.StateProgress * 0.15f));
+        }
+
+        // Top sheen ellipse
+        float sheenW = f.R * 0.90f * f.Breath;
+        c.FillColor  = f.Accent2.WithAlpha((0.09f + 0.07f * absHalf) * f.ReflectionStrength);
+        c.FillEllipse(f.Cx - sheenW * 0.5f, f.Cy - f.R * 0.28f, sheenW, f.R * 0.22f);
     }
 }
 
 // ══════════════════════════════════════════════════════════════════
-// LivingEmblemDrawable  — thin orchestrator
-// Responsibilities: universal glow layer + delegate to renderer.
-// No allocations inside Draw loop.
+// LivingEmblemDrawable  — thin orchestrator.
+// Calls Brain.Tick() → builds RenderFrame → calls renderer.
+// No animation logic here. No DNA reads. No decisions.
+// Zero allocations inside Draw().
 // ══════════════════════════════════════════════════════════════════
 internal sealed class LivingEmblemDrawable : IDrawable
 {
-    public EmblemAnimProfile? Profile { get; set; }
-    public float Phase { get; set; }
-
+    public EmblemBehaviorBrain? Brain { get; set; }
     private IEmblemBehaviorRenderer _renderer = EmblemBehaviorRendererResolver.Resolve("DefensivePulse");
 
     public void SetRenderer(string behaviorId)
@@ -381,61 +800,70 @@ internal sealed class LivingEmblemDrawable : IDrawable
 
     public void Draw(ICanvas canvas, RectF rect)
     {
-        var p = Profile;
-        if (p == null || rect.Width <= 1) return;
+        var brain = Brain;
+        if (brain == null || rect.Width <= 1) return;
+
+        float cx      = rect.Center.X;
+        float cy      = rect.Center.Y;
+        float minSize = MathF.Min(rect.Width, rect.Height);
+
+        // Build immutable frame from brain state (no alloc — struct copy on stack)
+        var frame = brain.BuildFrame(cx, cy, minSize);
 
         canvas.SaveState();
 
-        float cx = rect.Center.X;
-        float cy = rect.Center.Y;
-        // GlowStrength DNA field scales glow radius
-        float r = MathF.Min(rect.Width, rect.Height) * 0.36f * p.GlowStrength;
-        float sin = MathF.Sin(Phase * MathF.Tau);
-        float sinHalf = MathF.Sin(Phase * MathF.Tau * 0.5f);
-        float breath = 1f + p.PulseAmplitude * sin;
-        float outerR = r * 1.30f * breath;
-        float innerR = r * 1.04f * breath;
+        // ── Layer stack (bottom → top) ────────────────────────────────
+        //   [0] Shadow         — TODO future (VisualLayerType.Shadow)
+        //   [1] BackgroundAura — TODO future (VisualLayerType.BackgroundAura)
+        //   [2] AmbientSmoke   — drawn by per-emblem renderer below
+        //   [3] BaseImage      — MAUI Image above this GraphicsView
+        //   [4] HeatDistortion — TODO future (VisualLayerType.HeatDistortion)
+        //   [5] Fire           — Future: FireBreath full
+        //   [6] Particles      — Future: SparkRain advanced
+        //   [7] Glow           — ACTIVE: universal breathing aura ↓
+        //   [8] UIOverlay      — ZIndex managed by LivingEmblemBehavior
 
-        // ── Layer stack (rendered bottom → top) ──────────────────────
-        // Current layers active in this engine:
-        //   [0] Shadow          — TODO Phase 2.5-C (VisualLayerType.Shadow)
-        //   [1] BackgroundAura  — TODO Phase 2.5-C (VisualLayerType.BackgroundAura)
-        //   [2] AmbientSmoke    — partial: Dragon smoke wisps below
-        //   [3] BaseImage       — rendered by MAUI Image above this GraphicsView
-        //   [4] HeatDistortion  — TODO Phase 2.5-C (VisualLayerType.HeatDistortion)
-        //   [5] Fire            — Future: FireBreath (VisualLayerType.Fire)
-        //   [6] Particles       — Future: RoyalSparkle advanced (VisualLayerType.Particles)
-        //   [7] Glow            — ACTIVE below ↓
-        //   [8] UIOverlay       — handled by ZIndex above this view
+        // ── [7] Universal breathing aura ─────────────────────────────
+        float outerR = frame.R * 1.30f * frame.Breath;
+        float innerR = frame.R * 1.04f * frame.Breath;
 
-        // ── [7] Glow: universal breathing aura ───────────────────────
-        canvas.FillColor = p.PrimaryGlow.WithAlpha(p.GlowAlpha * 0.42f);
+        canvas.FillColor = frame.PrimaryGlow.WithAlpha(frame.GlowAlpha * 0.42f);
         canvas.FillCircle(cx, cy, outerR);
 
-        canvas.FillColor = p.PrimaryGlow.WithAlpha(p.GlowAlpha * 0.72f);
+        canvas.FillColor = frame.PrimaryGlow.WithAlpha(frame.GlowAlpha * 0.72f);
         canvas.FillCircle(cx, cy, innerR);
 
-        canvas.StrokeColor = p.SecondaryGlow.WithAlpha(
-            p.GlowAlpha * 0.88f * (0.68f + 0.32f * MathF.Abs(sinHalf)));
+        canvas.StrokeColor = frame.SecondaryGlow.WithAlpha(
+            frame.GlowAlpha * 0.88f * (0.68f + 0.32f * MathF.Abs(frame.SinHalf)));
         canvas.StrokeSize = 1.4f;
         canvas.DrawCircle(cx, cy, innerR);
 
-        // ── [2]+[6] Per-emblem personality (smoke, sparkle, frost…) ──
-        _renderer.Draw(canvas, cx, cy, r, p, breath, sin, sinHalf);
+        // ── [2]+[6] Per-emblem behavior (smoke, frost, sparkle…) ─────
+        _renderer.Draw(canvas, in frame);
 
         canvas.RestoreState();
     }
 }
 
-// ──────────────────────────────────────────────────────────────────
-// LivingTeamEmblemView  — self-animating GraphicsView overlay
-// Wraps around any existing Image emblem. No XAML required.
-// ──────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// LivingTeamEmblemView  — public GraphicsView widget.
+//
+// WYSIWYG CONTRACT — single component, all contexts:
+//   Runtime pages   → LivingEmblemBehavior.Attach(image, teamId)
+//                     (ownership gate applies)
+//   Store preview   → LivingEmblemBehavior.AttachPreview(image, assetId)
+//   Inventory prev  → LivingEmblemBehavior.AttachPreview(image, assetId)
+//   Developer prev  → view.SetEmblem(assetId) directly
+//
+// All paths call SetEmblem(assetId) → same Brain → same renderer.
+// Preview = Published = Runtime. No fake renderer. No divergence.
+// ══════════════════════════════════════════════════════════════════
 public sealed class LivingTeamEmblemView : GraphicsView
 {
     private readonly LivingEmblemDrawable _drawable = new();
-    private bool _running;
-    private long _started;
+    private bool  _running;
+    private long  _started;
+    private int   _instanceSeed;
 
     public LivingTeamEmblemView()
     {
@@ -443,21 +871,27 @@ public sealed class LivingTeamEmblemView : GraphicsView
         InputTransparent = true;
         BackgroundColor = Colors.Transparent;
         IsVisible = false;
-        Loaded += (_, _) => StartIfReady();
+        Loaded   += (_, _) => StartIfReady();
         Unloaded += (_, _) => _running = false;
     }
 
     public void SetEmblem(string? emblemAssetId)
     {
-        var profile = EmblemAnimProfile.For(emblemAssetId);
+        var profile = EmblemBehaviorProfile.For(emblemAssetId);
 
-        if (_drawable.Profile?.BehaviorId == profile.BehaviorId &&
-            string.Equals(_drawable.Profile?.PrimaryGlow.ToHex(), profile.PrimaryGlow.ToHex()))
+        // Guard: skip if same emblem is already running
+        if (_drawable.Brain != null &&
+            _drawable.Brain.CurrentState != EmblemBehaviorState.Idle == false &&
+            string.Equals(emblemAssetId,
+                EmblemBehaviorProfile.ResolveType(emblemAssetId).ToString(),
+                StringComparison.OrdinalIgnoreCase))
             return;
 
-        _drawable.Profile = profile;
+        // New random seed per SetEmblem call → each team animates independently
+        _instanceSeed = HashCode.Combine(emblemAssetId, Environment.TickCount64);
+
+        _drawable.Brain = new EmblemBehaviorBrain(profile, _instanceSeed);
         _drawable.SetRenderer(profile.BehaviorId);
-        _drawable.Phase = 0f;
         _started = Environment.TickCount64;
         IsVisible = true;
         StartIfReady();
@@ -467,30 +901,80 @@ public sealed class LivingTeamEmblemView : GraphicsView
     public void ClearEmblem()
     {
         _running = false;
-        _drawable.Profile = null;
+        _drawable.Brain = null;
         IsVisible = false;
         Invalidate();
     }
 
     private void StartIfReady()
     {
-        if (_running || _drawable.Profile == null || !IsLoaded)
-            return;
-
+        if (_running || _drawable.Brain == null || !IsLoaded) return;
         _running = true;
 
-        // Frame rate is resolved from DeviceProfiler at start time (EmblemPerformanceSettings).
-        // VeryLite=10fps, Lite=12fps, Medium=15fps, High=20fps, Ultra=25fps
-        Dispatcher.StartTimer(EmblemPerformanceSettings.GetTimerInterval(), () =>
-        {
-            if (!_running || _drawable.Profile == null || !IsLoaded)
-                return false;
+        var interval = EmblemPerformanceSettings.GetTimerInterval();
+        float deltaSeconds = (float)interval.TotalSeconds;
 
-            var elapsed = (Environment.TickCount64 - _started) / 1000f;
-            _drawable.Phase = elapsed * _drawable.Profile.Speed;
+        Dispatcher.StartTimer(interval, () =>
+        {
+            var brain = _drawable.Brain;
+            if (!_running || brain == null || !IsLoaded) return false;
+
+            // Tick the brain — it advances the state machine and timeline
+            brain.Tick(deltaSeconds);
             Invalidate();
             return true;
         });
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LivingEmblemOwnershipGate  — decides whether the living glow
+// should be active for a given team.
+//
+// RULE: The living glow (per-emblem behavior) activates ONLY if:
+//   1. The team has an EquippedTeamEffectAssetId (a TeamEffect was
+//      deliberately equipped by a team member), AND
+//   2. At least one team player owns a TeamEffect-type asset that is
+//      eligible for the team (via TeamEligibleAssetService).
+//
+// The emblem shape (Dragon/Lion/etc.) alone does NOT activate the
+// living behavior — ownership + equip are required.
+//
+// WYSIWYG CONTRACT:
+//   Developer Preview  → LivingTeamEmblemView.SetEmblem(assetId)
+//   Store Preview      → LivingTeamEmblemView.SetEmblem(assetId)
+//                        (via AttachPreview — no ownership check)
+//   Inventory Preview  → LivingTeamEmblemView.SetEmblem(assetId)
+//                        (via AttachPreview — no ownership check)
+//   Runtime (pages)    → LivingTeamEmblemView.SetEmblem(assetId)
+//                        (via Attach — ownership gate applies)
+//
+// Same LivingTeamEmblemView component in ALL contexts.
+// Preview = Published = Runtime — no separate renderer.
+// ══════════════════════════════════════════════════════════════════
+internal static class LivingEmblemOwnershipGate
+{
+    // Returns the emblemAssetId to animate if the team has an equipped
+    // effect owned by a team member; null otherwise (plain glow only).
+    public static async Task<string?> ResolveIfEligibleAsync(
+        string teamId, TeamProfileModel team)
+    {
+        // Gate 1: team must have an active equipped effect
+        if (string.IsNullOrWhiteSpace(team.EquippedTeamEffectAssetId))
+            return null;
+
+        // Gate 2: at least one player of the team must own a TeamEffect asset
+        var eligible = await TeamEligibleAssetService.GetEligibleAsync(
+            teamId, team.Player1Id, team.IsSinglePlayer ? null : team.Player2Id);
+
+        var hasOwnedEffect = eligible.Any(item =>
+            item.IsOwned &&
+            string.Equals(
+                StoreAssetCatalogService.CanonicalTypeId(item.TeamAssetTypeId),
+                StoreProductAssetType.TeamEffect.ToString(),
+                StringComparison.OrdinalIgnoreCase));
+
+        return hasOwnedEffect ? team.EmblemAssetId : null;
     }
 }
 
@@ -514,6 +998,18 @@ public static class LivingEmblemBehavior
     {
         if (string.IsNullOrWhiteSpace(teamId)) return;
         SetTeamId(image, teamId.Trim());
+    }
+
+    // ── WYSIWYG Preview entry-point ──────────────────────────────────
+    // Use this for: Store product preview, Before-acquire preview,
+    // Inventory / My Items preview, Developer WYSIWYG preview.
+    // Ownership gate is BYPASSED — shows the effect as designed.
+    // Same LivingTeamEmblemView component as runtime — Preview = Runtime.
+    public static void AttachPreview(Image image, string? emblemAssetId)
+    {
+        if (string.IsNullOrWhiteSpace(emblemAssetId)) return;
+        // Apply directly without ownership check — preview context only
+        ApplyOrCreate(image, emblemAssetId.Trim());
     }
 
     private static void OnTeamIdChanged(BindableObject bindable, object oldValue, object newValue)
@@ -552,11 +1048,32 @@ public static class LivingEmblemBehavior
 
         try
         {
-            var identity = await TeamIdentityResolver.ResolveAsync(teamId);
-            var emblemAssetId = identity.EmblemAssetId;
+            // ── Ownership Gate ────────────────────────────────────────
+            // Resolve team profile to check EquippedTeamEffectAssetId.
+            var team = await TeamProfileService.GetTeamByIdAsync(teamId);
+            if (team == null)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                    GetHolder(image).View?.ClearEmblem());
+                return;
+            }
+
+            // Check if the living glow is eligible for this team.
+            // Returns the emblemAssetId if owned+equipped, null otherwise.
+            var emblemAssetId = await LivingEmblemOwnershipGate
+                .ResolveIfEligibleAsync(teamId, team);
+
+            if (string.IsNullOrWhiteSpace(emblemAssetId))
+            {
+                // No eligible effect — clear any existing glow silently
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                    GetHolder(image).View?.ClearEmblem());
+                return;
+            }
+
             await MainThread.InvokeOnMainThreadAsync(() => ApplyOrCreate(image, emblemAssetId));
         }
-        catch { /* identity resolution failed — skip animation */ }
+        catch { /* team resolution failed — skip animation */ }
     }
 
     private static void ApplyOrCreate(Image image, string? emblemAssetId)
