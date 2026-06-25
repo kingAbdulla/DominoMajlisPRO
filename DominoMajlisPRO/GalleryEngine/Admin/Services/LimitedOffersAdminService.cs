@@ -13,7 +13,7 @@ public static class LimitedOffersAdminService
     public static async Task<LimitedOfferRecord> SaveDraftAsync(LimitedOfferRecord record)
     {
         var records = await LoadRecordsAsync();
-        EnsureWritableAssetId(record);
+        EnsureWritableAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records.FirstOrDefault(item => item.Status == LimitedOfferStatus.Draft && SameAssetId(item, assetId));
         var saved = PrepareForSave(record, existing);
@@ -60,7 +60,7 @@ public static class LimitedOffersAdminService
         if (!ValidateForPublish(record, out var message))
             throw new InvalidOperationException(message);
         var records = await LoadRecordsAsync();
-        EnsureWritableAssetId(record);
+        EnsureWritableAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records
             .Where(item => SameAssetId(item, assetId))
@@ -84,7 +84,7 @@ public static class LimitedOffersAdminService
         if (!ValidateForPublish(record, out var message))
             throw new InvalidOperationException(message);
         var records = await LoadRecordsAsync();
-        EnsureWritableAssetId(record);
+        EnsureWritableAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records.FirstOrDefault(item => item.Status == LimitedOfferStatus.Published && SameAssetId(item, assetId))
             ?? throw new InvalidOperationException("تعذر العثور على العرض المنشور");
@@ -228,7 +228,7 @@ public static class LimitedOffersAdminService
 
     private static LimitedOfferRecord PrepareForSave(LimitedOfferRecord record, LimitedOfferRecord? existing)
     {
-        EnsureWritableAssetId(record);
+        EnsureAssetId(record);
         record.CreatedAt = existing?.CreatedAt ?? (record.CreatedAt == default ? DateTime.UtcNow : record.CreatedAt);
         record.UpdatedAt = DateTime.UtcNow;
         return record;
@@ -253,8 +253,21 @@ public static class LimitedOffersAdminService
     private static void EnsureWritableAssetId(LimitedOfferRecord record)
     {
         EnsureAssetId(record);
+    }
+
+    private static void EnsureWritableAssetId(LimitedOfferRecord record, IReadOnlyList<LimitedOfferRecord> allRecords)
+    {
+        EnsureAssetId(record);
         if (string.IsNullOrWhiteSpace(record.AssetId))
-            record.AssetId = CanonicalAssetIdentityService.GenerateCanonicalAssetId(record.StoreTypeId, record.Title);
+        {
+            var existingAssetIds = allRecords
+                .Where(r => r.ProductId != record.ProductId)
+                .Select(GetAssetId);
+            record.AssetId = CanonicalAssetIdentityService.GenerateUniqueCanonicalAssetId(
+                record.StoreTypeId,
+                record.Title,
+                existingAssetIds);
+        }
     }
 
     private static bool SameAssetId(LimitedOfferRecord record, string assetId) =>
