@@ -4,29 +4,48 @@ using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 namespace DominoMajlisPRO.GalleryEngine.Effects;
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  Phase 2.5-D  —  Data-Driven Effect Publishing Contract         ║
+// ║  Phase 2.5-E  —  Data-Driven Effect Publishing Contract         ║
 // ║                                                                  ║
 // ║  EffectBehaviorDefinitionModel is the single published record   ║
 // ║  that bridges Developer Studio → Store → Inventory → Runtime.   ║
 // ║                                                                  ║
-// ║  Pipeline:                                                       ║
-// ║    Developer edits DNA + Timeline in Studio                     ║
-// ║    → SaveDraftAsync (Draft, version N)                          ║
-// ║    → PublishAsync   (Published, same record, BehaviorVersion++)  ║
-// ║    → Runtime reads Published definition                         ║
-// ║    → Store Preview reads definition (no ownership check)        ║
-// ║    → Inventory Preview reads definition (no ownership check)    ║
-// ║    → All contexts use identical EmblemBehaviorBrain+Renderer    ║
+// ║  One constitutional pipeline — no alternative path:             ║
+// ║    Seed (once, idempotent)                                       ║
+// ║    → Published Definition (EffectBehaviorDefinitionModel)        ║
+// ║    → EffectDefinitionRuntimeResolver (highest compat version)   ║
+// ║    → EffectBehaviorRuntimeMapper (DNA → EmblemBehaviorProfile)  ║
+// ║    → EmblemBehaviorBrain (tick)                                  ║
+// ║    → IEmblemBehaviorRenderer (draw, no identity knowledge)       ║
 // ║                                                                  ║
-// ║  Known Gap (Phase 2.5-E):                                        ║
-// ║    EquippedTeamEffectAssetId is not yet bound to                 ║
-// ║    BehaviorDefinitionId at runtime. Binding scheduled for        ║
-// ║    Phase 2.5-E (Effect–Definition Binding).                      ║
+// ║  Content Asset Guarantees (constitutional, permanent):           ║
+// ║                                                                  ║
+// ║  1. Official packs seeded once, then equal to any published      ║
+// ║     pack. No if(OfficialPack) / if(DragonPack) in runtime.      ║
+// ║     SeedAllAsync key: AssetId+BehaviorFamily — version-agnostic. ║
+// ║                                                                  ║
+// ║  2. BehaviorFamily is metadata only. Runtime behavior always     ║
+// ║     comes from: Published Definition → Timeline → Visual DNA     ║
+// ║     → LayerDefinitions. Never from hardcoded family branching.  ║
+// ║                                                                  ║
+// ║  3. Version upgrades never break ownership. Publishing v2 of     ║
+// ║     any pack upgrades runtime behavior for all existing owners   ║
+// ║     automatically. Ownership is tied to AssetId only, never to  ║
+// ║     BehaviorVersion. No re-purchase. No inventory migration.     ║
+// ║                                                                  ║
+// ║  4. Fallback is always available. If the definition is missing,  ║
+// ║     deleted, JSON-corrupted, or cache-empty, the resolver falls  ║
+// ║     through: Published → HardcodedDefault → SafeFallback.        ║
+// ║     Runtime never crashes. Diagnostics show the fallback source. ║
+// ║                                                                  ║
+// ║  5. Preview = Published = Runtime. All four contexts             ║
+// ║     (Developer, Store, Inventory, Runtime) resolve through       ║
+// ║     EffectDefinitionRuntimeResolver → same Brain → same          ║
+// ║     Renderer. Zero separate preview renderers.                   ║
 // ║                                                                  ║
 // ║  BehaviorVersion contract:                                       ║
 // ║    Publishing v2 does NOT revoke v1 ownership.                   ║
 // ║    Ownership is always tied to AssetId, never to version.        ║
-// ║    Runtime always reads the latest Published definition.         ║
+// ║    Runtime always reads the highest compatible Published version. ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 // ══════════════════════════════════════════════════════════════════

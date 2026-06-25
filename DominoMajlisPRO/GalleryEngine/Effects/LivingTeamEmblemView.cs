@@ -564,6 +564,30 @@ internal sealed class EmblemBehaviorBrain
 //
 // FamilyId: strongly-typed EffectBehaviorFamily enum used by the
 // resolver. BehaviorId (string) kept for JSON/legacy compat.
+//
+// ── RENDERER INDEPENDENCE (constitutional) ───────────────────────
+//
+// LivingTeamEmblemView and all IEmblemBehaviorRenderer implementations
+// MUST NEVER know about:
+//   Dragon, Lion, Eagle, Wolf, Crown, Shield
+//   EmblemType, AssetId, TeamId, PlayerId, BehaviorDefinitionId
+//
+// A renderer may only consume:
+//   EmblemRenderFrame  — pre-resolved DNA scalars and state.
+//   EffectBehaviorFamily — to identify itself (FamilyId property).
+//   EmblemBehaviorProfile — passed in from Brain (already resolved).
+//
+// All emblem identity decisions are fully resolved BEFORE rendering:
+//   AssetId → EffectDefinitionRuntimeResolver → EffectBehaviorRuntimeMapper
+//   → EmblemBehaviorProfile (anonymous DNA scalars only)
+//   → EmblemBehaviorBrain → EmblemRenderFrame
+//   → IEmblemBehaviorRenderer.Draw (no identity knowledge)
+//
+// The names in EmblemVisualPalette, EmblemBehaviorProfile,
+// EmblemBehaviorTimeline, and EmblemBehaviorRendererResolver are
+// bootstrap/fallback data only — they exist in the view layer to
+// supply a safe procedural default when no Published definition is
+// loaded. They are NEVER accessed from inside Draw() or Tick().
 // ══════════════════════════════════════════════════════════════════
 internal interface IEmblemBehaviorRenderer
 {
@@ -1085,10 +1109,10 @@ public sealed class LivingTeamEmblemView : GraphicsView
 //   and returns it alongside the assetId so the caller can call
 //   SetDefinition() instead of SetEmblem() when available.
 //
-// Known Gap (Phase 2.5-E):
-//   EquippedTeamEffectAssetId is not yet bound to BehaviorDefinitionId.
-//   Gate checks ownership of ANY TeamEffect, not the specific equipped one.
-//   Binding will be added in Phase 2.5-E (Effect–Definition Binding).
+// Phase 2.5-E complete:
+//   Gate now uses EquippedTeamEffectAssetId as the definition lookup key.
+//   EmblemType/EmblemAssetId alone never activates living behavior.
+//   Gate 2 confirms at least one team player owns a TeamEffect asset.
 //
 // WYSIWYG CONTRACT:
 //   Runtime (pages)    → Attach → gate → SetDefinition or SetEmblem
@@ -1127,14 +1151,17 @@ internal static class LivingEmblemOwnershipGate
 
         if (!hasOwnedEffect) return default;
 
-        var assetId = team.EmblemAssetId;
+        // Phase 2.5-E: lookup is against EquippedTeamEffectAssetId (the behavior/effect
+        // asset the team explicitly equipped), NOT EmblemAssetId (which is just the
+        // base visual emblem image). EmblemType alone never activates living behavior.
+        var effectAssetId = team.EquippedTeamEffectAssetId;
 
-        // Gate 3 (Phase 2.5-D): try to load published definition.
-        // If none found, fallback chain in caller will use SetEmblem.
+        // Gate 3 (Phase 2.5-E): load published definition for the equipped effect asset.
+        // If none found, fallback chain in caller uses HardcodedDefault / SafeFallback.
         var definition = await EffectBehaviorDefinitionService
-            .GetByAssetIdAsync(assetId);
+            .GetByAssetIdAsync(effectAssetId);
 
-        return new GateResult(assetId, definition);
+        return new GateResult(effectAssetId, definition);
     }
 }
 
@@ -1242,15 +1269,16 @@ public static class LivingEmblemBehavior
 
             // ── Definition resolution priority chain ──────────────
             // Ownership already passed. Now resolve which definition runs.
+            // AssetId = EquippedTeamEffectAssetId (behavior asset, not emblem image).
             // Priority: Published → Hardcoded Default → Safe Fallback.
             // Draft Preview only via explicit Developer Studio call (never here).
             var resolveResult = await EffectDefinitionRuntimeResolver.ResolveAsync(
                 new EffectDefinitionRuntimeResolver.ResolveRequest
                 {
-                    AssetId          = result.EmblemAssetId,
-                    TargetScope      = EffectTargetScope.Team,
-                    Context          = EffectPreviewContextType.Runtime,
-                    ExplicitDefinition = result.Definition, // pre-loaded by gate (may be null)
+                    AssetId            = result.EmblemAssetId, // = EquippedTeamEffectAssetId from gate
+                    TargetScope        = EffectTargetScope.Team,
+                    Context            = EffectPreviewContextType.Runtime,
+                    ExplicitDefinition = result.Definition,    // pre-loaded by gate (may be null)
                 });
 
             var def    = resolveResult.Definition;

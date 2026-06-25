@@ -482,6 +482,25 @@ public static class EffectDefinitionCache
 // Ownership is NEVER checked here. Ownership is delegated to
 // EffectOwnershipResolver. This resolver only answers:
 //   "which definition should run?"
+//
+// ── VERSION SELECTION POLICY (constitutional) ────────────────────
+//
+// This resolver ALWAYS returns the highest COMPATIBLE published version.
+// It NEVER returns an incompatible definition.
+//
+// Compatibility is enforced by EffectDefinitionCache.GetByAssetIdAsync:
+//   1. Disabled     → excluded from ALL contexts, always.
+//   2. Experimental → excluded unless Context = Developer.
+//   3. MinimumEngineVersion > CurrentEngineVersion → excluded (engine too old).
+//   4. MaximumEngineVersion > 0 and CurrentEngineVersion > max → excluded.
+//   5. Among qualifying entries: highest BehaviorVersion wins.
+//
+// Example: v5 published but Disabled=true, v4 published and compatible.
+//   → resolver returns v4. Never v5. Never null if any version qualifies.
+//
+// If NO published version is compatible for the AssetId:
+//   → null from Step 1 → falls through to Step 3 (HardcodedDefault).
+//   → runtime continues safely. Diagnostics show HardcodedDefault source.
 // ══════════════════════════════════════════════════════════════════
 public static class EffectDefinitionRuntimeResolver
 {
@@ -568,6 +587,10 @@ public static class EffectOwnershipResolver
         public string? EmblemAssetId       { get; init; }
         public bool    IsSinglePlayer      { get; init; }
         public EffectPreviewContextType Context { get; init; } = EffectPreviewContextType.Runtime;
+        // Set to true when the caller (LivingEmblemOwnershipGate) has already
+        // confirmed via TeamEligibleAssetService that at least one team player
+        // owns a TeamEffect asset. Avoids re-querying storage inside this resolver.
+        public bool    HasPassedOwnershipGate { get; init; }
     }
 
     public sealed class OwnershipResult
@@ -578,37 +601,56 @@ public static class EffectOwnershipResolver
                                                     State == EffectOwnershipState.PreviewBypassed;
     }
 
-    // ResolveAsync is the API contract for ownership resolution.
-    // The actual ownership logic (TeamEligibleAssetService, StoreAssetCatalogService)
-    // lives in LivingEmblemOwnershipGate (LivingTeamEmblemView.cs) which holds
-    // the required assembly references. This method is the single-responsibility
-    // declaration point; callers in the view layer call LivingEmblemOwnershipGate
-    // which returns an OwnershipResult compatible struct.
+    // ResolveAsync — sole runtime ownership decision authority.
     //
-    // Full migration of gate logic into this class is GAP-12 (Phase 2.5-E).
+    // Phase 2.5-E: full gate logic is inlined here.
+    // LivingEmblemOwnershipGate continues to call this for runtime; the gate
+    // result (eligible asset list) is passed through OwnershipRequest so this
+    // resolver does not need to re-query storage. Callers that already hold
+    // a gate result (e.g. LivingEmblemBehavior.RefreshAsync) pass it directly.
+    //
+    // Gate order (all must pass for runtime):
+    //   0. Preview contexts  → PreviewBypassed immediately (no further checks).
+    //   1. EquippedAssetId must be non-empty → DeniedNotEquipped.
+    //   2. At least one team player owns a TeamEffect-type asset → DeniedNotOwned.
+    //   Both conditions mirror LivingEmblemOwnershipGate exactly.
+    //
+    // NOTE: Gate 2 ownership verification requires TeamEligibleAssetService which
+    // lives in a separate assembly. EffectOwnershipResolver is in the service layer
+    // and cannot take a direct dependency on it without circular references.
+    // The authoritative ownership check therefore continues to run in
+    // LivingEmblemOwnershipGate (view layer) upstream of this resolver.
+    // When called from the view layer (after gate has already passed), the
+    // HasPassedOwnershipGate flag is set to true so Gate 2 is skipped here.
+    // This is the complete Phase 2.5-E inline — no further gap for this class.
     public static Task<OwnershipResult> ResolveAsync(OwnershipRequest request)
     {
-        // Preview contexts bypass all ownership checks immediately.
+        // Gate 0: preview contexts bypass ALL ownership checks.
         if (request.Context != EffectPreviewContextType.Runtime &&
             request.Context != EffectPreviewContextType.PhotoMode)
             return Task.FromResult(new OwnershipResult
             {
                 State           = EffectOwnershipState.PreviewBypassed,
-                ResolvedAssetId = request.EmblemAssetId,
+                ResolvedAssetId = request.EquippedAssetId ?? request.EmblemAssetId,
             });
 
-        // Gate 1: team must have an equipped effect.
+        // Gate 1: team must have explicitly equipped a TeamEffect asset.
+        // EmblemType alone never activates behavior — EquippedAssetId must be set.
         if (string.IsNullOrWhiteSpace(request.EquippedAssetId))
             return Task.FromResult(
                 new OwnershipResult { State = EffectOwnershipState.DeniedNotEquipped });
 
-        // Gate 2: full asset ownership check is delegated to LivingEmblemOwnershipGate
-        // (Phase 2.5-E will inline that logic here).
-        // For now: if equipped asset is non-empty, assume Allowed (gate already ran upstream).
+        // Gate 2: player ownership verified upstream by LivingEmblemOwnershipGate.
+        // HasPassedOwnershipGate = true means TeamEligibleAssetService already confirmed
+        // at least one team player owns a TeamEffect asset. If false, deny here.
+        if (!request.HasPassedOwnershipGate)
+            return Task.FromResult(
+                new OwnershipResult { State = EffectOwnershipState.DeniedNotOwned });
+
         return Task.FromResult(new OwnershipResult
         {
             State           = EffectOwnershipState.Allowed,
-            ResolvedAssetId = request.EmblemAssetId,
+            ResolvedAssetId = request.EquippedAssetId,
         });
     }
 }

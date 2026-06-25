@@ -1,3 +1,5 @@
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Pages;
@@ -682,6 +684,69 @@ internal sealed class StoreProductActionSheet : Grid
         if (asset == null || !IsVisible || _previewKind != StoreProductPreviewKind.Effect)
             return;
         _effectAsset = asset;
+
+        // ── TeamEffect path: resolve via EffectDefinitionRuntimeResolver ──
+        // Context = Store for unowned preview (ownership bypassed).
+        // Context = Inventory for owned item preview (ownership bypassed).
+        // Both contexts use the same resolver → same Brain → same renderer.
+        // Preview = Published = Runtime: one pipeline, zero fake renderers.
+        var canonicalType = StoreAssetCatalogService.CanonicalTypeId(_inventoryStoreTypeId);
+        var isTeamEffect  = string.Equals(
+            canonicalType,
+            StoreProductAssetType.TeamEffect.ToString(),
+            StringComparison.OrdinalIgnoreCase);
+
+        if (isTeamEffect)
+        {
+            // Determine preview context: Inventory if caller supplied a playerId
+            // (meaning the item is being shown from My Items), Store otherwise.
+            var ctx = string.IsNullOrWhiteSpace(_inventoryPlayerId)
+                ? EffectPreviewContextType.Store
+                : EffectPreviewContextType.Inventory;
+
+            var resolveResult = await EffectDefinitionRuntimeResolver.ResolveAsync(
+                new EffectDefinitionRuntimeResolver.ResolveRequest
+                {
+                    AssetId          = assetId,
+                    TargetScope      = EffectTargetScope.Team,
+                    TargetVisualType = EffectTargetVisualType.Emblem,
+                    Context          = ctx,
+                });
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (!IsVisible || _previewKind != StoreProductPreviewKind.Effect)
+                    return;
+
+                // Build emblem image (base visual) + attach living behavior overlay.
+                // LivingEmblemBehavior.AttachPreview bypasses ownership gate —
+                // preview context is explicit, not runtime.
+                var emblem = new Image
+                {
+                    Source = InventoryDisplayResolver.ResolveImageSource(
+                        string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
+                        "shield_3d.png"),
+                    WidthRequest  = 126,
+                    HeightRequest = 126,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions   = LayoutOptions.Center
+                };
+
+                var layers = new Grid();
+                layers.Children.Add(emblem);
+                _previewSurface.Content = layers;
+
+                // Attach the living behavior overlay using the resolved definition.
+                // This is the Store/Inventory Preview entry point:
+                //   EffectDefinitionRuntimeResolver → LivingEmblemBehavior.AttachPreview
+                //   → EffectBehaviorRuntimeMapper → Brain → IEmblemBehaviorRenderer
+                // TODO (Phase 2.5-F): replace with PrepareStillFrame for thumbnail-only contexts.
+                LivingEmblemBehavior.AttachPreview(emblem, resolveResult.Definition);
+            });
+            return;
+        }
+
+        // ── Non-TeamEffect path: existing IdentityEffectRenderer (unchanged) ──
         MainThread.BeginInvokeOnMainThread(() =>
         {
             if (!IsVisible || _previewKind != StoreProductPreviewKind.Effect)
