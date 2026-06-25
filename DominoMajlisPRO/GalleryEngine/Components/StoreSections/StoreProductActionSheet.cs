@@ -408,7 +408,7 @@ internal sealed class StoreProductActionSheet : Grid
         var owned = inventory.FirstOrDefault(item =>
             item.IsOwned &&
             !item.IsExpired &&
-            string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase));
+            CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId));
         if (version != _animationVersion || !IsVisible || _isClosing)
             return;
 
@@ -1004,10 +1004,7 @@ internal sealed class StoreProductActionSheet : Grid
     }
 
     private static bool SameId(string? left, string? right) =>
-        string.Equals(
-            left?.Trim(),
-            right?.Trim(),
-            StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(left, right);
 
     private static bool ResolveFreeState(
         bool? declaredFree,

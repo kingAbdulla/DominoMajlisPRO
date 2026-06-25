@@ -334,7 +334,7 @@ public static class InventoryRouter
     }
 
     private static bool SameId(string? left, string? right) =>
-        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(left, right);
 
     private static void ValidateProduct(InventoryProductContext product)
     {
