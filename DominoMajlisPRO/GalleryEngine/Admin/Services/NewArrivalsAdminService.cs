@@ -1,6 +1,6 @@
-using System.Text.RegularExpressions;
 using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin.Services;
 
@@ -268,7 +268,7 @@ public static class NewArrivalsAdminService
         
         if (string.IsNullOrWhiteSpace(record.AssetId))
         {
-            record.AssetId = GenerateCanonicalAssetId(record.StoreTypeId, record.Title);
+            record.AssetId = CanonicalAssetIdentityService.GenerateCanonicalAssetId(record.StoreTypeId, record.Title);
         }
         else
         {
@@ -281,39 +281,10 @@ public static class NewArrivalsAdminService
         record.IsFree = record.Price == 0 || record.CurrencyType == NewArrivalCurrencyType.Free;
     }
 
-    private static string GetCanonicalPrefix(string storeTypeId)
-    {
-        return storeTypeId?.Trim().ToLower() switch
-        {
-            "avatar" => "AVATAR",
-            "profilebackground" => "PROFILE_BACKGROUND",
-            "frame" => "FRAME",
-            "effect" => "EFFECT",
-            "emblem" => "EMBLEM",
-            "emblembackground" => "EMBLEM_BACKGROUND",
-            "teamcolor" => "TEAM_COLOR",
-            "teameffect" => "TEAM_EFFECT",
-            _ => "ASSET"
-        };
-    }
-
-    private static string GenerateCanonicalAssetId(string storeTypeId, string title)
-    {
-        var prefix = GetCanonicalPrefix(storeTypeId);
-        
-        var slug = Regex.Replace(title?.Trim() ?? "", @"[^a-zA-Z0-9\s]", "");
-        slug = Regex.Replace(slug, @"\s+", "_").ToUpper().Trim('_');
-
-        if (string.IsNullOrWhiteSpace(slug))
-            slug = "UNNAMED_ASSET";
-
-        return $"{prefix}_{slug}";
-    }
-
     private static void EnsureNoCollision(NewArrivalRecord record, IEnumerable<NewArrivalRecord> allRecords)
     {
         var assetId = GetAssetId(record);
-        var collision = allRecords.FirstOrDefault(r => SameAssetId(r, assetId) && r.ProductId != record.ProductId);
+        var collision = allRecords.FirstOrDefault(r => CanonicalAssetIdentityService.SameAssetId(GetAssetId(r), assetId) && r.ProductId != record.ProductId);
         if (collision != null)
         {
             throw new InvalidOperationException($"المعرف {assetId} مستخدم بالفعل لعنصر آخر. يرجى تغيير اسم العنصر أو نوعه لتوليد معرف فريد.");
@@ -321,7 +292,7 @@ public static class NewArrivalsAdminService
     }
 
     private static bool SameAssetId(NewArrivalRecord record, string assetId) =>
-        string.Equals(GetAssetId(record), assetId, StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(GetAssetId(record), assetId);
 
     private static IReadOnlyList<NewArrivalRecord> DistinctLatest(IEnumerable<NewArrivalRecord> records) => records
         .OrderByDescending(item => item.UpdatedAt)
