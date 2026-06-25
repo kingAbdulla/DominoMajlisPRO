@@ -496,8 +496,9 @@ internal sealed class EmblemBehaviorBrain
     private float _stepElapsed;    // seconds into current step
     private float _totalElapsed;   // seconds since brain started
 
-    public EmblemBehaviorState CurrentState  { get; private set; } = EmblemBehaviorState.Idle;
-    public float               StateProgress { get; private set; }
+    public EmblemBehaviorState CurrentState    { get; private set; } = EmblemBehaviorState.Idle;
+    public float               StateProgress  { get; private set; }
+    public int                 CurrentStepIndex => _stepIndex;
 
     public EmblemBehaviorBrain(EmblemBehaviorProfile profile, int instanceSeed)
     {
@@ -560,15 +561,21 @@ internal sealed class EmblemBehaviorBrain
 // Receives only EmblemRenderFrame — makes ZERO decisions.
 // No profile access. No animation logic. Pure draw calls.
 // No allocations inside Draw.
+//
+// FamilyId: strongly-typed EffectBehaviorFamily enum used by the
+// resolver. BehaviorId (string) kept for JSON/legacy compat.
 // ══════════════════════════════════════════════════════════════════
 internal interface IEmblemBehaviorRenderer
 {
-    string BehaviorId { get; }
+    string               BehaviorId   { get; }  // legacy string key
+    EffectBehaviorFamily FamilyId     { get; }  // strong-type key
+    string               RendererName { get; }  // class name for diagnostics only
     void Draw(ICanvas canvas, in EmblemRenderFrame frame);
 }
 
 // ══════════════════════════════════════════════════════════════════
-// EmblemBehaviorRendererResolver  — zero-allocation static lookup
+// EmblemBehaviorRendererResolver  — zero-allocation static lookup.
+// Supports both string (legacy) and EffectBehaviorFamily (strong-type).
 // ══════════════════════════════════════════════════════════════════
 internal static class EmblemBehaviorRendererResolver
 {
@@ -583,10 +590,20 @@ internal static class EmblemBehaviorRendererResolver
     ];
     private static readonly IEmblemBehaviorRenderer _default = _all[5]; // Shield
 
+    // String-key lookup (legacy path — EmblemBehaviorProfile.BehaviorId).
     public static IEmblemBehaviorRenderer Resolve(string behaviorId)
     {
         foreach (var r in _all)
             if (r.BehaviorId == behaviorId) return r;
+        return _default;
+    }
+
+    // Strong-type lookup (data-driven path — EffectBehaviorDefinitionModel.BehaviorFamily).
+    // Generic falls back to the Shield renderer (safest procedural default).
+    public static IEmblemBehaviorRenderer Resolve(EffectBehaviorFamily family)
+    {
+        foreach (var r in _all)
+            if (r.FamilyId == family) return r;
         return _default;
     }
 }
@@ -601,7 +618,9 @@ internal static class EmblemBehaviorRendererResolver
 // ── Dragon: smoke wisps (Idle/Breathing/Preparing) + eye glow + heat pulse ──
 internal sealed class DragonEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
-    public string BehaviorId => "FireBreath";
+    public string               BehaviorId   => "FireBreath";
+    public EffectBehaviorFamily FamilyId     => EffectBehaviorFamily.FireBreath;
+    public string               RendererName => nameof(DragonEmblemBehaviorRenderer);
 
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
@@ -639,7 +658,9 @@ internal sealed class DragonEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 // ── Lion: dignity ring (stronger in RoarCharge) + warm sheen ──────
 internal sealed class LionEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
-    public string BehaviorId => "Roar";
+    public string               BehaviorId   => "Roar";
+    public EffectBehaviorFamily FamilyId     => EffectBehaviorFamily.Roar;
+    public string               RendererName => nameof(LionEmblemBehaviorRenderer);
 
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
@@ -665,7 +686,9 @@ internal sealed class LionEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 // ── Eagle: shimmer streak (WingPulse state) + eye glint (EyeGlint) ──
 internal sealed class EagleEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
-    public string BehaviorId => "WingPulse";
+    public string               BehaviorId   => "WingPulse";
+    public EffectBehaviorFamily FamilyId     => EffectBehaviorFamily.WingPulse;
+    public string               RendererName => nameof(EagleEmblemBehaviorRenderer);
 
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
@@ -692,7 +715,9 @@ internal sealed class EagleEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 // ── Wolf: frost halo (FrostWind) + icy glint (EyeBlink) ──────────
 internal sealed class WolfEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
-    public string BehaviorId => "FrostBreath";
+    public string               BehaviorId   => "FrostBreath";
+    public EffectBehaviorFamily FamilyId     => EffectBehaviorFamily.FrostBreath;
+    public string               RendererName => nameof(WolfEmblemBehaviorRenderer);
 
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
@@ -718,7 +743,9 @@ internal sealed class WolfEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 // ── Crown: sparkle constellation (SparkRain) + royal cross-shine ──
 internal sealed class CrownEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
-    public string BehaviorId => "RoyalSparkle";
+    public string               BehaviorId   => "RoyalSparkle";
+    public EffectBehaviorFamily FamilyId     => EffectBehaviorFamily.RoyalSparkle;
+    public string               RendererName => nameof(CrownEmblemBehaviorRenderer);
 
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
@@ -751,7 +778,9 @@ internal sealed class CrownEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 // ── Shield: metallic arc sweep (ReflectionSweep) + top sheen ──────
 internal sealed class ShieldEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
-    public string BehaviorId => "DefensivePulse";
+    public string               BehaviorId   => "DefensivePulse";
+    public EffectBehaviorFamily FamilyId     => EffectBehaviorFamily.ShieldReflect;
+    public string               RendererName => nameof(ShieldEmblemBehaviorRenderer);
 
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
@@ -795,8 +824,16 @@ internal sealed class LivingEmblemDrawable : IDrawable
     public EmblemBehaviorBrain? Brain { get; set; }
     private IEmblemBehaviorRenderer _renderer = EmblemBehaviorRendererResolver.Resolve("DefensivePulse");
 
+    // Exposes the active renderer's class name for diagnostics.
+    public string RendererName => _renderer.RendererName;
+
+    // String-key path (legacy / hardcoded-fallback)
     public void SetRenderer(string behaviorId)
         => _renderer = EmblemBehaviorRendererResolver.Resolve(behaviorId);
+
+    // Strong-type path (data-driven / definition)
+    public void SetRenderer(EffectBehaviorFamily family)
+        => _renderer = EmblemBehaviorRendererResolver.Resolve(family);
 
     public void Draw(ICanvas canvas, RectF rect)
     {
@@ -850,12 +887,13 @@ internal sealed class LivingEmblemDrawable : IDrawable
 //
 // WYSIWYG CONTRACT — single component, all contexts:
 //   Runtime pages   → LivingEmblemBehavior.Attach(image, teamId)
-//                     (ownership gate applies)
+//                     (ownership gate applies; data-driven first, fallback second)
 //   Store preview   → LivingEmblemBehavior.AttachPreview(image, assetId)
-//   Inventory prev  → LivingEmblemBehavior.AttachPreview(image, assetId)
-//   Developer prev  → view.SetEmblem(assetId) directly
+//                     or AttachPreview(image, definition) with explicit definition
+//   Inventory prev  → same as Store preview
+//   Developer prev  → view.SetDefinition(definition) or view.SetEmblem(assetId)
 //
-// All paths call SetEmblem(assetId) → same Brain → same renderer.
+// All paths → SetEmblem or SetDefinition → same Brain → same renderer.
 // Preview = Published = Runtime. No fake renderer. No divergence.
 // ══════════════════════════════════════════════════════════════════
 public sealed class LivingTeamEmblemView : GraphicsView
@@ -864,6 +902,13 @@ public sealed class LivingTeamEmblemView : GraphicsView
     private bool  _running;
     private long  _started;
     private int   _instanceSeed;
+    // Diagnostics snapshot — updated in ActivateBrain; read by GetDiagnostics().
+    private EffectBehaviorDefinitionModel? _activeDefinition;
+    private EffectDefinitionSource         _activeSource         = EffectDefinitionSource.HardcodedDefault;
+    private EffectOwnershipState           _ownershipState       = EffectOwnershipState.Allowed;
+    private EffectBehaviorFamily           _activeRendererFamily = EffectBehaviorFamily.Generic;
+    private string                         _activeRendererName   = string.Empty;
+    private int                            _definitionHash;
 
     public LivingTeamEmblemView()
     {
@@ -875,27 +920,99 @@ public sealed class LivingTeamEmblemView : GraphicsView
         Unloaded += (_, _) => _running = false;
     }
 
-    public void SetEmblem(string? emblemAssetId)
+    // ── Data-driven path (Phase 2.5-D) ───────────────────────────
+    // Called by Runtime (after definition load) and Developer Studio.
+    // intensityMultiplier: 1.0 at runtime, > 1.0 in Developer Preview.
+    public void SetDefinition(
+        EffectBehaviorDefinitionModel definition,
+        float intensityMultiplier                  = 1.0f,
+        EffectDefinitionSource source              = EffectDefinitionSource.Published,
+        EffectOwnershipState ownershipState        = EffectOwnershipState.Allowed)
+    {
+        var profile = EffectBehaviorRuntimeMapper.DefinitionToProfile(
+            definition, intensityMultiplier);
+        _activeDefinition     = definition;
+        _activeSource         = source;
+        _ownershipState       = ownershipState;
+        _activeRendererFamily = definition.BehaviorFamily;
+        _definitionHash       = HashCode.Combine(
+            definition.BehaviorDefinitionId, definition.BehaviorVersion);
+        ActivateBrain(profile, definition.BehaviorFamily);
+    }
+
+    // ── Hardcoded-fallback path (Phase 2.5-A/B/C compat) ─────────
+    // Used when EffectDefinitionRuntimeResolver returns HardcodedDefault/SafeFallback.
+    public void SetEmblem(
+        string? emblemAssetId,
+        EffectDefinitionSource source       = EffectDefinitionSource.HardcodedDefault,
+        EffectOwnershipState ownershipState = EffectOwnershipState.Allowed)
     {
         var profile = EmblemBehaviorProfile.For(emblemAssetId);
+        _activeDefinition     = null;
+        _activeSource         = source;
+        _ownershipState       = ownershipState;
+        _activeRendererFamily = EffectBehaviorRuntimeMapper.ResolveBehaviorFamily(profile.BehaviorId);
+        _definitionHash       = HashCode.Combine(emblemAssetId ?? string.Empty, source);
+        ActivateBrain(profile, profile.BehaviorId);
+    }
 
-        // Guard: skip if same emblem is already running
-        if (_drawable.Brain != null &&
-            _drawable.Brain.CurrentState != EmblemBehaviorState.Idle == false &&
-            string.Equals(emblemAssetId,
-                EmblemBehaviorProfile.ResolveType(emblemAssetId).ToString(),
-                StringComparison.OrdinalIgnoreCase))
-            return;
+    // ── Preview Snapshot API (Phase 2.5-F stub) ───────────────────
+    // Returns a frozen EffectStillFrameRequest for thumbnail rendering.
+    // No Timer is started. No Brain ticks.
+    // Actual canvas drawing is Phase 2.5-F — callers can build the request now.
+    public static EffectStillFrameRequest PrepareStillFrame(
+        EffectBehaviorDefinitionModel definition,
+        float normalizedTime      = 0f,
+        float intensityMultiplier = 1.0f,
+        EffectPreviewContextType context = EffectPreviewContextType.Runtime)
+        => new EffectStillFrameRequest
+        {
+            Definition          = definition,
+            NormalizedTime      = normalizedTime,
+            IntensityMultiplier = intensityMultiplier,
+            ContextType         = context,
+        };
 
-        // New random seed per SetEmblem call → each team animates independently
-        _instanceSeed = HashCode.Combine(emblemAssetId, Environment.TickCount64);
-
-        _drawable.Brain = new EmblemBehaviorBrain(profile, _instanceSeed);
-        _drawable.SetRenderer(profile.BehaviorId);
-        _started = Environment.TickCount64;
-        IsVisible = true;
-        StartIfReady();
-        Invalidate();
+    // ── Developer Diagnostics ─────────────────────────────────────
+    // Returns a snapshot of current runtime state for Developer Mode.
+    // Returns null when no brain is active.
+    public EffectRuntimeDiagnostics? GetDiagnostics()
+    {
+        var brain = _drawable.Brain;
+        if (brain == null) return null;
+        var def      = _activeDefinition;
+        var interval = EmblemPerformanceSettings.GetTimerInterval();
+        return new EffectRuntimeDiagnostics
+        {
+            BehaviorDefinitionId = def?.BehaviorDefinitionId  ?? string.Empty,
+            BehaviorVersion      = def?.BehaviorVersion       ?? 0,
+            BehaviorFamily       = def?.BehaviorFamily        ?? _activeRendererFamily,
+            DefinitionSource     = _activeSource,
+            TargetScope          = def?.TargetScope           ?? EffectTargetScope.Team,
+            TargetVisualType     = def?.TargetVisualType      ?? EffectTargetVisualType.Emblem,
+            MinimumEngineVersion = def?.MinimumEngineVersion  ?? 1,
+            MaximumEngineVersion = def?.MaximumEngineVersion  ?? 0,
+            EngineVersion        = EffectDefinitionValidator.CurrentEngineVersion,
+            IsDeprecated         = def?.Deprecated            ?? false,
+            IsExperimental       = def?.Experimental          ?? false,
+            BrainState           = brain.CurrentState.ToString(),
+            CurrentTimelineStep  = brain.CurrentStepIndex,
+            CurrentLayer         = 0,  // future: set by layer orchestrator
+            CurrentFps           = interval.TotalSeconds > 0
+                                   ? (float)(1.0 / interval.TotalSeconds) : 0f,
+            DeviceProfile        = DeviceProfiler.CurrentProfile,
+            RendererFamily       = _activeRendererFamily,
+            RendererName         = _activeRendererName,
+            OwnershipState       = _ownershipState,
+            DefinitionCacheHit   = _activeSource == EffectDefinitionSource.Published,
+            DefinitionHash       = _definitionHash,
+            // Timing fields populated to 0 until Phase 2.5-F instruments the timer loop.
+            DefinitionLoadTimeMs = 0f,
+            CacheAgeMs           = 0f,
+            RenderTimeMs         = 0f,
+            BrainTickMs          = 0f,
+            FrameTimeMs          = 0f,
+        };
     }
 
     public void ClearEmblem()
@@ -903,6 +1020,32 @@ public sealed class LivingTeamEmblemView : GraphicsView
         _running = false;
         _drawable.Brain = null;
         IsVisible = false;
+        Invalidate();
+    }
+
+    // String-key path (legacy / hardcoded-fallback)
+    private void ActivateBrain(EmblemBehaviorProfile profile, string behaviorId)
+    {
+        _instanceSeed         = HashCode.Combine(behaviorId, Environment.TickCount64);
+        _drawable.Brain       = new EmblemBehaviorBrain(profile, _instanceSeed);
+        _drawable.SetRenderer(behaviorId);
+        _activeRendererName   = _drawable.RendererName;
+        _started    = Environment.TickCount64;
+        IsVisible   = true;
+        StartIfReady();
+        Invalidate();
+    }
+
+    // Strong-type path (data-driven)
+    private void ActivateBrain(EmblemBehaviorProfile profile, EffectBehaviorFamily family)
+    {
+        _instanceSeed         = HashCode.Combine(family, Environment.TickCount64);
+        _drawable.Brain       = new EmblemBehaviorBrain(profile, _instanceSeed);
+        _drawable.SetRenderer(family);
+        _activeRendererName   = _drawable.RendererName;
+        _started    = Environment.TickCount64;
+        IsVisible   = true;
+        StartIfReady();
         Invalidate();
     }
 
@@ -918,8 +1061,6 @@ public sealed class LivingTeamEmblemView : GraphicsView
         {
             var brain = _drawable.Brain;
             if (!_running || brain == null || !IsLoaded) return false;
-
-            // Tick the brain — it advances the state machine and timeline
             brain.Tick(deltaSeconds);
             Invalidate();
             return true;
@@ -931,39 +1072,49 @@ public sealed class LivingTeamEmblemView : GraphicsView
 // LivingEmblemOwnershipGate  — decides whether the living glow
 // should be active for a given team.
 //
-// RULE: The living glow (per-emblem behavior) activates ONLY if:
-//   1. The team has an EquippedTeamEffectAssetId (a TeamEffect was
-//      deliberately equipped by a team member), AND
-//   2. At least one team player owns a TeamEffect-type asset that is
+// RULES (all must be satisfied for runtime activation):
+//   1. The team has an EquippedTeamEffectAssetId
+//      (a TeamEffect was deliberately equipped by a team member).
+//   2. At least one team player owns a TeamEffect-type asset
 //      eligible for the team (via TeamEligibleAssetService).
+//   3. A Published definition exists for the emblem's AssetId
+//      OR the hardcoded fallback is available (always true).
 //
-// The emblem shape (Dragon/Lion/etc.) alone does NOT activate the
-// living behavior — ownership + equip are required.
+// Phase 2.5-D upgrade:
+//   Gate now also tries to load the Published EffectBehaviorDefinitionModel
+//   and returns it alongside the assetId so the caller can call
+//   SetDefinition() instead of SetEmblem() when available.
+//
+// Known Gap (Phase 2.5-E):
+//   EquippedTeamEffectAssetId is not yet bound to BehaviorDefinitionId.
+//   Gate checks ownership of ANY TeamEffect, not the specific equipped one.
+//   Binding will be added in Phase 2.5-E (Effect–Definition Binding).
 //
 // WYSIWYG CONTRACT:
-//   Developer Preview  → LivingTeamEmblemView.SetEmblem(assetId)
-//   Store Preview      → LivingTeamEmblemView.SetEmblem(assetId)
-//                        (via AttachPreview — no ownership check)
-//   Inventory Preview  → LivingTeamEmblemView.SetEmblem(assetId)
-//                        (via AttachPreview — no ownership check)
-//   Runtime (pages)    → LivingTeamEmblemView.SetEmblem(assetId)
-//                        (via Attach — ownership gate applies)
-//
-// Same LivingTeamEmblemView component in ALL contexts.
-// Preview = Published = Runtime — no separate renderer.
+//   Runtime (pages)    → Attach → gate → SetDefinition or SetEmblem
+//   Store Preview      → AttachPreview → SetDefinition or SetEmblem (no gate)
+//   Developer Preview  → SetDefinition(definition, intensityMult > 1) (no gate)
 // ══════════════════════════════════════════════════════════════════
 internal static class LivingEmblemOwnershipGate
 {
-    // Returns the emblemAssetId to animate if the team has an equipped
-    // effect owned by a team member; null otherwise (plain glow only).
-    public static async Task<string?> ResolveIfEligibleAsync(
+    // Result carries both assetId and optional Published definition.
+    public readonly struct GateResult
+    {
+        public readonly string?                         EmblemAssetId;
+        public readonly EffectBehaviorDefinitionModel?  Definition;
+        public bool IsEligible => !string.IsNullOrWhiteSpace(EmblemAssetId);
+        public GateResult(string? assetId, EffectBehaviorDefinitionModel? def)
+        { EmblemAssetId = assetId; Definition = def; }
+    }
+
+    public static async Task<GateResult> ResolveIfEligibleAsync(
         string teamId, TeamProfileModel team)
     {
         // Gate 1: team must have an active equipped effect
         if (string.IsNullOrWhiteSpace(team.EquippedTeamEffectAssetId))
-            return null;
+            return default;
 
-        // Gate 2: at least one player of the team must own a TeamEffect asset
+        // Gate 2: at least one player must own a TeamEffect asset
         var eligible = await TeamEligibleAssetService.GetEligibleAsync(
             teamId, team.Player1Id, team.IsSinglePlayer ? null : team.Player2Id);
 
@@ -974,7 +1125,16 @@ internal static class LivingEmblemOwnershipGate
                 StoreProductAssetType.TeamEffect.ToString(),
                 StringComparison.OrdinalIgnoreCase));
 
-        return hasOwnedEffect ? team.EmblemAssetId : null;
+        if (!hasOwnedEffect) return default;
+
+        var assetId = team.EmblemAssetId;
+
+        // Gate 3 (Phase 2.5-D): try to load published definition.
+        // If none found, fallback chain in caller will use SetEmblem.
+        var definition = await EffectBehaviorDefinitionService
+            .GetByAssetIdAsync(assetId);
+
+        return new GateResult(assetId, definition);
     }
 }
 
@@ -1000,16 +1160,28 @@ public static class LivingEmblemBehavior
         SetTeamId(image, teamId.Trim());
     }
 
-    // ── WYSIWYG Preview entry-point ──────────────────────────────────
-    // Use this for: Store product preview, Before-acquire preview,
-    // Inventory / My Items preview, Developer WYSIWYG preview.
-    // Ownership gate is BYPASSED — shows the effect as designed.
-    // Same LivingTeamEmblemView component as runtime — Preview = Runtime.
+    // ── WYSIWYG Preview entry-points ─────────────────────────────────
+    // Ownership gate BYPASSED in all preview contexts.
+    // Same LivingTeamEmblemView + same Brain + same renderer — Preview = Runtime.
+
+    // Overload 1: assetId only → uses published definition or fallback.
+    // Use for: Store preview (before acquire), Inventory preview.
     public static void AttachPreview(Image image, string? emblemAssetId)
     {
         if (string.IsNullOrWhiteSpace(emblemAssetId)) return;
-        // Apply directly without ownership check — preview context only
-        ApplyOrCreate(image, emblemAssetId.Trim());
+        ApplyOrCreate(image, emblemAssetId.Trim(), definition: null, intensityMult: 1.0f, source: EffectDefinitionSource.StorePreview);
+    }
+
+    // Overload 2: explicit definition → Developer Studio WYSIWYG preview.
+    // intensityMultiplier > 1.0 allowed for Developer Preview mode.
+    // Published values (intensityMult = 1.0) = exactly what user sees at runtime.
+    public static void AttachPreview(
+        Image image,
+        EffectBehaviorDefinitionModel definition,
+        float intensityMultiplier = 1.0f)
+    {
+        if (definition == null) return;
+        ApplyOrCreate(image, definition.AssetId, definition, intensityMultiplier, source: EffectDefinitionSource.DeveloperPreview);
     }
 
     private static void OnTeamIdChanged(BindableObject bindable, object oldValue, object newValue)
@@ -1048,8 +1220,7 @@ public static class LivingEmblemBehavior
 
         try
         {
-            // ── Ownership Gate ────────────────────────────────────────
-            // Resolve team profile to check EquippedTeamEffectAssetId.
+            // ── Ownership Gate (Phase 2.5-D) ──────────────────────────
             var team = await TeamProfileService.GetTeamByIdAsync(teamId);
             if (team == null)
             {
@@ -1058,25 +1229,48 @@ public static class LivingEmblemBehavior
                 return;
             }
 
-            // Check if the living glow is eligible for this team.
-            // Returns the emblemAssetId if owned+equipped, null otherwise.
-            var emblemAssetId = await LivingEmblemOwnershipGate
+            // Returns assetId + optional published definition.
+            var result = await LivingEmblemOwnershipGate
                 .ResolveIfEligibleAsync(teamId, team);
 
-            if (string.IsNullOrWhiteSpace(emblemAssetId))
+            if (!result.IsEligible)
             {
-                // No eligible effect — clear any existing glow silently
                 await MainThread.InvokeOnMainThreadAsync(() =>
                     GetHolder(image).View?.ClearEmblem());
                 return;
             }
 
-            await MainThread.InvokeOnMainThreadAsync(() => ApplyOrCreate(image, emblemAssetId));
+            // ── Definition resolution priority chain ──────────────
+            // Ownership already passed. Now resolve which definition runs.
+            // Priority: Published → Hardcoded Default → Safe Fallback.
+            // Draft Preview only via explicit Developer Studio call (never here).
+            var resolveResult = await EffectDefinitionRuntimeResolver.ResolveAsync(
+                new EffectDefinitionRuntimeResolver.ResolveRequest
+                {
+                    AssetId          = result.EmblemAssetId,
+                    TargetScope      = EffectTargetScope.Team,
+                    Context          = EffectPreviewContextType.Runtime,
+                    ExplicitDefinition = result.Definition, // pre-loaded by gate (may be null)
+                });
+
+            var def    = resolveResult.Definition;
+            var source = resolveResult.Source;
+            await MainThread.InvokeOnMainThreadAsync(() =>
+                ApplyOrCreate(image, result.EmblemAssetId, def, 1.0f, source));
         }
         catch { /* team resolution failed — skip animation */ }
     }
 
-    private static void ApplyOrCreate(Image image, string? emblemAssetId)
+    // definition: if non-null, SetDefinition is used (data-driven path).
+    //             if null, SetEmblem is used (hardcoded-fallback path).
+    // intensityMult: 1.0 at runtime; > 1.0 in Developer Preview.
+    private static void ApplyOrCreate(
+        Image image,
+        string? emblemAssetId,
+        EffectBehaviorDefinitionModel? definition,
+        float intensityMult,
+        EffectDefinitionSource source = EffectDefinitionSource.Published,
+        EffectOwnershipState ownership = EffectOwnershipState.Allowed)
     {
         var holder = GetHolder(image);
 
@@ -1137,7 +1331,11 @@ public static class LivingEmblemBehavior
         }
 
         SyncSize(image, holder.View, 1.32);
-        holder.View.SetEmblem(emblemAssetId);
+        // Data-driven path first; fallback to hardcoded profile.
+        if (definition != null)
+            holder.View.SetDefinition(definition, intensityMult, source, ownership);
+        else
+            holder.View.SetEmblem(emblemAssetId, source, ownership);
     }
 
     private static void SyncSize(Image source, LivingTeamEmblemView view, double scale)
