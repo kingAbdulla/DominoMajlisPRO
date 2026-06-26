@@ -195,9 +195,9 @@ internal sealed record EmblemBehaviorProfile(
             PulseAmplitude: 0.13f, PulseSpeed: 0.65f, PulseCurve: 0.70f,
             BrainSpeed: 1.00f,
             SmokeDensity: 0.0f, SmokeSpeed: 0.0f,
-            EyeGlow: 0.0f, EyeBlinkInterval: 3.5f,
-            ReflectionStrength: 0.15f,
-            HeatStrength: 0.65f, HeatRadius: 0.40f,
+            EyeGlow: 0.45f, EyeBlinkInterval: 3.5f,
+            ReflectionStrength: 0.40f,
+            HeatStrength: 0.55f, HeatRadius: 0.40f,
             SparkCount: 0.0f, SparkLifetime: 0.0f,
             PulseStrength: 1.00f,
             WingAmplitude: 0.0f, HeadRotation: 0.35f)),
@@ -228,9 +228,9 @@ internal sealed record EmblemBehaviorProfile(
             GlowAlpha: 0.26f, GlowStrength: 0.98f, AuraRadius: 0.16f,
             PulseAmplitude: 0.12f, PulseSpeed: 0.76f, PulseCurve: 0.50f,
             BrainSpeed: 1.00f,
-            SmokeDensity: 0.0f, SmokeSpeed: 0.0f,
-            EyeGlow: 0.0f, EyeBlinkInterval: 4.0f,
-            ReflectionStrength: 0.55f,
+            SmokeDensity: 0.38f, SmokeSpeed: 0.28f,
+            EyeGlow: 0.70f, EyeBlinkInterval: 4.0f,
+            ReflectionStrength: 0.50f,
             HeatStrength: 0.0f, HeatRadius: 0.0f,
             SparkCount: 0.0f, SparkLifetime: 0.0f,
             PulseStrength: 0.95f,
@@ -449,16 +449,21 @@ internal readonly struct EmblemRenderFrame
     public readonly float RandBlink;     // 0–1 random blink timing offset
     public readonly float RandPulse;     // 0–1 random pulse phase offset
     public readonly float RandSpark;     // 0–1 random sparkle phase offset
+    // Device-adaptive quality (resolved by Brain — renderer just applies it)
+    public readonly float LowEndScale;   // 0–1 global opacity/complexity multiplier
+    public readonly int   MaxSparkles;   // hard cap on per-frame procedural dots
 
     public EmblemRenderFrame(
         float cx, float cy, float r, float breath, float sin, float sinHalf,
         EmblemBehaviorState state, float stateProgress,
         EmblemVisualDna dna,
-        float randSmoke, float randBlink, float randPulse, float randSpark)
+        float randSmoke, float randBlink, float randPulse, float randSpark,
+        float lowEndScale, int maxSparkles)
     {
         Cx = cx; Cy = cy; R = r;
         Breath = breath; Sin = sin; SinHalf = sinHalf;
         State = state; StateProgress = stateProgress;
+        LowEndScale = lowEndScale; MaxSparkles = maxSparkles;
         GlowAlpha = dna.GlowAlpha;
         SmokeDensity = dna.SmokeDensity; SmokeSpeed = dna.SmokeSpeed;
         EyeGlow = dna.EyeGlow; EyeBlinkInterval = dna.EyeBlinkInterval;
@@ -473,6 +478,36 @@ internal readonly struct EmblemRenderFrame
         RandSmoke = randSmoke; RandBlink = randBlink;
         RandPulse = randPulse; RandSpark = randSpark;
     }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EmblemQualitySettings  — device-adaptive render budget.
+// Resolved by the Brain (NOT the renderer) so renderers stay
+// decision-free. Maps DeviceProfiler.CurrentProfile → a global
+// opacity/complexity scale and a hard sparkle/dot cap.
+// Realme C33 → VeryLite → lowest budget. Pure switch, zero alloc.
+// ══════════════════════════════════════════════════════════════════
+internal static class EmblemQualitySettings
+{
+    public static float LowEndScale(DeviceProfile p) => p switch
+    {
+        DeviceProfile.VeryLite => 0.55f,
+        DeviceProfile.Lite     => 0.72f,
+        DeviceProfile.Medium   => 0.90f,
+        DeviceProfile.High     => 1.00f,
+        DeviceProfile.Ultra    => 1.00f,
+        _                      => 0.90f,
+    };
+
+    public static int MaxSparkles(DeviceProfile p) => p switch
+    {
+        DeviceProfile.VeryLite => 2,
+        DeviceProfile.Lite     => 3,
+        DeviceProfile.Medium   => 4,
+        DeviceProfile.High     => 6,
+        DeviceProfile.Ultra    => 8,
+        _                      => 4,
+    };
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -548,11 +583,17 @@ internal sealed class EmblemBehaviorBrain
         float sinHalf = MathF.Sin(_totalElapsed * dna.PulseSpeed * MathF.Tau * 0.5f);
         float breath  = 1f + dna.PulseAmplitude * sin;
 
+        // Device-adaptive budget resolved here (Brain), not in the renderer.
+        var profile     = DeviceProfiler.CurrentProfile;
+        float lowEnd    = EmblemQualitySettings.LowEndScale(profile);
+        int   maxSparks = EmblemQualitySettings.MaxSparkles(profile);
+
         return new EmblemRenderFrame(
             cx, cy, r, breath, sin, sinHalf,
             CurrentState, StateProgress,
             dna,
-            _randSmoke, _randBlink, _randPulse, _randSpark);
+            _randSmoke, _randBlink, _randPulse, _randSpark,
+            lowEnd, maxSparks);
     }
 }
 
@@ -594,6 +635,14 @@ internal interface IEmblemBehaviorRenderer
     string               BehaviorId   { get; }  // legacy string key
     EffectBehaviorFamily FamilyId     { get; }  // strong-type key
     string               RendererName { get; }  // class name for diagnostics only
+
+    // ── Layer phase: AMBIENT (below the universal Glow) ──────────────
+    // Constitution layer [2] Ambient Smoke / mist. Drawn BEFORE the glow
+    // so smoke/mist sits behind the aura. Default = nothing (most packs).
+    void DrawAmbient(ICanvas canvas, in EmblemRenderFrame frame) { }
+
+    // ── Layer phase: FOREGROUND (above the universal Glow) ───────────
+    // Heat/fire hint, eye glow, rings, sparkles, reflection sheen.
     void Draw(ICanvas canvas, in EmblemRenderFrame frame);
 }
 
@@ -639,47 +688,114 @@ internal static class EmblemBehaviorRendererResolver
 // Future renderers: add class + register in resolver. No dup needed.
 // ══════════════════════════════════════════════════════════════════
 
-// ── Dragon: smoke wisps (Idle/Breathing/Preparing) + eye glow + heat pulse ──
+// ══════════════════════════════════════════════════════════════════
+// SHARED CONSTITUTIONAL NOTES (apply to every renderer below)
+//   • Renderer reads ONLY EmblemRenderFrame. No identity. No profile.
+//   • Every alpha is multiplied by f.LowEndScale → low-end safe.
+//   • Loops are bounded by f.MaxSparkles → device sparkle budget.
+//   • Numeric literals are SAFE MULTIPLIERS only (positions / ratios),
+//     never behavior constants — intensity always comes from DNA.
+//   • DrawAmbient = below glow (smoke/mist). Draw = above glow.
+//   • 80% calm / 20% motion: idle alphas are low; motion is short and
+//     state-gated (Preparing / FireCharge / RoarCharge / SparkRain …).
+// ══════════════════════════════════════════════════════════════════
+
+// ── Dragon (FireBreath): smoke wisps + eye glow + mouth charge + flame-cone hint ──
+//   DNA: SmokeDensity, SmokeSpeed, EyeGlow, HeatStrength, HeatRadius,
+//        GlowStrength (baked into R), Accent/Eye colors.
 internal sealed class DragonEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string               BehaviorId   => "FireBreath";
     public EffectBehaviorFamily FamilyId     => EffectBehaviorFamily.FireBreath;
     public string               RendererName => nameof(DragonEmblemBehaviorRenderer);
 
+    // [2] Ambient smoke — drifts upward, sits BEHIND the glow.
+    public void DrawAmbient(ICanvas c, in EmblemRenderFrame f)
+    {
+        if (f.SmokeDensity <= 0.01f) return;
+
+        float absSin = MathF.Abs(f.Sin);
+        // Cooldown lets the smoke settle back to calm.
+        float fade   = f.State == EmblemBehaviorState.Cooldown ? 1f - f.StateProgress * 0.6f : 1f;
+        // Breathing slowly pulses the smoke weight.
+        float pulse  = f.State == EmblemBehaviorState.Breathing ? 1f + f.StateProgress * 0.4f : 1f;
+        float weight = f.SmokeDensity * f.LowEndScale * fade * pulse;
+        if (weight <= 0.01f) return;
+
+        float drift  = 0.6f + 0.6f * f.SmokeSpeed;          // SmokeSpeed → rise distance
+        float smokeR = f.R * 0.24f * f.Breath;
+
+        float y1 = f.R * (0.78f + 0.12f * MathF.Sin((f.Sin + f.RandSmoke) * MathF.Tau)) * drift;
+        c.FillColor = f.Accent1.WithAlpha((0.09f + 0.05f * absSin) * weight);
+        c.FillCircle(f.Cx - f.R * 0.30f, f.Cy - y1, smokeR);
+
+        float y2 = f.R * (0.66f + 0.10f * MathF.Sin((f.Sin + f.RandSmoke * 0.7f) * MathF.Tau)) * drift;
+        c.FillColor = f.Accent2.WithAlpha((0.07f + 0.04f * absSin) * weight);
+        c.FillCircle(f.Cx + f.R * 0.16f, f.Cy - y2, smokeR * 0.75f);
+
+        // Third wisp only when the device budget allows it.
+        if (f.MaxSparkles >= 4)
+        {
+            float y3 = f.R * (0.90f + 0.08f * MathF.Sin((f.Sin + f.RandSmoke * 1.3f) * MathF.Tau)) * drift;
+            c.FillColor = f.Accent1.WithAlpha((0.05f + 0.03f * absSin) * weight);
+            c.FillCircle(f.Cx - f.R * 0.04f, f.Cy - y3, smokeR * 0.6f);
+        }
+    }
+
+    // [5]+[6] Eye glow + mouth charge + small flame-cone hint (above glow).
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
-        float absSin  = MathF.Abs(f.Sin);
-        float smokeR  = f.R * 0.22f * f.SmokeDensity * f.Breath;
-        // State-aware smoke intensity: stronger during Preparing / FireCharge
-        float stateBoost = f.State is EmblemBehaviorState.Preparing or EmblemBehaviorState.FireCharge
-            ? 1f + f.StateProgress * 0.5f : 1f;
+        float absSin    = MathF.Abs(f.Sin);
+        bool  preparing = f.State == EmblemBehaviorState.Preparing;
+        bool  charging  = f.State == EmblemBehaviorState.FireCharge;
+        // Eye strengthens through Preparing and stays hot during FireCharge.
+        float prep = preparing ? f.StateProgress : (charging ? 1f : 0f);
 
-        // smoke wisp 1 — drifts up-left, randomized phase
-        float wispY1 = f.R * (0.80f + 0.12f * MathF.Sin((f.Sin + f.RandSmoke) * MathF.Tau));
-        c.FillColor = f.Accent1.WithAlpha((0.10f + 0.06f * absSin) * stateBoost);
-        c.FillCircle(f.Cx - f.R * 0.35f, f.Cy - wispY1, smokeR);
-
-        // smoke wisp 2 — drifts up-right, independent random offset
-        float wispY2 = f.R * (0.70f + 0.09f * MathF.Sin((f.Sin + f.RandSmoke * 0.7f) * MathF.Tau));
-        c.FillColor = f.Accent2.WithAlpha((0.08f + 0.05f * absSin) * stateBoost);
-        c.FillCircle(f.Cx + f.R * 0.20f, f.Cy - wispY2, smokeR * 0.75f);
-
-        // eye glow — blinks on EyeMovement-equivalent (Breathing state peak)
-        float eyeAlpha = (0.28f + 0.18f * absSin) * f.EyeGlow * stateBoost;
-        c.FillColor = f.AccentEye.WithAlpha(eyeAlpha);
-        c.FillCircle(f.Cx, f.Cy - f.R * 0.32f, f.R * 0.09f * f.Breath);
-
-        // heat pulse during FireCharge
-        if (f.State == EmblemBehaviorState.FireCharge && f.HeatStrength > 0f)
+        // ── Eye glow (two eyes) ──────────────────────────────────────
+        float eyeAlpha = (0.20f + 0.16f * absSin) * f.EyeGlow * (1f + prep * 0.9f) * f.LowEndScale;
+        if (eyeAlpha > 0.01f)
         {
-            float heatAlpha = f.StateProgress * f.HeatStrength * 0.25f;
-            c.FillColor = f.PrimaryGlow.WithAlpha(heatAlpha);
-            c.FillCircle(f.Cx, f.Cy, f.R * (1.0f + f.HeatRadius * f.StateProgress));
+            float eyeR = f.R * 0.072f * f.Breath;
+            float eyeY = f.Cy - f.R * 0.30f;
+            c.FillColor = f.AccentEye.WithAlpha(eyeAlpha);
+            c.FillCircle(f.Cx - f.R * 0.16f, eyeY, eyeR);
+            c.FillCircle(f.Cx + f.R * 0.16f, eyeY, eyeR);
+        }
+
+        // ── Mouth warmth (Preparing + FireCharge) — HeatStrength/HeatRadius ──
+        float mouthY = f.Cy + f.R * 0.20f;
+        if ((preparing || charging) && f.HeatStrength > 0f)
+        {
+            float warm = preparing ? f.StateProgress * 0.5f : 0.5f + f.StateProgress * 0.5f;
+            float mouthAlpha = warm * f.HeatStrength * 0.28f * f.LowEndScale;
+            float mouthR = f.R * (0.18f + f.HeatRadius * 0.6f) * (0.9f + 0.2f * absSin);
+            c.FillColor = f.SecondaryGlow.WithAlpha(mouthAlpha);
+            c.FillCircle(f.Cx, mouthY, mouthR);
+            c.FillColor = f.PrimaryGlow.WithAlpha(mouthAlpha * 0.8f);
+            c.FillCircle(f.Cx, mouthY, mouthR * 0.55f);
+        }
+
+        // ── Small downward flame-cone HINT during FireCharge (no beam) ──
+        if (charging && f.HeatStrength > 0f)
+        {
+            float p = f.StateProgress;
+            float coneAlpha = p * (1f - p * 0.3f) * f.HeatStrength * 0.30f * f.LowEndScale;
+            float coneLen   = f.R * (0.45f + 0.45f * p) * (1f + f.HeatRadius);
+            float coneW     = f.R * 0.30f * (0.7f + 0.3f * p);
+            // Cone approximated by stacked shrinking circles — no path allocation.
+            c.FillColor = f.PrimaryGlow.WithAlpha(coneAlpha);
+            c.FillCircle(f.Cx, mouthY + coneLen * 0.30f, coneW * 0.70f);
+            c.FillColor = f.SecondaryGlow.WithAlpha(coneAlpha * 0.7f);
+            c.FillCircle(f.Cx, mouthY + coneLen * 0.60f, coneW * 0.45f);
+            c.FillColor = f.AccentEye.WithAlpha(coneAlpha * 0.5f);
+            c.FillCircle(f.Cx, mouthY + coneLen * 0.90f, coneW * 0.28f);
         }
     }
 }
 
-// ── Lion: dignity ring (stronger in RoarCharge) + warm sheen ──────
+// ── Lion (Roar): royal breathing + eye glint + head-motion sheen + roar ring ──
+//   DNA: PulseStrength, ReflectionStrength, HeatStrength, GlowStrength,
+//        EyeGlow, PulseSpeed (baked into Sin/SinHalf), HeadRotation.
 internal sealed class LionEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string               BehaviorId   => "Roar";
@@ -689,25 +805,61 @@ internal sealed class LionEmblemBehaviorRenderer : IEmblemBehaviorRenderer
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
         float absHalf = MathF.Abs(f.SinHalf);
-        // Dignity ring pulsed by PulseStrength + state
-        float ringBoost = f.State == EmblemBehaviorState.RoarCharge
-            ? 1f + f.StateProgress * 0.4f * f.PulseStrength : 1f;
-        float dignityR = f.R * (1.55f + 0.18f * absHalf * f.PulseStrength) * f.Breath * ringBoost;
+        float absSin  = MathF.Abs(f.Sin);
 
-        c.StrokeColor = f.SecondaryGlow.WithAlpha(0.13f + 0.10f * (1f - absHalf));
-        c.StrokeSize  = 1.2f;
+        // ── Royal gold breathing ring (expands gently in Breathing) ──
+        float breatheBoost = f.State == EmblemBehaviorState.Breathing
+            ? 1f + f.StateProgress * 0.12f : 1f;
+        float dignityR = f.R * (1.45f + 0.16f * absHalf * f.PulseStrength) * f.Breath * breatheBoost;
+        c.StrokeColor = f.SecondaryGlow.WithAlpha((0.12f + 0.10f * (1f - absHalf)) * f.LowEndScale);
+        c.StrokeSize  = 1.4f;
         c.DrawCircle(f.Cx, f.Cy, dignityR);
 
-        // warm sheen — HeadMovement state boosts it
+        // ── Roar charge ring: grows and fades (NOT a shockwave) ──────
+        if (f.State == EmblemBehaviorState.RoarCharge && f.PulseStrength > 0f)
+        {
+            float p = f.StateProgress;
+            float rcAlpha = p * (1f - p) * 4f * 0.16f * f.PulseStrength * f.LowEndScale;
+            float rcR     = f.R * (1.18f + p * 0.65f);
+            c.StrokeColor = f.PrimaryGlow.WithAlpha(rcAlpha);
+            c.StrokeSize  = 1.6f;
+            c.DrawCircle(f.Cx, f.Cy, rcR);
+        }
+
+        // ── Head-motion illusion: sheen slides horizontally (HeadMovement) ──
+        float headShift = f.State == EmblemBehaviorState.HeadMovement
+            ? MathF.Sin(f.StateProgress * MathF.PI) * f.HeadRotation : 0f;
         float sheenBoost = f.State == EmblemBehaviorState.HeadMovement
-            ? 1f + f.StateProgress * 0.35f : 1f;
-        float sheenR  = f.R * 0.28f;
-        c.FillColor   = f.Accent1.WithAlpha((0.07f + 0.05f * absHalf) * f.HeatStrength * sheenBoost);
-        c.FillEllipse(f.Cx - sheenR * 0.6f, f.Cy - f.R * 0.38f, sheenR * 1.2f, sheenR * 0.7f);
+            ? 1f + f.StateProgress * 0.30f : 1f;
+        if (f.HeatStrength > 0f)
+        {
+            float sheenW = f.R * 0.30f;
+            float sheenAlpha = (0.06f + 0.05f * absHalf) * f.HeatStrength * sheenBoost * f.LowEndScale;
+            c.FillColor = f.Accent1.WithAlpha(sheenAlpha);
+            c.FillEllipse(
+                f.Cx - sheenW * 0.6f + headShift * f.R * 0.3f,
+                f.Cy - f.R * 0.40f, sheenW * 1.2f, sheenW * 0.6f);
+        }
+
+        // ── Eye / focus glint (EyeMovement) ──────────────────────────
+        if (f.EyeGlow > 0f && f.ReflectionStrength > 0f)
+        {
+            float glintBoost = f.State == EmblemBehaviorState.EyeMovement
+                ? 1f + f.StateProgress * 0.7f : 0.4f;
+            float eyeAlpha = (0.22f + 0.14f * absSin) * f.EyeGlow * f.ReflectionStrength
+                             * glintBoost * f.LowEndScale;
+            float eyeR = f.R * 0.06f * f.Breath;
+            float eyeY = f.Cy - f.R * 0.26f;
+            c.FillColor = f.AccentEye.WithAlpha(eyeAlpha);
+            c.FillCircle(f.Cx - f.R * 0.14f, eyeY, eyeR);
+            c.FillCircle(f.Cx + f.R * 0.14f, eyeY, eyeR);
+        }
     }
 }
 
-// ── Eagle: shimmer streak (WingPulse state) + eye glint (EyeGlint) ──
+// ── Eagle (WingPulse): eye flash + wing shimmer + feather streaks + wide pulse ──
+//   DNA: WingAmplitude, ReflectionStrength, EyeGlow, PulseSpeed (baked),
+//        SparkCount (feather-streak count).
 internal sealed class EagleEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string               BehaviorId   => "WingPulse";
@@ -717,54 +869,135 @@ internal sealed class EagleEmblemBehaviorRenderer : IEmblemBehaviorRenderer
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
         float absSin = MathF.Abs(f.Sin);
-        // Shimmer strongest during WingPulse + FeatherMotion states
-        float wingBoost = f.State is EmblemBehaviorState.WingPulse or EmblemBehaviorState.FeatherMotion
-            ? 1f + f.StateProgress * f.WingAmplitude * 0.5f : 1f;
-        float streakAlpha = (0.15f + 0.12f * absSin) * f.ReflectionStrength * wingBoost;
-        float streakW     = f.R * (1.60f + 0.20f * absSin) * f.Breath * wingBoost;
-        float streakH     = f.R * 0.16f;
 
-        c.FillColor = f.Accent1.WithAlpha(streakAlpha);
-        c.FillEllipse(f.Cx - streakW * 0.5f, f.Cy - streakH * 0.5f, streakW, streakH);
+        // ── Wing-side shimmer (wider during FeatherMotion / WingPulse) ──
+        if (f.ReflectionStrength > 0f)
+        {
+            float wingBoost = f.State is EmblemBehaviorState.WingPulse or EmblemBehaviorState.FeatherMotion
+                ? 1f + f.StateProgress * f.WingAmplitude * 0.6f : 1f;
+            float streakAlpha = (0.12f + 0.10f * absSin) * f.ReflectionStrength * wingBoost * f.LowEndScale;
+            float streakW = f.R * (1.55f + 0.25f * absSin) * f.Breath * wingBoost;
+            float streakH = f.R * 0.15f;
+            c.FillColor = f.Accent1.WithAlpha(streakAlpha);
+            c.FillEllipse(f.Cx - streakW * 0.5f, f.Cy - streakH * 0.5f, streakW, streakH);
+        }
 
-        // Eye glint — amplified during EyeGlint state, uses random blink offset
-        float blinkMod = f.State == EmblemBehaviorState.EyeGlint
-            ? 1f + f.StateProgress * 0.6f : 1f;
-        float eyeAlpha = (0.35f + 0.20f * absSin) * f.EyeGlow * blinkMod;
-        c.FillColor = f.Accent2.WithAlpha(eyeAlpha);
-        c.FillCircle(f.Cx + f.RandBlink * f.R * 0.05f, f.Cy - f.R * 0.30f, f.R * 0.08f * f.Breath);
+        // ── Small feather streaks (WingTwitch / FeatherMotion) — SparkCount ──
+        bool feathering = f.State is EmblemBehaviorState.WingTwitch
+            or EmblemBehaviorState.FeatherMotion or EmblemBehaviorState.WingPulse;
+        if (feathering && f.SparkCount > 0f && f.ReflectionStrength > 0f)
+        {
+            int count = (int)MathF.Min(f.SparkCount, f.MaxSparkles);
+            float featherAlpha = f.StateProgress * (1f - f.StateProgress) * 4f
+                                 * 0.16f * f.ReflectionStrength * f.LowEndScale;
+            if (featherAlpha > 0.01f)
+            {
+                float side = f.R * (0.9f + 0.5f * f.WingAmplitude);
+                float fH   = f.R * 0.04f;
+                c.FillColor = f.Accent2.WithAlpha(featherAlpha);
+                for (int i = 0; i < count; i++)
+                {
+                    float t  = count > 1 ? (float)i / (count - 1) : 0.5f;
+                    float yy = f.Cy - f.R * 0.18f + t * f.R * 0.36f;
+                    float ww = side * (0.5f + 0.5f * f.StateProgress);
+                    // mirror left / right wings on alternating index
+                    float xx = (i % 2 == 0) ? f.Cx - ww : f.Cx;
+                    c.FillEllipse(xx, yy, ww, fH);
+                }
+            }
+        }
+
+        // ── Eye flash (sharp during EyeGlint) ────────────────────────
+        if (f.EyeGlow > 0f)
+        {
+            float blinkMod = f.State == EmblemBehaviorState.EyeGlint
+                ? 1f + f.StateProgress * 0.8f : 0.5f;
+            float eyeAlpha = (0.28f + 0.18f * absSin) * f.EyeGlow * blinkMod * f.LowEndScale;
+            c.FillColor = f.AccentEye.WithAlpha(eyeAlpha);
+            c.FillCircle(f.Cx + f.RandBlink * f.R * 0.05f, f.Cy - f.R * 0.28f, f.R * 0.075f * f.Breath);
+        }
     }
 }
 
-// ── Wolf: frost halo (FrostWind) + icy glint (EyeBlink) ──────────
+// ── Wolf (FrostBreath): cold mist + frost halo + icy glint + frost-wind ring ──
+//   DNA: SmokeDensity, SmokeSpeed, ReflectionStrength, PulseStrength,
+//        EyeGlow, GlowStrength (baked into R).
 internal sealed class WolfEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string               BehaviorId   => "FrostBreath";
     public EffectBehaviorFamily FamilyId     => EffectBehaviorFamily.FrostBreath;
     public string               RendererName => nameof(WolfEmblemBehaviorRenderer);
 
+    // [2] Cold mist below the emblem (ColdBreath), behind the glow.
+    public void DrawAmbient(ICanvas c, in EmblemRenderFrame f)
+    {
+        if (f.SmokeDensity <= 0.01f) return;
+
+        float absSin = MathF.Abs(f.Sin);
+        float breathBoost = f.State == EmblemBehaviorState.ColdBreath
+            ? 1f + f.StateProgress * 0.6f : 0.7f;
+        float weight = f.SmokeDensity * f.LowEndScale * breathBoost;
+        if (weight <= 0.01f) return;
+
+        float drift  = 0.5f + 0.6f * f.SmokeSpeed;
+        float mistR  = f.R * 0.26f * f.Breath;
+        // Mist pools low and drifts gently down/out.
+        float y1 = f.R * (0.30f + 0.10f * MathF.Sin((f.Sin + f.RandSmoke) * MathF.Tau)) * drift;
+        c.FillColor = f.Accent1.WithAlpha((0.08f + 0.04f * absSin) * weight);
+        c.FillCircle(f.Cx - f.R * 0.18f, f.Cy + f.R * 0.30f + y1, mistR);
+        c.FillColor = f.PrimaryGlow.WithAlpha((0.06f + 0.03f * absSin) * weight);
+        c.FillCircle(f.Cx + f.R * 0.18f, f.Cy + f.R * 0.34f + y1 * 0.8f, mistR * 0.8f);
+    }
+
+    // [6] Frost halo + frost-wind ring + icy eye glint (above glow).
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
         float absHalf = MathF.Abs(f.SinHalf);
-        // Frost ring expands during FrostWind + ColdBreath states
-        float frostBoost = f.State is EmblemBehaviorState.FrostWind or EmblemBehaviorState.ColdBreath
-            ? 1f + f.StateProgress * 0.3f * f.PulseStrength : 1f;
-        float frostR = f.R * (1.50f + 0.14f * absHalf * f.PulseStrength) * f.Breath * frostBoost;
+        float absSin  = MathF.Abs(f.Sin);
 
-        c.StrokeColor = f.Accent1.WithAlpha(0.16f + 0.10f * (1f - absHalf));
+        // ── Cold halo (always; slightly stronger in FrostWind) ───────
+        float frostR = f.R * (1.45f + 0.14f * absHalf * f.PulseStrength) * f.Breath;
+        c.StrokeColor = f.Accent1.WithAlpha((0.14f + 0.09f * (1f - absHalf)) * f.LowEndScale);
         c.StrokeSize  = 1.8f;
         c.DrawCircle(f.Cx, f.Cy, frostR);
 
-        // Icy glint — randomized position offset for visual uniqueness per instance
-        float glintAlpha = (0.18f + 0.10f * absHalf) * f.ReflectionStrength;
-        float glintX = f.Cx + f.R * (0.15f + f.RandBlink * 0.08f);
-        float glintW = f.R * 0.30f * f.Breath;
-        c.FillColor = f.Accent2.WithAlpha(glintAlpha);
-        c.FillEllipse(glintX, f.Cy - f.R * 0.42f, glintW, f.R * 0.10f);
+        // ── Frost-wind ring expands slightly then fades (FrostWind) ──
+        if (f.State == EmblemBehaviorState.FrostWind && f.PulseStrength > 0f)
+        {
+            float p = f.StateProgress;
+            float windAlpha = p * (1f - p) * 4f * 0.14f * f.PulseStrength * f.LowEndScale;
+            float windR = f.R * (1.2f + p * 0.55f);
+            c.StrokeColor = f.Accent2.WithAlpha(windAlpha);
+            c.StrokeSize  = 1.4f;
+            c.DrawCircle(f.Cx, f.Cy, windR);
+        }
+
+        // ── Icy glint / eye flash (EyeBlink) ─────────────────────────
+        if (f.ReflectionStrength > 0f)
+        {
+            float glintAlpha = (0.16f + 0.10f * absHalf) * f.ReflectionStrength * f.LowEndScale;
+            float glintX = f.Cx + f.R * (0.15f + f.RandBlink * 0.08f);
+            float glintW = f.R * 0.30f * f.Breath;
+            c.FillColor = f.Accent2.WithAlpha(glintAlpha);
+            c.FillEllipse(glintX, f.Cy - f.R * 0.42f, glintW, f.R * 0.10f);
+        }
+        if (f.EyeGlow > 0f)
+        {
+            float blink = f.State == EmblemBehaviorState.EyeBlink
+                ? 1f + f.StateProgress * 0.9f : 0.5f;
+            float eyeAlpha = (0.22f + 0.14f * absSin) * f.EyeGlow * blink * f.LowEndScale;
+            float eyeR = f.R * 0.06f * f.Breath;
+            float eyeY = f.Cy - f.R * 0.26f;
+            c.FillColor = f.AccentEye.WithAlpha(eyeAlpha);
+            c.FillCircle(f.Cx - f.R * 0.13f, eyeY, eyeR);
+            c.FillCircle(f.Cx + f.R * 0.13f, eyeY, eyeR);
+        }
     }
 }
 
-// ── Crown: sparkle constellation (SparkRain) + royal cross-shine ──
+// ── Crown (RoyalSparkle): premium gold aura + sparse sparkles + royal shine ──
+//   DNA: SparkCount, SparkLifetime, ReflectionStrength, GlowStrength,
+//        AuraRadius, PulseSpeed (baked into Sin).
 internal sealed class CrownEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string               BehaviorId   => "RoyalSparkle";
@@ -774,32 +1007,59 @@ internal sealed class CrownEmblemBehaviorRenderer : IEmblemBehaviorRenderer
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
         float absSin = MathF.Abs(f.Sin);
-        // Sparkle intensity strongest during SparkRain + RoyalAura
-        float sparkBoost = f.State is EmblemBehaviorState.SparkRain or EmblemBehaviorState.RoyalAura
-            ? 1f + f.StateProgress * f.SparkCount * 0.5f : 1f;
-        float dotR    = f.R * 0.07f * f.Breath;
-        float dist    = f.R * 1.52f;
-        float twinkle = (0.20f + 0.18f * absSin) * f.ReflectionStrength * sparkBoost;
 
-        // Four cardinal sparkle dots — RandSpark gives each instance unique phase offset
-        float sparkPhase = f.RandSpark * MathF.Tau;
-        c.FillColor = f.Accent1.WithAlpha(twinkle);
-        c.FillCircle(f.Cx + dist * MathF.Sin(sparkPhase),        f.Cy - dist * MathF.Cos(sparkPhase),        dotR);
-        c.FillCircle(f.Cx + dist * MathF.Sin(sparkPhase + 1.57f), f.Cy - dist * MathF.Cos(sparkPhase + 1.57f), dotR * 0.85f);
-        c.FillCircle(f.Cx + dist * MathF.Sin(sparkPhase + 3.14f), f.Cy - dist * MathF.Cos(sparkPhase + 3.14f), dotR * 0.70f);
-        c.FillCircle(f.Cx + dist * MathF.Sin(sparkPhase + 4.71f), f.Cy - dist * MathF.Cos(sparkPhase + 4.71f), dotR * 0.85f);
+        // ── Premium gold aura ring (RoyalGlow / RoyalAura) — AuraRadius ──
+        float auraBoost = f.State is EmblemBehaviorState.RoyalGlow or EmblemBehaviorState.RoyalAura
+            ? 1f + f.StateProgress * 0.25f : 1f;
+        float auraR = f.R * (1.30f + f.AuraRadius * 1.2f) * f.Breath * auraBoost;
+        c.StrokeColor = f.SecondaryGlow.WithAlpha((0.10f + 0.08f * absSin) * f.LowEndScale);
+        c.StrokeSize  = 1.4f;
+        c.DrawCircle(f.Cx, f.Cy, auraR);
 
-        // Royal cross-shine
-        float shineLen   = f.R * 0.50f;
-        float shineAlpha = (0.09f + 0.07f * absSin) * f.ReflectionStrength;
-        c.StrokeColor = f.PrimaryGlow.WithAlpha(shineAlpha);
-        c.StrokeSize  = 1.0f;
-        c.DrawLine(f.Cx - shineLen, f.Cy, f.Cx + shineLen, f.Cy);
-        c.DrawLine(f.Cx, f.Cy - shineLen * 0.70f, f.Cx, f.Cy + shineLen * 0.70f);
+        // ── Sparse sparkle dots (GemPulse / SparkRain) — SparkCount/Lifetime ──
+        if (f.SparkCount > 0f && f.ReflectionStrength > 0f)
+        {
+            bool sparkling = f.State is EmblemBehaviorState.GemPulse
+                or EmblemBehaviorState.SparkRain or EmblemBehaviorState.RoyalAura;
+            float sparkLife = f.SparkLifetime > 0f ? f.SparkLifetime : 1f;
+            float stateGain = sparkling ? 1f + f.StateProgress * 0.8f : 0.45f;
+            float twinkle = (0.16f + 0.16f * absSin) * f.ReflectionStrength * stateGain
+                            * MathF.Min(sparkLife, 1.2f) * f.LowEndScale;
+            if (twinkle > 0.01f)
+            {
+                int count = (int)MathF.Min(f.SparkCount, f.MaxSparkles);
+                float dist = f.R * 1.45f;
+                float dotR = f.R * 0.06f * f.Breath;
+                float baseAngle = f.RandSpark * MathF.Tau;
+                float step = count > 0 ? MathF.Tau / count : MathF.Tau;
+                c.FillColor = f.Accent1.WithAlpha(twinkle);
+                for (int i = 0; i < count; i++)
+                {
+                    float a = baseAngle + step * i;
+                    // each dot twinkles out of phase → sparse, alive, not a storm
+                    float tw = 0.6f + 0.4f * MathF.Sin((f.Sin + i * 0.37f) * MathF.Tau);
+                    c.FillCircle(f.Cx + dist * MathF.Sin(a), f.Cy - dist * MathF.Cos(a), dotR * tw);
+                }
+            }
+        }
+
+        // ── Royal cross-shine (RoyalAura) ────────────────────────────
+        if (f.ReflectionStrength > 0f)
+        {
+            float shineBoost = f.State == EmblemBehaviorState.RoyalAura
+                ? 1f + f.StateProgress * 0.6f : 1f;
+            float shineLen   = f.R * 0.50f;
+            float shineAlpha = (0.08f + 0.07f * absSin) * f.ReflectionStrength * shineBoost * f.LowEndScale;
+            c.StrokeColor = f.PrimaryGlow.WithAlpha(shineAlpha);
+            c.StrokeSize  = 1.0f;
+            c.DrawLine(f.Cx - shineLen, f.Cy, f.Cx + shineLen, f.Cy);
+            c.DrawLine(f.Cx, f.Cy - shineLen * 0.70f, f.Cx, f.Cy + shineLen * 0.70f);
+        }
     }
 }
 
-// ── Shield: metallic arc sweep (ReflectionSweep) + top sheen ──────
+// ── Shield (ShieldReflect): metallic sweep + defensive pulse + guardian aura ──
+//   DNA: ReflectionStrength, PulseStrength, GlowStrength, AuraRadius.
 internal sealed class ShieldEmblemBehaviorRenderer : IEmblemBehaviorRenderer
 {
     public string               BehaviorId   => "DefensivePulse";
@@ -809,31 +1069,50 @@ internal sealed class ShieldEmblemBehaviorRenderer : IEmblemBehaviorRenderer
     public void Draw(ICanvas c, in EmblemRenderFrame f)
     {
         float absHalf = MathF.Abs(f.SinHalf);
-        // Arc sweeps during ReflectionSweep + GuardianMode states
-        float arcBoost = f.State is EmblemBehaviorState.ReflectionSweep or EmblemBehaviorState.GuardianMode
-            ? 1f + f.StateProgress * 0.3f : 1f;
-        float arcR     = f.R * 1.08f * f.Breath;
-        float arcAlpha = (0.18f + 0.12f * absHalf) * f.ReflectionStrength * arcBoost;
 
-        c.StrokeColor = f.Accent1.WithAlpha(arcAlpha);
-        c.StrokeSize  = 2.2f;
-        // Arc angle subtly shifts with RandPulse for per-instance uniqueness
-        float arcStart = 120f + f.RandPulse * 15f;
-        c.DrawArc(f.Cx - arcR, f.Cy - arcR, arcR * 2f, arcR * 2f, arcStart, 80, false, false);
-
-        // Metallic pulse ring during MetallicPulse state
-        if (f.State == EmblemBehaviorState.MetallicPulse)
+        // ── Metallic arc sweep (ReflectionSweep / GuardianMode) ──────
+        if (f.ReflectionStrength > 0f)
         {
-            float pulseAlpha = f.StateProgress * f.ReflectionStrength * 0.18f;
-            c.StrokeColor = f.SecondaryGlow.WithAlpha(pulseAlpha);
-            c.StrokeSize  = 1.0f;
-            c.DrawCircle(f.Cx, f.Cy, f.R * (1.20f + f.StateProgress * 0.15f));
+            float arcBoost = f.State is EmblemBehaviorState.ReflectionSweep or EmblemBehaviorState.GuardianMode
+                ? 1f + f.StateProgress * 0.3f : 1f;
+            float arcR     = f.R * 1.08f * f.Breath;
+            float arcAlpha = (0.16f + 0.12f * absHalf) * f.ReflectionStrength * arcBoost * f.LowEndScale;
+            c.StrokeColor  = f.Accent1.WithAlpha(arcAlpha);
+            c.StrokeSize   = 2.2f;
+            // Sweep angle travels across the emblem during ReflectionSweep.
+            float sweep = f.State == EmblemBehaviorState.ReflectionSweep
+                ? f.StateProgress * 200f : 0f;
+            float arcStart = 120f + f.RandPulse * 15f + sweep;
+            c.DrawArc(f.Cx - arcR, f.Cy - arcR, arcR * 2f, arcR * 2f, arcStart, 80, false, false);
         }
 
-        // Top sheen ellipse
-        float sheenW = f.R * 0.90f * f.Breath;
-        c.FillColor  = f.Accent2.WithAlpha((0.09f + 0.07f * absHalf) * f.ReflectionStrength);
-        c.FillEllipse(f.Cx - sheenW * 0.5f, f.Cy - f.R * 0.28f, sheenW, f.R * 0.22f);
+        // ── Defensive pulse ring (MetallicPulse) — PulseStrength ─────
+        if (f.State == EmblemBehaviorState.MetallicPulse && f.PulseStrength > 0f)
+        {
+            float p = f.StateProgress;
+            float pulseAlpha = p * (1f - p) * 4f * 0.18f * f.PulseStrength * f.LowEndScale;
+            c.StrokeColor = f.SecondaryGlow.WithAlpha(pulseAlpha);
+            c.StrokeSize  = 1.2f;
+            c.DrawCircle(f.Cx, f.Cy, f.R * (1.10f + p * 0.25f));
+        }
+
+        // ── Guardian aura (GuardianMode) — AuraRadius, calm but stronger ──
+        if (f.State == EmblemBehaviorState.GuardianMode)
+        {
+            float guardAlpha = (0.10f + 0.06f * absHalf) * f.ReflectionStrength * f.LowEndScale;
+            float guardR = f.R * (1.18f + f.AuraRadius * 1.4f) * f.Breath;
+            c.StrokeColor = f.PrimaryGlow.WithAlpha(guardAlpha);
+            c.StrokeSize  = 1.6f;
+            c.DrawCircle(f.Cx, f.Cy, guardR);
+        }
+
+        // ── Top sheen ellipse ────────────────────────────────────────
+        if (f.ReflectionStrength > 0f)
+        {
+            float sheenW = f.R * 0.90f * f.Breath;
+            c.FillColor  = f.Accent2.WithAlpha((0.08f + 0.06f * absHalf) * f.ReflectionStrength * f.LowEndScale);
+            c.FillEllipse(f.Cx - sheenW * 0.5f, f.Cy - f.R * 0.28f, sheenW, f.R * 0.22f);
+        }
     }
 }
 
@@ -876,30 +1155,36 @@ internal sealed class LivingEmblemDrawable : IDrawable
         // ── Layer stack (bottom → top) ────────────────────────────────
         //   [0] Shadow         — TODO future (VisualLayerType.Shadow)
         //   [1] BackgroundAura — TODO future (VisualLayerType.BackgroundAura)
-        //   [2] AmbientSmoke   — drawn by per-emblem renderer below
+        //   [2] AmbientSmoke   — renderer.DrawAmbient() (BELOW glow) ↓
         //   [3] BaseImage      — MAUI Image above this GraphicsView
         //   [4] HeatDistortion — TODO future (VisualLayerType.HeatDistortion)
-        //   [5] Fire           — Future: FireBreath full
-        //   [6] Particles      — Future: SparkRain advanced
+        //   [5] Fire           — renderer.Draw() heat/fire hint (foundation)
+        //   [6] Particles      — renderer.Draw() sparkles (foundation)
         //   [7] Glow           — ACTIVE: universal breathing aura ↓
         //   [8] UIOverlay      — ZIndex managed by LivingEmblemBehavior
+
+        // Device-adaptive opacity for the universal aura too (low-end safe).
+        float glowScale = frame.LowEndScale;
+
+        // ── [2] Ambient smoke / mist (BEHIND the glow) ───────────────
+        _renderer.DrawAmbient(canvas, in frame);
 
         // ── [7] Universal breathing aura ─────────────────────────────
         float outerR = frame.R * 1.30f * frame.Breath;
         float innerR = frame.R * 1.04f * frame.Breath;
 
-        canvas.FillColor = frame.PrimaryGlow.WithAlpha(frame.GlowAlpha * 0.42f);
+        canvas.FillColor = frame.PrimaryGlow.WithAlpha(frame.GlowAlpha * 0.42f * glowScale);
         canvas.FillCircle(cx, cy, outerR);
 
-        canvas.FillColor = frame.PrimaryGlow.WithAlpha(frame.GlowAlpha * 0.72f);
+        canvas.FillColor = frame.PrimaryGlow.WithAlpha(frame.GlowAlpha * 0.72f * glowScale);
         canvas.FillCircle(cx, cy, innerR);
 
         canvas.StrokeColor = frame.SecondaryGlow.WithAlpha(
-            frame.GlowAlpha * 0.88f * (0.68f + 0.32f * MathF.Abs(frame.SinHalf)));
+            frame.GlowAlpha * 0.88f * glowScale * (0.68f + 0.32f * MathF.Abs(frame.SinHalf)));
         canvas.StrokeSize = 1.4f;
         canvas.DrawCircle(cx, cy, innerR);
 
-        // ── [2]+[6] Per-emblem behavior (smoke, frost, sparkle…) ─────
+        // ── [4]+[5]+[6] Per-emblem behavior above glow (heat, eyes, sparkle…) ─
         _renderer.Draw(canvas, in frame);
 
         canvas.RestoreState();
