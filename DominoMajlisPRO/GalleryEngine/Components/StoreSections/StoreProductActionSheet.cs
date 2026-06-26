@@ -2,6 +2,8 @@ using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.LivingVisualPlatform.Controls;
+using DominoMajlisPRO.LivingVisualPlatform.Models;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -700,18 +702,11 @@ internal sealed class StoreProductActionSheet : Grid
         {
             // Determine preview context: Inventory if caller supplied a playerId
             // (meaning the item is being shown from My Items), Store otherwise.
-            var ctx = string.IsNullOrWhiteSpace(_inventoryPlayerId)
-                ? EffectPreviewContextType.Store
-                : EffectPreviewContextType.Inventory;
-
-            var resolveResult = await EffectDefinitionRuntimeResolver.ResolveAsync(
-                new EffectDefinitionRuntimeResolver.ResolveRequest
-                {
-                    AssetId          = assetId,
-                    TargetScope      = EffectTargetScope.Team,
-                    TargetVisualType = EffectTargetVisualType.Emblem,
-                    Context          = ctx,
-                });
+            var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
+            var isInventoryPreview = !string.IsNullOrWhiteSpace(_inventoryPlayerId);
+            var playerId = isInventoryPreview
+                ? _inventoryPlayerId
+                : owner.PlayerId;
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -721,19 +716,26 @@ internal sealed class StoreProductActionSheet : Grid
                 // Build emblem image (base visual) + attach living behavior overlay.
                 // LivingEmblemBehavior.AttachPreview bypasses ownership gate —
                 // preview context is explicit, not runtime.
-                var emblem = new Image
+                var host = new LivingVisualHost
                 {
-                    Source = InventoryDisplayResolver.ResolveImageSource(
-                        string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
-                        "shield_3d.png"),
-                    WidthRequest  = 126,
+                    AssetId = assetId,
+                    StaticFallbackImage = string.IsNullOrWhiteSpace(asset.PreviewImage)
+                        ? "shield_3d.png"
+                        : asset.PreviewImage,
+                    ApplicationUserId = owner.ApplicationUserId,
+                    PlayerId = playerId?.Trim() ?? string.Empty,
+                    TeamId = string.Empty,
+                    DisplayLocation = LivingVisualDisplayLocation.StoreActionSheet,
+                    IsStorePreview = !isInventoryPreview,
+                    IsInventoryPreview = isInventoryPreview,
+                    WidthRequest = 126,
                     HeightRequest = 126,
                     HorizontalOptions = LayoutOptions.Center,
-                    VerticalOptions   = LayoutOptions.Center
+                    VerticalOptions = LayoutOptions.Center
                 };
 
                 var layers = new Grid();
-                layers.Children.Add(emblem);
+                layers.Children.Add(host);
                 _previewSurface.Content = layers;
 
                 // Attach the living behavior overlay using the resolved definition.
@@ -741,7 +743,6 @@ internal sealed class StoreProductActionSheet : Grid
                 //   EffectDefinitionRuntimeResolver → LivingEmblemBehavior.AttachPreview
                 //   → EffectBehaviorRuntimeMapper → Brain → IEmblemBehaviorRenderer
                 // TODO (Phase 2.5-F): replace with PrepareStillFrame for thumbnail-only contexts.
-                LivingEmblemBehavior.AttachPreview(emblem, resolveResult.Definition);
             });
             return;
         }

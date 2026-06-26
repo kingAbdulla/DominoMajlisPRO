@@ -3,6 +3,8 @@ using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.VisualIdentity;
+using DominoMajlisPRO.LivingVisualPlatform.Controls;
+using DominoMajlisPRO.LivingVisualPlatform.Models;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -890,8 +892,9 @@ public partial class PlayerProfilesPage : ContentPage
             StrokeShape = new RoundRectangle { CornerRadius = 14 }
         };
 
-        visual.Content = string.IsNullOrWhiteSpace(payload.ImagePath)
-            ? new Label
+        visual.Content = CreateInventoryVisualContent(payload);
+        _ = string.IsNullOrWhiteSpace(payload.ImagePath)
+            ? (View)new Label
             {
                 Text = "◆",
                 TextColor = Color.FromArgb("#D4AF37"),
@@ -968,6 +971,43 @@ public partial class PlayerProfilesPage : ContentPage
             StrokeShape = new RoundRectangle { CornerRadius = 16 },
             Content = grid
         };
+    }
+
+    View CreateInventoryVisualContent(InventoryPayload payload)
+    {
+        if (SameId(payload.AssetType, StoreProductAssetType.TeamEffect.ToString()) &&
+            currentUser != null &&
+            !string.IsNullOrWhiteSpace(currentUser.ApplicationUserId) &&
+            !string.IsNullOrWhiteSpace(currentUser.PlayerId))
+        {
+            return new LivingVisualHost
+            {
+                AssetId = payload.AssetId,
+                StaticFallbackImage = payload.ImagePath,
+                ApplicationUserId = currentUser.ApplicationUserId,
+                PlayerId = currentUser.PlayerId,
+                TeamId = string.Empty,
+                DisplayLocation = LivingVisualDisplayLocation.Inventory,
+                IsInventoryPreview = true,
+                HorizontalOptions = LayoutOptions.Fill,
+                VerticalOptions = LayoutOptions.Fill
+            };
+        }
+
+        return string.IsNullOrWhiteSpace(payload.ImagePath)
+            ? (View)new Label
+            {
+                Text = "â—†",
+                TextColor = Color.FromArgb("#D4AF37"),
+                FontSize = 22,
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center
+            }
+            : new Image
+            {
+                Source = ToImageSource(payload.ImagePath),
+                Aspect = Aspect.AspectFill
+            };
     }
 
     static Label CreateInventoryEmptyLabel(string text) =>

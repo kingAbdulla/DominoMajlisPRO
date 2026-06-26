@@ -5,6 +5,8 @@ using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using DominoMajlisPRO.GalleryEngine.Effects;
+using DominoMajlisPRO.LivingVisualPlatform.Controls;
+using DominoMajlisPRO.LivingVisualPlatform.Models;
 using System.ComponentModel;
 using System.Threading;
 
@@ -59,18 +61,21 @@ public sealed class TeamEffectCarouselItem : INotifyPropertyChanged
         string assetId,
         string displayName,
         CatalogAssetDisplay? effect,
-        string ownerPlayerId = "")
+        string ownerPlayerId = "",
+        string ownerApplicationUserId = "")
     {
         AssetId = assetId;
         DisplayName = displayName;
         Effect = effect;
         OwnerPlayerId = ownerPlayerId?.Trim() ?? string.Empty;
+        OwnerApplicationUserId = ownerApplicationUserId?.Trim() ?? string.Empty;
     }
 
     public string AssetId { get; }
     public string DisplayName { get; }
     public CatalogAssetDisplay? Effect { get; }
     public string OwnerPlayerId { get; }
+    public string OwnerApplicationUserId { get; }
     public bool IsNone => Effect == null;
 
     public bool IsSelected
@@ -111,8 +116,10 @@ public partial class CreateTeamPage : ContentPage
     string selectedEmblemBackgroundAssetId = "emblem-background-transparent";
     string selectedTeamEffectAssetId = "";
     string selectedTeamEffectOwnerPlayerId = "";
+    string selectedTeamEffectOwnerApplicationUserId = "";
 
     private LivingTeamEmblemView? _previewEmblemGlow;
+    private LivingVisualHost? _previewLivingTeamEffectHost;
     private TeamProfileModel? CurrentTeam = null;
     private bool _suppressSelectionHandlers = false;
     private bool _suppressTeamPlayersChanged = false;
@@ -240,11 +247,19 @@ public partial class CreateTeamPage : ContentPage
                         if (effect == null)
                             continue;
 
+                        var ownerApplicationUserId = owned.ApplicationUserId?.Trim() ?? string.Empty;
+                        if (string.IsNullOrWhiteSpace(ownerApplicationUserId) &&
+                            CanonicalAssetIdentityService.SameAssetId(ownerPlayerId, storeOwner.PlayerId))
+                        {
+                            ownerApplicationUserId = storeOwner.ApplicationUserId?.Trim() ?? string.Empty;
+                        }
+
                         ownedTeamEffects.Add(new TeamEffectCarouselItem(
                             owned.AssetId,
                             string.IsNullOrWhiteSpace(effect.DisplayName) ? owned.AssetId : effect.DisplayName,
                             effect,
-                            ownerPlayerId));
+                            ownerPlayerId,
+                            ownerApplicationUserId));
                     }
                 }
 
@@ -515,6 +530,7 @@ public partial class CreateTeamPage : ContentPage
                 "shield_3d.png");
 
         ApplyPreviewEmblemGlow(selectedEmblemAssetId);
+        ApplyPreviewEmblemBehavior(selected);
 
         if (!ReferenceEquals(EmblemCarousel.SelectedItem, selected))
             EmblemCarousel.SelectedItem = selected;
@@ -559,6 +575,73 @@ public partial class CreateTeamPage : ContentPage
 
         _previewEmblemGlow.SetEmblem(emblemAssetId);
     }
+
+    void ApplyPreviewEmblemBehavior(EmblemCarouselItem? selected = null)
+    {
+        selected ??= emblemItems.FirstOrDefault(item =>
+            CanonicalAssetIdentityService.SameAssetId(item.AssetId, selectedEmblemAssetId))
+            ?? emblemItems.FirstOrDefault(item =>
+                string.Equals(item.ImagePath, selectedEmblem, StringComparison.OrdinalIgnoreCase));
+
+        var assetId = selected?.AssetId ?? selectedEmblemAssetId;
+        var imagePath = selected?.ImagePath ?? selectedEmblem;
+        var displayName = selected?.DisplayName ?? assetId;
+        var effectType = ResolvePreviewEmblemEffectType(assetId, imagePath, displayName);
+
+        var previewEffect = new CatalogAssetDisplay(
+            assetId,
+            StoreProductAssetType.Emblem,
+            StoreProductOwnerScope.Team,
+            displayName,
+            displayName,
+            imagePath,
+            selectedColor,
+            Array.Empty<string>(),
+            effectType,
+            ResolvePreviewEmblemAnimationType(effectType),
+            0,
+            "TeamEmblem",
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            new[] { "Particle" },
+            0.82f,
+            1f,
+            1f,
+            1f);
+
+        IdentityEffectRenderer.ApplyAround(PreviewEmblem, previewEffect, 1.18, lightweight: true);
+    }
+
+    static string ResolvePreviewEmblemEffectType(params string?[] values)
+    {
+        var key = string.Join(" ", values.Where(value => !string.IsNullOrWhiteSpace(value)))
+            .ToLowerInvariant();
+
+        if (key.Contains("dragon") || key.Contains("fire") || key.Contains("flame"))
+            return "Fire";
+        if (key.Contains("wolf") || key.Contains("ice") || key.Contains("frost") || key.Contains("cold"))
+            return "Ice";
+        if (key.Contains("eagle") || key.Contains("falcon") || key.Contains("hawk") || key.Contains("wing"))
+            return "Lightning";
+        if (key.Contains("lion") || key.Contains("crown") || key.Contains("royal"))
+            return "Royal";
+        if (key.Contains("shield") || key.Contains("metal") || key.Contains("reflect"))
+            return "Ring";
+
+        return "Glow";
+    }
+
+    static string ResolvePreviewEmblemAnimationType(string effectType) => effectType switch
+    {
+        "Fire" => "Pulse",
+        "Ice" => "Fade",
+        "Lightning" => "Flash",
+        "Royal" => "Breathing",
+        "Ring" => "Rotate",
+        _ => "Breathing"
+    };
 
     void OnColorSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
@@ -654,8 +737,10 @@ public partial class CreateTeamPage : ContentPage
         {
             selectedTeamEffectAssetId = string.Empty;
             selectedTeamEffectOwnerPlayerId = string.Empty;
+            selectedTeamEffectOwnerApplicationUserId = string.Empty;
+            ClearPreviewLivingTeamEffectHost();
             IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
-            IdentityEffectRenderer.ApplyAround(PreviewEmblem, null);
+            ApplyPreviewEmblemBehavior();
             return false;
         }
 
@@ -665,14 +750,17 @@ public partial class CreateTeamPage : ContentPage
         if (selected.Effect == null)
         {
             selectedTeamEffectOwnerPlayerId = string.Empty;
+            selectedTeamEffectOwnerApplicationUserId = string.Empty;
+            ClearPreviewLivingTeamEffectHost();
             IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
-            IdentityEffectRenderer.ApplyAround(PreviewEmblem, null);
+            ApplyPreviewEmblemBehavior();
         }
         else
         {
             selectedTeamEffectOwnerPlayerId = selected.OwnerPlayerId;
+            selectedTeamEffectOwnerApplicationUserId = selected.OwnerApplicationUserId;
             IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
-            IdentityEffectRenderer.ApplyAround(PreviewEmblem, selected.Effect, 1.18, lightweight: true);
+            ApplyPreviewLivingTeamEffect(selected);
         }
         if (!ReferenceEquals(TeamEffectCarousel.SelectedItem, selected))
             TeamEffectCarousel.SelectedItem = selected;
@@ -681,10 +769,57 @@ public partial class CreateTeamPage : ContentPage
         return true;
     }
 
+    void ApplyPreviewLivingTeamEffect(TeamEffectCarouselItem selected)
+    {
+        ClearPreviewLivingTeamEffectHost();
+
+        if (selected.Effect == null ||
+            PreviewTeamEffectOverlay.Parent is not Grid parent)
+            return;
+
+        PreviewTeamEffectOverlay.IsVisible = false;
+
+        var host = new LivingVisualHost
+        {
+            AssetId = selected.AssetId,
+            StaticFallbackImage = string.IsNullOrWhiteSpace(selected.Effect.PreviewImage)
+                ? "shield_3d.png"
+                : selected.Effect.PreviewImage,
+            ApplicationUserId = selected.OwnerApplicationUserId,
+            PlayerId = selected.OwnerPlayerId,
+            TeamId = CurrentTeam?.TeamId ?? string.Empty,
+            DisplayLocation = LivingVisualDisplayLocation.CreateTeamPreview,
+            WidthRequest = PreviewTeamEffectOverlay.WidthRequest > 0 ? PreviewTeamEffectOverlay.WidthRequest : 155,
+            HeightRequest = PreviewTeamEffectOverlay.HeightRequest > 0 ? PreviewTeamEffectOverlay.HeightRequest : 155,
+            HorizontalOptions = PreviewTeamEffectOverlay.HorizontalOptions,
+            VerticalOptions = PreviewTeamEffectOverlay.VerticalOptions,
+            InputTransparent = true,
+            ZIndex = PreviewTeamEffectOverlay.ZIndex
+        };
+
+        Grid.SetRow(host, Grid.GetRow(PreviewTeamEffectOverlay));
+        Grid.SetColumn(host, Grid.GetColumn(PreviewTeamEffectOverlay));
+        Grid.SetRowSpan(host, Grid.GetRowSpan(PreviewTeamEffectOverlay));
+        Grid.SetColumnSpan(host, Grid.GetColumnSpan(PreviewTeamEffectOverlay));
+
+        parent.Children.Add(host);
+        _previewLivingTeamEffectHost = host;
+    }
+
+    void ClearPreviewLivingTeamEffectHost()
+    {
+        if (_previewLivingTeamEffectHost?.Parent is Grid parent)
+            parent.Children.Remove(_previewLivingTeamEffectHost);
+
+        _previewLivingTeamEffectHost = null;
+        PreviewTeamEffectOverlay.IsVisible = true;
+    }
+
     async Task CaptureCurrentEffectOwnerAsync()
     {
         var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
         selectedTeamEffectOwnerPlayerId = owner.PlayerId?.Trim() ?? string.Empty;
+        selectedTeamEffectOwnerApplicationUserId = owner.ApplicationUserId?.Trim() ?? string.Empty;
     }
 
     void OnTeamEffectItemLoaded(object? sender, EventArgs e)
@@ -1256,6 +1391,7 @@ public partial class CreateTeamPage : ContentPage
             : team.EmblemBackgroundAssetId;
         selectedTeamEffectAssetId = team.EquippedTeamEffectAssetId ?? string.Empty;
         selectedTeamEffectOwnerPlayerId = team.EquippedTeamEffectOwnerPlayerId ?? string.Empty;
+        selectedTeamEffectOwnerApplicationUserId = string.Empty;
 
         PreviewEmblem.Source =
             InventoryDisplayResolver.ResolveImageSource(
@@ -1307,6 +1443,8 @@ public partial class CreateTeamPage : ContentPage
         selectedEmblemBackgroundAssetId = "emblem-background-transparent";
         selectedTeamEffectAssetId = string.Empty;
         selectedTeamEffectOwnerPlayerId = string.Empty;
+        selectedTeamEffectOwnerApplicationUserId = string.Empty;
+        ClearPreviewLivingTeamEffectHost();
         IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
 
         PreviewEmblem.Source =
@@ -1314,6 +1452,7 @@ public partial class CreateTeamPage : ContentPage
                 selectedEmblem,
                 "shield_3d.png");
         ApplyPreviewEmblemGlow(selectedEmblemAssetId);
+        ApplyPreviewEmblemBehavior();
         PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
         PreviewEmblemBackground.BackgroundColor = Colors.Transparent;
 

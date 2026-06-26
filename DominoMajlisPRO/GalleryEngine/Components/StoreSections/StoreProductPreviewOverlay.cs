@@ -1,5 +1,8 @@
 using Microsoft.Maui.Controls.Shapes;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.LivingVisualPlatform.Controls;
+using DominoMajlisPRO.LivingVisualPlatform.Models;
 
 using DominoMajlisPRO.GalleryEngine.Models;
 
@@ -221,6 +224,28 @@ internal sealed class StoreProductPreviewOverlay : Grid
 
     private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent)
     {
+        if (effect.AssetType == StoreProductAssetType.TeamEffect)
+        {
+            var host = new LivingVisualHost
+            {
+                AssetId = effect.AssetId,
+                StaticFallbackImage = string.IsNullOrWhiteSpace(effect.PreviewImage)
+                    ? "shield_3d.png"
+                    : effect.PreviewImage,
+                ApplicationUserId = string.Empty,
+                PlayerId = string.Empty,
+                TeamId = string.Empty,
+                DisplayLocation = LivingVisualDisplayLocation.StorePreview,
+                IsStorePreview = true,
+                WidthRequest = 190,
+                HeightRequest = 190,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            };
+
+            return PreviewCard(host, accent);
+        }
+
         image.Source = InventoryDisplayResolver.ResolveImageSource(
             string.IsNullOrWhiteSpace(effect.PreviewImage) ? "shield_3d.png" : effect.PreviewImage,
             "shield_3d.png");

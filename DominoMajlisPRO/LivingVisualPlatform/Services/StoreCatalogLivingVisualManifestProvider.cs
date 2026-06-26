@@ -26,11 +26,14 @@ public sealed class StoreCatalogLivingVisualManifestProvider : ILivingVisualMani
 
     private static LivingVisualAssetManifest? ToManifest(CatalogAssetDisplay asset)
     {
-        if (asset.OwnerScope != StoreProductOwnerScope.Team ||
-            asset.AssetType != StoreProductAssetType.Emblem)
+        if (asset.AssetType != StoreProductAssetType.TeamEffect)
         {
             return null;
         }
+
+        var version = string.IsNullOrWhiteSpace(asset.AnimationType)
+            ? "catalog-team-effect-static-1"
+            : $"catalog-team-effect-{asset.AnimationType.Trim()}-1";
 
         return new LivingVisualAssetManifest
         {
@@ -44,7 +47,7 @@ public sealed class StoreCatalogLivingVisualManifestProvider : ILivingVisualMani
             Capabilities = ResolveCapabilities(asset),
             MinimumDeviceProfile = string.Empty,
             BehaviorProfileId = string.Empty,
-            Version = "catalog-static-1",
+            Version = version,
             IsPublished = true,
             Rarity = string.Empty,
             FallbackPolicy = "StaticFallback",
