@@ -7,15 +7,28 @@ public enum LivingBehaviorState
 {
     Idle,
     Breathing,
+    Blinking,
     Looking,
-    Special,
+    MouthMotion,
+    Attention,
     Cooldown,
     Paused
 }
 
 public sealed class LivingBehaviorBrain
 {
-    private TimeSpan _elapsed;
+    private readonly Random random = new();
+
+    private TimeSpan elapsed;
+    private double nextBreathAt;
+    private double nextBlinkAt;
+    private double nextLookAt;
+    private double nextMouthAt;
+
+    public LivingBehaviorBrain()
+    {
+        ResetSchedule(0);
+    }
 
     public LivingBehaviorState State { get; private set; } = LivingBehaviorState.Idle;
 
@@ -28,39 +41,55 @@ public sealed class LivingBehaviorBrain
             return Array.Empty<LivingMotionCommand>();
         }
 
-        _elapsed += delta < TimeSpan.Zero ? TimeSpan.Zero : delta;
-        State = ResolveState(_elapsed);
+        elapsed += delta < TimeSpan.Zero ? TimeSpan.Zero : delta;
 
         if (manifest == null ||
             !manifest.Capabilities.HasFlag(LivingVisualCapability.BehaviorBrain))
         {
+            State = LivingBehaviorState.Idle;
             return Array.Empty<LivingMotionCommand>();
         }
 
-        return State switch
+        var now = elapsed.TotalSeconds;
+
+        if (now >= nextBlinkAt)
         {
-            LivingBehaviorState.Breathing => new[]
+            nextBlinkAt = now + Range(5, 11);
+            State = LivingBehaviorState.Blinking;
+            return Single(LivingMotionCommandType.SetMorphWeight, "Blink", 1, 0.18);
+        }
+
+        if (now >= nextLookAt)
+        {
+            nextLookAt = now + Range(8, 16);
+            State = LivingBehaviorState.Looking;
+            return Single(LivingMotionCommandType.SetBoneRotation, "Head", 0.45, 1.6);
+        }
+
+        if (now >= nextMouthAt)
+        {
+            nextMouthAt = now + Range(10, 22);
+            State = LivingBehaviorState.MouthMotion;
+            return new[]
             {
-                new LivingMotionCommand
-                {
-                    Type = LivingMotionCommandType.SetRootFloat,
-                    Target = "root",
-                    Value = 0,
-                    DurationSeconds = 1
-                }
-            },
-            LivingBehaviorState.Looking => new[]
+                Command(LivingMotionCommandType.SetBoneRotation, "Jaw", 0.35, 0.8),
+                Command(LivingMotionCommandType.SetMorphWeight, "MouthOpen", 0.35, 0.8)
+            };
+        }
+
+        if (now >= nextBreathAt)
+        {
+            nextBreathAt = now + 3.8;
+            State = LivingBehaviorState.Breathing;
+            return new[]
             {
-                new LivingMotionCommand
-                {
-                    Type = LivingMotionCommandType.SetMorphWeight,
-                    Target = "look-neutral",
-                    Value = 0,
-                    DurationSeconds = 0.5
-                }
-            },
-            _ => Array.Empty<LivingMotionCommand>()
-        };
+                Command(LivingMotionCommandType.SetBoneRotation, "Neck", 0.85, 3.8),
+                Command(LivingMotionCommandType.SetRootFloat, "breathing", 0.85, 3.8)
+            };
+        }
+
+        State = LivingBehaviorState.Idle;
+        return Single(LivingMotionCommandType.SetRootFloat, "idle", 0.5, Math.Max(0.016, delta.TotalSeconds));
     }
 
     public void Pause() => State = LivingBehaviorState.Paused;
@@ -73,13 +102,52 @@ public sealed class LivingBehaviorBrain
         }
     }
 
-    private static LivingBehaviorState ResolveState(TimeSpan elapsed)
+    public void Reset()
     {
-        var phase = elapsed.TotalSeconds % 12;
-        if (phase < 2) return LivingBehaviorState.Idle;
-        if (phase < 7) return LivingBehaviorState.Breathing;
-        if (phase < 9) return LivingBehaviorState.Looking;
-        if (phase < 10) return LivingBehaviorState.Special;
-        return LivingBehaviorState.Cooldown;
+        elapsed = TimeSpan.Zero;
+        ResetSchedule(0);
+    }
+
+    private void ResetSchedule(double now)
+    {
+        nextBreathAt = now + 3.8;
+        nextBlinkAt = now + Range(5, 11);
+        nextLookAt = now + Range(8, 16);
+        nextMouthAt = now + Range(10, 22);
+        State = LivingBehaviorState.Idle;
+    }
+
+    private IReadOnlyList<LivingMotionCommand> Single(
+        LivingMotionCommandType type,
+        string target,
+        double value,
+        double durationSeconds)
+    {
+        return new[] { Command(type, target, value, durationSeconds) };
+    }
+
+    private static LivingMotionCommand Command(
+        LivingMotionCommandType type,
+        string target,
+        double value,
+        double durationSeconds)
+    {
+        return new LivingMotionCommand
+        {
+            Type = type,
+            Target = target,
+            Value = value,
+            DurationSeconds = durationSeconds
+        };
+    }
+
+    private double Range(double min, double max)
+    {
+        if (max <= min)
+        {
+            return min;
+        }
+
+        return min + (random.NextDouble() * (max - min));
     }
 }
