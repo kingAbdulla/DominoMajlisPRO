@@ -1,7 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.LivingVisualPlatform.Controls;
 using DominoMajlisPRO.LivingVisualPlatform.Models;
 using Microsoft.Maui.Controls.Shapes;
 
@@ -9,9 +8,10 @@ namespace DominoMajlisPRO.GalleryEngine.Admin;
 
 public sealed class LivingEmblemPublishPreviewPage : ContentPage
 {
+    private const string DefaultFallbackImage = "shield_3d.png";
     private readonly Entry _titleEntry = new() { Placeholder = "Living emblem name", Text = "Living Filament Backend Probe" };
     private readonly Editor _descriptionEditor = new() { Placeholder = "Description", Text = "Temporary proof asset for the Living Visual Platform Filament backend.", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 80 };
-    private readonly Entry _fallbackEntry = new() { Placeholder = "Fallback thumbnail PNG", Text = "shield_3d.png" };
+    private readonly Entry _fallbackEntry = new() { Placeholder = "Fallback thumbnail PNG", Text = DefaultFallbackImage };
     private readonly Entry _priceEntry = new() { Placeholder = "Price", Text = "0", Keyboard = Keyboard.Numeric };
     private readonly Picker _currencyPicker = new() { Title = "Currency" };
     private readonly ContentView _previewHost = new() { HeightRequest = 220 };
@@ -55,7 +55,7 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
             Children =
             {
                 new Label { Text = "Live result preview", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FFD966"), HorizontalTextAlignment = TextAlignment.Center },
-                new Label { Text = "Do not publish unless this area shows the living render, not only the fallback PNG.", FontSize = 11, TextColor = Color.FromArgb("#A88E45"), HorizontalTextAlignment = TextAlignment.Center },
+                new Label { Text = "This preview is generated live. The PNG field below is only fallback metadata.", FontSize = 11, TextColor = Color.FromArgb("#A88E45"), HorizontalTextAlignment = TextAlignment.Center },
                 _previewHost,
                 _statusLabel
             }
@@ -97,29 +97,16 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
     private void ResetPreview()
     {
         _previewHost.Content = new Label { Text = "Generate the live preview before publishing", TextColor = Color.FromArgb("#8C7A3E"), HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center };
-        _statusLabel.Text = "AssetId auto | Backend Filament | GLB living_visual_backend_probe.glb";
+        _statusLabel.Text = "AssetId auto | Live preview renderer | GLB package metadata preserved";
         _statusLabel.TextColor = Color.FromArgb("#A88E45");
     }
 
     private Task GeneratePreviewAsync()
     {
         _validationLabel.IsVisible = false;
-        var fallback = string.IsNullOrWhiteSpace(_fallbackEntry.Text) ? "shield_3d.png" : _fallbackEntry.Text.Trim();
-        _previewHost.Content = new LivingVisualHost
-        {
-            AssetId = StoreAssetCatalogService.LivingFilamentBackendProbeAssetId,
-            StaticFallbackImage = fallback,
-            ApplicationUserId = string.Empty,
-            PlayerId = string.Empty,
-            TeamId = string.Empty,
-            DisplayLocation = LivingVisualDisplayLocation.StorePreview,
-            IsDeveloperPreview = true,
-            IsStorePreview = true,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill
-        };
+        _previewHost.Content = new LivingEmblemLivePreviewView();
         _previewGenerated = true;
-        _statusLabel.Text = "Preview generated. Publish only if the live renderer is visible.";
+        _statusLabel.Text = "Live non-PNG preview generated. This is the approval card before publishing.";
         _statusLabel.TextColor = Color.FromArgb("#FFD966");
         return Task.CompletedTask;
     }
@@ -139,7 +126,8 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
 
         _ = int.TryParse(_priceEntry.Text, out var price);
         var currency = Enum.TryParse<NewArrivalCurrencyType>(_currencyPicker.SelectedItem?.ToString(), out var parsed) ? parsed : NewArrivalCurrencyType.Free;
-        var fallback = string.IsNullOrWhiteSpace(_fallbackEntry.Text) ? "shield_3d.png" : _fallbackEntry.Text.Trim();
+        var fallback = NormalizeFallbackImage(_fallbackEntry.Text);
+        _fallbackEntry.Text = fallback;
         var productId = "product_living_filament_backend_probe";
         var record = new NewArrivalRecord
         {
@@ -172,10 +160,30 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
             CreatedAt = DateTime.UtcNow
         };
 
-        await NewArrivalsAdminService.PublishAsync(record);
-        _validationLabel.TextColor = Color.FromArgb("#27AE60");
-        _validationLabel.Text = "Published. It will appear as an Emblem after acquisition.";
-        _validationLabel.IsVisible = true;
+        try
+        {
+            await NewArrivalsAdminService.PublishAsync(record);
+            _validationLabel.TextColor = Color.FromArgb("#27AE60");
+            _validationLabel.Text = "Published. It will appear as an Emblem after acquisition.";
+            _validationLabel.IsVisible = true;
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
+    private static string NormalizeFallbackImage(string? value)
+    {
+        var text = value?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(text))
+            return DefaultFallbackImage;
+
+        var lower = text.ToLowerInvariant();
+        if (lower.EndsWith(".png", StringComparison.Ordinal) || lower.EndsWith(".jpg", StringComparison.Ordinal) || lower.EndsWith(".jpeg", StringComparison.Ordinal) || lower.EndsWith(".webp", StringComparison.Ordinal))
+            return text;
+
+        return DefaultFallbackImage;
     }
 
     private void ShowError(string message)
