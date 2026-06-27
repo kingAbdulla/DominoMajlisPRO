@@ -975,7 +975,8 @@ public partial class PlayerProfilesPage : ContentPage
 
     View CreateInventoryVisualContent(InventoryPayload payload)
     {
-        if (SameId(payload.AssetType, StoreProductAssetType.TeamEffect.ToString()) &&
+        if ((SameId(payload.AssetType, StoreProductAssetType.TeamEffect.ToString()) ||
+             SameId(payload.AssetType, StoreProductAssetType.Emblem.ToString())) &&
             currentUser != null &&
             !string.IsNullOrWhiteSpace(currentUser.ApplicationUserId) &&
             !string.IsNullOrWhiteSpace(currentUser.PlayerId))
@@ -997,7 +998,7 @@ public partial class PlayerProfilesPage : ContentPage
         return string.IsNullOrWhiteSpace(payload.ImagePath)
             ? (View)new Label
             {
-                Text = "â—†",
+                Text = "◆",
                 TextColor = Color.FromArgb("#D4AF37"),
                 FontSize = 22,
                 HorizontalTextAlignment = TextAlignment.Center,

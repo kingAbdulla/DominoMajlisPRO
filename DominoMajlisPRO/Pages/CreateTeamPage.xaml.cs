@@ -7,6 +7,7 @@ using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.LivingVisualPlatform.Controls;
 using DominoMajlisPRO.LivingVisualPlatform.Models;
+using DominoMajlisPRO.LivingVisualPlatform.Services;
 using System.ComponentModel;
 using System.Threading;
 
@@ -38,10 +39,17 @@ public abstract class SelectableCarouselItem : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 }
 
-public sealed class EmblemCarouselItem(string assetId, string imagePath, string displayName) : SelectableCarouselItem(imagePath)
+public sealed class EmblemCarouselItem(
+    string assetId,
+    string imagePath,
+    string displayName,
+    string ownerPlayerId = "",
+    string ownerApplicationUserId = "") : SelectableCarouselItem(imagePath)
 {
     public string AssetId { get; } = assetId;
     public string DisplayName { get; } = displayName;
+    public string OwnerPlayerId { get; } = ownerPlayerId?.Trim() ?? string.Empty;
+    public string OwnerApplicationUserId { get; } = ownerApplicationUserId?.Trim() ?? string.Empty;
 }
 
 public sealed class TeamColorCarouselItem(string assetId, string colorHex, string imagePath, string displayName) : SelectableCarouselItem(imagePath)
@@ -118,14 +126,15 @@ public partial class CreateTeamPage : ContentPage
     string selectedTeamEffectOwnerPlayerId = "";
     string selectedTeamEffectOwnerApplicationUserId = "";
 
-    private LivingTeamEmblemView? _previewEmblemGlow;
     private LivingVisualHost? _previewLivingTeamEffectHost;
+    private LivingVisualHost? _previewLivingEmblemHost;
     private TeamProfileModel? CurrentTeam = null;
     private bool _suppressSelectionHandlers = false;
     private bool _suppressTeamPlayersChanged = false;
     private readonly SemaphoreSlim _ownedAssetsReloadGate = new(1, 1);
     private bool _ownedAssetsReloadRequested = false;
     private bool _isReloadingOwnedAssets = false;
+    private int _emblemPreviewVersion;
     private List<TeamProfileModel> LoadedTeams = new();
 
     public CreateTeamPage()
@@ -286,7 +295,9 @@ public partial class CreateTeamPage : ContentPage
                         AddEmblemIfMissing(
                             item.TeamAssetId,
                             catalogAsset?.PreviewImage ?? payload?.ImagePath ?? "ss.png",
-                            displayName);
+                            displayName,
+                            item.OwnerPlayerId,
+                            item.ApplicationUserId);
                     }
                     else if (string.Equals(effectiveTypeId, StoreProductAssetType.TeamColor.ToString(), StringComparison.OrdinalIgnoreCase))
                     {
@@ -404,7 +415,12 @@ public partial class CreateTeamPage : ContentPage
                 "Current saved background");
     }
 
-    void AddEmblemIfMissing(string assetId, string imagePath, string displayName)
+    void AddEmblemIfMissing(
+        string assetId,
+        string imagePath,
+        string displayName,
+        string ownerPlayerId = "",
+        string ownerApplicationUserId = "")
     {
         bool exists =
             emblemItems.Any(item =>
@@ -412,7 +428,12 @@ public partial class CreateTeamPage : ContentPage
                 || string.Equals(item.ImagePath, imagePath, StringComparison.OrdinalIgnoreCase));
 
         if (!exists)
-            emblemItems.Add(new EmblemCarouselItem(assetId, imagePath, displayName));
+            emblemItems.Add(new EmblemCarouselItem(
+                assetId,
+                imagePath,
+                displayName,
+                ownerPlayerId,
+                ownerApplicationUserId));
     }
 
     void AddColorIfMissing(string assetId, string colorHex, string imagePath, string displayName)
@@ -528,9 +549,8 @@ public partial class CreateTeamPage : ContentPage
             InventoryDisplayResolver.ResolveImageSource(
                 selectedEmblem,
                 "shield_3d.png");
-
-        ApplyPreviewEmblemGlow(selectedEmblemAssetId);
-        ApplyPreviewEmblemBehavior(selected);
+        var emblemPreviewVersion = Interlocked.Increment(ref _emblemPreviewVersion);
+        _ = ApplyPreviewLivingEmblemAsync(selected, emblemPreviewVersion);
 
         if (!ReferenceEquals(EmblemCarousel.SelectedItem, selected))
             EmblemCarousel.SelectedItem = selected;
@@ -539,109 +559,6 @@ public partial class CreateTeamPage : ContentPage
             Dispatcher.Dispatch(() =>
                 EmblemCarousel.ScrollTo(selected, position: ScrollToPosition.Center, animate: animate));
     }
-
-    void ApplyPreviewEmblemGlow(string? emblemAssetId)
-    {
-        if (PreviewEmblem.Parent is not Layout glowParent) return;
-
-        if (_previewEmblemGlow == null)
-        {
-            _previewEmblemGlow = new LivingTeamEmblemView
-            {
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center,
-                InputTransparent = true,
-                BackgroundColor = Colors.Transparent
-            };
-
-            var w = PreviewEmblem.WidthRequest > 0 ? PreviewEmblem.WidthRequest : 80;
-            var h = PreviewEmblem.HeightRequest > 0 ? PreviewEmblem.HeightRequest : 80;
-            _previewEmblemGlow.WidthRequest = w * 1.32;
-            _previewEmblemGlow.HeightRequest = h * 1.32;
-            _previewEmblemGlow.MinimumWidthRequest = _previewEmblemGlow.WidthRequest;
-            _previewEmblemGlow.MinimumHeightRequest = _previewEmblemGlow.HeightRequest;
-
-            if (glowParent is Grid)
-            {
-                Grid.SetRow(_previewEmblemGlow, Grid.GetRow(PreviewEmblem));
-                Grid.SetColumn(_previewEmblemGlow, Grid.GetColumn(PreviewEmblem));
-                Grid.SetRowSpan(_previewEmblemGlow, Grid.GetRowSpan(PreviewEmblem));
-                Grid.SetColumnSpan(_previewEmblemGlow, Grid.GetColumnSpan(PreviewEmblem));
-            }
-
-            _previewEmblemGlow.ZIndex = Math.Max(0, PreviewEmblem.ZIndex - 1);
-            glowParent.Children.Add(_previewEmblemGlow);
-        }
-
-        _previewEmblemGlow.SetEmblem(emblemAssetId);
-    }
-
-    void ApplyPreviewEmblemBehavior(EmblemCarouselItem? selected = null)
-    {
-        selected ??= emblemItems.FirstOrDefault(item =>
-            CanonicalAssetIdentityService.SameAssetId(item.AssetId, selectedEmblemAssetId))
-            ?? emblemItems.FirstOrDefault(item =>
-                string.Equals(item.ImagePath, selectedEmblem, StringComparison.OrdinalIgnoreCase));
-
-        var assetId = selected?.AssetId ?? selectedEmblemAssetId;
-        var imagePath = selected?.ImagePath ?? selectedEmblem;
-        var displayName = selected?.DisplayName ?? assetId;
-        var effectType = ResolvePreviewEmblemEffectType(assetId, imagePath, displayName);
-
-        var previewEffect = new CatalogAssetDisplay(
-            assetId,
-            StoreProductAssetType.Emblem,
-            StoreProductOwnerScope.Team,
-            displayName,
-            displayName,
-            imagePath,
-            selectedColor,
-            Array.Empty<string>(),
-            effectType,
-            ResolvePreviewEmblemAnimationType(effectType),
-            0,
-            "TeamEmblem",
-            string.Empty,
-            string.Empty,
-            string.Empty,
-            string.Empty,
-            new[] { "Particle" },
-            0.82f,
-            1f,
-            1f,
-            1f);
-
-        IdentityEffectRenderer.ApplyAround(PreviewEmblem, previewEffect, 1.18, lightweight: true);
-    }
-
-    static string ResolvePreviewEmblemEffectType(params string?[] values)
-    {
-        var key = string.Join(" ", values.Where(value => !string.IsNullOrWhiteSpace(value)))
-            .ToLowerInvariant();
-
-        if (key.Contains("dragon") || key.Contains("fire") || key.Contains("flame"))
-            return "Fire";
-        if (key.Contains("wolf") || key.Contains("ice") || key.Contains("frost") || key.Contains("cold"))
-            return "Ice";
-        if (key.Contains("eagle") || key.Contains("falcon") || key.Contains("hawk") || key.Contains("wing"))
-            return "Lightning";
-        if (key.Contains("lion") || key.Contains("crown") || key.Contains("royal"))
-            return "Royal";
-        if (key.Contains("shield") || key.Contains("metal") || key.Contains("reflect"))
-            return "Ring";
-
-        return "Glow";
-    }
-
-    static string ResolvePreviewEmblemAnimationType(string effectType) => effectType switch
-    {
-        "Fire" => "Pulse",
-        "Ice" => "Fade",
-        "Lightning" => "Flash",
-        "Royal" => "Breathing",
-        "Ring" => "Rotate",
-        _ => "Breathing"
-    };
 
     void OnColorSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
@@ -740,7 +657,6 @@ public partial class CreateTeamPage : ContentPage
             selectedTeamEffectOwnerApplicationUserId = string.Empty;
             ClearPreviewLivingTeamEffectHost();
             IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
-            ApplyPreviewEmblemBehavior();
             return false;
         }
 
@@ -753,7 +669,6 @@ public partial class CreateTeamPage : ContentPage
             selectedTeamEffectOwnerApplicationUserId = string.Empty;
             ClearPreviewLivingTeamEffectHost();
             IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
-            ApplyPreviewEmblemBehavior();
         }
         else
         {
@@ -813,6 +728,81 @@ public partial class CreateTeamPage : ContentPage
 
         _previewLivingTeamEffectHost = null;
         PreviewTeamEffectOverlay.IsVisible = true;
+    }
+
+    async Task ApplyPreviewLivingEmblemAsync(EmblemCarouselItem selected, int version)
+    {
+        ClearPreviewLivingEmblemHost();
+
+        var manifest = await new StoreCatalogLivingVisualManifestProvider()
+            .GetManifestAsync(selected.AssetId);
+
+        if (version != _emblemPreviewVersion)
+            return;
+
+        if (manifest?.PreferredBackend != LivingRendererBackend.Filament ||
+            PreviewEmblem.Parent is not Grid parent)
+        {
+            PreviewEmblem.IsVisible = true;
+            return;
+        }
+
+        var ownerApplicationUserId = selected.OwnerApplicationUserId;
+        var ownerPlayerId = selected.OwnerPlayerId;
+        if (string.IsNullOrWhiteSpace(ownerApplicationUserId) ||
+            string.IsNullOrWhiteSpace(ownerPlayerId))
+        {
+            var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
+            ownerApplicationUserId = owner.ApplicationUserId?.Trim() ?? string.Empty;
+            ownerPlayerId = owner.PlayerId?.Trim() ?? string.Empty;
+        }
+
+        if (version != _emblemPreviewVersion)
+            return;
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (version != _emblemPreviewVersion)
+                return;
+
+            PreviewEmblem.IsVisible = false;
+            var host = new LivingVisualHost
+            {
+                AssetId = selected.AssetId,
+                StaticFallbackImage = string.IsNullOrWhiteSpace(manifest.StaticFallbackImage)
+                    ? selected.ImagePath
+                    : manifest.StaticFallbackImage,
+                ApplicationUserId = ownerApplicationUserId,
+                PlayerId = ownerPlayerId,
+                TeamId = CurrentTeam?.TeamId ?? string.Empty,
+                DisplayLocation = LivingVisualDisplayLocation.CreateTeamPreview,
+                WidthRequest = PreviewEmblem.WidthRequest > 0 ? PreviewEmblem.WidthRequest : 125,
+                HeightRequest = PreviewEmblem.HeightRequest > 0 ? PreviewEmblem.HeightRequest : 125,
+                MaximumWidthRequest = PreviewEmblem.MaximumWidthRequest,
+                MaximumHeightRequest = PreviewEmblem.MaximumHeightRequest,
+                HorizontalOptions = PreviewEmblem.HorizontalOptions,
+                VerticalOptions = PreviewEmblem.VerticalOptions,
+                InputTransparent = true,
+                ZIndex = PreviewEmblem.ZIndex + 1
+            };
+
+            Grid.SetRow(host, Grid.GetRow(PreviewEmblem));
+            Grid.SetColumn(host, Grid.GetColumn(PreviewEmblem));
+            Grid.SetRowSpan(host, Grid.GetRowSpan(PreviewEmblem));
+            Grid.SetColumnSpan(host, Grid.GetColumnSpan(PreviewEmblem));
+
+            parent.Children.Add(host);
+            _previewLivingEmblemHost = host;
+        });
+    }
+
+    void ClearPreviewLivingEmblemHost()
+    {
+        if (_previewLivingEmblemHost?.Parent is Grid parent)
+            parent.Children.Remove(_previewLivingEmblemHost);
+
+        _previewLivingEmblemHost = null;
+        PreviewEmblem.IsVisible = true;
     }
 
     async Task CaptureCurrentEffectOwnerAsync()
@@ -1393,6 +1383,7 @@ public partial class CreateTeamPage : ContentPage
         selectedTeamEffectOwnerPlayerId = team.EquippedTeamEffectOwnerPlayerId ?? string.Empty;
         selectedTeamEffectOwnerApplicationUserId = string.Empty;
 
+        ClearPreviewLivingEmblemHost();
         PreviewEmblem.Source =
             InventoryDisplayResolver.ResolveImageSource(
                 selectedEmblem,
@@ -1444,6 +1435,7 @@ public partial class CreateTeamPage : ContentPage
         selectedTeamEffectAssetId = string.Empty;
         selectedTeamEffectOwnerPlayerId = string.Empty;
         selectedTeamEffectOwnerApplicationUserId = string.Empty;
+        ClearPreviewLivingEmblemHost();
         ClearPreviewLivingTeamEffectHost();
         IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
 
@@ -1451,8 +1443,6 @@ public partial class CreateTeamPage : ContentPage
             InventoryDisplayResolver.ResolveImageSource(
                 selectedEmblem,
                 "shield_3d.png");
-        ApplyPreviewEmblemGlow(selectedEmblemAssetId);
-        ApplyPreviewEmblemBehavior();
         PreviewColorDot.BackgroundColor = Color.FromArgb(selectedColor);
         PreviewEmblemBackground.BackgroundColor = Colors.Transparent;
 

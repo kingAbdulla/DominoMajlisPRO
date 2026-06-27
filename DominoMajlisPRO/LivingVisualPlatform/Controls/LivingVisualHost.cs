@@ -281,11 +281,16 @@ public sealed class LivingVisualHost : ContentView
             string.IsNullOrWhiteSpace(imagePath) ? "shield_3d.png" : imagePath,
             "shield_3d.png");
 
-        MainThread.BeginInvokeOnMainThread(() =>
+        void Apply()
         {
             _fallbackImage.Source = source;
             Content = _fallbackImage;
-        });
+        }
+
+        if (MainThread.IsMainThread)
+            Apply();
+        else
+            MainThread.BeginInvokeOnMainThread(Apply);
     }
 
     private void QueueReload()

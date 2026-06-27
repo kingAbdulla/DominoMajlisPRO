@@ -23,7 +23,14 @@ public sealed record CatalogAssetDisplay(
     float EffectOpacity = 1,
     float EffectScale = 1,
     float EffectSpeed = 1,
-    float EffectIntensity = 1)
+    float EffectIntensity = 1,
+    string LivingVisualScope = "",
+    string LivingVisualKind = "",
+    string LivingPackagePath = "",
+    string PreferredBackend = "",
+    string FallbackPolicy = "",
+    string LivingVisualVersion = "",
+    string Rarity = "")
 {
     public IReadOnlyList<string> EffectLayerIds =>
         EffectLayerIdsValue ?? Array.Empty<string>();

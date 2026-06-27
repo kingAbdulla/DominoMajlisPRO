@@ -129,7 +129,8 @@ public partial class CreateTeamPage
                         item.AssetId,
                         $"{name} · {owner.PlayerName}",
                         effect,
-                        owner.PlayerId));
+                        owner.PlayerId,
+                        item.ApplicationUserId));
                 }
             }
 
@@ -166,8 +167,9 @@ public partial class CreateTeamPage
                 {
                     selectedTeamEffectAssetId = string.Empty;
                     selectedTeamEffectOwnerPlayerId = string.Empty;
+                    selectedTeamEffectOwnerApplicationUserId = string.Empty;
+                    ClearPreviewLivingTeamEffectHost();
                     IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
-                    IdentityEffectRenderer.ApplyAround(PreviewEmblem, null);
                     if (selected != null && !ReferenceEquals(TeamEffectCarousel.SelectedItem, selected))
                         TeamEffectCarousel.SelectedItem = selected;
                     return;
@@ -175,15 +177,12 @@ public partial class CreateTeamPage
 
                 selectedTeamEffectAssetId = selected.AssetId;
                 selectedTeamEffectOwnerPlayerId = selected.OwnerPlayerId;
+                selectedTeamEffectOwnerApplicationUserId = selected.OwnerApplicationUserId;
                 if (!ReferenceEquals(TeamEffectCarousel.SelectedItem, selected))
                     TeamEffectCarousel.SelectedItem = selected;
 
                 IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
-                IdentityEffectRenderer.ApplyAround(
-                    PreviewEmblem,
-                    selected.Effect,
-                    1.18,
-                    lightweight: true);
+                ApplyPreviewLivingTeamEffect(selected);
             });
         }
         catch
@@ -255,6 +254,12 @@ public partial class CreateTeamPage
     {
         if (string.IsNullOrWhiteSpace(assetId))
             return null;
+
+        if (CanonicalAssetIdentityService.SameAssetId(assetId, StoreAssetCatalogService.LivingFilamentBackendProbeAssetId) ||
+            CanonicalAssetIdentityService.SameAssetId(assetId, "teameffect_living_filament_backend_probe"))
+        {
+            return null;
+        }
 
         var teamTyped = StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.TeamEffect.ToString());
         if (teamTyped != null)

@@ -37,7 +37,10 @@ public static class TeamEligibleAssetService
                 .Select(item => new TeamOwnedAssetItem
                 {
                     TeamInventoryItemId = item.InventoryItemId,
-                    ApplicationUserId = appUserId,
+                    ApplicationUserId = string.IsNullOrWhiteSpace(item.ApplicationUserId)
+                        ? appUserId
+                        : item.ApplicationUserId.Trim(),
+                    OwnerPlayerId = playerId,
                     TeamId = teamId?.Trim() ?? string.Empty,
                     TeamAssetId = item.AssetId,
                     TeamAssetTypeId =
@@ -71,6 +74,7 @@ public static class TeamEligibleAssetService
             {
                 TeamInventoryItemId =
                     $"DEFAULT-{payload.TeamAssetTypeId}-{payload.TeamAssetId}",
+                OwnerPlayerId = string.Empty,
                 TeamId = teamId?.Trim() ?? string.Empty,
                 TeamAssetId = payload.TeamAssetId,
                 TeamAssetTypeId = payload.TeamAssetTypeId,

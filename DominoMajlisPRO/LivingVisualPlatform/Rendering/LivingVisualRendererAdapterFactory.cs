@@ -6,7 +6,11 @@ public sealed class LivingVisualRendererAdapterFactory : ILivingVisualRendererAd
 {
     public bool IsBackendAvailable(LivingRendererBackend backend)
     {
-        return backend is LivingRendererBackend.StaticFallback or LivingRendererBackend.None;
+        return backend is LivingRendererBackend.StaticFallback or LivingRendererBackend.None
+#if ANDROID
+            or LivingRendererBackend.Filament
+#endif
+            ;
     }
 
     public ILivingVisualRendererAdapter CreateAdapter(LivingRendererBackend backend)
@@ -14,6 +18,9 @@ public sealed class LivingVisualRendererAdapterFactory : ILivingVisualRendererAd
         return backend switch
         {
             LivingRendererBackend.StaticFallback or LivingRendererBackend.None => new StaticFallbackLivingRendererAdapter(),
+#if ANDROID
+            LivingRendererBackend.Filament => new FilamentLivingVisualRendererAdapter(),
+#endif
             _ => throw new NotSupportedException($"Renderer backend '{backend}' is not available in this foundation stage.")
         };
     }

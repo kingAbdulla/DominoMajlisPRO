@@ -18,6 +18,7 @@ internal enum StoreProductPreviewKind
     Frame,
     Badge,
     Effect,
+    LivingEmblem,
     Season
 }
 
@@ -314,7 +315,7 @@ internal sealed class StoreProductActionSheet : Grid
         _inventoryContext = CreateInventoryContext(price);
         _teamAssetPayload = TeamAssetPayloadCatalog.Resolve(inventoryAssetId);
         _effectAsset = null;
-        if (_previewKind == StoreProductPreviewKind.Effect &&
+        if (IsEffectPreviewKind(_previewKind) &&
             !string.IsNullOrWhiteSpace(inventoryAssetId))
             _ = LoadEffectPreviewAsync(inventoryAssetId);
         _previewMessage.IsVisible = false;
@@ -683,7 +684,7 @@ internal sealed class StoreProductActionSheet : Grid
     private async Task LoadEffectPreviewAsync(string assetId)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
-        if (asset == null || !IsVisible || _previewKind != StoreProductPreviewKind.Effect)
+        if (asset == null || !IsVisible || !IsEffectPreviewKind(_previewKind))
             return;
         _effectAsset = asset;
 
@@ -697,8 +698,11 @@ internal sealed class StoreProductActionSheet : Grid
             canonicalType,
             StoreProductAssetType.TeamEffect.ToString(),
             StringComparison.OrdinalIgnoreCase);
+        var isLivingEmblem =
+            _previewKind == StoreProductPreviewKind.LivingEmblem ||
+            StoreAssetCatalogService.IsLivingEmblemAsset(asset);
 
-        if (isTeamEffect)
+        if (isTeamEffect || isLivingEmblem)
         {
             // Determine preview context: Inventory if caller supplied a playerId
             // (meaning the item is being shown from My Items), Store otherwise.
@@ -710,7 +714,7 @@ internal sealed class StoreProductActionSheet : Grid
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                if (!IsVisible || _previewKind != StoreProductPreviewKind.Effect)
+                if (!IsVisible || !IsEffectPreviewKind(_previewKind))
                     return;
 
                 // Build emblem image (base visual) + attach living behavior overlay.
@@ -750,7 +754,7 @@ internal sealed class StoreProductActionSheet : Grid
         // ── Non-TeamEffect path: existing IdentityEffectRenderer (unchanged) ──
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (!IsVisible || _previewKind != StoreProductPreviewKind.Effect)
+            if (!IsVisible || !IsEffectPreviewKind(_previewKind))
                 return;
             var emblem = new Image
             {
@@ -785,6 +789,9 @@ internal sealed class StoreProductActionSheet : Grid
         _previewSurface.Content = _image;
         _image.Aspect = Aspect.AspectFit;
     }
+
+    private static bool IsEffectPreviewKind(StoreProductPreviewKind previewKind) =>
+        previewKind is StoreProductPreviewKind.Effect or StoreProductPreviewKind.LivingEmblem;
 
     private async void OnPrimaryClicked(object? sender, EventArgs e)
     {

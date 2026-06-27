@@ -210,7 +210,8 @@ public class PremiumGalleryCard : ContentView
     private async Task ApplyEffectPreviewAsync(string assetId)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
-        var owner = asset?.AssetType == StoreProductAssetType.TeamEffect
+        var owner = asset?.AssetType == StoreProductAssetType.TeamEffect ||
+            StoreAssetCatalogService.IsLivingEmblemAsset(asset)
             ? await ApplicationUserService.GetCurrentStoreOwnerAsync()
             : null;
 
@@ -231,8 +232,10 @@ public class PremiumGalleryCard : ContentView
 
             _image.IsVisible = true;
 
+            var isLivingEmblem = StoreAssetCatalogService.IsLivingEmblemAsset(asset);
             if (asset?.AssetType is not (StoreProductAssetType.Effect or
-                StoreProductAssetType.TeamEffect))
+                StoreProductAssetType.TeamEffect) &&
+                !isLivingEmblem)
                 return;
 
             _image.Source = InventoryDisplayResolver.ResolveImageSource(
@@ -241,7 +244,8 @@ public class PremiumGalleryCard : ContentView
             _image.WidthRequest = 72;
             _image.HeightRequest = 72;
 
-            if (asset.AssetType == StoreProductAssetType.TeamEffect)
+            if (asset.AssetType == StoreProductAssetType.TeamEffect ||
+                isLivingEmblem)
             {
                 _image.IsVisible = false;
                 _livingVisualHost = new LivingVisualHost

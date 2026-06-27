@@ -187,7 +187,7 @@ internal sealed class StoreProductPreviewOverlay : Grid
     private async Task AnimateOpenAsync(int version, StoreProductPreviewKind kind)
     {
         await Task.WhenAll(this.FadeToAsync(1, 180, Easing.CubicOut), _panel.ScaleToAsync(1, 220, Easing.CubicOut));
-        if (version != _animationVersion || _isClosing || kind != StoreProductPreviewKind.Effect) return;
+        if (version != _animationVersion || _isClosing || !IsEffectPreviewKind(kind)) return;
         await _visualHost.ScaleToAsync(1.04, 220, Easing.SinInOut);
         await _visualHost.ScaleToAsync(1, 220, Easing.SinInOut);
     }
@@ -218,13 +218,16 @@ internal sealed class StoreProductPreviewOverlay : Grid
             StoreProductPreviewKind.Season => BackgroundVisual(image, request),
             StoreProductPreviewKind.Effect when request.Effect != null =>
                 EffectVisual(image, request.Effect, request.Accent),
+            StoreProductPreviewKind.LivingEmblem when request.Effect != null =>
+                EffectVisual(image, request.Effect, request.Accent),
             _ => PreviewCard(image, request.Accent)
         };
     }
 
     private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent)
     {
-        if (effect.AssetType == StoreProductAssetType.TeamEffect)
+        if (effect.AssetType == StoreProductAssetType.TeamEffect ||
+            StoreAssetCatalogService.IsLivingEmblemAsset(effect))
         {
             var host = new LivingVisualHost
             {
@@ -258,6 +261,9 @@ internal sealed class StoreProductPreviewOverlay : Grid
         layers.Children.Add(image);
         return PreviewCard(layers, accent);
     }
+
+    private static bool IsEffectPreviewKind(StoreProductPreviewKind kind) =>
+        kind is StoreProductPreviewKind.Effect or StoreProductPreviewKind.LivingEmblem;
 
     private static View AvatarVisual(Image image, Color accent)
     {
