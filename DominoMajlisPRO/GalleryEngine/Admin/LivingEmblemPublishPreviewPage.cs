@@ -1,6 +1,7 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.LivingVisualPlatform.Controls;
 using DominoMajlisPRO.LivingVisualPlatform.Models;
 using Microsoft.Maui.Controls.Shapes;
 
@@ -41,7 +42,7 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
             Children =
             {
                 new Label { Text = "Living Emblems", FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FFD966"), HorizontalTextAlignment = TextAlignment.End },
-                new Label { Text = "Preview the live emblem first, then publish it.", FontSize = 12, TextColor = Color.FromArgb("#A88E45"), HorizontalTextAlignment = TextAlignment.End }
+                new Label { Text = "Production preview: LivingVisualHost -> Filament -> GLB.", FontSize = 12, TextColor = Color.FromArgb("#A88E45"), HorizontalTextAlignment = TextAlignment.End }
             }
         }, 1);
 
@@ -54,15 +55,15 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
             Spacing = 10,
             Children =
             {
-                new Label { Text = "Live result preview", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FFD966"), HorizontalTextAlignment = TextAlignment.Center },
-                new Label { Text = "This preview is generated live. The PNG field below is only fallback metadata.", FontSize = 11, TextColor = Color.FromArgb("#A88E45"), HorizontalTextAlignment = TextAlignment.Center },
+                new Label { Text = "Production living preview", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FFD966"), HorizontalTextAlignment = TextAlignment.Center },
+                new Label { Text = "This card uses the same LivingVisualHost path used by players. If it shows only PNG, Filament is not accepted yet.", FontSize = 11, TextColor = Color.FromArgb("#A88E45"), HorizontalTextAlignment = TextAlignment.Center },
                 _previewHost,
                 _statusLabel
             }
         });
 
         var actions = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 10 };
-        actions.Add(Button("Generate live preview", GeneratePreviewAsync), 0);
+        actions.Add(Button("Generate Filament preview", GeneratePreviewAsync), 0);
         actions.Add(Button("Publish approved preview", PublishAsync), 1);
 
         Content = new ScrollView
@@ -96,17 +97,31 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
 
     private void ResetPreview()
     {
-        _previewHost.Content = new Label { Text = "Generate the live preview before publishing", TextColor = Color.FromArgb("#8C7A3E"), HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center };
-        _statusLabel.Text = "AssetId auto | Live preview renderer | GLB package metadata preserved";
+        _previewHost.Content = new Label { Text = "Generate the Filament preview before publishing", TextColor = Color.FromArgb("#8C7A3E"), HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center };
+        _statusLabel.Text = "AssetId auto | Backend Filament | GLB living_visual_backend_probe.glb";
         _statusLabel.TextColor = Color.FromArgb("#A88E45");
     }
 
     private Task GeneratePreviewAsync()
     {
         _validationLabel.IsVisible = false;
-        _previewHost.Content = new LivingEmblemLivePreviewView();
+        var fallback = NormalizeFallbackImage(_fallbackEntry.Text);
+        _fallbackEntry.Text = fallback;
+        _previewHost.Content = new LivingVisualHost
+        {
+            AssetId = StoreAssetCatalogService.LivingFilamentBackendProbeAssetId,
+            StaticFallbackImage = fallback,
+            ApplicationUserId = string.Empty,
+            PlayerId = string.Empty,
+            TeamId = string.Empty,
+            DisplayLocation = LivingVisualDisplayLocation.StorePreview,
+            IsDeveloperPreview = true,
+            IsStorePreview = true,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
         _previewGenerated = true;
-        _statusLabel.Text = "Live non-PNG preview generated. This is the approval card before publishing.";
+        _statusLabel.Text = "Preview generated through LivingVisualHost. Approve only if Filament/GLB is visible, not fallback PNG.";
         _statusLabel.TextColor = Color.FromArgb("#FFD966");
         return Task.CompletedTask;
     }
@@ -115,7 +130,7 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
     {
         if (!_previewGenerated)
         {
-            ShowError("Generate and inspect the live preview before publishing.");
+            ShowError("Generate and inspect the Filament preview before publishing.");
             return;
         }
         if (string.IsNullOrWhiteSpace(_titleEntry.Text))
