@@ -1,4 +1,3 @@
-using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.LivingVisualPlatform.Models;
 using DominoMajlisPRO.LivingVisualPlatform.Motion;
 
@@ -64,31 +63,12 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
             InputTransparent = true
         };
 
-        var fallback = new Image
-        {
-            Source = InventoryDisplayResolver.ResolveImageSource(
-                string.IsNullOrWhiteSpace(manifest.StaticFallbackImage)
-                    ? "shield_3d.png"
-                    : manifest.StaticFallbackImage,
-                "shield_3d.png"),
-            Aspect = Aspect.AspectFit,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill,
-            InputTransparent = true
-        };
-
-        var hostGrid = new Grid
-        {
-            BackgroundColor = Colors.Transparent,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill,
-            InputTransparent = true
-        };
-
-        hostGrid.Children.Add(fallback);
-        hostGrid.Children.Add(_surface);
-
-        MainThread.BeginInvokeOnMainThread(() => contentHost.Content = hostGrid);
+        // Important: do not place the PNG fallback in the same native Filament test slot.
+        // A MAUI Image fallback can visually cover an Android SurfaceView even when the
+        // Filament adapter is selected, making the execution path look static. Fallback
+        // is still owned by LivingVisualHost before/after renderer failure; this adapter
+        // must prove whether the native Filament surface is actually attached.
+        MainThread.BeginInvokeOnMainThread(() => contentHost.Content = _surface);
 
         return Task.CompletedTask;
 #else
