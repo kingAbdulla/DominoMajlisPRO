@@ -200,8 +200,7 @@ public partial class DeveloperStoreManagerPage : ContentPage
 
         if (section.Id == "living-emblems")
         {
-            await Navigation.PushAsync(new LivingEmblemsManagerPage());
-            return;
+            await Navigation.PushAsync(new LivingEmblemPublishPreviewPage()); return;
         }
 
         if (section.Id == "emblem-backgrounds")

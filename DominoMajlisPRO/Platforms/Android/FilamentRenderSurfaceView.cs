@@ -103,7 +103,7 @@ public sealed class FilamentRenderSurfaceView :
         {
             Log.Error(LogTag, ex, "Render frame failed.");
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             Log.Error(LogTag, ex.ToString());
         }
@@ -164,7 +164,7 @@ public sealed class FilamentRenderSurfaceView :
             _assetLoadAttempted = false;
             Log.Error(LogTag, ex, $"GLB load failed for '{_assetPath}'.");
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _assetLoadAttempted = false;
             Log.Error(LogTag, ex.ToString());
