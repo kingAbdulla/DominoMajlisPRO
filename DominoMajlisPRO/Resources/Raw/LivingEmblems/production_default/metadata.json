@@ -1,8 +1,8 @@
 {
   "authoringTool": "Temporary placeholder",
   "exporter": "DominoMajlisPRO package pipeline",
-  "sourceAsset": "Resources/Raw/living_emblem_dragon.glb",
-  "artStatus": "Temporary 3D placeholder. Replace living_emblem.glb with final Blender or Maya export.",
+  "sourceAsset": "Artist package pending",
+  "artStatus": "Temporary import placeholder. Replace the whole package contents with the approved artist-authored GLB package.",
   "isTemporaryArt": true,
   "tags": {
     "packageType": "LivingEmblem",

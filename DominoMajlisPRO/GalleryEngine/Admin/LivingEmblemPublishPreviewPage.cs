@@ -162,6 +162,7 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
         _validationLabel.IsVisible = false;
         _previewGenerated = false;
         var result = await _importer.ImportAsync(_packagePathEntry.Text ?? string.Empty);
+        LivingEmblemPackageValidator.ValidateProductionImport(result);
         _validatedPackage = result.Package;
         RenderDiagnostics(result);
 
@@ -169,6 +170,7 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
         {
             _statusLabel.Text = "Package rejected. Fix diagnostics before preview or publish.";
             _statusLabel.TextColor = Color.FromArgb("#D84A4A");
+            _validatedPackage = null;
             return;
         }
 

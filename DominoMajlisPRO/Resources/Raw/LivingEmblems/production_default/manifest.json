@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "packageId": "living-emblem-production-default",
   "assetId": "team-emblem-living-production-default",
-  "displayName": "Living Dragon Emblem",
+  "displayName": "Production Living Emblem",
   "version": "1.0.0",
   "backend": "Filament",
   "glb": "living_emblem.glb",
@@ -18,7 +18,7 @@
     "Android"
   ],
   "minimumDeviceTier": "FilamentCapable",
-  "cameraPreset": "Creature",
+  "cameraPreset": "AutoBounds",
   "lightingPreset": "DeveloperPreview",
   "animationSet": [],
   "futureExtensions": {

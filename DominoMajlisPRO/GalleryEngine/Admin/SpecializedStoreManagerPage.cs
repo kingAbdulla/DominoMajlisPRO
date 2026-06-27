@@ -441,7 +441,7 @@ public class SpecializedStoreManagerPage : ContentPage
         }
 
         var productId = string.IsNullOrWhiteSpace(_currentRecord?.ProductId)
-            ? "product_living_dragon_emblem"
+            ? "product_" + GenerateAssetId(StoreProductAssetType.Emblem, title)
             : _currentRecord.ProductId;
 
         record.Id = productId;
