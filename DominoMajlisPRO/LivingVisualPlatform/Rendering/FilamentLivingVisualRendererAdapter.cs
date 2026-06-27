@@ -1,3 +1,4 @@
+using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.LivingVisualPlatform.Models;
 using DominoMajlisPRO.LivingVisualPlatform.Motion;
 
@@ -58,10 +59,36 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
             AssetPath = manifest.LivingPackagePath,
             IsPaused = _isPaused,
             HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill
+            VerticalOptions = LayoutOptions.Fill,
+            BackgroundColor = Colors.Transparent,
+            InputTransparent = true
         };
 
-        MainThread.BeginInvokeOnMainThread(() => contentHost.Content = _surface);
+        var fallback = new Image
+        {
+            Source = InventoryDisplayResolver.ResolveImageSource(
+                string.IsNullOrWhiteSpace(manifest.StaticFallbackImage)
+                    ? "shield_3d.png"
+                    : manifest.StaticFallbackImage,
+                "shield_3d.png"),
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
+            InputTransparent = true
+        };
+
+        var hostGrid = new Grid
+        {
+            BackgroundColor = Colors.Transparent,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
+            InputTransparent = true
+        };
+
+        hostGrid.Children.Add(fallback);
+        hostGrid.Children.Add(_surface);
+
+        MainThread.BeginInvokeOnMainThread(() => contentHost.Content = hostGrid);
 
         return Task.CompletedTask;
 #else
