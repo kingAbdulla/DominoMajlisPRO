@@ -133,7 +133,7 @@ public static class StoreProductAssetTypeCatalog
         owner == StoreProductOwnerScope.Player &&
         string.Equals(
             assetId?.Trim(),
-            "team-emblem-living-filament-backend-probe",
+            "team-emblem-living-production-default",
             StringComparison.OrdinalIgnoreCase);
 
     private static bool IsValidImagePayload(string? value)

@@ -255,7 +255,7 @@ public partial class CreateTeamPage
         if (string.IsNullOrWhiteSpace(assetId))
             return null;
 
-        if (CanonicalAssetIdentityService.SameAssetId(assetId, StoreAssetCatalogService.LivingFilamentBackendProbeAssetId) ||
+        if (CanonicalAssetIdentityService.SameAssetId(assetId, StoreAssetCatalogService.LivingProductionDefaultEmblemAssetId) ||
             CanonicalAssetIdentityService.SameAssetId(assetId, "teameffect_living_filament_backend_probe"))
         {
             return null;

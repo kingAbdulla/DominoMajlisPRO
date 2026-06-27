@@ -4,6 +4,7 @@ using DominoMajlisPRO.GalleryEngine.Admin.Canonical;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.LivingVisualPlatform.Controls;
 using DominoMajlisPRO.LivingVisualPlatform.Models;
+using DominoMajlisPRO.LivingVisualPlatform.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin;
@@ -421,7 +422,7 @@ public class SpecializedStoreManagerPage : ContentPage
     {
         record = new NewArrivalRecord();
         var title = string.IsNullOrWhiteSpace(_titleEntry.Text)
-            ? "Living Filament Backend Probe"
+            ? "Living Emblem Package"
             : _titleEntry.Text.Trim();
         var fallbackImage = string.IsNullOrWhiteSpace(_imageEntry.Text)
             ? "shield_3d.png"
@@ -440,33 +441,38 @@ public class SpecializedStoreManagerPage : ContentPage
         }
 
         var productId = string.IsNullOrWhiteSpace(_currentRecord?.ProductId)
-            ? "product_living_filament_backend_probe"
+            ? "product_living_dragon_emblem"
             : _currentRecord.ProductId;
 
         record.Id = productId;
         record.ProductId = productId;
-        record.AssetId = StoreAssetCatalogService.LivingFilamentBackendProbeAssetId;
+        record.AssetId = StoreAssetCatalogService.LivingProductionDefaultEmblemAssetId;
         record.StoreTypeId = StoreProductAssetType.Emblem.ToString();
         record.OwnerScope = StoreProductOwnerScope.Player.ToString();
         record.Title = title;
         record.Subtitle = "Living Emblems";
         record.Description = string.IsNullOrWhiteSpace(_descriptionEditor.Text)
-            ? "Temporary proof asset for the Living Visual Platform Filament backend."
+            ? "Real Filament GLB preview before publishing"
             : _descriptionEditor.Text.Trim();
         record.ButtonText = "Preview";
         record.ImagePath = fallbackImage;
         record.Category = StoreProductAssetType.Emblem.ToString();
         record.ColorHex = string.Empty;
         record.EffectType = "LivingVisual";
-        record.AnimationType = "FilamentBackendProbe";
+        record.AnimationType = "production-default-living-emblem";
         record.EquipTarget = "TeamEmblem";
         record.LivingVisualScope = LivingVisualAssetScope.TeamEmblem.ToString();
         record.LivingVisualKind = LivingVisualAssetKind.LivingLegendaryEmblem.ToString();
-        record.LivingPackagePath = "living_visual_backend_probe.glb";
+        record.LivingPackageId = "living-emblem-production-default";
+        record.LivingPackageManifestPath = LivingEmblemPackagePaths.Combine(
+            LivingEmblemPackagePaths.DefaultProductionPackagePath,
+            LivingEmblemPackagePaths.ManifestFileName);
+        record.LivingPackagePath = LivingEmblemPackagePaths.DefaultProductionPackagePath;
         record.PreferredBackend = LivingRendererBackend.Filament.ToString();
         record.FallbackPolicy = "StaticFallback";
-        record.LivingVisualVersion = "filament-backend-probe-1";
-        record.Rarity = "BackendProbe";
+        record.LivingVisualVersion = "1.0.0";
+        record.LivingPackageVersion = "1.0.0";
+        record.Rarity = "Legendary";
         record.Price = currency == NewArrivalCurrencyType.Free ? 0 : price;
         record.CurrencyType = currency;
         record.IsFree = currency == NewArrivalCurrencyType.Free || price == 0;
@@ -542,7 +548,7 @@ public class SpecializedStoreManagerPage : ContentPage
 
         _livingEmblemPreviewHost.Content = new LivingVisualHost
         {
-            AssetId = StoreAssetCatalogService.LivingFilamentBackendProbeAssetId,
+            AssetId = StoreAssetCatalogService.LivingProductionDefaultEmblemAssetId,
             StaticFallbackImage = fallbackImage,
             ApplicationUserId = string.Empty,
             PlayerId = string.Empty,
@@ -557,7 +563,7 @@ public class SpecializedStoreManagerPage : ContentPage
         };
         _livingEmblemPreviewHost.IsVisible = true;
         _livingEmblemDiagnostics.Text =
-            "Manifest: probe | Backend: Filament | Package: living_visual_backend_probe.glb | Fallback: " + fallbackImage;
+            "Manifest: package | Backend: Filament | Package: " + LivingEmblemPackagePaths.DefaultProductionPackagePath + " | Fallback: " + fallbackImage;
         _livingEmblemDiagnostics.IsVisible = true;
         _livingPreviewPrepared = true;
     }
@@ -642,9 +648,9 @@ public class SpecializedStoreManagerPage : ContentPage
         _livingPreviewPrepared = false;
         if (_definition.IsLivingEmblem)
         {
-            _titleEntry.Text = "Living Filament Backend Probe";
-            _descriptionEditor.Text = "Temporary proof asset for the Living Visual Platform Filament backend.";
-            _imageEntry.Text = "shield_3d.png";
+            _titleEntry.Text = "Living Emblem Package";
+            _descriptionEditor.Text = "Real Filament GLB preview before publishing";
+            _imageEntry.Text = "LivingEmblems/production_default/fallback.png";
             _priceEntry.Text = "0";
             _currencyPicker.SelectCanonicalId(NewArrivalCurrencyType.Free.ToString());
             _categoryPicker.SelectCanonicalId(StoreProductAssetType.Emblem.ToString());

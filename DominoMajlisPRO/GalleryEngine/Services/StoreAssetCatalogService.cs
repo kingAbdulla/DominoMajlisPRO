@@ -6,7 +6,8 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class StoreAssetCatalogService
 {
-    public const string LivingFilamentBackendProbeAssetId = "team-emblem-living-filament-backend-probe";
+    public const string LivingProductionDefaultEmblemAssetId = "team-emblem-living-production-default";
+    private const string LegacyLivingFilamentBackendProbeAssetId = "team-emblem-living-filament-backend-probe";
 
     public const string IncompleteDisplayName = "عنصر غير مكتمل البيانات";
 
@@ -59,10 +60,13 @@ public static class StoreAssetCatalogService
                 item.EffectIntensity,
                 item.LivingVisualScope,
                 item.LivingVisualKind,
+                item.LivingPackageId,
+                item.LivingPackageManifestPath,
                 item.LivingPackagePath,
                 item.PreferredBackend,
                 item.FallbackPolicy,
                 item.LivingVisualVersion,
+                item.LivingPackageVersion,
                 item.Rarity));
         }
         assets.AddRange(avatarsTask.Result.Select(item => Create(
@@ -153,7 +157,8 @@ public static class StoreAssetCatalogService
 
     public static bool IsLivingEmblemAsset(CatalogAssetDisplay? asset) =>
         asset?.AssetType == StoreProductAssetType.Emblem &&
-        (Same(asset.AssetId, LivingFilamentBackendProbeAssetId) ||
+        (Same(asset.AssetId, LivingProductionDefaultEmblemAssetId) ||
+         Same(asset.AssetId, LegacyLivingFilamentBackendProbeAssetId) ||
          !string.IsNullOrWhiteSpace(asset.LivingVisualKind) ||
          !string.IsNullOrWhiteSpace(asset.LivingPackagePath) ||
          !string.IsNullOrWhiteSpace(asset.PreferredBackend));
@@ -163,7 +168,8 @@ public static class StoreAssetCatalogService
             CanonicalTypeId(assetType),
             StoreProductAssetType.Emblem.ToString(),
             StringComparison.OrdinalIgnoreCase) &&
-        Same(assetId, LivingFilamentBackendProbeAssetId);
+        (Same(assetId, LivingProductionDefaultEmblemAssetId) ||
+         Same(assetId, LegacyLivingFilamentBackendProbeAssetId));
 
     public static StoreProductAssetType? CanonicalType(string? assetType)
     {
@@ -210,10 +216,13 @@ public static class StoreAssetCatalogService
         float effectIntensity = 1,
         string livingVisualScope = "",
         string livingVisualKind = "",
+        string livingPackageId = "",
+        string livingPackageManifestPath = "",
         string livingPackagePath = "",
         string preferredBackend = "",
         string fallbackPolicy = "",
         string livingVisualVersion = "",
+        string livingPackageVersion = "",
         string rarity = "") =>
         new(
             assetId.Trim(),
@@ -246,10 +255,13 @@ public static class StoreAssetCatalogService
             effectIntensity,
             livingVisualScope?.Trim() ?? string.Empty,
             livingVisualKind?.Trim() ?? string.Empty,
+            livingPackageId?.Trim() ?? string.Empty,
+            livingPackageManifestPath?.Trim() ?? string.Empty,
             livingPackagePath?.Trim() ?? string.Empty,
             preferredBackend?.Trim() ?? string.Empty,
             fallbackPolicy?.Trim() ?? string.Empty,
             livingVisualVersion?.Trim() ?? string.Empty,
+            livingPackageVersion?.Trim() ?? string.Empty,
             rarity?.Trim() ?? string.Empty);
 
     private static StoreProductAssetType TeamType(string typeId) =>

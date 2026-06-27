@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0",
+  "packageId": "living-emblem-production-default",
+  "assetId": "team-emblem-living-production-default",
+  "displayName": "Living Dragon Emblem",
+  "version": "1.0.0",
+  "backend": "Filament",
+  "glb": "living_emblem.glb",
+  "thumbnail": "thumbnail.png",
+  "fallback": "fallback.png",
+  "behavior": "behavior.json",
+  "metadata": "metadata.json",
+  "lod": {
+    "strategy": "SingleAsset",
+    "levels": []
+  },
+  "supportedPlatforms": [
+    "Android"
+  ],
+  "minimumDeviceTier": "FilamentCapable",
+  "cameraPreset": "Creature",
+  "lightingPreset": "DeveloperPreview",
+  "animationSet": [],
+  "futureExtensions": {
+    "materials": "materials/",
+    "textures": "textures/",
+    "animations": "animations/",
+    "lod": "lod/"
+  }
+}

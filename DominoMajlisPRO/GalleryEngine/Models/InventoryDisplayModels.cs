@@ -26,10 +26,13 @@ public sealed record CatalogAssetDisplay(
     float EffectIntensity = 1,
     string LivingVisualScope = "",
     string LivingVisualKind = "",
+    string LivingPackageId = "",
+    string LivingPackageManifestPath = "",
     string LivingPackagePath = "",
     string PreferredBackend = "",
     string FallbackPolicy = "",
     string LivingVisualVersion = "",
+    string LivingPackageVersion = "",
     string Rarity = "")
 {
     public IReadOnlyList<string> EffectLayerIds =>

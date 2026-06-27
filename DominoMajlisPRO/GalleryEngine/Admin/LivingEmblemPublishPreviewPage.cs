@@ -1,28 +1,49 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
-using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.LivingVisualPlatform.Controls;
 using DominoMajlisPRO.LivingVisualPlatform.Models;
+using DominoMajlisPRO.LivingVisualPlatform.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin;
 
 public sealed class LivingEmblemPublishPreviewPage : ContentPage
 {
-    private const string DefaultFallbackImage = "shield_3d.png";
-    private readonly Entry _titleEntry = new() { Placeholder = "Living emblem name", Text = "Living Filament Backend Probe" };
-    private readonly Editor _descriptionEditor = new() { Placeholder = "Description", Text = "Temporary proof asset for the Living Visual Platform Filament backend.", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 80 };
-    private readonly Entry _fallbackEntry = new() { Placeholder = "Fallback thumbnail PNG", Text = DefaultFallbackImage };
+    private readonly LivingEmblemImporter _importer = new();
+    private readonly Entry _packagePathEntry = new()
+    {
+        Placeholder = "Living Emblem package path",
+        Text = LivingEmblemPackagePaths.DefaultProductionPackagePath
+    };
+    private readonly Entry _titleEntry = new()
+    {
+        Placeholder = "Living emblem name",
+        Text = "Living Emblem Package"
+    };
+    private readonly Editor _descriptionEditor = new()
+    {
+        Placeholder = "Description",
+        Text = "Validated Filament GLB package preview before publishing",
+        AutoSize = EditorAutoSizeOption.TextChanges,
+        HeightRequest = 80
+    };
+    private readonly Entry _fallbackEntry = new()
+    {
+        Placeholder = "Fallback thumbnail PNG",
+        Text = "LivingEmblems/production_default/fallback.png"
+    };
     private readonly Entry _priceEntry = new() { Placeholder = "Price", Text = "0", Keyboard = Keyboard.Numeric };
     private readonly Picker _currencyPicker = new() { Title = "Currency" };
     private readonly ContentView _previewHost = new() { HeightRequest = 220 };
     private readonly Label _statusLabel = new() { FontSize = 12, HorizontalTextAlignment = TextAlignment.Center };
+    private readonly Label _diagnosticsLabel = new() { FontSize = 11, HorizontalTextAlignment = TextAlignment.Start };
     private readonly Label _validationLabel = new() { FontSize = 12, IsVisible = false, HorizontalTextAlignment = TextAlignment.End };
+    private LivingEmblemPackage? _validatedPackage;
     private bool _previewGenerated;
 
     public LivingEmblemPublishPreviewPage()
     {
-        Title = "Living Emblems";
+        Title = "Living Emblem Package";
         FlowDirection = FlowDirection.RightToLeft;
         BackgroundColor = Color.FromArgb("#030303");
         NavigationPage.SetHasNavigationBar(this, false);
@@ -35,18 +56,34 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
     private void BuildPage()
     {
         var back = Button("Back", async () => await Navigation.PopAsync());
-        var header = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 10 };
+        var header = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 10
+        };
         header.Add(back, 0);
         header.Add(new VerticalStackLayout
         {
             Children =
             {
-                new Label { Text = "Living Emblems", FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FFD966"), HorizontalTextAlignment = TextAlignment.End },
-                new Label { Text = "Production preview: LivingVisualHost -> Filament -> GLB.", FontSize = 12, TextColor = Color.FromArgb("#A88E45"), HorizontalTextAlignment = TextAlignment.End }
+                new Label { Text = "Living Emblem Package", FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FFD966"), HorizontalTextAlignment = TextAlignment.End },
+                new Label { Text = "Import Validation Tool", FontSize = 12, TextColor = Color.FromArgb("#A88E45"), HorizontalTextAlignment = TextAlignment.End }
             }
         }, 1);
 
-        var priceRow = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 10 };
+        var priceRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 10
+        };
         priceRow.Add(_priceEntry, 0);
         priceRow.Add(_currencyPicker, 1);
 
@@ -56,15 +93,23 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
             Children =
             {
                 new Label { Text = "Production living preview", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FFD966"), HorizontalTextAlignment = TextAlignment.Center },
-                new Label { Text = "This card uses the same LivingVisualHost path used by players. If it shows only PNG, Filament is not accepted yet.", FontSize = 11, TextColor = Color.FromArgb("#A88E45"), HorizontalTextAlignment = TextAlignment.Center },
+                new Label { Text = "This card renders the validated package through LivingVisualHost and Filament.", FontSize = 11, TextColor = Color.FromArgb("#A88E45"), HorizontalTextAlignment = TextAlignment.Center },
                 _previewHost,
                 _statusLabel
             }
         });
 
-        var actions = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 10 };
-        actions.Add(Button("Generate Filament preview", GeneratePreviewAsync), 0);
-        actions.Add(Button("Publish approved preview", PublishAsync), 1);
+        var actions = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 10
+        };
+        actions.Add(Button("Validate Package", ValidatePackageAsync), 0);
+        actions.Add(Button("Generate Filament Preview", GeneratePreviewAsync), 1);
 
         Content = new ScrollView
         {
@@ -80,16 +125,19 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
                         Spacing = 10,
                         Children =
                         {
+                            _packagePathEntry,
                             _titleEntry,
                             _descriptionEditor,
-                            new Label { Text = "Fallback image is thumbnail/fallback only. It is not the living emblem.", FontSize = 11, TextColor = Color.FromArgb("#8C7A3E"), HorizontalTextAlignment = TextAlignment.End },
+                            new Label { Text = "Fallback image is thumbnail/fallback metadata only. It is not the living emblem.", FontSize = 11, TextColor = Color.FromArgb("#8C7A3E"), HorizontalTextAlignment = TextAlignment.End },
                             _fallbackEntry,
                             priceRow
                         }
                     }),
                     previewCard,
+                    _diagnosticsLabel,
                     _validationLabel,
-                    actions
+                    actions,
+                    Button("Publish approved package", PublishAsync)
                 }
             }
         };
@@ -97,20 +145,57 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
 
     private void ResetPreview()
     {
-        _previewHost.Content = new Label { Text = "Generate the Filament preview before publishing", TextColor = Color.FromArgb("#8C7A3E"), HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center };
-        _statusLabel.Text = "AssetId auto | Backend Filament | GLB living_visual_backend_probe.glb";
+        _previewHost.Content = new Label
+        {
+            Text = "Validate a package, then generate the Filament preview",
+            TextColor = Color.FromArgb("#8C7A3E"),
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center
+        };
+        _statusLabel.Text = "Import package | Validate manifest | Render through LivingVisualHost";
         _statusLabel.TextColor = Color.FromArgb("#A88E45");
+        _diagnosticsLabel.Text = string.Empty;
     }
 
-    private Task GeneratePreviewAsync()
+    private async Task ValidatePackageAsync()
     {
         _validationLabel.IsVisible = false;
-        var fallback = NormalizeFallbackImage(_fallbackEntry.Text);
-        _fallbackEntry.Text = fallback;
+        _previewGenerated = false;
+        var result = await _importer.ImportAsync(_packagePathEntry.Text ?? string.Empty);
+        _validatedPackage = result.Package;
+        RenderDiagnostics(result);
+
+        if (!result.IsValid || result.Package == null)
+        {
+            _statusLabel.Text = "Package rejected. Fix diagnostics before preview or publish.";
+            _statusLabel.TextColor = Color.FromArgb("#D84A4A");
+            return;
+        }
+
+        var package = result.Package;
+        _titleEntry.Text = package.Manifest.DisplayName;
+        _descriptionEditor.Text = string.IsNullOrWhiteSpace(package.Metadata.ArtStatus)
+            ? "Validated Filament GLB package preview before publishing"
+            : package.Metadata.ArtStatus;
+        _fallbackEntry.Text = package.ResolvedFallbackPath;
+        _statusLabel.Text =
+            $"Package valid | {package.Manifest.PackageId} | {package.Manifest.Backend} | {package.ResolvedGlbPath}";
+        _statusLabel.TextColor = Color.FromArgb("#27AE60");
+    }
+
+    private async Task GeneratePreviewAsync()
+    {
+        _validationLabel.IsVisible = false;
+        var package = await EnsureValidatedPackageAsync();
+        if (package == null)
+            return;
+
+        StoreCatalogLivingVisualManifestProvider.RegisterDeveloperPreviewPackage(package);
+        _fallbackEntry.Text = package.ResolvedFallbackPath;
         _previewHost.Content = new LivingVisualHost
         {
-            AssetId = StoreAssetCatalogService.LivingFilamentBackendProbeAssetId,
-            StaticFallbackImage = fallback,
+            AssetId = package.Manifest.AssetId,
+            StaticFallbackImage = package.ResolvedFallbackPath,
             ApplicationUserId = string.Empty,
             PlayerId = string.Empty,
             TeamId = string.Empty,
@@ -121,13 +206,16 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
             VerticalOptions = LayoutOptions.Fill
         };
         _previewGenerated = true;
-        _statusLabel.Text = "Preview generated through LivingVisualHost. Approve only if Filament/GLB is visible, not fallback PNG.";
+        _statusLabel.Text = "Preview generated through LivingVisualHost from validated package metadata.";
         _statusLabel.TextColor = Color.FromArgb("#FFD966");
-        return Task.CompletedTask;
     }
 
     private async Task PublishAsync()
     {
+        var package = await EnsureValidatedPackageAsync();
+        if (package == null)
+            return;
+
         if (!_previewGenerated)
         {
             ShowError("Generate and inspect the Filament preview before publishing.");
@@ -140,33 +228,38 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
         }
 
         _ = int.TryParse(_priceEntry.Text, out var price);
-        var currency = Enum.TryParse<NewArrivalCurrencyType>(_currencyPicker.SelectedItem?.ToString(), out var parsed) ? parsed : NewArrivalCurrencyType.Free;
-        var fallback = NormalizeFallbackImage(_fallbackEntry.Text);
-        _fallbackEntry.Text = fallback;
-        var productId = "product_living_filament_backend_probe";
+        var currency = Enum.TryParse<NewArrivalCurrencyType>(_currencyPicker.SelectedItem?.ToString(), out var parsed)
+            ? parsed
+            : NewArrivalCurrencyType.Free;
+        var productId = "product_" + SanitizeId(package.Manifest.PackageId);
         var record = new NewArrivalRecord
         {
             Id = productId,
             ProductId = productId,
-            AssetId = StoreAssetCatalogService.LivingFilamentBackendProbeAssetId,
+            AssetId = package.Manifest.AssetId,
             StoreTypeId = StoreProductAssetType.Emblem.ToString(),
             OwnerScope = StoreProductOwnerScope.Player.ToString(),
             Title = _titleEntry.Text.Trim(),
-            Subtitle = "Living Emblems",
-            Description = string.IsNullOrWhiteSpace(_descriptionEditor.Text) ? "Living Legendary Emblem." : _descriptionEditor.Text.Trim(),
+            Subtitle = "Production Package Preview",
+            Description = string.IsNullOrWhiteSpace(_descriptionEditor.Text)
+                ? "Living Legendary Emblem package."
+                : _descriptionEditor.Text.Trim(),
             ButtonText = "Preview",
-            ImagePath = fallback,
+            ImagePath = package.ResolvedFallbackPath,
             Category = StoreProductAssetType.Emblem.ToString(),
             EffectType = "LivingVisual",
-            AnimationType = "FilamentBackendProbe",
+            AnimationType = package.Behavior.ProfileId,
             EquipTarget = "TeamEmblem",
             LivingVisualScope = LivingVisualAssetScope.TeamEmblem.ToString(),
             LivingVisualKind = LivingVisualAssetKind.LivingLegendaryEmblem.ToString(),
-            LivingPackagePath = "living_visual_backend_probe.glb",
-            PreferredBackend = LivingRendererBackend.Filament.ToString(),
+            LivingPackageId = package.Manifest.PackageId,
+            LivingPackageManifestPath = package.ManifestPath,
+            LivingPackagePath = package.PackageRootPath,
+            PreferredBackend = package.Manifest.Backend,
             FallbackPolicy = "StaticFallback",
-            LivingVisualVersion = "filament-backend-probe-1",
-            Rarity = "BackendProbe",
+            LivingVisualVersion = package.Manifest.Version,
+            LivingPackageVersion = package.Manifest.Version,
+            Rarity = "Legendary",
             Price = currency == NewArrivalCurrencyType.Free ? 0 : price,
             CurrencyType = currency,
             IsFree = currency == NewArrivalCurrencyType.Free || price == 0,
@@ -179,7 +272,7 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
         {
             await NewArrivalsAdminService.PublishAsync(record);
             _validationLabel.TextColor = Color.FromArgb("#27AE60");
-            _validationLabel.Text = "Published. It will appear as an Emblem after acquisition.";
+            _validationLabel.Text = "Published package metadata. It will appear as an Emblem after acquisition.";
             _validationLabel.IsVisible = true;
         }
         catch (Exception ex)
@@ -188,17 +281,23 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
         }
     }
 
-    private static string NormalizeFallbackImage(string? value)
+    private async Task<LivingEmblemPackage?> EnsureValidatedPackageAsync()
     {
-        var text = value?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(text))
-            return DefaultFallbackImage;
+        if (_validatedPackage != null)
+            return _validatedPackage;
 
-        var lower = text.ToLowerInvariant();
-        if (lower.EndsWith(".png", StringComparison.Ordinal) || lower.EndsWith(".jpg", StringComparison.Ordinal) || lower.EndsWith(".jpeg", StringComparison.Ordinal) || lower.EndsWith(".webp", StringComparison.Ordinal))
-            return text;
+        await ValidatePackageAsync();
+        if (_validatedPackage == null)
+            ShowError("Import and validate a package before continuing.");
+        return _validatedPackage;
+    }
 
-        return DefaultFallbackImage;
+    private void RenderDiagnostics(LivingEmblemPackageImportResult result)
+    {
+        _diagnosticsLabel.Text = string.Join(
+            Environment.NewLine,
+            result.Diagnostics.Select(item => $"{item.Severity}: {item.Code} - {item.Message}"));
+        _diagnosticsLabel.TextColor = result.IsValid ? Color.FromArgb("#27AE60") : Color.FromArgb("#D84A4A");
     }
 
     private void ShowError(string message)
@@ -207,6 +306,9 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
         _validationLabel.Text = message;
         _validationLabel.IsVisible = true;
     }
+
+    private static string SanitizeId(string value) =>
+        string.Concat(value.Trim().Select(ch => char.IsLetterOrDigit(ch) ? char.ToLowerInvariant(ch) : '_')).Trim('_');
 
     private static Border Panel(View content) => new()
     {
