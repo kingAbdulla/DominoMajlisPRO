@@ -163,7 +163,7 @@ public sealed class FilamentRenderSurfaceView :
             stream.CopyTo(memory);
             var bytes = memory.ToArray();
             Log.Info(LogTag, $"Loading GLB '{_assetPath}', bytes={bytes.Length}.");
-            _filament.LoadGlb(bytes);
+            _filament.LoadGlb(bytes, _assetPath);
             _assetLoadAttempted = true;
         }
         catch (Java.Lang.Throwable ex)
@@ -212,6 +212,9 @@ public sealed class FilamentRenderSurfaceView :
         private double _distance = 3.0;
         private bool _firstRenderLogged;
         private bool _rigLogged;
+        private double _nextBehaviorLogSeconds;
+        private bool _devTestMotionEnabled;
+        private readonly LivingBehaviorController _livingBehavior = new();
 
         public bool IsReady =>
             _engine != null &&
@@ -245,7 +248,7 @@ public sealed class FilamentRenderSurfaceView :
             Log.Info(LogTag, $"Viewport={_width}x{_height}.");
         }
 
-        public void LoadGlb(byte[] bytes)
+        public void LoadGlb(byte[] bytes, string assetPath)
         {
             if (!IsReady)
                 throw new InvalidOperationException("Filament is not ready for GLB loading.");
@@ -254,6 +257,10 @@ public sealed class FilamentRenderSurfaceView :
             DestroyGltfioLoaders();
             _rigNodes.Clear();
             _rigLogged = false;
+            _nextBehaviorLogSeconds = 0;
+            _devTestMotionEnabled = IsProductionPreviewAsset(assetPath);
+            _livingBehavior.SetDevTestMotion(_devTestMotionEnabled);
+            Log.Info(LogTag, $"Living behavior DEV_TEST motion={_devTestMotionEnabled} asset='{assetPath}'.");
 
             var entityManager = EntityManager.Get();
             _materialProvider = new UbershaderProvider(_engine!);
@@ -311,15 +318,8 @@ public sealed class FilamentRenderSurfaceView :
             if (!IsReady || _swapChain == null)
                 return;
 
-            if (_animator != null && _animator.AnimationCount > 0)
-            {
-                var duration = System.Math.Max(0.001f, _animator.GetAnimationDuration(0));
-                _animator.ApplyAnimation(0, (float)(seconds % duration));
-                _animator.UpdateBoneMatrices();
-            }
-
             ApplyProceduralRig(seconds);
-            OrbitCamera(seconds);
+            PositionCamera();
             var ok = _renderer!.BeginFrame(_swapChain, frameTimeNanos);
             if (!_firstRenderLogged)
             {
@@ -393,7 +393,7 @@ public sealed class FilamentRenderSurfaceView :
             _view.Scene = _scene;
             _view.Camera = _camera;
             CreateLight();
-            OrbitCamera(0);
+            PositionCamera();
             Resize(_width, _height);
             Log.Info(LogTag, "Renderer, scene, view, camera created.");
         }
@@ -476,14 +476,17 @@ public sealed class FilamentRenderSurfaceView :
         private void CaptureRigNode(string nodeName)
         {
             if (_asset == null || _engine == null)
+            {
+                Log.Warn(LogTag, $"Rig discovery: {nodeName} found=false entity=0 transformInstance=0 reason=asset-or-engine-missing.");
                 return;
+            }
 
             try
             {
                 var entity = _asset.GetFirstEntityByName(nodeName);
                 if (entity == 0)
                 {
-                    Log.Warn(LogTag, $"Rig node '{nodeName}' was not found in GLB.");
+                    Log.Warn(LogTag, $"Rig discovery: {nodeName} found=false entity=0 transformInstance=0 reason=node-not-found.");
                     return;
                 }
 
@@ -491,18 +494,18 @@ public sealed class FilamentRenderSurfaceView :
                 var instance = transformManager.GetInstance(entity);
                 if (instance == 0)
                 {
-                    Log.Warn(LogTag, $"Rig node '{nodeName}' has no TransformManager component.");
+                    Log.Warn(LogTag, $"Rig discovery: {nodeName} found=false entity={entity} transformInstance=0 reason=no-transform-component.");
                     return;
                 }
 
                 var baseTransform = new float[16];
                 transformManager.GetTransform(instance, baseTransform);
                 _rigNodes[nodeName] = new RigNode(nodeName, entity, instance, baseTransform);
-                Log.Info(LogTag, $"Rig node captured: {nodeName}, entity={entity}.");
+                Log.Info(LogTag, $"Rig discovery: {nodeName} found=true entity={entity} transformInstance={instance}.");
             }
             catch (Java.Lang.Throwable ex)
             {
-                Log.Warn(LogTag, ex, $"Failed to capture rig node '{nodeName}'.");
+                Log.Warn(LogTag, ex, $"Rig discovery: {nodeName} found=false entity=unknown transformInstance=unknown reason=exception.");
             }
         }
 
@@ -517,10 +520,11 @@ public sealed class FilamentRenderSurfaceView :
                 Log.Info(LogTag, $"Runtime rig controller active. Nodes={string.Join(',', _rigNodes.Keys)}.");
             }
 
-            var headYaw = System.Math.Sin(seconds * 0.75) * 13.0;
-            var headPitch = System.Math.Sin(seconds * 0.43) * 5.5;
-            var jawCycle = System.Math.Max(0, System.Math.Sin(seconds * 1.15));
-            var jawOpen = -6.0 - (jawCycle * 13.0);
+            var pose = _livingBehavior.Update(seconds);
+            var headYaw = pose.HeadYawDegrees;
+            var headPitch = pose.HeadPitchDegrees;
+            var headTilt = pose.HeadTiltDegrees;
+            var jawOpen = pose.JawOpenDegrees;
 
             if (_motionOverrides.TryGetValue("Bone", out var headOverride))
             {
@@ -533,42 +537,79 @@ public sealed class FilamentRenderSurfaceView :
             if (_motionOverrides.TryGetValue("Jaw", out var jawOverride))
                 jawOpen = jawOverride.ValueDegrees;
 
-            ApplyRigRotation("Bone", headPitch, headYaw, 0);
-            ApplyRigRotation("Jaw", jawOpen, 0, 0);
+            var boneApplied = ApplyRigRotation("Bone", headPitch, headYaw, headTilt);
+            var jawApplied = ApplyRigRotation("Jaw", jawOpen, 0, 0);
+            var boneMatricesUpdated = UpdateSkinningBoneMatrices();
+
+            if (seconds >= _nextBehaviorLogSeconds)
+            {
+                _nextBehaviorLogSeconds = seconds + 2.0;
+                Log.Info(
+                    LogTag,
+                    "LivingBehavior tick active " +
+                    $"devTest={_devTestMotionEnabled} " +
+                    $"boneYaw={headYaw:F1} bonePitch={headPitch:F1} jawAngle={jawOpen:F1} " +
+                    $"boneFound={_rigNodes.ContainsKey("Bone")} jawFound={_rigNodes.ContainsKey("Jaw")} " +
+                    $"boneApplied={boneApplied} jawApplied={jawApplied} skinningMatricesUpdated={boneMatricesUpdated}.");
+
+                if ((boneApplied || jawApplied) && !boneMatricesUpdated)
+                {
+                    Log.Warn(
+                        LogTag,
+                        "Rig transforms were applied through TransformManager, but no Animator.UpdateBoneMatrices path was available. " +
+                        "If the mesh remains visually static, this GLB may require a Filament skinning/bone-matrix API path beyond node transforms.");
+                }
+            }
         }
 
-        private void ApplyRigRotation(string nodeName, double degreesX, double degreesY, double degreesZ)
+        private bool ApplyRigRotation(string nodeName, double degreesX, double degreesY, double degreesZ)
         {
             if (_engine == null || !_rigNodes.TryGetValue(nodeName, out var node))
-                return;
+                return false;
 
             try
             {
                 var transformManager = _engine.TransformManager;
-                var rotation = new float[16];
-                var result = new float[16];
-                Android.Opengl.Matrix.SetIdentityM(rotation, 0);
-                Android.Opengl.Matrix.RotateM(rotation, 0, (float)degreesX, 1, 0, 0);
-                Android.Opengl.Matrix.RotateM(rotation, 0, (float)degreesY, 0, 1, 0);
-                Android.Opengl.Matrix.RotateM(rotation, 0, (float)degreesZ, 0, 0, 1);
-                Android.Opengl.Matrix.MultiplyMM(result, 0, node.BaseTransform, 0, rotation, 0);
-                transformManager.SetTransform(node.Instance, result);
+                Android.Opengl.Matrix.SetIdentityM(node.Rotation, 0);
+                Android.Opengl.Matrix.RotateM(node.Rotation, 0, (float)degreesX, 1, 0, 0);
+                Android.Opengl.Matrix.RotateM(node.Rotation, 0, (float)degreesY, 0, 1, 0);
+                Android.Opengl.Matrix.RotateM(node.Rotation, 0, (float)degreesZ, 0, 0, 1);
+                Android.Opengl.Matrix.MultiplyMM(node.WorkingTransform, 0, node.BaseTransform, 0, node.Rotation, 0);
+                transformManager.SetTransform(node.Instance, node.WorkingTransform);
+                return true;
             }
             catch (Java.Lang.Throwable ex)
             {
                 Log.Warn(LogTag, ex, $"Failed to apply rig rotation to '{nodeName}'.");
+                return false;
             }
         }
 
-        private void OrbitCamera(double seconds)
+        private bool UpdateSkinningBoneMatrices()
+        {
+            if (_animator == null)
+                return false;
+
+            try
+            {
+                _animator.UpdateBoneMatrices();
+                return true;
+            }
+            catch (Java.Lang.Throwable ex)
+            {
+                Log.Warn(LogTag, ex, "Animator.UpdateBoneMatrices failed after procedural rig transform update.");
+                return false;
+            }
+        }
+
+        private void PositionCamera()
         {
             if (_camera == null)
                 return;
 
             var aspect = System.Math.Max(0.2, _width / (double)System.Math.Max(1, _height));
-            var angle = seconds * 0.18;
-            var eyeX = _targetX + System.Math.Sin(angle) * _distance;
-            var eyeZ = _targetZ + System.Math.Cos(angle) * _distance;
+            var eyeX = _targetX;
+            var eyeZ = _targetZ + _distance;
             var eyeY = _targetY + _distance * 0.42;
 
             _camera.LookAt(
@@ -578,7 +619,7 @@ public sealed class FilamentRenderSurfaceView :
             _camera.SetProjection(42, aspect, 0.025, 100, FCamera.Fov.Vertical);
 
             if (!_firstRenderLogged)
-                Log.Info(LogTag, $"Camera positioned: eye=({eyeX:F2},{eyeY:F2},{eyeZ:F2}), target=({_targetX:F2},{_targetY:F2},{_targetZ:F2}).");
+                Log.Info(LogTag, $"Stable camera positioned: eye=({eyeX:F2},{eyeY:F2},{eyeZ:F2}), target=({_targetX:F2},{_targetY:F2},{_targetZ:F2}).");
         }
 
         private void DestroyAsset()
@@ -621,7 +662,255 @@ public sealed class FilamentRenderSurfaceView :
             _materialProvider = null;
         }
 
-        private sealed record RigNode(string Name, int Entity, int Instance, float[] BaseTransform);
+        private static bool IsProductionPreviewAsset(string assetPath) =>
+            assetPath.Contains("production_default", StringComparison.OrdinalIgnoreCase);
+
+        private sealed class RigNode
+        {
+            public RigNode(string name, int entity, int instance, float[] baseTransform)
+            {
+                Name = name;
+                Entity = entity;
+                Instance = instance;
+                BaseTransform = baseTransform;
+            }
+
+            public string Name { get; }
+
+            public int Entity { get; }
+
+            public int Instance { get; }
+
+            public float[] BaseTransform { get; }
+
+            public float[] Rotation { get; } = new float[16];
+
+            public float[] WorkingTransform { get; } = new float[16];
+        }
+
+        private sealed class LivingBehaviorController
+        {
+            private readonly Random _random = new();
+            private readonly IdleLookBehavior _idleLook = new();
+            private readonly InterestLookBehavior _interestLook = new();
+            private readonly JawBreathBehavior _jawBreath = new();
+            private LivingEmotionState _emotionState = LivingEmotionState.Neutral;
+            private bool _devTestMotion;
+
+            public void SetDevTestMotion(bool enabled)
+            {
+                _devTestMotion = enabled;
+                _idleLook.SetDevTestMotion(enabled);
+                _jawBreath.SetDevTestMotion(enabled);
+            }
+
+            public LivingPose Update(double seconds)
+            {
+                var context = new LivingBehaviorContext(seconds, _random, _emotionState, _devTestMotion);
+                var pose = LivingPose.Neutral;
+
+                _idleLook.Apply(context, ref pose);
+                _interestLook.Apply(context, ref pose);
+                _jawBreath.Apply(context, ref pose);
+
+                return pose;
+            }
+        }
+
+        private interface ILivingBehavior
+        {
+            void Apply(LivingBehaviorContext context, ref LivingPose pose);
+        }
+
+        private sealed class IdleLookBehavior : ILivingBehavior
+        {
+            private const double YawLimit = 12.0;
+            private const double PitchLimit = 5.0;
+            private const double TiltLimit = 4.0;
+            private const double DevTestYawLimit = 25.0;
+            private const double DevTestPitchLimit = 10.0;
+            private bool _devTestMotion;
+            private double _lastSeconds = -1;
+            private double _nextDecisionSeconds;
+            private double _yawCurrent;
+            private double _pitchCurrent;
+            private double _tiltCurrent;
+            private double _yawStart;
+            private double _pitchStart;
+            private double _tiltStart;
+            private double _yawTarget;
+            private double _pitchTarget;
+            private double _tiltTarget;
+            private double _transitionStartSeconds;
+            private double _transitionDurationSeconds = 2.5;
+
+            public void SetDevTestMotion(bool enabled)
+            {
+                _devTestMotion = enabled;
+            }
+
+            public void Apply(LivingBehaviorContext context, ref LivingPose pose)
+            {
+                if (_devTestMotion)
+                {
+                    pose = pose with
+                    {
+                        HeadYawDegrees = pose.HeadYawDegrees + (System.Math.Sin(context.Seconds * 0.85) * DevTestYawLimit),
+                        HeadPitchDegrees = pose.HeadPitchDegrees + (System.Math.Sin(context.Seconds * 0.55) * DevTestPitchLimit)
+                    };
+                    return;
+                }
+
+                if (_lastSeconds < 0)
+                {
+                    _lastSeconds = context.Seconds;
+                    ScheduleNextDecision(context, allowIdlePause: true);
+                }
+
+                if (context.Seconds >= _nextDecisionSeconds)
+                    ScheduleNextDecision(context, allowIdlePause: true);
+
+                var progress = LivingMath.EaseInOut(LivingMath.Saturate(
+                    (context.Seconds - _transitionStartSeconds) / _transitionDurationSeconds));
+
+                _yawCurrent = LivingMath.Lerp(_yawStart, _yawTarget, progress);
+                _pitchCurrent = LivingMath.Lerp(_pitchStart, _pitchTarget, progress);
+                _tiltCurrent = LivingMath.Lerp(_tiltStart, _tiltTarget, progress);
+                _lastSeconds = context.Seconds;
+
+                pose = pose with
+                {
+                    HeadYawDegrees = pose.HeadYawDegrees + _yawCurrent,
+                    HeadPitchDegrees = pose.HeadPitchDegrees + _pitchCurrent,
+                    HeadTiltDegrees = pose.HeadTiltDegrees + _tiltCurrent
+                };
+            }
+
+            private void ScheduleNextDecision(LivingBehaviorContext context, bool allowIdlePause)
+            {
+                _yawStart = _yawCurrent;
+                _pitchStart = _pitchCurrent;
+                _tiltStart = _tiltCurrent;
+                _transitionStartSeconds = context.Seconds;
+                _transitionDurationSeconds = context.Range(1.7, 4.4);
+                _nextDecisionSeconds = context.Seconds + _transitionDurationSeconds + context.Range(0.4, 3.8);
+
+                if (allowIdlePause && context.Random.NextDouble() < 0.28)
+                {
+                    _yawTarget = 0;
+                    _pitchTarget = 0;
+                    _tiltTarget = 0;
+                    _nextDecisionSeconds += context.Range(1.2, 4.5);
+                    return;
+                }
+
+                _yawTarget = context.Range(-YawLimit, YawLimit);
+                _pitchTarget = context.Range(-PitchLimit, PitchLimit);
+                _tiltTarget = context.Range(-TiltLimit, TiltLimit);
+            }
+        }
+
+        private sealed class JawBreathBehavior : ILivingBehavior
+        {
+            private const double JawOpenMin = -14.0;
+            private const double JawOpenMax = -18.0;
+            private const double DevTestJawOpen = -28.0;
+            private bool _devTestMotion;
+            private double _nextPulseSeconds = 1.8;
+            private double _pulseStartSeconds = -100;
+            private double _pulseDurationSeconds = 1.4;
+            private double _pulseOpenDegrees = -15.0;
+
+            public void SetDevTestMotion(bool enabled)
+            {
+                _devTestMotion = enabled;
+            }
+
+            public void Apply(LivingBehaviorContext context, ref LivingPose pose)
+            {
+                if (_devTestMotion)
+                {
+                    var openClose = (System.Math.Sin(context.Seconds * 0.7) + 1.0) * 0.5;
+                    pose = pose with
+                    {
+                        JawOpenDegrees = pose.JawOpenDegrees + (DevTestJawOpen * LivingMath.EaseInOut(openClose))
+                    };
+                    return;
+                }
+
+                if (context.Seconds >= _nextPulseSeconds)
+                    SchedulePulse(context);
+
+                pose = pose with
+                {
+                    JawOpenDegrees = pose.JawOpenDegrees + ComputeJaw(context.Seconds)
+                };
+            }
+
+            private void SchedulePulse(LivingBehaviorContext context)
+            {
+                _pulseStartSeconds = context.Seconds;
+                _pulseDurationSeconds = context.Range(1.1, 2.4);
+                _pulseOpenDegrees = context.Range(JawOpenMax, JawOpenMin);
+                _nextPulseSeconds = context.Seconds + _pulseDurationSeconds + context.Range(2.5, 8.0);
+            }
+
+            private double ComputeJaw(double seconds)
+            {
+                var progress = (seconds - _pulseStartSeconds) / _pulseDurationSeconds;
+                if (progress < 0 || progress > 1)
+                    return 0;
+
+                var openClose = System.Math.Sin(progress * System.Math.PI);
+                return _pulseOpenDegrees * LivingMath.EaseInOut(openClose);
+            }
+        }
+
+        private sealed class InterestLookBehavior : ILivingBehavior
+        {
+            public void Apply(LivingBehaviorContext context, ref LivingPose pose)
+            {
+                if (context.EmotionState == LivingEmotionState.Neutral)
+                    return;
+            }
+        }
+
+        private readonly record struct LivingBehaviorContext(
+            double Seconds,
+            Random Random,
+            LivingEmotionState EmotionState,
+            bool DevTestMotion)
+        {
+            public double Range(double min, double max) =>
+                min + (Random.NextDouble() * (max - min));
+        }
+
+        private enum LivingEmotionState
+        {
+            Neutral,
+            Interested
+        }
+
+        private static class LivingMath
+        {
+            public static double Lerp(double start, double end, double amount) =>
+                start + ((end - start) * amount);
+
+            public static double Saturate(double value) =>
+                System.Math.Clamp(value, 0, 1);
+
+            public static double EaseInOut(double value) =>
+                value * value * (3 - (2 * value));
+        }
+
+        private readonly record struct LivingPose(
+            double HeadYawDegrees,
+            double HeadPitchDegrees,
+            double HeadTiltDegrees,
+            double JawOpenDegrees)
+        {
+            public static LivingPose Neutral { get; } = new(0, 0, 0, 0);
+        }
 
         private sealed record MotionOverride(string Target, string Axis, double ValueDegrees)
         {
