@@ -25,31 +25,23 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
 #endif
     }
 
-    public Task LoadAssetAsync(
-        LivingVisualAssetManifest manifest,
-        CancellationToken cancellationToken = default)
+    public Task LoadAssetAsync(LivingVisualAssetManifest manifest, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         _manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
 
         if (string.IsNullOrWhiteSpace(_manifest.LivingPackagePath))
-        {
             throw new InvalidOperationException("Filament living rendering requires a GLB/glTF package path in the manifest.");
-        }
 
         return Task.CompletedTask;
     }
 
-    public Task AttachToHostAsync(
-        object host,
-        CancellationToken cancellationToken = default)
+    public Task AttachToHostAsync(object host, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (host is not ContentView contentHost)
-        {
             throw new InvalidOperationException("Filament living rendering can only attach through LivingVisualHost.");
-        }
 
 #if ANDROID
         var manifest = _manifest ?? throw new InvalidOperationException("A Filament manifest must be loaded before attaching.");
@@ -63,24 +55,29 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
             InputTransparent = true
         };
 
-        // Important: do not place the PNG fallback in the same native Filament test slot.
-        // A MAUI Image fallback can visually cover an Android SurfaceView even when the
-        // Filament adapter is selected, making the execution path look static. Fallback
-        // is still owned by LivingVisualHost before/after renderer failure; this adapter
-        // must prove whether the native Filament surface is actually attached.
         MainThread.BeginInvokeOnMainThread(() => contentHost.Content = _surface);
-
         return Task.CompletedTask;
 #else
         throw new PlatformNotSupportedException("Filament living rendering is only available on Android in this backend proof.");
 #endif
     }
 
-    public Task ApplyMotionCommandAsync(
-        LivingMotionCommand command,
-        CancellationToken cancellationToken = default)
+    public Task ApplyMotionCommandAsync(LivingMotionCommand command, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var clamped = LivingMotionLimits.ClampDragonMasterCommand(command);
+
+#if ANDROID
+        if (_surface != null)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _surface.LastMotionCommand = LivingMotionCommandSerializer.Serialize(clamped);
+                _surface.LastMotionCommandVersion++;
+            });
+        }
+#endif
+
         return Task.CompletedTask;
     }
 
@@ -106,12 +103,9 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
     {
         _manifest = null;
         _isPaused = true;
-        _ = _isPaused;
-
 #if ANDROID
         _surface = null;
 #endif
-
         return ValueTask.CompletedTask;
     }
 }
