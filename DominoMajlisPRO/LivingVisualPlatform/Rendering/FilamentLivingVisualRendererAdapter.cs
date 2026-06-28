@@ -59,7 +59,16 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
             InputTransparent = true
         };
 
-        MainThread.BeginInvokeOnMainThread(() => contentHost.Content = _surface);
+        var hostGrid = new Grid
+        {
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
+            BackgroundColor = Colors.Transparent,
+            InputTransparent = true
+        };
+        hostGrid.Children.Add(_surface);
+
+        MainThread.BeginInvokeOnMainThread(() => contentHost.Content = hostGrid);
         return Task.CompletedTask;
 #else
         throw new PlatformNotSupportedException("Filament living rendering is only available on Android in this backend proof.");
