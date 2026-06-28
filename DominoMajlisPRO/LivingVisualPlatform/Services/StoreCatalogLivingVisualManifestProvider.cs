@@ -79,21 +79,6 @@ public sealed class StoreCatalogLivingVisualManifestProvider : ILivingVisualMani
         CanonicalAssetIdentityService.SameAssetId(assetId, LegacyLivingFilamentBackendProbeAssetId) ||
         CanonicalAssetIdentityService.SameAssetId(assetId, LegacyTeamEffectFilamentBackendProbeAssetId);
 
-    private static LivingVisualCapability ResolveCapabilities(CatalogAssetDisplay asset)
-    {
-        var capabilities = LivingVisualCapability.FallbackStatic;
-
-        if (!string.IsNullOrWhiteSpace(asset.EffectType) ||
-            !string.IsNullOrWhiteSpace(asset.AnimationType) ||
-            asset.EffectLayerIds.Count > 0)
-        {
-            capabilities |= LivingVisualCapability.Materials |
-                LivingVisualCapability.Particles;
-        }
-
-        return capabilities;
-    }
-
     private static TEnum ParseEnum<TEnum>(string? value, TEnum fallback)
         where TEnum : struct, Enum =>
         Enum.TryParse<TEnum>(value?.Trim(), ignoreCase: true, out var parsed)
@@ -127,7 +112,11 @@ public sealed class StoreCatalogLivingVisualManifestProvider : ILivingVisualMani
         PreferredBackend = ParseEnum(package.Manifest.Backend, LivingRendererBackend.Filament),
         Capabilities = LivingVisualCapability.Bones |
             LivingVisualCapability.Materials |
+            LivingVisualCapability.Particles |
             LivingVisualCapability.Lighting |
+            LivingVisualCapability.Fire |
+            LivingVisualCapability.Smoke |
+            LivingVisualCapability.Jaw |
             LivingVisualCapability.BehaviorBrain |
             LivingVisualCapability.FallbackStatic,
         MinimumDeviceProfile = package.Manifest.MinimumDeviceTier,
@@ -143,7 +132,14 @@ public sealed class StoreCatalogLivingVisualManifestProvider : ILivingVisualMani
             LivingVisualDisplayLocation.StorePreview,
             LivingVisualDisplayLocation.StoreActionSheet,
             LivingVisualDisplayLocation.Inventory,
-            LivingVisualDisplayLocation.CreateTeamPreview
+            LivingVisualDisplayLocation.CreateTeamPreview,
+            LivingVisualDisplayLocation.EditTeamPreview,
+            LivingVisualDisplayLocation.MainPageTeamSelector,
+            LivingVisualDisplayLocation.GamePageTeamEmblem,
+            LivingVisualDisplayLocation.MatchDetailsTeamEmblem,
+            LivingVisualDisplayLocation.HistoryTeamEmblem,
+            LivingVisualDisplayLocation.RankingsTeamSection,
+            LivingVisualDisplayLocation.HallOfFameTeamSection
         }
     };
 }
