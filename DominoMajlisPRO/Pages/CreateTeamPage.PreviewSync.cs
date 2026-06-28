@@ -48,6 +48,7 @@ public partial class CreateTeamPage
         RepairCreateTeamArabicText(this);
         UpdatePreviewIdentityLabelsSafely();
         QueueTeamEffectSliderRefresh();
+        _ = LoadOwnedTeamAssetsAsync();
     }
 
     private void QueueTeamEffectSliderRefresh()
