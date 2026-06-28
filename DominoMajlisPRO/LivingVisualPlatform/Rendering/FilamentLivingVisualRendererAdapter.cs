@@ -7,6 +7,7 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
 {
     private LivingVisualAssetManifest? _manifest;
     private bool _isPaused = true;
+    private string _lastMotionCommand = string.Empty;
 
 #if ANDROID
     private FilamentLivingVisualView? _surface;
@@ -66,18 +67,7 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
     {
         cancellationToken.ThrowIfCancellationRequested();
         var clamped = LivingMotionLimits.ClampDragonMasterCommand(command);
-
-#if ANDROID
-        if (_surface != null)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                _surface.LastMotionCommand = LivingMotionCommandSerializer.Serialize(clamped);
-                _surface.LastMotionCommandVersion++;
-            });
-        }
-#endif
-
+        _lastMotionCommand = LivingMotionCommandSerializer.Serialize(clamped);
         return Task.CompletedTask;
     }
 
@@ -103,6 +93,7 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
     {
         _manifest = null;
         _isPaused = true;
+        _lastMotionCommand = string.Empty;
 #if ANDROID
         _surface = null;
 #endif
