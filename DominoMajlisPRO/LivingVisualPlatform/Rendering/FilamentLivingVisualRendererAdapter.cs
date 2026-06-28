@@ -7,8 +7,6 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
 {
     private LivingVisualAssetManifest? _manifest;
     private bool _isPaused = true;
-    private string _lastMotionCommand = string.Empty;
-    private int _lastMotionCommandVersion;
 
 #if ANDROID
     private FilamentLivingVisualView? _surface;
@@ -51,8 +49,6 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
         {
             AssetPath = manifest.LivingPackagePath,
             IsPaused = _isPaused,
-            LastMotionCommand = _lastMotionCommand,
-            LastMotionCommandVersion = _lastMotionCommandVersion,
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill,
             BackgroundColor = Colors.Transparent,
@@ -79,26 +75,6 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
     public Task ApplyMotionCommandAsync(LivingMotionCommand command, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var clamped = LivingMotionLimits.ClampDragonMasterCommand(command);
-        _lastMotionCommand = LivingMotionCommandSerializer.Serialize(clamped);
-        _lastMotionCommandVersion++;
-
-#if ANDROID
-        if (_surface != null)
-        {
-            var commandText = _lastMotionCommand;
-            var commandVersion = _lastMotionCommandVersion;
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                if (_surface == null)
-                    return;
-
-                _surface.LastMotionCommand = commandText;
-                _surface.LastMotionCommandVersion = commandVersion;
-            });
-        }
-#endif
-
         return Task.CompletedTask;
     }
 
@@ -124,8 +100,6 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
     {
         _manifest = null;
         _isPaused = true;
-        _lastMotionCommand = string.Empty;
-        _lastMotionCommandVersion = 0;
 #if ANDROID
         _surface = null;
 #endif
