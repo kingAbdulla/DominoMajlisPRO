@@ -547,11 +547,11 @@ public sealed class FilamentRenderSurfaceView :
                 var transformManager = _engine.TransformManager;
                 var rotation = new float[16];
                 var result = new float[16];
-                Matrix.SetIdentityM(rotation, 0);
-                Matrix.RotateM(rotation, 0, (float)degreesX, 1, 0, 0);
-                Matrix.RotateM(rotation, 0, (float)degreesY, 0, 1, 0);
-                Matrix.RotateM(rotation, 0, (float)degreesZ, 0, 0, 1);
-                Matrix.MultiplyMM(result, 0, node.BaseTransform, 0, rotation, 0);
+                Android.Opengl.Matrix.SetIdentityM(rotation, 0);
+                Android.Opengl.Matrix.RotateM(rotation, 0, (float)degreesX, 1, 0, 0);
+                Android.Opengl.Matrix.RotateM(rotation, 0, (float)degreesY, 0, 1, 0);
+                Android.Opengl.Matrix.RotateM(rotation, 0, (float)degreesZ, 0, 0, 1);
+                Android.Opengl.Matrix.MultiplyMM(result, 0, node.BaseTransform, 0, rotation, 0);
                 transformManager.SetTransform(node.Instance, result);
             }
             catch (Java.Lang.Throwable ex)
