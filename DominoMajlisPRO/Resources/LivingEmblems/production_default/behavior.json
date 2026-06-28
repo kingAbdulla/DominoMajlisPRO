@@ -1,0 +1,11 @@
+{
+  "profileId": "dragon-master-living-emblem",
+  "idle": "RuntimeProcedural",
+  "breathing": "BoneProcedural",
+  "blink": "None",
+  "headMovement": "Bone",
+  "materialPulse": "None",
+  "futureAnimations": {
+    "contract": "No fixed animation clips are required for v1; runtime drives Bone and Jaw procedurally."
+  }
+}
