@@ -207,6 +207,7 @@ public sealed class FilamentRenderSurfaceView :
         private const double CameraDistanceMultiplier = 1.82;
         private const double CameraVerticalFovDegrees = 34.0;
         private const double CameraFrontSign = 1.0;
+        private const bool LivingPreviewFreezeBonesForArtifactTest = false;
         private int _width = 1;
         private int _height = 1;
         private double _targetX;
@@ -223,7 +224,6 @@ public sealed class FilamentRenderSurfaceView :
         private bool _firstRenderLogged;
         private bool _rigLogged;
         private double _nextBehaviorLogSeconds;
-        private bool _devTestMotionEnabled;
         private readonly LivingBehaviorController _livingBehavior = new();
 
         public bool IsReady =>
@@ -268,9 +268,8 @@ public sealed class FilamentRenderSurfaceView :
             _rigNodes.Clear();
             _rigLogged = false;
             _nextBehaviorLogSeconds = 0;
-            _devTestMotionEnabled = IsProductionPreviewAsset(assetPath);
-            _livingBehavior.SetDevTestMotion(_devTestMotionEnabled);
-            Log.Info(LogTag, $"Living behavior DEV_TEST motion={_devTestMotionEnabled} asset='{assetPath}'.");
+            _livingBehavior.Reset();
+            Log.Info(LogTag, $"Living behavior state controller reset asset='{assetPath}', freezeBonesForArtifactTest={LivingPreviewFreezeBonesForArtifactTest}.");
 
             var entityManager = EntityManager.Get();
             _materialProvider = new UbershaderProvider(_engine!);
@@ -505,10 +504,19 @@ public sealed class FilamentRenderSurfaceView :
                     $"halfExtent=({_boundsHalfX:F2},{_boundsHalfY:F2},{_boundsHalfZ:F2}) " +
                     $"radius={_boundsRadius:F2} cameraDistance={_distance:F2} cameraFov={CameraVerticalFovDegrees:F1} " +
                     $"entityCount={entityCount} renderableCount={renderableCount} rigNodeCount={_rigNodes.Count} materialSlotCount={materialSlotCount}.");
+                LogEntityDiagnostics(entities);
+                LogMaterialDiagnostics(entities);
 
                 Log.Info(
                     LogTag,
-                    "Distortion R&D hint: if rear ghost geometry remains visible with stable camera and shadows disabled, " +
+                    "Distortion R&D classification hint: duplicateGeometry/looseHiddenMesh/invertedNormals/doubleSidedMaterial/transparentDepth/lightingCulling are primary suspects. " +
+                    "If the artifact remains with LivingPreviewFreezeBonesForArtifactTest=true, classify as GLB geometry/material/camera-lighting. " +
+                    "If it disappears only when frozen, classify as bone weighting or transform/skinning path. " +
+                    "Because the issue existed before rigging, current default classification leans GLB geometry or normals/material, not rig. " +
+                    "Stable camera and shadows disabled reduce camera-lighting suspicion but do not eliminate it.");
+                Log.Info(
+                    LogTag,
+                    "Distortion R&D detail: if rear ghost geometry remains visible with stable camera and shadows disabled, " +
                     "primary suspects are duplicated/intersecting GLB surfaces, hidden rear shell geometry, inverted normals, or double-sided/transparent material behavior. " +
                     "Rig remains secondary because the artifact existed before bone motion.");
             }
@@ -550,6 +558,158 @@ public sealed class FilamentRenderSurfaceView :
                 Log.Warn(LogTag, ex, "Material slot count unavailable through Filament binding.");
                 return -1;
             }
+        }
+
+        private void LogEntityDiagnostics(int[]? entities)
+        {
+            if (entities == null || entities.Length == 0 || _asset == null)
+                return;
+
+            try
+            {
+                var names = new System.Text.StringBuilder();
+                var getName = _asset.GetType().GetMethod("GetName", new[] { typeof(int) });
+                var getNameByEntity = _asset.GetType().GetMethod("GetNameByEntity", new[] { typeof(int) });
+                var method = getName ?? getNameByEntity;
+                if (method == null)
+                {
+                    Log.Info(LogTag, "Entity name diagnostics: unavailable through current Filament binding.");
+                    return;
+                }
+
+                var count = 0;
+                foreach (var entity in entities)
+                {
+                    var name = method.Invoke(_asset, new object[] { entity }) as string;
+                    if (string.IsNullOrWhiteSpace(name))
+                        continue;
+
+                    if (names.Length > 0)
+                        names.Append(", ");
+
+                    names.Append(name);
+                    count++;
+                    if (count >= 32)
+                    {
+                        names.Append(", ...");
+                        break;
+                    }
+                }
+
+                Log.Info(LogTag, names.Length == 0
+                    ? "Entity name diagnostics: no non-empty entity names returned."
+                    : $"Entity name diagnostics: {names}");
+            }
+            catch (Java.Lang.Throwable ex)
+            {
+                Log.Warn(LogTag, ex, "Entity name diagnostics failed through Filament binding.");
+            }
+            catch (System.Exception ex)
+            {
+                Log.Warn(LogTag, $"Entity name diagnostics failed: {ex}");
+            }
+        }
+
+        private void LogMaterialDiagnostics(int[]? entities)
+        {
+            if (entities == null || entities.Length == 0 || _engine == null)
+                return;
+
+            try
+            {
+                var renderableManager = _engine.RenderableManager;
+                var materialSummaries = new System.Text.StringBuilder();
+                var materialCount = 0;
+                var transparentOrBlendedHints = 0;
+
+                foreach (var entity in entities)
+                {
+                    if (!renderableManager.HasComponent(entity))
+                        continue;
+
+                    var instance = renderableManager.GetInstance(entity);
+                    if (instance == 0)
+                        continue;
+
+                    var primitiveCount = System.Math.Max(0, renderableManager.GetPrimitiveCount(instance));
+                    for (var primitive = 0; primitive < primitiveCount; primitive++)
+                    {
+                        var materialInstance = renderableManager.GetMaterialInstanceAt(instance, primitive);
+                        materialCount++;
+                        var summary = DescribeMaterialInstance(materialInstance);
+                        if (summary.Contains("transparent", StringComparison.OrdinalIgnoreCase) ||
+                            summary.Contains("blend", StringComparison.OrdinalIgnoreCase) ||
+                            summary.Contains("alpha", StringComparison.OrdinalIgnoreCase))
+                        {
+                            transparentOrBlendedHints++;
+                        }
+
+                        if (materialSummaries.Length > 0)
+                            materialSummaries.Append(" | ");
+
+                        materialSummaries.Append(summary);
+                        if (materialCount >= 12)
+                        {
+                            materialSummaries.Append(" | ...");
+                            break;
+                        }
+                    }
+
+                    if (materialCount >= 12)
+                        break;
+                }
+
+                Log.Info(
+                    LogTag,
+                    $"Material diagnostics: materialSlotCount={materialCount}, transparentOrBlendedHintCount={transparentOrBlendedHints}, " +
+                    $"samples={(materialSummaries.Length == 0 ? "unavailable" : materialSummaries.ToString())}.");
+            }
+            catch (Java.Lang.Throwable ex)
+            {
+                Log.Warn(LogTag, ex, "Material diagnostics unavailable through Filament binding.");
+            }
+            catch (System.Exception ex)
+            {
+                Log.Warn(LogTag, $"Material diagnostics failed: {ex}");
+            }
+        }
+
+        private static string DescribeMaterialInstance(Java.Lang.Object? materialInstance)
+        {
+            if (materialInstance == null)
+                return "material=null";
+
+            try
+            {
+                var material = InvokeNoArg(materialInstance, "GetMaterial") ?? InvokeNoArg(materialInstance, "Material");
+                var materialName =
+                    InvokeNoArg(materialInstance, "GetName") as string ??
+                    InvokeNoArg(material, "GetName") as string ??
+                    "name-unavailable";
+                var blending =
+                    InvokeNoArg(material, "GetBlendingMode") ??
+                    InvokeNoArg(material, "GetBlending") ??
+                    "blend-unavailable";
+                var doubleSided =
+                    InvokeNoArg(material, "IsDoubleSided") ??
+                    InvokeNoArg(material, "GetDoubleSided") ??
+                    "doubleSided-unavailable";
+
+                return $"material='{materialName}' blending='{blending}' doubleSided='{doubleSided}'";
+            }
+            catch (System.Exception ex)
+            {
+                return $"material=diagnostic-failed:{ex.GetType().Name}";
+            }
+        }
+
+        private static object? InvokeNoArg(object? target, string methodName)
+        {
+            if (target == null)
+                return null;
+
+            var method = target.GetType().GetMethod(methodName, System.Type.EmptyTypes);
+            return method?.Invoke(target, null);
         }
 
         private void CaptureRigNode(string nodeName)
@@ -599,7 +759,9 @@ public sealed class FilamentRenderSurfaceView :
                 Log.Info(LogTag, $"Runtime rig controller active. Nodes={string.Join(',', _rigNodes.Keys)}.");
             }
 
-            var pose = _livingBehavior.Update(seconds);
+            var pose = LivingPreviewFreezeBonesForArtifactTest
+                ? LivingPose.Neutral with { StateName = "FrozenArtifactTest" }
+                : _livingBehavior.Update(seconds);
             var headYaw = pose.HeadYawDegrees;
             var headPitch = pose.HeadPitchDegrees;
             var headTilt = pose.HeadTiltDegrees;
@@ -626,7 +788,7 @@ public sealed class FilamentRenderSurfaceView :
                 Log.Info(
                     LogTag,
                     "LivingBehavior tick active " +
-                    $"devTest={_devTestMotionEnabled} " +
+                    $"state={pose.StateName} freezeBones={LivingPreviewFreezeBonesForArtifactTest} " +
                     $"boneYaw={headYaw:F1} bonePitch={headPitch:F1} jawAngle={jawOpen:F1} " +
                     $"boneFound={_rigNodes.ContainsKey("Bone")} jawFound={_rigNodes.ContainsKey("Jaw")} " +
                     $"boneApplied={boneApplied} jawApplied={jawApplied} skinningMatricesUpdated={boneMatricesUpdated}.");
@@ -773,204 +935,134 @@ public sealed class FilamentRenderSurfaceView :
         private sealed class LivingBehaviorController
         {
             private readonly Random _random = new();
-            private readonly IdleLookBehavior _idleLook = new();
-            private readonly InterestLookBehavior _interestLook = new();
-            private readonly JawBreathBehavior _jawBreath = new();
-            private LivingEmotionState _emotionState = LivingEmotionState.Neutral;
-            private bool _devTestMotion;
+            private LivingBehaviorState _state = LivingBehaviorState.IdleStill;
+            private LivingPose _currentPose = LivingPose.Neutral with { StateName = nameof(LivingBehaviorState.IdleStill) };
+            private LivingPose _startPose = LivingPose.Neutral;
+            private LivingPose _targetPose = LivingPose.Neutral;
+            private double _stateStartSeconds;
+            private double _stateDurationSeconds = 2.0;
+            private bool _initialized;
 
-            public void SetDevTestMotion(bool enabled)
+            public void Reset()
             {
-                _devTestMotion = enabled;
-                _idleLook.SetDevTestMotion(enabled);
-                _jawBreath.SetDevTestMotion(enabled);
+                _state = LivingBehaviorState.IdleStill;
+                _currentPose = LivingPose.Neutral with { StateName = nameof(LivingBehaviorState.IdleStill) };
+                _startPose = LivingPose.Neutral;
+                _targetPose = LivingPose.Neutral;
+                _stateStartSeconds = 0;
+                _stateDurationSeconds = 2.0;
+                _initialized = false;
             }
 
             public LivingPose Update(double seconds)
             {
-                var context = new LivingBehaviorContext(seconds, _random, _emotionState, _devTestMotion);
-                var pose = LivingPose.Neutral;
-
-                _idleLook.Apply(context, ref pose);
-                _interestLook.Apply(context, ref pose);
-                _jawBreath.Apply(context, ref pose);
-
-                return pose;
-            }
-        }
-
-        private interface ILivingBehavior
-        {
-            void Apply(LivingBehaviorContext context, ref LivingPose pose);
-        }
-
-        private sealed class IdleLookBehavior : ILivingBehavior
-        {
-            private const double YawLimit = 12.0;
-            private const double PitchLimit = 5.0;
-            private const double TiltLimit = 4.0;
-            private const double DevTestYawLimit = 25.0;
-            private const double DevTestPitchLimit = 10.0;
-            private bool _devTestMotion;
-            private double _lastSeconds = -1;
-            private double _nextDecisionSeconds;
-            private double _yawCurrent;
-            private double _pitchCurrent;
-            private double _tiltCurrent;
-            private double _yawStart;
-            private double _pitchStart;
-            private double _tiltStart;
-            private double _yawTarget;
-            private double _pitchTarget;
-            private double _tiltTarget;
-            private double _transitionStartSeconds;
-            private double _transitionDurationSeconds = 2.5;
-
-            public void SetDevTestMotion(bool enabled)
-            {
-                _devTestMotion = enabled;
-            }
-
-            public void Apply(LivingBehaviorContext context, ref LivingPose pose)
-            {
-                if (_devTestMotion)
+                if (!_initialized)
                 {
-                    pose = pose with
-                    {
-                        HeadYawDegrees = pose.HeadYawDegrees + (System.Math.Sin(context.Seconds * 0.85) * DevTestYawLimit),
-                        HeadPitchDegrees = pose.HeadPitchDegrees + (System.Math.Sin(context.Seconds * 0.55) * DevTestPitchLimit)
-                    };
-                    return;
+                    _initialized = true;
+                    EnterState(LivingBehaviorState.IdleStill, seconds, RandomPauseSeconds());
                 }
 
-                if (_lastSeconds < 0)
+                if (seconds >= _stateStartSeconds + _stateDurationSeconds)
+                    ChooseNextState(seconds);
+
+                var progress = LivingMath.EaseInOut(LivingMath.Saturate((seconds - _stateStartSeconds) / _stateDurationSeconds));
+                _currentPose = new LivingPose(
+                    LivingMath.Lerp(_startPose.HeadYawDegrees, _targetPose.HeadYawDegrees, progress),
+                    LivingMath.Lerp(_startPose.HeadPitchDegrees, _targetPose.HeadPitchDegrees, progress),
+                    LivingMath.Lerp(_startPose.HeadTiltDegrees, _targetPose.HeadTiltDegrees, progress),
+                    LivingMath.Lerp(_startPose.JawOpenDegrees, _targetPose.JawOpenDegrees, progress),
+                    _state.ToString());
+
+                return _currentPose;
+            }
+
+            private void ChooseNextState(double seconds)
+            {
+                switch (_state)
                 {
-                    _lastSeconds = context.Seconds;
-                    ScheduleNextDecision(context, allowIdlePause: true);
+                    case LivingBehaviorState.IdleStill:
+                        EnterState(ChooseActionState(), seconds, RandomActionSeconds());
+                        break;
+                    case LivingBehaviorState.ReturnToNeutral:
+                        EnterState(LivingBehaviorState.IdleStill, seconds, RandomPauseSeconds());
+                        break;
+                    default:
+                        EnterState(LivingBehaviorState.ReturnToNeutral, seconds, RandomReturnSeconds());
+                        break;
                 }
+            }
 
-                if (context.Seconds >= _nextDecisionSeconds)
-                    ScheduleNextDecision(context, allowIdlePause: true);
+            private void EnterState(LivingBehaviorState state, double seconds, double durationSeconds)
+            {
+                _state = state;
+                _stateStartSeconds = seconds;
+                _stateDurationSeconds = System.Math.Max(0.35, durationSeconds);
+                _startPose = _currentPose with { StateName = state.ToString() };
+                _targetPose = PoseForState(state);
+            }
 
-                var progress = LivingMath.EaseInOut(LivingMath.Saturate(
-                    (context.Seconds - _transitionStartSeconds) / _transitionDurationSeconds));
+            private LivingBehaviorState ChooseActionState()
+            {
+                var roll = _random.NextDouble();
+                if (roll < 0.30)
+                    return LivingBehaviorState.LookLeft;
+                if (roll < 0.60)
+                    return LivingBehaviorState.LookRight;
+                if (roll < 0.78)
+                    return LivingBehaviorState.LookDownSlight;
+                return LivingBehaviorState.JawOpenPulse;
+            }
 
-                _yawCurrent = LivingMath.Lerp(_yawStart, _yawTarget, progress);
-                _pitchCurrent = LivingMath.Lerp(_pitchStart, _pitchTarget, progress);
-                _tiltCurrent = LivingMath.Lerp(_tiltStart, _tiltTarget, progress);
-                _lastSeconds = context.Seconds;
-
-                pose = pose with
+            private LivingPose PoseForState(LivingBehaviorState state)
+            {
+                return state switch
                 {
-                    HeadYawDegrees = pose.HeadYawDegrees + _yawCurrent,
-                    HeadPitchDegrees = pose.HeadPitchDegrees + _pitchCurrent,
-                    HeadTiltDegrees = pose.HeadTiltDegrees + _tiltCurrent
+                    LivingBehaviorState.LookLeft => new LivingPose(
+                        -Range(6.0, 10.0),
+                        Range(-2.0, 2.0),
+                        Range(-1.5, 1.5),
+                        0,
+                        state.ToString()),
+                    LivingBehaviorState.LookRight => new LivingPose(
+                        Range(6.0, 10.0),
+                        Range(-2.0, 2.0),
+                        Range(-1.5, 1.5),
+                        0,
+                        state.ToString()),
+                    LivingBehaviorState.LookDownSlight => new LivingPose(
+                        Range(-3.0, 3.0),
+                        Range(2.0, 4.0),
+                        Range(-1.0, 1.0),
+                        0,
+                        state.ToString()),
+                    LivingBehaviorState.JawOpenPulse => new LivingPose(
+                        0,
+                        Range(0.0, 2.0),
+                        0,
+                        -Range(8.0, 14.0),
+                        state.ToString()),
+                    _ => LivingPose.Neutral with { StateName = state.ToString() }
                 };
             }
 
-            private void ScheduleNextDecision(LivingBehaviorContext context, bool allowIdlePause)
-            {
-                _yawStart = _yawCurrent;
-                _pitchStart = _pitchCurrent;
-                _tiltStart = _tiltCurrent;
-                _transitionStartSeconds = context.Seconds;
-                _transitionDurationSeconds = context.Range(1.7, 4.4);
-                _nextDecisionSeconds = context.Seconds + _transitionDurationSeconds + context.Range(0.4, 3.8);
+            private double RandomPauseSeconds() => Range(1.5, 4.0);
 
-                if (allowIdlePause && context.Random.NextDouble() < 0.28)
-                {
-                    _yawTarget = 0;
-                    _pitchTarget = 0;
-                    _tiltTarget = 0;
-                    _nextDecisionSeconds += context.Range(1.2, 4.5);
-                    return;
-                }
+            private double RandomActionSeconds() => Range(0.85, 1.8);
 
-                _yawTarget = context.Range(-YawLimit, YawLimit);
-                _pitchTarget = context.Range(-PitchLimit, PitchLimit);
-                _tiltTarget = context.Range(-TiltLimit, TiltLimit);
-            }
+            private double RandomReturnSeconds() => Range(0.7, 1.4);
+
+            private double Range(double min, double max) =>
+                min + (_random.NextDouble() * (max - min));
         }
 
-        private sealed class JawBreathBehavior : ILivingBehavior
+        private enum LivingBehaviorState
         {
-            private const double JawOpenMin = -14.0;
-            private const double JawOpenMax = -18.0;
-            private const double DevTestJawOpen = -28.0;
-            private bool _devTestMotion;
-            private double _nextPulseSeconds = 1.8;
-            private double _pulseStartSeconds = -100;
-            private double _pulseDurationSeconds = 1.4;
-            private double _pulseOpenDegrees = -15.0;
-
-            public void SetDevTestMotion(bool enabled)
-            {
-                _devTestMotion = enabled;
-            }
-
-            public void Apply(LivingBehaviorContext context, ref LivingPose pose)
-            {
-                if (_devTestMotion)
-                {
-                    var openClose = (System.Math.Sin(context.Seconds * 0.7) + 1.0) * 0.5;
-                    pose = pose with
-                    {
-                        JawOpenDegrees = pose.JawOpenDegrees + (DevTestJawOpen * LivingMath.EaseInOut(openClose))
-                    };
-                    return;
-                }
-
-                if (context.Seconds >= _nextPulseSeconds)
-                    SchedulePulse(context);
-
-                pose = pose with
-                {
-                    JawOpenDegrees = pose.JawOpenDegrees + ComputeJaw(context.Seconds)
-                };
-            }
-
-            private void SchedulePulse(LivingBehaviorContext context)
-            {
-                _pulseStartSeconds = context.Seconds;
-                _pulseDurationSeconds = context.Range(1.1, 2.4);
-                _pulseOpenDegrees = context.Range(JawOpenMax, JawOpenMin);
-                _nextPulseSeconds = context.Seconds + _pulseDurationSeconds + context.Range(2.5, 8.0);
-            }
-
-            private double ComputeJaw(double seconds)
-            {
-                var progress = (seconds - _pulseStartSeconds) / _pulseDurationSeconds;
-                if (progress < 0 || progress > 1)
-                    return 0;
-
-                var openClose = System.Math.Sin(progress * System.Math.PI);
-                return _pulseOpenDegrees * LivingMath.EaseInOut(openClose);
-            }
-        }
-
-        private sealed class InterestLookBehavior : ILivingBehavior
-        {
-            public void Apply(LivingBehaviorContext context, ref LivingPose pose)
-            {
-                if (context.EmotionState == LivingEmotionState.Neutral)
-                    return;
-            }
-        }
-
-        private readonly record struct LivingBehaviorContext(
-            double Seconds,
-            Random Random,
-            LivingEmotionState EmotionState,
-            bool DevTestMotion)
-        {
-            public double Range(double min, double max) =>
-                min + (Random.NextDouble() * (max - min));
-        }
-
-        private enum LivingEmotionState
-        {
-            Neutral,
-            Interested
+            IdleStill,
+            LookLeft,
+            LookRight,
+            LookDownSlight,
+            JawOpenPulse,
+            ReturnToNeutral
         }
 
         private static class LivingMath
@@ -989,9 +1081,10 @@ public sealed class FilamentRenderSurfaceView :
             double HeadYawDegrees,
             double HeadPitchDegrees,
             double HeadTiltDegrees,
-            double JawOpenDegrees)
+            double JawOpenDegrees,
+            string StateName)
         {
-            public static LivingPose Neutral { get; } = new(0, 0, 0, 0);
+            public static LivingPose Neutral { get; } = new(0, 0, 0, 0, nameof(LivingBehaviorState.IdleStill));
         }
 
         private sealed record MotionOverride(string Target, string Axis, double ValueDegrees)
