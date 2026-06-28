@@ -204,12 +204,22 @@ public sealed class FilamentRenderSurfaceView :
         private Animator? _animator;
         private int _cameraEntity;
         private int _lightEntity;
+        private const double CameraDistanceMultiplier = 1.82;
+        private const double CameraVerticalFovDegrees = 34.0;
+        private const double CameraFrontSign = 1.0;
         private int _width = 1;
         private int _height = 1;
         private double _targetX;
         private double _targetY = 0.15;
         private double _targetZ;
         private double _distance = 3.0;
+        private double _boundsCenterX;
+        private double _boundsCenterY = 0.15;
+        private double _boundsCenterZ;
+        private double _boundsHalfX;
+        private double _boundsHalfY;
+        private double _boundsHalfZ;
+        private double _boundsRadius = 1.0;
         private bool _firstRenderLogged;
         private bool _rigLogged;
         private double _nextBehaviorLogSeconds;
@@ -299,6 +309,7 @@ public sealed class FilamentRenderSurfaceView :
             CaptureRigNode("Root");
             CaptureRigNode("Bone");
             CaptureRigNode("Jaw");
+            LogAssetRenderDiagnostics(entities, entityCount, renderableCount);
             _scene!.AddEntities(entities!);
             Log.Info(LogTag, $"Scene entities added: entities={entityCount}, renderables={renderableCount}, rigNodes={_rigNodes.Count}.");
         }
@@ -457,19 +468,87 @@ public sealed class FilamentRenderSurfaceView :
                 if (center.Length < 3 || halfExtent.Length < 3)
                     return;
 
-                _targetX = center[0];
-                _targetY = center[1];
-                _targetZ = center[2];
-                var hx = System.Math.Abs(halfExtent[0]);
-                var hy = System.Math.Abs(halfExtent[1]);
-                var hz = System.Math.Abs(halfExtent[2]);
-                var radius = System.Math.Max(0.25, System.Math.Sqrt(hx * hx + hy * hy + hz * hz));
-                _distance = System.Math.Clamp(radius * 3.1, 1.2, 8.0);
-                Log.Info(LogTag, $"Bounding box calculated: center=({_targetX:F2},{_targetY:F2},{_targetZ:F2}), radius={radius:F2}.");
+                _boundsCenterX = center[0];
+                _boundsCenterY = center[1];
+                _boundsCenterZ = center[2];
+                _boundsHalfX = System.Math.Abs(halfExtent[0]);
+                _boundsHalfY = System.Math.Abs(halfExtent[1]);
+                _boundsHalfZ = System.Math.Abs(halfExtent[2]);
+                _boundsRadius = System.Math.Max(
+                    0.25,
+                    System.Math.Sqrt((_boundsHalfX * _boundsHalfX) + (_boundsHalfY * _boundsHalfY) + (_boundsHalfZ * _boundsHalfZ)));
+                _targetX = _boundsCenterX;
+                _targetY = _boundsCenterY + (_boundsRadius * 0.05);
+                _targetZ = _boundsCenterZ;
+                _distance = System.Math.Clamp(_boundsRadius * CameraDistanceMultiplier, 0.65, 5.5);
+                Log.Info(
+                    LogTag,
+                    $"Bounding box calculated: center=({_boundsCenterX:F2},{_boundsCenterY:F2},{_boundsCenterZ:F2}), " +
+                    $"halfExtent=({_boundsHalfX:F2},{_boundsHalfY:F2},{_boundsHalfZ:F2}), radius={_boundsRadius:F2}, " +
+                    $"cameraDistance={_distance:F2}, cameraFov={CameraVerticalFovDegrees:F1}, cameraFrontSign={CameraFrontSign:F1}.");
             }
             catch (Java.Lang.Throwable ex)
             {
                 Log.Warn(LogTag, ex, "Asset bounds failed; default camera kept.");
+            }
+        }
+
+        private void LogAssetRenderDiagnostics(int[]? entities, int entityCount, int renderableCount)
+        {
+            try
+            {
+                var materialSlotCount = CountMaterialSlots(entities);
+                Log.Info(
+                    LogTag,
+                    "Asset render diagnostics: " +
+                    $"boundsCenter=({_boundsCenterX:F2},{_boundsCenterY:F2},{_boundsCenterZ:F2}) " +
+                    $"halfExtent=({_boundsHalfX:F2},{_boundsHalfY:F2},{_boundsHalfZ:F2}) " +
+                    $"radius={_boundsRadius:F2} cameraDistance={_distance:F2} cameraFov={CameraVerticalFovDegrees:F1} " +
+                    $"entityCount={entityCount} renderableCount={renderableCount} rigNodeCount={_rigNodes.Count} materialSlotCount={materialSlotCount}.");
+
+                Log.Info(
+                    LogTag,
+                    "Distortion R&D hint: if rear ghost geometry remains visible with stable camera and shadows disabled, " +
+                    "primary suspects are duplicated/intersecting GLB surfaces, hidden rear shell geometry, inverted normals, or double-sided/transparent material behavior. " +
+                    "Rig remains secondary because the artifact existed before bone motion.");
+            }
+            catch (Java.Lang.Throwable ex)
+            {
+                Log.Warn(LogTag, ex, "Asset render diagnostics failed; continuing render.");
+            }
+            catch (System.Exception ex)
+            {
+                Log.Warn(LogTag, $"Asset render diagnostics failed: {ex}");
+            }
+        }
+
+        private int CountMaterialSlots(int[]? entities)
+        {
+            if (entities == null || entities.Length == 0 || _engine == null)
+                return 0;
+
+            try
+            {
+                var renderableManager = _engine.RenderableManager;
+                var materialSlots = 0;
+                foreach (var entity in entities)
+                {
+                    if (!renderableManager.HasComponent(entity))
+                        continue;
+
+                    var instance = renderableManager.GetInstance(entity);
+                    if (instance == 0)
+                        continue;
+
+                    materialSlots += System.Math.Max(0, renderableManager.GetPrimitiveCount(instance));
+                }
+
+                return materialSlots;
+            }
+            catch (Java.Lang.Throwable ex)
+            {
+                Log.Warn(LogTag, ex, "Material slot count unavailable through Filament binding.");
+                return -1;
             }
         }
 
@@ -608,18 +687,21 @@ public sealed class FilamentRenderSurfaceView :
                 return;
 
             var aspect = System.Math.Max(0.2, _width / (double)System.Math.Max(1, _height));
-            var eyeX = _targetX;
-            var eyeZ = _targetZ + _distance;
-            var eyeY = _targetY + _distance * 0.42;
+            var eyeX = _boundsCenterX;
+            var eyeZ = _boundsCenterZ + (CameraFrontSign * _distance);
+            var eyeY = _boundsCenterY + (_boundsRadius * 0.10);
 
             _camera.LookAt(
                 eyeX, eyeY, eyeZ,
                 _targetX, _targetY, _targetZ,
                 0, 1, 0);
-            _camera.SetProjection(42, aspect, 0.025, 100, FCamera.Fov.Vertical);
+            _camera.SetProjection(CameraVerticalFovDegrees, aspect, 0.01, 50, FCamera.Fov.Vertical);
 
             if (!_firstRenderLogged)
-                Log.Info(LogTag, $"Stable camera positioned: eye=({eyeX:F2},{eyeY:F2},{eyeZ:F2}), target=({_targetX:F2},{_targetY:F2},{_targetZ:F2}).");
+                Log.Info(
+                    LogTag,
+                    $"Stable close-up camera positioned: eye=({eyeX:F2},{eyeY:F2},{eyeZ:F2}), " +
+                    $"target=({_targetX:F2},{_targetY:F2},{_targetZ:F2}), distance={_distance:F2}, fov={CameraVerticalFovDegrees:F1}.");
         }
 
         private void DestroyAsset()
