@@ -69,8 +69,8 @@ public sealed class LivingEmblemPackageLoader
         var metadataPath = LivingEmblemPackagePaths.Combine(root, manifest.Metadata);
 
         await RequireAssetAsync(glbPath, "GLB", result, cancellationToken);
-        await RequireAssetAsync(thumbnailPath, "Thumbnail", result, cancellationToken);
-        await RequireAssetAsync(fallbackPath, "Fallback", result, cancellationToken);
+        await OptionalAssetAsync(thumbnailPath, "Thumbnail", result, cancellationToken);
+        await OptionalAssetAsync(fallbackPath, "Fallback", result, cancellationToken);
 
         var behavior = await ReadJsonAsync<LivingEmblemBehaviorProfile>(behaviorPath, result, "Behavior", cancellationToken)
             ?? new LivingEmblemBehaviorProfile();
@@ -151,6 +151,31 @@ public sealed class LivingEmblemPackageLoader
         }
     }
 
+    private static async Task OptionalAssetAsync(
+        string assetPath,
+        string label,
+        LivingEmblemPackageImportResult result,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var stream = await FileSystem.OpenAppPackageFileAsync(assetPath);
+            cancellationToken.ThrowIfCancellationRequested();
+            var buffer = new byte[1];
+            var read = await stream.ReadAsync(buffer.AsMemory(0, 1), cancellationToken);
+            if (read <= 0)
+                result.Diagnostics.Add(Info($"{label}Empty", $"Optional {label} file '{assetPath}' is empty; runtime fallback will be used."));
+        }
+        catch (FileNotFoundException)
+        {
+            result.Diagnostics.Add(Info($"{label}Missing", $"Optional {label} file '{assetPath}' was not found; runtime fallback will be used."));
+        }
+        catch (IOException ex)
+        {
+            result.Diagnostics.Add(Info($"{label}Unreadable", $"Optional {label} file '{assetPath}' cannot be read: {ex.Message}"));
+        }
+    }
+
     private static void ValidateManifest(
         LivingEmblemPackageManifest manifest,
         LivingEmblemPackageImportResult result)
@@ -162,8 +187,6 @@ public sealed class LivingEmblemPackageLoader
         RequireText(manifest.Version, "Version", result);
         RequireText(manifest.Backend, "Backend", result);
         RequireText(manifest.GLB, "GLB", result);
-        RequireText(manifest.Thumbnail, "Thumbnail", result);
-        RequireText(manifest.Fallback, "Fallback", result);
         RequireText(manifest.Behavior, "Behavior", result);
         RequireText(manifest.Metadata, "Metadata", result);
 
