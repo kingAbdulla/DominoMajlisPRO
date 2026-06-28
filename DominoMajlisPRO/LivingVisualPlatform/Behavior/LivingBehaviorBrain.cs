@@ -17,8 +17,9 @@ public enum LivingBehaviorState
 
 public sealed class LivingBehaviorBrain
 {
+    private const string DragonHeadBone = "Bone";
+    private const string DragonJawBone = "Jaw";
     private readonly Random random = new();
-
     private TimeSpan elapsed;
     private double nextBreathAt;
     private double nextBlinkAt;
@@ -32,19 +33,14 @@ public sealed class LivingBehaviorBrain
 
     public LivingBehaviorState State { get; private set; } = LivingBehaviorState.Idle;
 
-    public IReadOnlyList<LivingMotionCommand> Tick(
-        LivingVisualAssetManifest? manifest,
-        TimeSpan delta)
+    public IReadOnlyList<LivingMotionCommand> Tick(LivingVisualAssetManifest? manifest, TimeSpan delta)
     {
         if (State == LivingBehaviorState.Paused)
-        {
             return Array.Empty<LivingMotionCommand>();
-        }
 
         elapsed += delta < TimeSpan.Zero ? TimeSpan.Zero : delta;
 
-        if (manifest == null ||
-            !manifest.Capabilities.HasFlag(LivingVisualCapability.BehaviorBrain))
+        if (manifest == null || !manifest.Capabilities.HasFlag(LivingVisualCapability.BehaviorBrain))
         {
             State = LivingBehaviorState.Idle;
             return Array.Empty<LivingMotionCommand>();
@@ -63,7 +59,11 @@ public sealed class LivingBehaviorBrain
         {
             nextLookAt = now + Range(8, 16);
             State = LivingBehaviorState.Looking;
-            return Single(LivingMotionCommandType.SetBoneRotation, "Head", 0.45, 1.6);
+            return new[]
+            {
+                Command(LivingMotionCommandType.SetBoneRotation, DragonHeadBone, Range(-16, 16), 1.6, "Z"),
+                Command(LivingMotionCommandType.SetBoneRotation, DragonHeadBone, Range(-8, 8), 1.6, "X")
+            };
         }
 
         if (now >= nextMouthAt)
@@ -72,7 +72,7 @@ public sealed class LivingBehaviorBrain
             State = LivingBehaviorState.MouthMotion;
             return new[]
             {
-                Command(LivingMotionCommandType.SetBoneRotation, "Jaw", 0.35, 0.8),
+                Command(LivingMotionCommandType.SetBoneRotation, DragonJawBone, -18, 0.8, "X"),
                 Command(LivingMotionCommandType.SetMorphWeight, "MouthOpen", 0.35, 0.8)
             };
         }
@@ -83,7 +83,7 @@ public sealed class LivingBehaviorBrain
             State = LivingBehaviorState.Breathing;
             return new[]
             {
-                Command(LivingMotionCommandType.SetBoneRotation, "Neck", 0.85, 3.8),
+                Command(LivingMotionCommandType.SetBoneRotation, DragonHeadBone, Range(-3.5, 3.5), 3.8, "X"),
                 Command(LivingMotionCommandType.SetRootFloat, "breathing", 0.85, 3.8)
             };
         }
@@ -97,9 +97,7 @@ public sealed class LivingBehaviorBrain
     public void Resume()
     {
         if (State == LivingBehaviorState.Paused)
-        {
             State = LivingBehaviorState.Idle;
-        }
     }
 
     public void Reset()
@@ -117,37 +115,24 @@ public sealed class LivingBehaviorBrain
         State = LivingBehaviorState.Idle;
     }
 
-    private IReadOnlyList<LivingMotionCommand> Single(
-        LivingMotionCommandType type,
-        string target,
-        double value,
-        double durationSeconds)
-    {
-        return new[] { Command(type, target, value, durationSeconds) };
-    }
+    private IReadOnlyList<LivingMotionCommand> Single(LivingMotionCommandType type, string target, double value, double durationSeconds, string? axis = null) =>
+        new[] { Command(type, target, value, durationSeconds, axis) };
 
-    private static LivingMotionCommand Command(
-        LivingMotionCommandType type,
-        string target,
-        double value,
-        double durationSeconds)
+    private static LivingMotionCommand Command(LivingMotionCommandType type, string target, double value, double durationSeconds, string? axis = null)
     {
+        var parameters = string.IsNullOrWhiteSpace(axis)
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["axis"] = axis };
+
         return new LivingMotionCommand
         {
             Type = type,
             Target = target,
             Value = value,
-            DurationSeconds = durationSeconds
+            DurationSeconds = durationSeconds,
+            Parameters = parameters
         };
     }
 
-    private double Range(double min, double max)
-    {
-        if (max <= min)
-        {
-            return min;
-        }
-
-        return min + (random.NextDouble() * (max - min));
-    }
+    private double Range(double min, double max) => max <= min ? min : min + (random.NextDouble() * (max - min));
 }
