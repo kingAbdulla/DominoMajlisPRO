@@ -156,7 +156,8 @@ public static class StoreAssetCatalogService
     }
 
     public static bool IsLivingEmblemAsset(CatalogAssetDisplay? asset) =>
-        asset?.AssetType == StoreProductAssetType.Emblem &&
+        (asset?.AssetType == StoreProductAssetType.TeamLivingEmblem ||
+         asset?.AssetType == StoreProductAssetType.Emblem) &&
         (Same(asset.AssetId, LivingProductionDefaultEmblemAssetId) ||
          Same(asset.AssetId, LegacyLivingFilamentBackendProbeAssetId) ||
          !string.IsNullOrWhiteSpace(asset.LivingVisualKind) ||
@@ -164,10 +165,14 @@ public static class StoreAssetCatalogService
          !string.IsNullOrWhiteSpace(asset.PreferredBackend));
 
     public static bool IsLivingEmblemAsset(string? assetId, string? assetType) =>
-        string.Equals(
-            CanonicalTypeId(assetType),
-            StoreProductAssetType.Emblem.ToString(),
-            StringComparison.OrdinalIgnoreCase) &&
+        (string.Equals(
+             CanonicalTypeId(assetType),
+             StoreProductAssetType.TeamLivingEmblem.ToString(),
+             StringComparison.OrdinalIgnoreCase) ||
+         string.Equals(
+             CanonicalTypeId(assetType),
+             StoreProductAssetType.Emblem.ToString(),
+             StringComparison.OrdinalIgnoreCase)) &&
         (Same(assetId, LivingProductionDefaultEmblemAssetId) ||
          Same(assetId, LegacyLivingFilamentBackendProbeAssetId));
 
@@ -179,6 +184,10 @@ public static class StoreAssetCatalogService
             return StoreProductAssetType.ProfileBackground;
         if (Same(assetType, TeamAssetTypes.Emblem.TeamAssetTypeId))
             return StoreProductAssetType.Emblem;
+        if (Same(assetType, "TeamEmblem") ||
+            Same(assetType, "LivingTeamEmblem") ||
+            Same(assetType, "TeamLivingEmblem"))
+            return StoreProductAssetType.TeamLivingEmblem;
         if (Same(assetType, TeamAssetPayloadCatalog.TeamColorTypeId))
             return StoreProductAssetType.TeamColor;
         if (Same(assetType, TeamAssetTypes.EmblemBackground.TeamAssetTypeId))

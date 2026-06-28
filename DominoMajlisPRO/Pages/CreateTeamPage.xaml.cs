@@ -270,6 +270,45 @@ public partial class CreateTeamPage : ContentPage
                             ownerPlayerId,
                             ownerApplicationUserId));
                     }
+
+                    foreach (var owned in playerInventory.Where(item =>
+                                 string.Equals(StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId),
+                                     StoreProductAssetType.TeamLivingEmblem.ToString(),
+                                     StringComparison.OrdinalIgnoreCase) ||
+                                 StoreAssetCatalogService.IsLivingEmblemAsset(
+                                     item.AssetId,
+                                     item.StoreTypeId)))
+                    {
+                        var livingEmblem = StoreAssetCatalogService.Resolve(
+                            catalog,
+                            owned.AssetId,
+                            StoreProductAssetType.TeamLivingEmblem.ToString())
+                            ?? StoreAssetCatalogService.Resolve(
+                                catalog,
+                                owned.AssetId,
+                                StoreProductAssetType.Emblem.ToString());
+
+                        if (livingEmblem == null)
+                            continue;
+
+                        var ownerApplicationUserId = owned.ApplicationUserId?.Trim() ?? string.Empty;
+                        if (string.IsNullOrWhiteSpace(ownerApplicationUserId) &&
+                            CanonicalAssetIdentityService.SameAssetId(ownerPlayerId, storeOwner.PlayerId))
+                        {
+                            ownerApplicationUserId = storeOwner.ApplicationUserId?.Trim() ?? string.Empty;
+                        }
+
+                        AddEmblemIfMissing(
+                            owned.AssetId,
+                            string.IsNullOrWhiteSpace(livingEmblem.PreviewImage)
+                                ? "shield_3d.png"
+                                : livingEmblem.PreviewImage,
+                            string.IsNullOrWhiteSpace(livingEmblem.DisplayName)
+                                ? owned.AssetId
+                                : livingEmblem.DisplayName,
+                            ownerPlayerId,
+                            ownerApplicationUserId);
+                    }
                 }
 
                 foreach (var item in inventory)
@@ -290,7 +329,8 @@ public partial class CreateTeamPage : ContentPage
                             ? payload.ArabicDisplayName
                             : payload.EnglishDisplayName ?? StoreAssetCatalogService.IncompleteDisplayName);
 
-                    if (string.Equals(effectiveTypeId, StoreProductAssetType.Emblem.ToString(), StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(effectiveTypeId, StoreProductAssetType.Emblem.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(effectiveTypeId, StoreProductAssetType.TeamLivingEmblem.ToString(), StringComparison.OrdinalIgnoreCase))
                     {
                         AddEmblemIfMissing(
                             item.TeamAssetId,

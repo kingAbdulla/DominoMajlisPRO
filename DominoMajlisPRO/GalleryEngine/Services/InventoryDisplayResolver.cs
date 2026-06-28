@@ -247,6 +247,7 @@ public static class InventoryDisplayResolver
             StoreProductAssetType.Effect or
             StoreProductAssetType.Title or
             StoreProductAssetType.Emblem or
+            StoreProductAssetType.TeamLivingEmblem or
             StoreProductAssetType.TeamColor or
             StoreProductAssetType.EmblemBackground or
             StoreProductAssetType.Badge or
@@ -260,10 +261,11 @@ public static class InventoryDisplayResolver
         "Effect" => 3,
         "Title" => 4,
         "Emblem" => 5,
-        "TeamColor" => 6,
-        "EmblemBackground" => 7,
-        "Badge" => 8,
-        "SeasonReward" => 9,
+        "TeamLivingEmblem" => 6,
+        "TeamColor" => 7,
+        "EmblemBackground" => 8,
+        "Badge" => 9,
+        "SeasonReward" => 10,
         _ => 100
     };
 

@@ -41,7 +41,8 @@ public sealed class StoreCatalogLivingVisualManifestProvider : ILivingVisualMani
 
     private async Task<LivingVisualAssetManifest?> ToManifestAsync(CatalogAssetDisplay asset, CancellationToken cancellationToken)
     {
-        if (asset.AssetType != StoreProductAssetType.Emblem)
+        if (asset.AssetType != StoreProductAssetType.Emblem &&
+            asset.AssetType != StoreProductAssetType.TeamLivingEmblem)
             return null;
 
         if (IsDefaultLivingEmblemOrLegacy(asset.AssetId))

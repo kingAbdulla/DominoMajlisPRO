@@ -116,6 +116,8 @@ public static class InventoryRouter
         }
 
         var canonicalTypeId = assetType.ToString();
+        if (assetType == StoreProductAssetType.TeamLivingEmblem)
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Emblem, false);
         if (assetType == StoreProductAssetType.Emblem)
             return TeamRoute(canonicalTypeId, InventoryEquipTarget.Emblem);
         if (assetType == StoreProductAssetType.TeamColor)

@@ -207,6 +207,10 @@ public sealed class FilamentRenderSurfaceView :
         private const double CameraDistanceMultiplier = 1.82;
         private const double CameraVerticalFovDegrees = 34.0;
         private const double CameraFrontSign = 1.0;
+        private const float BaseLightRed = 1f;
+        private const float BaseLightGreen = 0.92f;
+        private const float BaseLightBlue = 0.72f;
+        private const float BaseLightIntensity = 65000f;
         private const bool LivingPreviewFreezeBonesForArtifactTest = false;
         private int _width = 1;
         private int _height = 1;
@@ -225,6 +229,7 @@ public sealed class FilamentRenderSurfaceView :
         private bool _rigLogged;
         private double _nextBehaviorLogSeconds;
         private readonly LivingBehaviorController _livingBehavior = new();
+        private readonly LivingEffectController _livingEffects = new();
 
         public bool IsReady =>
             _engine != null &&
@@ -269,6 +274,7 @@ public sealed class FilamentRenderSurfaceView :
             _rigLogged = false;
             _nextBehaviorLogSeconds = 0;
             _livingBehavior.Reset();
+            _livingEffects.Reset();
             Log.Info(LogTag, $"Living behavior state controller reset asset='{assetPath}', freezeBonesForArtifactTest={LivingPreviewFreezeBonesForArtifactTest}.");
 
             var entityManager = EntityManager.Get();
@@ -427,8 +433,8 @@ public sealed class FilamentRenderSurfaceView :
             try
             {
                 new LightManager.Builder(LightManager.Type.Directional)
-                    .Color(1f, 0.92f, 0.72f)
-                    .Intensity(65000f)
+                    .Color(BaseLightRed, BaseLightGreen, BaseLightBlue)
+                    .Intensity(BaseLightIntensity)
                     .Direction(-0.4f, -1f, -0.65f)
                     .CastShadows(false)
                     .Build(_engine!, _lightEntity);
@@ -781,6 +787,7 @@ public sealed class FilamentRenderSurfaceView :
             var boneApplied = ApplyRigRotation("Bone", headPitch, headYaw, headTilt);
             var jawApplied = ApplyRigRotation("Jaw", jawOpen, 0, 0);
             var boneMatricesUpdated = UpdateSkinningBoneMatrices();
+            ApplyLivingEffects(pose, seconds);
 
             if (seconds >= _nextBehaviorLogSeconds)
             {
@@ -840,6 +847,38 @@ public sealed class FilamentRenderSurfaceView :
             {
                 Log.Warn(LogTag, ex, "Animator.UpdateBoneMatrices failed after procedural rig transform update.");
                 return false;
+            }
+        }
+
+        private void ApplyLivingEffects(LivingPose pose, double seconds)
+        {
+            var lighting = _livingEffects.Update(pose, seconds);
+            ApplyEffectLighting(lighting);
+        }
+
+        private void ApplyEffectLighting(LivingEffectLighting lighting)
+        {
+            if (_engine == null || _lightEntity == 0)
+                return;
+
+            try
+            {
+                dynamic lightManager = _engine.LightManager;
+                var instance = lightManager.GetInstance(_lightEntity);
+                lightManager.SetColor(
+                    instance,
+                    lighting.Red,
+                    lighting.Green,
+                    lighting.Blue);
+                lightManager.SetIntensity(instance, lighting.Intensity);
+            }
+            catch (Java.Lang.Throwable ex)
+            {
+                Log.Warn(LogTag, ex, "Living effect light update failed; continuing with base render.");
+            }
+            catch (System.Exception ex)
+            {
+                Log.Warn(LogTag, $"Living effect light update failed; continuing with base render. {ex.Message}");
             }
         }
 
@@ -1053,6 +1092,140 @@ public sealed class FilamentRenderSurfaceView :
 
             private double Range(double min, double max) =>
                 min + (_random.NextDouble() * (max - min));
+        }
+
+        private readonly record struct LivingEffectLighting(
+            float Red,
+            float Green,
+            float Blue,
+            float Intensity)
+        {
+            public static LivingEffectLighting Base { get; } =
+                new(BaseLightRed, BaseLightGreen, BaseLightBlue, BaseLightIntensity);
+        }
+
+        private sealed class LivingEffectController
+        {
+            private const double FireChancePerJawPulse = 0.20;
+            private readonly Random _random = new();
+            private readonly FlameBreathEffect _flame = new();
+            private readonly SmokePuffEffect _smoke = new();
+            private bool _wasJawPulse;
+
+            public void Reset()
+            {
+                _wasJawPulse = false;
+                _flame.Reset();
+                _smoke.Reset();
+            }
+
+            public LivingEffectLighting Update(LivingPose pose, double seconds)
+            {
+                var isJawPulse = string.Equals(
+                    pose.StateName,
+                    nameof(LivingBehaviorState.JawOpenPulse),
+                    StringComparison.Ordinal);
+
+                if (isJawPulse && !_wasJawPulse && pose.JawOpenDegrees < -3.0)
+                    TryTriggerMouthBurst(seconds);
+
+                _wasJawPulse = isJawPulse;
+
+                var flame = _flame.Sample(seconds);
+                var smoke = _smoke.Sample(seconds);
+                if (!flame.IsActive && !smoke.IsActive)
+                    return LivingEffectLighting.Base;
+
+                var heat = flame.Intensity;
+                var haze = smoke.Intensity;
+                return new LivingEffectLighting(
+                    (float)LivingMath.Lerp(BaseLightRed, 1.0, heat),
+                    (float)LivingMath.Lerp(BaseLightGreen, 0.48 + (haze * 0.12), heat),
+                    (float)LivingMath.Lerp(BaseLightBlue, 0.18 + (haze * 0.22), heat),
+                    (float)(BaseLightIntensity +
+                            (heat * 78000.0) +
+                            (haze * 12000.0)));
+            }
+
+            private void TryTriggerMouthBurst(double seconds)
+            {
+                if (_flame.IsActive(seconds) || _smoke.IsActive(seconds))
+                    return;
+
+                if (_random.NextDouble() > FireChancePerJawPulse)
+                    return;
+
+                var flameDuration = Range(0.7, 1.4);
+                var smokeDuration = Range(1.2, 2.0);
+                _flame.Trigger(seconds, flameDuration, Range(0.78, 1.0));
+                _smoke.Trigger(seconds + flameDuration * 0.42, smokeDuration, Range(0.35, 0.65));
+                Log.Info(LogTag, $"MouthBurstEffect triggered: FlameBreathEffect={flameDuration:F2}s SmokePuffEffect={smokeDuration:F2}s.");
+            }
+
+            private double Range(double min, double max) =>
+                min + (_random.NextDouble() * (max - min));
+        }
+
+        private abstract class MouthBurstEffect
+        {
+            private double _startSeconds = -1000;
+            private double _durationSeconds;
+            private double _strength;
+
+            public bool IsActive(double seconds) =>
+                seconds >= _startSeconds &&
+                seconds <= _startSeconds + _durationSeconds;
+
+            public void Trigger(double seconds, double durationSeconds, double strength)
+            {
+                _startSeconds = seconds;
+                _durationSeconds = System.Math.Max(0.1, durationSeconds);
+                _strength = System.Math.Clamp(strength, 0, 1);
+            }
+
+            public void Reset()
+            {
+                _startSeconds = -1000;
+                _durationSeconds = 0;
+                _strength = 0;
+            }
+
+            public LivingEffectSample Sample(double seconds)
+            {
+                if (!IsActive(seconds))
+                    return LivingEffectSample.Inactive;
+
+                var normalized = LivingMath.Saturate((seconds - _startSeconds) / _durationSeconds);
+                return new LivingEffectSample(true, Shape(normalized) * _strength);
+            }
+
+            protected abstract double Shape(double normalized);
+        }
+
+        private sealed class FlameBreathEffect : MouthBurstEffect
+        {
+            protected override double Shape(double normalized)
+            {
+                var rise = LivingMath.Saturate(normalized / 0.24);
+                var fall = 1.0 - LivingMath.Saturate((normalized - 0.24) / 0.76);
+                var flicker = 0.86 + (0.14 * System.Math.Sin(normalized * 52.0));
+                return LivingMath.EaseInOut(rise) * LivingMath.EaseInOut(fall) * flicker;
+            }
+        }
+
+        private sealed class SmokePuffEffect : MouthBurstEffect
+        {
+            protected override double Shape(double normalized)
+            {
+                var rise = LivingMath.Saturate(normalized / 0.36);
+                var drift = 1.0 - LivingMath.Saturate((normalized - 0.18) / 0.82);
+                return LivingMath.EaseInOut(rise) * System.Math.Sqrt(System.Math.Max(0, drift));
+            }
+        }
+
+        private readonly record struct LivingEffectSample(bool IsActive, double Intensity)
+        {
+            public static LivingEffectSample Inactive { get; } = new(false, 0);
         }
 
         private enum LivingBehaviorState

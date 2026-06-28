@@ -447,7 +447,7 @@ public class SpecializedStoreManagerPage : ContentPage
         record.Id = productId;
         record.ProductId = productId;
         record.AssetId = StoreAssetCatalogService.LivingProductionDefaultEmblemAssetId;
-        record.StoreTypeId = StoreProductAssetType.Emblem.ToString();
+        record.StoreTypeId = StoreProductAssetType.TeamLivingEmblem.ToString();
         record.OwnerScope = StoreProductOwnerScope.Player.ToString();
         record.Title = title;
         record.Subtitle = "Living Emblems";
@@ -456,7 +456,7 @@ public class SpecializedStoreManagerPage : ContentPage
             : _descriptionEditor.Text.Trim();
         record.ButtonText = "Preview";
         record.ImagePath = fallbackImage;
-        record.Category = StoreProductAssetType.Emblem.ToString();
+        record.Category = StoreProductAssetType.TeamLivingEmblem.ToString();
         record.ColorHex = string.Empty;
         record.EffectType = "LivingVisual";
         record.AnimationType = "production-default-living-emblem";
@@ -653,7 +653,7 @@ public class SpecializedStoreManagerPage : ContentPage
             _imageEntry.Text = "LivingEmblems/production_default/fallback.png";
             _priceEntry.Text = "0";
             _currencyPicker.SelectCanonicalId(NewArrivalCurrencyType.Free.ToString());
-            _categoryPicker.SelectCanonicalId(StoreProductAssetType.Emblem.ToString());
+            _categoryPicker.SelectCanonicalId(StoreProductAssetType.TeamLivingEmblem.ToString());
             _previewImage.Source = InventoryDisplayResolver.ResolveOptionalImageSource(_imageEntry.Text);
             _previewImage.IsVisible = _previewImage.Source != null;
             UpdateLivingEmblemPreview();
@@ -707,7 +707,7 @@ public class SpecializedStoreManagerPage : ContentPage
 
 public sealed record SpecializedStoreManagerDefinition(string Title, string Subtitle, IReadOnlyList<StoreProductAssetType> AllowedTypes, bool IsEffect = false, bool IsBundle = false, bool IsTeamColor = false, bool IsLivingEmblem = false)
 {
-    public static SpecializedStoreManagerDefinition Emblems { get; } = new("الشعارات", "نشر شعارات الفرق", new[] { StoreProductAssetType.Emblem });
+    public static SpecializedStoreManagerDefinition Emblems { get; } = new("الشعارات", "نشر شعارات الفرق", new[] { StoreProductAssetType.Emblem, StoreProductAssetType.TeamLivingEmblem });
     public static SpecializedStoreManagerDefinition EmblemBackgrounds { get; } = new("خلفيات الشعارات", "نشر خلفيات هوية شعارات الفرق", new[] { StoreProductAssetType.EmblemBackground });
     public static SpecializedStoreManagerDefinition Effects { get; } = new("التأثيرات", "نشر مؤثرات اللاعب والفريق القابلة للتجهيز", new[] { StoreProductAssetType.Effect, StoreProductAssetType.TeamEffect }, IsEffect: true);
     public static SpecializedStoreManagerDefinition Frames { get; } = new("الإطارات", "نشر إطارات هوية اللاعب", new[] { StoreProductAssetType.Frame });
