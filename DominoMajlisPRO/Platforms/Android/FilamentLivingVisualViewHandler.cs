@@ -11,7 +11,8 @@ public sealed class FilamentLivingVisualViewHandler :
         new PropertyMapper<FilamentLivingVisualView, FilamentLivingVisualViewHandler>(ViewHandler.ViewMapper)
         {
             [nameof(FilamentLivingVisualView.AssetPath)] = MapAssetPath,
-            [nameof(FilamentLivingVisualView.IsPaused)] = MapIsPaused
+            [nameof(FilamentLivingVisualView.IsPaused)] = MapIsPaused,
+            [nameof(FilamentLivingVisualView.LastMotionCommandVersion)] = MapLastMotionCommand
         };
 
     public FilamentLivingVisualViewHandler()
@@ -27,6 +28,7 @@ public sealed class FilamentLivingVisualViewHandler :
         base.ConnectHandler(platformView);
         platformView.SetAssetPath(VirtualView.AssetPath);
         platformView.SetPaused(VirtualView.IsPaused);
+        platformView.SetMotionCommand(VirtualView.LastMotionCommand);
     }
 
     protected override void DisconnectHandler(FilamentRenderSurfaceView platformView)
@@ -35,18 +37,19 @@ public sealed class FilamentLivingVisualViewHandler :
         base.DisconnectHandler(platformView);
     }
 
-    private static void MapAssetPath(
-        FilamentLivingVisualViewHandler handler,
-        FilamentLivingVisualView view)
+    private static void MapAssetPath(FilamentLivingVisualViewHandler handler, FilamentLivingVisualView view)
     {
         handler.PlatformView.SetAssetPath(view.AssetPath);
     }
 
-    private static void MapIsPaused(
-        FilamentLivingVisualViewHandler handler,
-        FilamentLivingVisualView view)
+    private static void MapIsPaused(FilamentLivingVisualViewHandler handler, FilamentLivingVisualView view)
     {
         handler.PlatformView.SetPaused(view.IsPaused);
+    }
+
+    private static void MapLastMotionCommand(FilamentLivingVisualViewHandler handler, FilamentLivingVisualView view)
+    {
+        handler.PlatformView.SetMotionCommand(view.LastMotionCommand);
     }
 }
 #endif
