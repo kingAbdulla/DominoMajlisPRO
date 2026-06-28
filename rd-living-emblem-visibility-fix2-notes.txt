@@ -4,3 +4,4 @@ Current target:
 - Migrate static team emblem slots to LivingVisualHost.
 - Keep ownership scoped to ApplicationUserId + PlayerId + AssetId.
 - Reduce runtime lag by avoiding high-frequency MAUI-to-Android command forwarding.
+- Do not change page layout.
