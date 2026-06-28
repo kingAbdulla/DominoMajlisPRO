@@ -1,6 +1,7 @@
 #if ANDROID
 using Android.Content;
 using Android.Graphics;
+using Android.Opengl;
 using Android.Util;
 using Android.Views;
 using Java.Nio;
@@ -57,6 +58,12 @@ public sealed class FilamentRenderSurfaceView :
 
         EnsureRenderer();
         TryLoadAsset();
+        PostFrame();
+    }
+
+    public void SetMotionCommand(string? command)
+    {
+        _filament.SetMotionCommand(command);
         PostFrame();
     }
 
@@ -182,6 +189,8 @@ public sealed class FilamentRenderSurfaceView :
 
     private sealed class FilamentRenderer : IDisposable
     {
+        private readonly Dictionary<string, RigNode> _rigNodes = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, MotionOverride> _motionOverrides = new(StringComparer.OrdinalIgnoreCase);
         private Engine? _engine;
         private Renderer? _renderer;
         private Scene? _scene;
@@ -202,6 +211,7 @@ public sealed class FilamentRenderSurfaceView :
         private double _targetZ;
         private double _distance = 3.0;
         private bool _firstRenderLogged;
+        private bool _rigLogged;
 
         public bool IsReady =>
             _engine != null &&
@@ -242,6 +252,8 @@ public sealed class FilamentRenderSurfaceView :
 
             DestroyAsset();
             DestroyGltfioLoaders();
+            _rigNodes.Clear();
+            _rigLogged = false;
 
             var entityManager = EntityManager.Get();
             _materialProvider = new UbershaderProvider(_engine!);
@@ -277,8 +289,21 @@ public sealed class FilamentRenderSurfaceView :
                 throw new InvalidOperationException($"GLB loaded with {entityCount} entities but zero renderables.");
 
             ReadAssetBounds();
+            CaptureRigNode("Root");
+            CaptureRigNode("Bone");
+            CaptureRigNode("Jaw");
             _scene!.AddEntities(entities!);
-            Log.Info(LogTag, $"Scene entities added: entities={entityCount}, renderables={renderableCount}.");
+            Log.Info(LogTag, $"Scene entities added: entities={entityCount}, renderables={renderableCount}, rigNodes={_rigNodes.Count}.");
+        }
+
+        public void SetMotionCommand(string? command)
+        {
+            var parsed = MotionOverride.TryParse(command);
+            if (parsed == null)
+                return;
+
+            _motionOverrides[parsed.Target] = parsed;
+            Log.Info(LogTag, $"Motion command accepted: target={parsed.Target}, axis={parsed.Axis}, value={parsed.ValueDegrees:F1}.");
         }
 
         public void Render(long frameTimeNanos, double seconds)
@@ -293,6 +318,7 @@ public sealed class FilamentRenderSurfaceView :
                 _animator.UpdateBoneMatrices();
             }
 
+            ApplyProceduralRig(seconds);
             OrbitCamera(seconds);
             var ok = _renderer!.BeginFrame(_swapChain, frameTimeNanos);
             if (!_firstRenderLogged)
@@ -447,13 +473,100 @@ public sealed class FilamentRenderSurfaceView :
             }
         }
 
+        private void CaptureRigNode(string nodeName)
+        {
+            if (_asset == null || _engine == null)
+                return;
+
+            try
+            {
+                var entity = _asset.GetFirstEntityByName(nodeName);
+                if (entity == 0)
+                {
+                    Log.Warn(LogTag, $"Rig node '{nodeName}' was not found in GLB.");
+                    return;
+                }
+
+                var transformManager = _engine.TransformManager;
+                var instance = transformManager.GetInstance(entity);
+                if (instance == 0)
+                {
+                    Log.Warn(LogTag, $"Rig node '{nodeName}' has no TransformManager component.");
+                    return;
+                }
+
+                var baseTransform = new float[16];
+                transformManager.GetTransform(instance, baseTransform);
+                _rigNodes[nodeName] = new RigNode(nodeName, entity, instance, baseTransform);
+                Log.Info(LogTag, $"Rig node captured: {nodeName}, entity={entity}.");
+            }
+            catch (Java.Lang.Throwable ex)
+            {
+                Log.Warn(LogTag, ex, $"Failed to capture rig node '{nodeName}'.");
+            }
+        }
+
+        private void ApplyProceduralRig(double seconds)
+        {
+            if (_engine == null || _rigNodes.Count == 0)
+                return;
+
+            if (!_rigLogged)
+            {
+                _rigLogged = true;
+                Log.Info(LogTag, $"Runtime rig controller active. Nodes={string.Join(',', _rigNodes.Keys)}.");
+            }
+
+            var headYaw = System.Math.Sin(seconds * 0.75) * 13.0;
+            var headPitch = System.Math.Sin(seconds * 0.43) * 5.5;
+            var jawCycle = System.Math.Max(0, System.Math.Sin(seconds * 1.15));
+            var jawOpen = -6.0 - (jawCycle * 13.0);
+
+            if (_motionOverrides.TryGetValue("Bone", out var headOverride))
+            {
+                if (headOverride.Axis.Equals("Z", StringComparison.OrdinalIgnoreCase))
+                    headYaw = headOverride.ValueDegrees;
+                else
+                    headPitch = headOverride.ValueDegrees;
+            }
+
+            if (_motionOverrides.TryGetValue("Jaw", out var jawOverride))
+                jawOpen = jawOverride.ValueDegrees;
+
+            ApplyRigRotation("Bone", headPitch, headYaw, 0);
+            ApplyRigRotation("Jaw", jawOpen, 0, 0);
+        }
+
+        private void ApplyRigRotation(string nodeName, double degreesX, double degreesY, double degreesZ)
+        {
+            if (_engine == null || !_rigNodes.TryGetValue(nodeName, out var node))
+                return;
+
+            try
+            {
+                var transformManager = _engine.TransformManager;
+                var rotation = new float[16];
+                var result = new float[16];
+                Matrix.SetIdentityM(rotation, 0);
+                Matrix.RotateM(rotation, 0, (float)degreesX, 1, 0, 0);
+                Matrix.RotateM(rotation, 0, (float)degreesY, 0, 1, 0);
+                Matrix.RotateM(rotation, 0, (float)degreesZ, 0, 0, 1);
+                Matrix.MultiplyMM(result, 0, node.BaseTransform, 0, rotation, 0);
+                transformManager.SetTransform(node.Instance, result);
+            }
+            catch (Java.Lang.Throwable ex)
+            {
+                Log.Warn(LogTag, ex, $"Failed to apply rig rotation to '{nodeName}'.");
+            }
+        }
+
         private void OrbitCamera(double seconds)
         {
             if (_camera == null)
                 return;
 
             var aspect = System.Math.Max(0.2, _width / (double)System.Math.Max(1, _height));
-            var angle = seconds * 0.55;
+            var angle = seconds * 0.18;
             var eyeX = _targetX + System.Math.Sin(angle) * _distance;
             var eyeZ = _targetZ + System.Math.Cos(angle) * _distance;
             var eyeY = _targetY + _distance * 0.42;
@@ -489,6 +602,7 @@ public sealed class FilamentRenderSurfaceView :
             _asset.Dispose();
             _asset = null;
             _animator = null;
+            _rigNodes.Clear();
         }
 
         private void DestroyGltfioLoaders()
@@ -505,6 +619,31 @@ public sealed class FilamentRenderSurfaceView :
             _materialProvider?.Destroy();
             _materialProvider?.Dispose();
             _materialProvider = null;
+        }
+
+        private sealed record RigNode(string Name, int Entity, int Instance, float[] BaseTransform);
+
+        private sealed record MotionOverride(string Target, string Axis, double ValueDegrees)
+        {
+            public static MotionOverride? TryParse(string? serialized)
+            {
+                if (string.IsNullOrWhiteSpace(serialized))
+                    return null;
+
+                var parts = serialized.Split('|');
+                if (parts.Length < 5)
+                    return null;
+
+                var target = parts[1].Trim();
+                if (string.IsNullOrWhiteSpace(target))
+                    return null;
+
+                if (!double.TryParse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value))
+                    return null;
+
+                var axis = string.IsNullOrWhiteSpace(parts[4]) ? "X" : parts[4].Trim();
+                return new MotionOverride(target, axis, value);
+            }
         }
     }
 }
