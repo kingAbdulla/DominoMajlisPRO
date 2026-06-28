@@ -1,4 +1,5 @@
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.LivingVisualPlatform.Behavior;
 using DominoMajlisPRO.LivingVisualPlatform.Diagnostics;
 using DominoMajlisPRO.LivingVisualPlatform.Models;
 using DominoMajlisPRO.LivingVisualPlatform.Performance;
@@ -49,10 +50,15 @@ public sealed class LivingVisualHost : ContentView
     private readonly LivingRenderEligibilityResolver _eligibilityResolver;
     private readonly LivingVisualRendererAdapterFactory _adapterFactory = new();
     private readonly LivingVisualPerformanceService _performanceService = new();
+    private readonly LivingBehaviorBrain _behaviorBrain = new();
     private ILivingVisualRendererAdapter? _adapter;
+    private IDispatcherTimer? _behaviorTimer;
+    private LivingVisualAssetManifest? _activeBehaviorManifest;
+    private DateTimeOffset _lastBehaviorTickAt;
     private int _reloadVersion;
     private bool _isLoaded;
     private bool _isDisposed;
+    private bool _isBehaviorTickRunning;
 
     public LivingVisualHost()
     {
@@ -143,6 +149,7 @@ public sealed class LivingVisualHost : ContentView
     public void Pause()
     {
         IsPaused = true;
+        StopBehaviorLoop();
         _adapter?.Pause();
     }
 
@@ -158,6 +165,7 @@ public sealed class LivingVisualHost : ContentView
         _isDisposed = true;
         Loaded -= OnLoaded;
         Unloaded -= OnUnloaded;
+        StopBehaviorLoop();
 
         if (_adapter != null)
         {
@@ -170,6 +178,7 @@ public sealed class LivingVisualHost : ContentView
     {
         if (_isDisposed || !_isLoaded || IsPaused)
         {
+            StopBehaviorLoop();
             SetFallback(StaticFallbackImage);
             return;
         }
@@ -217,6 +226,7 @@ public sealed class LivingVisualHost : ContentView
 
             if (performance.ShouldPause)
             {
+                StopBehaviorLoop();
                 _adapter?.Pause();
                 SetFallback(eligibility.Manifest?.StaticFallbackImage ?? StaticFallbackImage);
                 return;
@@ -224,16 +234,17 @@ public sealed class LivingVisualHost : ContentView
 
             if (eligibility.Manifest == null)
             {
+                StopBehaviorLoop();
                 SetFallback(StaticFallbackImage);
                 return;
             }
 
             SetFallback(eligibility.Manifest.StaticFallbackImage);
-
             await ReplaceAdapterAsync(selectedBackend, eligibility.Manifest, cancellationToken);
         }
         catch (Exception ex)
         {
+            StopBehaviorLoop();
             Diagnostics = new LivingVisualDiagnostics
             {
                 RequestedAssetId = AssetId?.Trim() ?? string.Empty,
@@ -251,11 +262,10 @@ public sealed class LivingVisualHost : ContentView
         }
     }
 
-    private async Task ReplaceAdapterAsync(
-        LivingRendererBackend backend,
-        LivingVisualAssetManifest manifest,
-        CancellationToken cancellationToken)
+    private async Task ReplaceAdapterAsync(LivingRendererBackend backend, LivingVisualAssetManifest manifest, CancellationToken cancellationToken)
     {
+        StopBehaviorLoop();
+
         if (_adapter != null)
         {
             await _adapter.DisposeAsync();
@@ -273,6 +283,58 @@ public sealed class LivingVisualHost : ContentView
             adapter.Resume();
 
         _adapter = adapter;
+
+        if (backend != LivingRendererBackend.StaticFallback && !IsPaused)
+            StartBehaviorLoop(manifest);
+    }
+
+    private void StartBehaviorLoop(LivingVisualAssetManifest manifest)
+    {
+        StopBehaviorLoop();
+        _activeBehaviorManifest = manifest;
+        _behaviorBrain.Reset();
+        _lastBehaviorTickAt = DateTimeOffset.UtcNow;
+
+        var timer = Dispatcher.CreateTimer();
+        timer.Interval = TimeSpan.FromMilliseconds(120);
+        timer.Tick += OnBehaviorTimerTick;
+        _behaviorTimer = timer;
+        timer.Start();
+    }
+
+    private void StopBehaviorLoop()
+    {
+        if (_behaviorTimer != null)
+        {
+            _behaviorTimer.Stop();
+            _behaviorTimer.Tick -= OnBehaviorTimerTick;
+            _behaviorTimer = null;
+        }
+
+        _activeBehaviorManifest = null;
+        _isBehaviorTickRunning = false;
+    }
+
+    private async void OnBehaviorTimerTick(object? sender, EventArgs e)
+    {
+        if (_isBehaviorTickRunning || _adapter == null || _activeBehaviorManifest == null || IsPaused || _isDisposed)
+            return;
+
+        _isBehaviorTickRunning = true;
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            var delta = now - _lastBehaviorTickAt;
+            _lastBehaviorTickAt = now;
+
+            var commands = _behaviorBrain.Tick(_activeBehaviorManifest, delta);
+            foreach (var command in commands)
+                await _adapter.ApplyMotionCommandAsync(command);
+        }
+        finally
+        {
+            _isBehaviorTickRunning = false;
+        }
     }
 
     private void SetFallback(string? imagePath)
@@ -311,6 +373,7 @@ public sealed class LivingVisualHost : ContentView
     private void OnUnloaded(object? sender, EventArgs e)
     {
         _isLoaded = false;
+        StopBehaviorLoop();
         _adapter?.Pause();
     }
 
@@ -326,9 +389,14 @@ public sealed class LivingVisualHost : ContentView
             return;
 
         if (newValue is bool paused && paused)
+        {
+            host.StopBehaviorLoop();
             host._adapter?.Pause();
+        }
         else
+        {
             host._adapter?.Resume();
+        }
 
         host.QueueReload();
     }
