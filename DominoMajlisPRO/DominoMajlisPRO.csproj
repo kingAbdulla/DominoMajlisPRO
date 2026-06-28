@@ -47,10 +47,10 @@
 
 		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
 
-		<MauiImage Include="Resources\Images\**\*.png" />
-		<MauiImage Include="Resources\Images\**\*.jpg" />
-		<MauiImage Include="Resources\Images\**\*.jpeg" />
-		<MauiImage Include="Resources\Images\**\*.webp" />
+		<MauiImage Include="Resources\Images\**\*.png" Exclude="Resources\Images\DragonProduction\**\*.png" />
+		<MauiImage Include="Resources\Images\**\*.jpg" Exclude="Resources\Images\DragonProduction\**\*.jpg" />
+		<MauiImage Include="Resources\Images\**\*.jpeg" Exclude="Resources\Images\DragonProduction\**\*.jpeg" />
+		<MauiImage Include="Resources\Images\**\*.webp" Exclude="Resources\Images\DragonProduction\**\*.webp" />
 
 		<MauiImage Include="GalleryEngine\Assets\Backgrounds\**\*.png" />
 		<MauiImage Include="GalleryEngine\Assets\Characters\**\*.png" />
@@ -63,6 +63,12 @@
 		<MauiFont Include="Resources\Fonts\*" />
 
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="Resources\Images\DragonProduction\**\*.cs" />
+		<None Remove="Resources\Images\DragonProduction\**\*" />
+		<Content Remove="Resources\Images\DragonProduction\**\*" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -184,8 +190,3 @@
 	</ItemGroup>
 
 </Project>
-
-
-
-
-
