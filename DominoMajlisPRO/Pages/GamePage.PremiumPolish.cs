@@ -1,3 +1,4 @@
+using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 
@@ -27,12 +28,12 @@ public partial class GamePage
 
         Team1Card.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(BackgroundColor))
+            if (args.PropertyName == "BackgroundColor")
                 CorrectTeamCardBackgrounds();
         };
         Team2Card.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(BackgroundColor))
+            if (args.PropertyName == "BackgroundColor")
                 CorrectTeamCardBackgrounds();
         };
 
@@ -99,7 +100,11 @@ public partial class GamePage
 
     static void ApplyRankBar(TeamProfileModel? team, Label currentLabel, Label nextLabel, ProgressBar bar, Label percentLabel)
     {
-        var rank = ResolveRank(team?.XP ?? team?.SeasonXP ?? 0);
+        var xp = team?.XP ?? 0;
+        if (xp <= 0 && team != null)
+            xp = team.SeasonXP;
+
+        var rank = ResolveRank(xp);
         currentLabel.Text = $"{rank.CurrentIcon} {rank.CurrentLevel}";
         nextLabel.Text = $"{rank.NextIcon} {rank.NextLevel}";
         bar.Progress = rank.Progress;
