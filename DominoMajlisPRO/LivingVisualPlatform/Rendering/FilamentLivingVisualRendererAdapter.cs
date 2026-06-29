@@ -53,7 +53,7 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
             IsPaused = _isPaused,
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill,
-            BackgroundColor = Colors.Black,
+            BackgroundColor = Colors.Transparent,
             InputTransparent = true
         };
 
@@ -61,7 +61,7 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
         {
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill,
-            BackgroundColor = Colors.Black,
+            BackgroundColor = Colors.Transparent,
             InputTransparent = false
         };
         hostGrid.Children.Add(_surface);
