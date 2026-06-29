@@ -6,8 +6,6 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class PlayerEffectEngine
 {
-    const string DefaultLegacyEffectImage = "fire_gold.png";
-
     public static void Apply(
         Image overlay,
         CatalogAssetDisplay? effect,
@@ -56,9 +54,7 @@ public static class PlayerEffectEngine
             effect.DurationMilliseconds,
             effect.CustomPrimaryColorHex,
             effect.CustomSecondaryColorHex,
-            ShouldUseLegacyImage(effect, key)
-                ? ResolveLegacyImagePath(effect)
-                : string.Empty);
+            ResolveLegacyImagePath(effect));
     }
 
     public static EffectRenderProfile CreateRenderProfile(EffectDefinitionModel definition)
@@ -219,19 +215,11 @@ public static class PlayerEffectEngine
         };
     }
 
-    static bool ShouldUseLegacyImage(CatalogAssetDisplay effect, string key)
-    {
-        if (key.Contains("legacy") || key.Contains("png"))
-            return true;
-
-        return !string.IsNullOrWhiteSpace(effect.PreviewImage) &&
-               (key.Contains("sprite") || key.Contains("image"));
-    }
-
+    // The effect image is optional and developer-owned. When the developer
+    // attaches a PreviewImage it is used as-is; otherwise the effect stays
+    // fully procedural. No emblem/shield/default image is ever substituted.
     static string ResolveLegacyImagePath(CatalogAssetDisplay effect) =>
-        string.IsNullOrWhiteSpace(effect.PreviewImage)
-            ? DefaultLegacyEffectImage
-            : effect.PreviewImage;
+        effect.PreviewImage?.Trim() ?? string.Empty;
 
     static double ResolvePremiumDefaultScale(double baseScale, EffectPresetCatalogItem effectPreset)
     {

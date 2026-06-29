@@ -751,24 +751,32 @@ internal sealed class StoreProductActionSheet : Grid
             return;
         }
 
-        // ── Non-TeamEffect path: existing IdentityEffectRenderer (unchanged) ──
+        // ── Player avatar Effect path: same renderer contract as store card and
+        // runtime. Developer image is shown as-is when provided; otherwise the
+        // procedural effect only. No emblem/shield substitute for player effects.
         MainThread.BeginInvokeOnMainThread(() =>
         {
             if (!IsVisible || !IsEffectPreviewKind(_previewKind))
                 return;
-            var emblem = new Image
-            {
-                Source = InventoryDisplayResolver.ResolveImageSource(
-                    string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
-                    "shield_3d.png"),
-                WidthRequest = 126,
-                HeightRequest = 126,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center
-            };
+
             var layers = new Grid();
-            layers.Children.Add(IdentityEffectRenderer.Create(asset, 1.24));
-            layers.Children.Add(emblem);
+            var providedImage =
+                InventoryDisplayResolver.ResolveOptionalImageSource(asset.PreviewImage);
+            if (providedImage != null)
+            {
+                layers.Children.Add(new Image
+                {
+                    Source = providedImage,
+                    WidthRequest = 126,
+                    HeightRequest = 126,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center
+                });
+            }
+            else
+            {
+                layers.Children.Add(IdentityEffectRenderer.Create(asset, 1.24));
+            }
             _previewSurface.Content = layers;
         });
     }

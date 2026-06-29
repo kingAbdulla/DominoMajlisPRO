@@ -238,15 +238,14 @@ public class PremiumGalleryCard : ContentView
                 !isLivingEmblem)
                 return;
 
-            _image.Source = InventoryDisplayResolver.ResolveImageSource(
-                string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
-                "shield_3d.png");
-            _image.WidthRequest = 72;
-            _image.HeightRequest = 72;
-
             if (asset.AssetType == StoreProductAssetType.TeamEffect ||
                 isLivingEmblem)
             {
+                _image.Source = InventoryDisplayResolver.ResolveImageSource(
+                    string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
+                    "shield_3d.png");
+                _image.WidthRequest = 72;
+                _image.HeightRequest = 72;
                 _image.IsVisible = false;
                 _livingVisualHost = new LivingVisualHost
                 {
@@ -268,6 +267,20 @@ public class PremiumGalleryCard : ContentView
                 return;
             }
 
+            // Player avatar effect: show the developer image if one was attached,
+            // otherwise the procedural effect only. Never a team emblem / shield.
+            var providedImage =
+                InventoryDisplayResolver.ResolveOptionalImageSource(asset.PreviewImage);
+            if (providedImage != null)
+            {
+                _image.Source = providedImage;
+                _image.WidthRequest = 90;
+                _image.HeightRequest = 90;
+                _image.IsVisible = true;
+                return;
+            }
+
+            _image.IsVisible = false;
             _effectView = IdentityEffectRenderer.Create(asset, 1.22, lightweight: true);
             _effectView.WidthRequest = 100;
             _effectView.HeightRequest = 100;

@@ -57,6 +57,7 @@ public sealed class EffectsStudioPreviewView : ContentView
     };
 
     IdentityEffectView? _runtimeEffectView;
+    Image? _imageEffectView;
 
     public EffectsStudioPreviewView()
     {
@@ -135,6 +136,28 @@ public sealed class EffectsStudioPreviewView : ContentView
         _previewGrid.WidthRequest = contract.HostSize;
         _previewGrid.HeightRequest = contract.HostSize;
 
+        // Developer attached an image: preview it as-is — same contract as store
+        // card and runtime. Otherwise render the procedural effect only.
+        var providedImage =
+            InventoryDisplayResolver.ResolveOptionalImageSource(effect.PreviewImage);
+        if (providedImage != null)
+        {
+            _imageEffectView = new Image
+            {
+                Source = providedImage,
+                Aspect = Aspect.AspectFit,
+                WidthRequest = contract.HostSize,
+                HeightRequest = contract.HostSize,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                InputTransparent = true,
+                ZIndex = 2
+            };
+            _avatarFrame.ZIndex = 1;
+            _previewGrid.Add(_imageEffectView);
+            return;
+        }
+
         _runtimeEffectView = IdentityEffectRenderer.Create(effect, contract.BaseScale, contract.Lightweight);
         _runtimeEffectView.WidthRequest = contract.HostSize;
         _runtimeEffectView.HeightRequest = contract.HostSize;
@@ -158,6 +181,12 @@ public sealed class EffectsStudioPreviewView : ContentView
 
     void ClearEffectViewOnly()
     {
+        if (_imageEffectView != null)
+        {
+            _previewGrid.Children.Remove(_imageEffectView);
+            _imageEffectView = null;
+        }
+
         if (_runtimeEffectView == null)
             return;
 

@@ -249,16 +249,24 @@ internal sealed class StoreProductPreviewOverlay : Grid
             return PreviewCard(host, accent);
         }
 
-        image.Source = InventoryDisplayResolver.ResolveImageSource(
-            string.IsNullOrWhiteSpace(effect.PreviewImage) ? "shield_3d.png" : effect.PreviewImage,
-            "shield_3d.png");
-        image.WidthRequest = 190;
-        image.HeightRequest = 190;
-        image.HorizontalOptions = LayoutOptions.Center;
-        image.VerticalOptions = LayoutOptions.Center;
+        // Player avatar effect: show the developer image as-is when provided,
+        // otherwise the procedural effect only. Never an emblem/shield substitute.
         var layers = new Grid();
-        layers.Children.Add(IdentityEffectRenderer.Create(effect, 1.28));
-        layers.Children.Add(image);
+        var providedImage =
+            InventoryDisplayResolver.ResolveOptionalImageSource(effect.PreviewImage);
+        if (providedImage != null)
+        {
+            image.Source = providedImage;
+            image.WidthRequest = 190;
+            image.HeightRequest = 190;
+            image.HorizontalOptions = LayoutOptions.Center;
+            image.VerticalOptions = LayoutOptions.Center;
+            layers.Children.Add(image);
+        }
+        else
+        {
+            layers.Children.Add(IdentityEffectRenderer.Create(effect, 1.28));
+        }
         return PreviewCard(layers, accent);
     }
 

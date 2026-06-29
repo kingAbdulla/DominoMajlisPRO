@@ -146,15 +146,14 @@ public class SpecializedStoreManagerPage : ContentPage
         modeGrid.Add(_modeDot, 0); modeGrid.Add(new VerticalStackLayout { Spacing = 1, Children = { _modeTitle, _modeSubtitle } }, 1);
         _modeCard.Content = modeGrid;
 
-        var imageRow = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10 };
-        imageRow.Add(_imageEntry, 0);
-        var pickImage = new Button { Text = _definition.IsBundle ? "اختيار أيقونة" : "اختيار صورة" };
-        pickImage.Clicked += OnPickImageClicked;
-        imageRow.Add(pickImage, 1);
-
         var form = new VerticalStackLayout { Spacing = 10, Children = { _titleEntry, _descriptionEditor } };
         if (!_definition.IsEffect)
         {
+            var imageRow = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10 };
+            imageRow.Add(_imageEntry, 0);
+            var pickImage = new Button { Text = _definition.IsBundle ? "اختيار أيقونة" : "اختيار صورة" };
+            pickImage.Clicked += OnPickImageClicked;
+            imageRow.Add(pickImage, 1);
             form.Children.Add(imageRow);
             form.Children.Add(_previewImage);
             if (_definition.IsLivingEmblem)
@@ -178,6 +177,14 @@ public class SpecializedStoreManagerPage : ContentPage
             form.Children.Add(_secondaryEffectColorPicker);
             form.Children.Add(_customPrimaryColorEntry);
             form.Children.Add(_customSecondaryColorEntry);
+            form.Children.Add(new Label { Text = "صورة التأثير (اختياري)", TextColor = Color.FromArgb("#D4AF37"), FontSize = 12, HorizontalTextAlignment = TextAlignment.End });
+            var effectImageRow = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10 };
+            effectImageRow.Add(_imageEntry, 0);
+            var pickEffectImage = new Button { Text = "اختيار صورة التأثير" };
+            pickEffectImage.Clicked += OnPickImageClicked;
+            effectImageRow.Add(pickEffectImage, 1);
+            form.Children.Add(effectImageRow);
+            form.Children.Add(_previewImage);
             form.Children.Add(_layerBuilder);
             form.Children.Add(_effectLayersEditor);
             form.Children.Add(_opacitySlider);
@@ -355,6 +362,7 @@ public class SpecializedStoreManagerPage : ContentPage
                 _imageEntry.Text);
         _previewImage.IsVisible = _previewImage.Source != null;
         UpdateLivingEmblemPreview();
+        UpdateEffectsPreview();
     }
 
     private async Task SaveDraftAsync()

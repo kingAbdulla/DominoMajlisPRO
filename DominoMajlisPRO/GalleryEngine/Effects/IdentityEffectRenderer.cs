@@ -625,11 +625,28 @@ public static class IdentityEffectRenderer
             return;
         }
 
+        var profile = IdentityEffectRenderProfile.From(effect, baseScale);
+
+        // Developer attached an image: show it as-is on the slot, no procedural
+        // overlay, never an emblem/shield/default substitute.
+        if (profile.UseLegacyImage)
+        {
+            var providedImage =
+                InventoryDisplayResolver.ResolveOptionalImageSource(profile.LegacyImagePath);
+            if (providedImage != null)
+            {
+                DetachView(slot);
+                slot.Source = providedImage;
+                slot.IsVisible = true;
+                return;
+            }
+        }
+
         var holder = Views.GetOrCreateValue(slot);
         if (TryAttach(slot, holder, 1.28, out var view))
         {
             view.ZIndex = Math.Max(slot.ZIndex + 1, 2);
-            view.SetEffect(IdentityEffectRenderProfile.From(effect, baseScale), baseScale, lightweight);
+            view.SetEffect(profile, baseScale, lightweight);
             slot.IsVisible = false;
         }
         else if (holder.LoadedHandler == null)
@@ -640,6 +657,12 @@ public static class IdentityEffectRenderer
     }
 
     public static void Clear(Image slot)
+    {
+        DetachView(slot);
+        slot.IsVisible = false;
+    }
+
+    private static void DetachView(Image slot)
     {
         if (!Views.TryGetValue(slot, out var holder))
             return;
@@ -652,7 +675,6 @@ public static class IdentityEffectRenderer
         if (holder.View?.Parent is Layout layout)
             layout.Children.Remove(holder.View);
         holder.View = null;
-        slot.IsVisible = false;
     }
 
     public static IdentityEffectView Create(CatalogAssetDisplay effect, double baseScale = 1.18, bool lightweight = false)
