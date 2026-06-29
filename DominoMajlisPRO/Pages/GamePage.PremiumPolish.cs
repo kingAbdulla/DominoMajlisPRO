@@ -1,4 +1,5 @@
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -9,6 +10,7 @@ public partial class GamePage
 {
     bool premiumPolishApplied;
     bool suppressTeamBackgroundCorrection;
+    bool premiumMatchRewardsGranted;
 
     async void OnGamePagePremiumLoaded(object? sender, EventArgs e)
     {
@@ -23,6 +25,7 @@ public partial class GamePage
 
         premiumPolishApplied = true;
         HideMatchHonorBadges();
+        ApplyStableSelectionSizing();
 
         Team1SpecialHonorIcon.PropertyChanged += (_, args) =>
         {
@@ -39,11 +42,25 @@ public partial class GamePage
         {
             if (args.PropertyName == "BackgroundColor")
                 CorrectTeamCardBackgrounds();
+            if (args.PropertyName == nameof(Scale))
+                ApplyStableSelectionSizing();
         };
         Team2Card.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == "BackgroundColor")
                 CorrectTeamCardBackgrounds();
+            if (args.PropertyName == nameof(Scale))
+                ApplyStableSelectionSizing();
+        };
+        Team1Emblem.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(Scale))
+                ApplyStableSelectionSizing();
+        };
+        Team2Emblem.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(Scale))
+                ApplyStableSelectionSizing();
         };
 
         RoundsContainer.ChildAdded += (_, args) =>
@@ -52,9 +69,19 @@ public partial class GamePage
                 ApplyPremiumRoundRowStyle(view);
         };
 
+        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(450), () =>
+        {
+            ApplyStableSelectionSizing();
+            CorrectTeamCardBackgrounds();
+            _ = TryGrantPremiumMatchRewardsAsync();
+            return !HandlerDisconnected();
+        });
+
         CorrectTeamCardBackgrounds();
         ApplyPremiumRoundsContainerStyle();
     }
+
+    bool HandlerDisconnected() => Handler == null;
 
     void HideMatchHonorBadges()
     {
@@ -68,6 +95,20 @@ public partial class GamePage
         Team2SpecialHonorIcon.HeightRequest = 0;
     }
 
+    void ApplyStableSelectionSizing()
+    {
+        Team1Card.Scale = 1.0;
+        Team2Card.Scale = 1.0;
+        Team1Emblem.Scale = 1.0;
+        Team2Emblem.Scale = 1.0;
+        Team1Emblem.WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 68 : 76;
+        Team1Emblem.HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 68 : 76;
+        Team2Emblem.WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 68 : 76;
+        Team2Emblem.HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 68 : 76;
+        Team1Players.FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 9 : 11;
+        Team2Players.FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 9 : 11;
+    }
+
     void CorrectTeamCardBackgrounds()
     {
         if (suppressTeamBackgroundCorrection)
@@ -76,8 +117,8 @@ public partial class GamePage
         suppressTeamBackgroundCorrection = true;
         try
         {
-            Team1Card.BackgroundColor = ResolvePremiumTeamBackground(team1Identity, team1Profile);
-            Team2Card.BackgroundColor = ResolvePremiumTeamBackground(team2Identity, team2Profile);
+            Team1Card.BackgroundColor = ResolvePremiumTeamBackground(team1Identity, team1Profile, selectedTeam == 1);
+            Team2Card.BackgroundColor = ResolvePremiumTeamBackground(team2Identity, team2Profile, selectedTeam == 2);
             Team1Score.TextColor = selectedTeam == 1 ? Color.FromArgb("#D4AF37") : Color.FromArgb("#FFFFFF");
             Team2Score.TextColor = selectedTeam == 2 ? Color.FromArgb("#D4AF37") : Color.FromArgb("#FFFFFF");
             Team1Name.TextColor = selectedTeam == 1 ? Color.FromArgb("#D4AF37") : Color.FromArgb("#FFFFFF");
@@ -89,7 +130,7 @@ public partial class GamePage
         }
     }
 
-    static Color ResolvePremiumTeamBackground(TeamIdentityModel? identity, TeamProfileModel? profile)
+    static Color ResolvePremiumTeamBackground(TeamIdentityModel? identity, TeamProfileModel? profile, bool selected)
     {
         var hex = identity?.TeamColorHex;
         if (string.IsNullOrWhiteSpace(hex))
@@ -100,12 +141,13 @@ public partial class GamePage
             try
             {
                 var color = Color.FromArgb(hex);
-                return new Color(color.Red, color.Green, color.Blue, 0.13f);
+                var alpha = selected ? 0.18f : 0.09f;
+                return new Color(color.Red, color.Green, color.Blue, alpha);
             }
             catch { }
         }
 
-        return Colors.Transparent;
+        return selected ? Color.FromArgb("#15110A") : Colors.Transparent;
     }
 
     async Task RefreshPremiumRankBarsAsync()
@@ -137,6 +179,38 @@ public partial class GamePage
         nextLabel.Text = $"{rank.NextIcon} {rank.NextLevel}";
         bar.Progress = rank.Progress;
         percentLabel.Text = $"{rank.Progress * 100:0}%";
+    }
+
+    async Task TryGrantPremiumMatchRewardsAsync()
+    {
+        if (premiumMatchRewardsGranted || !matchSaved || !gameFinished || !currentMatch.IsFinished)
+            return;
+
+        var winnerTeamId = currentMatch.WinnerTeamId;
+        if (string.IsNullOrWhiteSpace(winnerTeamId))
+            return;
+
+        var winnerProfile = string.Equals(winnerTeamId, currentMatch.Team1Id, StringComparison.OrdinalIgnoreCase)
+            ? team1Profile
+            : team2Profile;
+        if (winnerProfile == null)
+            return;
+
+        premiumMatchRewardsGranted = true;
+        var teamCoins = currentMatch.HasMeles ? 100 : 50;
+        var playerCoins = teamCoins / 2;
+        var creditedPlayers = new[] { winnerProfile.Player1Id, winnerProfile.Player2Id }
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var playerId in creditedPlayers)
+        {
+            await PlayerWalletService.CreditAsync(playerId, playerCoins, 0);
+            AppEvents.RaiseStoreEconomyChanged(playerId);
+        }
+
+        AppEvents.RaiseDataChanged();
     }
 
     void ApplyPremiumRoundsContainerStyle()
