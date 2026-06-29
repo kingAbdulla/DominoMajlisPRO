@@ -6,6 +6,7 @@ namespace DominoMajlisPRO.LivingVisualPlatform.Services;
 public static class LivingEmblemPackagePaths
 {
     public const string DefaultProductionPackagePath = "LivingEmblems/production_default";
+    public const string TManSkeletonRuntimeGlbPath = "LivingEmblems/t_man/character.glb";
     public const string ManifestFileName = "manifest.json";
 
     public static string Combine(string root, string relativePath)
@@ -45,6 +46,9 @@ public sealed class LivingEmblemPackageLoader
             result.Diagnostics.Add(Error("PackagePathMissing", "Package path is required."));
             return result;
         }
+
+        if (string.Equals(root, LivingEmblemPackagePaths.TManSkeletonRuntimeGlbPath, StringComparison.OrdinalIgnoreCase))
+            return await LoadTManSkeletonRuntimeAssetAsync(root, result, cancellationToken);
 
         if (root.EndsWith(".glb", StringComparison.OrdinalIgnoreCase) ||
             root.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase))
@@ -96,6 +100,49 @@ public sealed class LivingEmblemPackageLoader
             result.Diagnostics.Add(Info("PackageValid", $"Package '{manifest.PackageId}' is valid."));
         }
 
+        return result;
+    }
+
+    private static async Task<LivingEmblemPackageImportResult> LoadTManSkeletonRuntimeAssetAsync(
+        string glbPath,
+        LivingEmblemPackageImportResult result,
+        CancellationToken cancellationToken)
+    {
+        await RequireAssetAsync(glbPath, "GLB", result, cancellationToken);
+        if (!result.IsValid)
+            return result;
+
+        var manifest = new LivingEmblemPackageManifest
+        {
+            SchemaVersion = "1.0",
+            PackageId = "living-skeleton-runtime-t-man",
+            AssetId = StoreCatalogLivingVisualManifestProvider.TManSkeletonRuntimeAssetId,
+            DisplayName = "Living Skeleton Runtime T-Man",
+            Version = "0.1.0",
+            Backend = LivingRendererBackend.Filament.ToString(),
+            GLB = "character.glb",
+            Thumbnail = string.Empty,
+            Fallback = string.Empty,
+            Behavior = string.Empty,
+            Metadata = string.Empty,
+            CameraPreset = "AutoBounds",
+            LightingPreset = "DeveloperPreview"
+        };
+
+        result.Package = new LivingEmblemPackage
+        {
+            PackageRootPath = "LivingEmblems/t_man",
+            ManifestPath = string.Empty,
+            Manifest = manifest,
+            Metadata = new LivingEmblemMetadata { ArtStatus = "R&D procedural skeleton runtime validation asset" },
+            Behavior = new LivingEmblemBehaviorProfile { ProfileId = "procedural-skeleton-runtime-poc" },
+            ResolvedGlbPath = glbPath,
+            ResolvedThumbnailPath = string.Empty,
+            ResolvedFallbackPath = string.Empty,
+            ResolvedBehaviorPath = string.Empty,
+            ResolvedMetadataPath = string.Empty
+        };
+        result.Diagnostics.Add(Info("SkeletonRuntimeValidationAsset", $"R&D skeleton runtime asset '{glbPath}' is valid."));
         return result;
     }
 

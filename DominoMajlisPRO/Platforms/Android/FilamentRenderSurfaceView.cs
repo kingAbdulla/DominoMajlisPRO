@@ -8,6 +8,7 @@ using Java.Nio;
 using Com.Google.Android.Filament;
 using Com.Google.Android.Filament.Gltfio;
 using Com.Google.Android.Filament.Utils;
+using DominoMajlisPRO.LivingVisualPlatform.Skeleton;
 using Engine = Com.Google.Android.Filament.Engine;
 using FCamera = Com.Google.Android.Filament.Camera;
 using FView = Com.Google.Android.Filament.View;
@@ -230,6 +231,10 @@ public sealed class FilamentRenderSurfaceView :
         private double _nextBehaviorLogSeconds;
         private readonly LivingBehaviorController _livingBehavior = new();
         private readonly LivingEffectController _livingEffects = new();
+        private readonly LivingSkeletonBoneMapping _skeletonMapping = new();
+        private readonly LivingProceduralSkeletonController _skeletonController = new();
+        private bool _proceduralSkeletonRuntimeEnabled;
+        private bool _skeletonDiagnosticsLogged;
 
         public bool IsReady =>
             _engine != null &&
@@ -275,7 +280,11 @@ public sealed class FilamentRenderSurfaceView :
             _nextBehaviorLogSeconds = 0;
             _livingBehavior.Reset();
             _livingEffects.Reset();
-            Log.Info(LogTag, $"Living behavior state controller reset asset='{assetPath}', freezeBonesForArtifactTest={LivingPreviewFreezeBonesForArtifactTest}.");
+            _skeletonController.Reset();
+            _skeletonMapping.Clear();
+            _skeletonDiagnosticsLogged = false;
+            _proceduralSkeletonRuntimeEnabled = IsTManSkeletonValidationAsset(assetPath);
+            Log.Info(LogTag, $"Living behavior state controller reset asset='{assetPath}', freezeBonesForArtifactTest={LivingPreviewFreezeBonesForArtifactTest}, skeletonRuntime={_proceduralSkeletonRuntimeEnabled}.");
 
             var entityManager = EntityManager.Get();
             _materialProvider = new UbershaderProvider(_engine!);
@@ -311,9 +320,7 @@ public sealed class FilamentRenderSurfaceView :
                 throw new InvalidOperationException($"GLB loaded with {entityCount} entities but zero renderables.");
 
             ReadAssetBounds();
-            CaptureRigNode("Root");
-            CaptureRigNode("Bone");
-            CaptureRigNode("Jaw");
+            CaptureSkeletonRigNodes(entities);
             LogAssetRenderDiagnostics(entities, entityCount, renderableCount);
             _scene!.AddEntities(entities!);
             Log.Info(LogTag, $"Scene entities added: entities={entityCount}, renderables={renderableCount}, rigNodes={_rigNodes.Count}.");
@@ -718,12 +725,103 @@ public sealed class FilamentRenderSurfaceView :
             return method?.Invoke(target, null);
         }
 
-        private void CaptureRigNode(string nodeName)
+        private void CaptureSkeletonRigNodes(int[]? entities)
+        {
+            CaptureNamedRigNodesFromEntities(entities);
+            CaptureRigNode("Root");
+            CaptureRigNode("Bone");
+            CaptureRigNode("Jaw");
+            CaptureAliasMappedBones();
+            LogSkeletonDiagnostics();
+        }
+
+        private void CaptureNamedRigNodesFromEntities(int[]? entities)
+        {
+            if (entities == null || entities.Length == 0 || _engine == null)
+                return;
+
+            foreach (var entity in entities)
+            {
+                var name = TryGetEntityName(entity);
+                if (string.IsNullOrWhiteSpace(name))
+                    continue;
+
+                var transformManager = _engine.TransformManager;
+                var instance = transformManager.GetInstance(entity);
+                if (instance == 0)
+                    continue;
+
+                var role = LivingSkeletonBoneAliasMap.ResolveRole(name);
+                if (role != LivingSkeletonBoneRole.Unknown)
+                    CaptureRigNode(name);
+
+                _skeletonMapping.AddBone(name);
+            }
+        }
+
+        private void CaptureAliasMappedBones()
+        {
+            foreach (LivingSkeletonBoneRole role in Enum.GetValues(typeof(LivingSkeletonBoneRole)))
+            {
+                if (role == LivingSkeletonBoneRole.Unknown || _skeletonMapping.PrimaryBones.ContainsKey(role))
+                    continue;
+
+                foreach (var alias in LivingSkeletonBoneAliasMap.GetAliases(role))
+                {
+                    if (!CaptureRigNode(alias))
+                        continue;
+
+                    _skeletonMapping.AddBone(alias);
+                    break;
+                }
+            }
+        }
+
+        private void LogSkeletonDiagnostics()
+        {
+            if (_skeletonDiagnosticsLogged)
+                return;
+
+            _skeletonDiagnosticsLogged = true;
+            Log.Info(
+                LogTag,
+                "Living Skeleton diagnostics: " +
+                $"detected={_skeletonMapping.SkeletonDetected} " +
+                $"boneCount={_skeletonMapping.BoneCount} " +
+                $"mapped=[{_skeletonMapping.FormatMappedBones()}] " +
+                $"missing=[{_skeletonMapping.FormatMissingBones()}] " +
+                $"unknown=[{_skeletonMapping.FormatUnknownBones()}].");
+
+            Log.Info(
+                LogTag,
+                "Living Skeleton hierarchy diagnostics: parent hierarchy is unavailable through this Filament binding; " +
+                "bone names and transform instances are logged for resolver validation.");
+        }
+
+        private string TryGetEntityName(int entity)
+        {
+            if (_asset == null)
+                return string.Empty;
+
+            try
+            {
+                var getName = _asset.GetType().GetMethod("GetName", new[] { typeof(int) });
+                var getNameByEntity = _asset.GetType().GetMethod("GetNameByEntity", new[] { typeof(int) });
+                var method = getName ?? getNameByEntity;
+                return method?.Invoke(_asset, new object[] { entity }) as string ?? string.Empty;
+            }
+            catch (System.Exception)
+            {
+                return string.Empty;
+            }
+        }
+
+        private bool CaptureRigNode(string nodeName)
         {
             if (_asset == null || _engine == null)
             {
                 Log.Warn(LogTag, $"Rig discovery: {nodeName} found=false entity=0 transformInstance=0 reason=asset-or-engine-missing.");
-                return;
+                return false;
             }
 
             try
@@ -732,7 +830,7 @@ public sealed class FilamentRenderSurfaceView :
                 if (entity == 0)
                 {
                     Log.Warn(LogTag, $"Rig discovery: {nodeName} found=false entity=0 transformInstance=0 reason=node-not-found.");
-                    return;
+                    return false;
                 }
 
                 var transformManager = _engine.TransformManager;
@@ -740,17 +838,19 @@ public sealed class FilamentRenderSurfaceView :
                 if (instance == 0)
                 {
                     Log.Warn(LogTag, $"Rig discovery: {nodeName} found=false entity={entity} transformInstance=0 reason=no-transform-component.");
-                    return;
+                    return false;
                 }
 
                 var baseTransform = new float[16];
                 transformManager.GetTransform(instance, baseTransform);
                 _rigNodes[nodeName] = new RigNode(nodeName, entity, instance, baseTransform);
                 Log.Info(LogTag, $"Rig discovery: {nodeName} found=true entity={entity} transformInstance={instance}.");
+                return true;
             }
             catch (Java.Lang.Throwable ex)
             {
                 Log.Warn(LogTag, ex, $"Rig discovery: {nodeName} found=false entity=unknown transformInstance=unknown reason=exception.");
+                return false;
             }
         }
 
@@ -786,6 +886,7 @@ public sealed class FilamentRenderSurfaceView :
 
             var boneApplied = ApplyRigRotation("Bone", headPitch, headYaw, headTilt);
             var jawApplied = ApplyRigRotation("Jaw", jawOpen, 0, 0);
+            var skeletonApplied = ApplyProceduralSkeletonRuntime(seconds);
             var boneMatricesUpdated = UpdateSkinningBoneMatrices();
             ApplyLivingEffects(pose, seconds);
 
@@ -798,7 +899,7 @@ public sealed class FilamentRenderSurfaceView :
                     $"state={pose.StateName} freezeBones={LivingPreviewFreezeBonesForArtifactTest} " +
                     $"boneYaw={headYaw:F1} bonePitch={headPitch:F1} jawAngle={jawOpen:F1} " +
                     $"boneFound={_rigNodes.ContainsKey("Bone")} jawFound={_rigNodes.ContainsKey("Jaw")} " +
-                    $"boneApplied={boneApplied} jawApplied={jawApplied} skinningMatricesUpdated={boneMatricesUpdated}.");
+                    $"boneApplied={boneApplied} jawApplied={jawApplied} skeletonRuntime={_proceduralSkeletonRuntimeEnabled} skeletonApplied={skeletonApplied} skinningMatricesUpdated={boneMatricesUpdated}.");
 
                 if ((boneApplied || jawApplied) && !boneMatricesUpdated)
                 {
@@ -808,6 +909,42 @@ public sealed class FilamentRenderSurfaceView :
                         "If the mesh remains visually static, this GLB may require a Filament skinning/bone-matrix API path beyond node transforms.");
                 }
             }
+        }
+
+        private bool ApplyProceduralSkeletonRuntime(double seconds)
+        {
+            if (!_proceduralSkeletonRuntimeEnabled ||
+                LivingPreviewFreezeBonesForArtifactTest ||
+                !_skeletonMapping.SkeletonDetected)
+            {
+                return false;
+            }
+
+            var pose = _skeletonController.Update(seconds, _skeletonMapping);
+            var applied = false;
+            foreach (var rotation in pose.Rotations)
+            {
+                if (!_skeletonMapping.TryGetBone(rotation.Role, out var boneName))
+                    continue;
+
+                applied |= ApplyRigRotation(
+                    boneName,
+                    rotation.PitchDegrees,
+                    rotation.YawDegrees,
+                    rotation.RollDegrees);
+            }
+
+            if (seconds >= _nextBehaviorLogSeconds - 0.1)
+            {
+                Log.Info(
+                    LogTag,
+                    $"Living Skeleton runtime tick state={pose.StateName} applied={applied} " +
+                    $"headMapped={_skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.Head)} " +
+                    $"neckMapped={_skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.Neck)} " +
+                    $"chestMapped={_skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.Chest) || _skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.Spine)}.");
+            }
+
+            return applied;
         }
 
         private bool ApplyRigRotation(string nodeName, double degreesX, double degreesY, double degreesZ)
@@ -945,8 +1082,11 @@ public sealed class FilamentRenderSurfaceView :
             _materialProvider = null;
         }
 
-        private static bool IsProductionPreviewAsset(string assetPath) =>
-            assetPath.Contains("production_default", StringComparison.OrdinalIgnoreCase);
+        private static bool IsTManSkeletonValidationAsset(string assetPath)
+        {
+            var normalized = assetPath.Replace('\\', '/');
+            return normalized.Contains("LivingEmblems/t_man/character.glb", StringComparison.OrdinalIgnoreCase);
+        }
 
         private sealed class RigNode
         {

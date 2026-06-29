@@ -10,6 +10,7 @@ namespace DominoMajlisPRO.LivingVisualPlatform.Services;
 public sealed class StoreCatalogLivingVisualManifestProvider : ILivingVisualManifestProvider
 {
     private const string ProductionDefaultAssetId = "team-emblem-living-production-default";
+    public const string TManSkeletonRuntimeAssetId = "living-skeleton-runtime-t-man-poc";
     private const string LegacyLivingFilamentBackendProbeAssetId = "team-emblem-living-filament-backend-probe";
     private const string LegacyTeamEffectFilamentBackendProbeAssetId = "teameffect_living_filament_backend_probe";
     private static readonly ConcurrentDictionary<string, LivingEmblemPackage> DeveloperPreviewPackages = new(StringComparer.OrdinalIgnoreCase);
@@ -29,6 +30,9 @@ public sealed class StoreCatalogLivingVisualManifestProvider : ILivingVisualMani
 
         if (DeveloperPreviewPackages.TryGetValue(assetId.Trim(), out var previewPackage))
             return ToManifest(previewPackage);
+
+        if (CanonicalAssetIdentityService.SameAssetId(assetId, TManSkeletonRuntimeAssetId))
+            return CreateTManSkeletonRuntimeManifest();
 
         var catalog = await StoreAssetCatalogService.LoadAsync();
         var asset = catalog.FirstOrDefault(item => CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId));
@@ -95,6 +99,35 @@ public sealed class StoreCatalogLivingVisualManifestProvider : ILivingVisualMani
 
         return import.Package == null ? null : ToManifest(import.Package, asset);
     }
+
+    private static LivingVisualAssetManifest CreateTManSkeletonRuntimeManifest() => new()
+    {
+        PackageId = "living-skeleton-runtime-t-man",
+        AssetId = TManSkeletonRuntimeAssetId,
+        DisplayName = "Living Skeleton Runtime T-Man",
+        Scope = LivingVisualAssetScope.TeamEmblem,
+        Kind = LivingVisualAssetKind.LivingLegendaryEmblem,
+        ThumbnailImage = string.Empty,
+        StaticFallbackImage = "shield_3d.png",
+        LivingPackagePath = "LivingEmblems/t_man/character.glb",
+        PackageRootPath = "LivingEmblems/t_man",
+        PreferredBackend = LivingRendererBackend.Filament,
+        Capabilities = LivingVisualCapability.Bones |
+            LivingVisualCapability.BehaviorBrain |
+            LivingVisualCapability.FallbackStatic,
+        BehaviorProfileId = "procedural-skeleton-runtime-poc",
+        CameraPreset = "AutoBounds",
+        LightingPreset = "DeveloperPreview",
+        Version = "0.1.0",
+        IsPublished = true,
+        Rarity = "R&D",
+        FallbackPolicy = "StaticFallback",
+        AllowedDisplayLocations =
+        {
+            LivingVisualDisplayLocation.StorePreview,
+            LivingVisualDisplayLocation.CreateTeamPreview
+        }
+    };
 
     private static LivingVisualAssetManifest ToManifest(LivingEmblemPackage package, CatalogAssetDisplay? asset = null) => new()
     {
