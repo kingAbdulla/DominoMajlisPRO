@@ -162,6 +162,56 @@ public static class NewArrivalsAdminService
 
     public static Task DeletePublished(string assetId) => DeletePublishedAsync(assetId);
 
+    public static async Task<int> DeletePublishedByTypeAsync(string? storeTypeId)
+    {
+        var records = await LoadRecordsAsync();
+        var before = records.Count;
+        records.RemoveAll(record =>
+            record.Status != NewArrivalStatus.Draft &&
+            MatchesType(record, storeTypeId));
+        var removed = before - records.Count;
+        if (removed > 0)
+        {
+            await SaveRecordsAsync(records);
+            PublishedChanged?.Invoke();
+        }
+        return removed;
+    }
+
+    public static async Task<int> HidePublishedByTypeAsync(string? storeTypeId)
+    {
+        var records = await LoadRecordsAsync();
+        var changed = 0;
+        foreach (var record in records.Where(record =>
+            record.Status == NewArrivalStatus.Published &&
+            MatchesType(record, storeTypeId)))
+        {
+            record.Status = NewArrivalStatus.Hidden;
+            record.UpdatedAt = DateTime.UtcNow;
+            changed++;
+        }
+
+        if (changed > 0)
+        {
+            await SaveRecordsAsync(records);
+            PublishedChanged?.Invoke();
+        }
+        return changed;
+    }
+
+    public static async Task<int> DeleteDraftsByTypeAsync(string? storeTypeId)
+    {
+        var records = await LoadRecordsAsync();
+        var before = records.Count;
+        records.RemoveAll(record =>
+            record.Status == NewArrivalStatus.Draft &&
+            MatchesType(record, storeTypeId));
+        var removed = before - records.Count;
+        if (removed > 0)
+            await SaveRecordsAsync(records);
+        return removed;
+    }
+
     public static async Task<NewArrivalRecord?> CreateDraftFromPublishedAsync(string assetId)
     {
         var records = await LoadRecordsAsync();
@@ -297,6 +347,10 @@ public static class NewArrivalsAdminService
 
     private static bool SameAssetId(NewArrivalRecord record, string assetId) =>
         CanonicalAssetIdentityService.SameAssetId(GetAssetId(record), assetId);
+
+    private static bool MatchesType(NewArrivalRecord record, string? storeTypeId) =>
+        string.IsNullOrWhiteSpace(storeTypeId) ||
+        string.Equals(record.StoreTypeId, storeTypeId, StringComparison.OrdinalIgnoreCase);
 
     private static IReadOnlyList<NewArrivalRecord> DistinctLatest(IEnumerable<NewArrivalRecord> records) => records
         .OrderByDescending(item => item.UpdatedAt)
