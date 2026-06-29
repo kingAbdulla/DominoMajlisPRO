@@ -43,10 +43,13 @@ public partial class MainPage
         if (!_mainTeamEffectsTimerStarted)
         {
             _mainTeamEffectsTimerStarted = true;
-            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(350), () =>
+            var delayedRuns = 0;
+            Dispatcher.StartTimer(TimeSpan.FromMilliseconds(350), () =>
             {
+                delayedRuns++;
                 _ = RefreshMainPreviewTeamEffectsAsync();
                 _ = RefreshMainPreviewLivingEmblemsAsync();
+                return false;
             });
         }
     }
