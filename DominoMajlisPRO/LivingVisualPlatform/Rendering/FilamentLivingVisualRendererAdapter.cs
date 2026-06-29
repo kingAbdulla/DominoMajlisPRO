@@ -9,10 +9,7 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
     private LivingVisualAssetManifest? _manifest;
     private bool _isPaused = true;
     private int _touchStimulusVersion;
-
-#if ANDROID
     private FilamentLivingVisualView? _surface;
-#endif
 
     public LivingRendererBackend Backend => LivingRendererBackend.Filament;
 
@@ -110,9 +107,7 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
     {
         _manifest = null;
         _isPaused = true;
-#if ANDROID
         _surface = null;
-#endif
         return ValueTask.CompletedTask;
     }
 
@@ -123,6 +118,7 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
             packagePath.Contains("LivingEmblems/t_man/character.glb", StringComparison.OrdinalIgnoreCase);
     }
 
+#if ANDROID
     private View CreateTManTouchLayer(Grid hostGrid)
     {
         var layer = new BoxView
@@ -137,7 +133,8 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
         var tap = new TapGestureRecognizer();
         tap.Tapped += (_, args) =>
         {
-            if (_surface == null)
+            var surface = _surface;
+            if (surface == null)
                 return;
 
             var position = args.GetPosition(hostGrid);
@@ -146,11 +143,12 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
             var x = Math.Clamp((position?.X ?? width * 0.5) / width, 0, 1);
             var y = Math.Clamp((position?.Y ?? height * 0.5) / height, 0, 1);
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0;
-            _surface.LastTouchStimulus = LivingTouchStimulus.Create(x, y, 1.0, timestamp).Serialize();
-            _surface.LastTouchStimulusVersion = ++_touchStimulusVersion;
+            surface.LastTouchStimulus = LivingTouchStimulus.Create(x, y, 1.0, timestamp).Serialize();
+            surface.LastTouchStimulusVersion = ++_touchStimulusVersion;
         };
 
         layer.GestureRecognizers.Add(tap);
         return layer;
     }
+#endif
 }
