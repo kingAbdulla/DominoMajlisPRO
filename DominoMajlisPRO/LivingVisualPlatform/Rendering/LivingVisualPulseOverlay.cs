@@ -23,12 +23,12 @@ public sealed class LivingVisualPulseOverlay : GraphicsView, IDrawable
         if (dirtyRect.Width <= 1 || dirtyRect.Height <= 1)
             return;
 
-        var seconds = (DateTimeOffset.UtcNow - _startedAt).TotalSeconds;
-        var cycle = seconds % 3.4;
-        if (cycle > 1.35)
+        var seconds = (float)(DateTimeOffset.UtcNow - _startedAt).TotalSeconds;
+        var cycle = seconds % 3.4f;
+        if (cycle > 1.35f)
             return;
 
-        var progress = (float)(cycle / 1.35);
+        var progress = cycle / 1.35f;
         var amount = 1f - progress;
         var x = dirtyRect.Center.X;
         var y = dirtyRect.Top + dirtyRect.Height * 0.58f;
