@@ -1,6 +1,7 @@
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
+using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.Pages;
 
@@ -21,10 +22,18 @@ public partial class GamePage
             return;
 
         premiumPolishApplied = true;
-        Team1SpecialHonorIcon.IsVisible = false;
-        Team2SpecialHonorIcon.IsVisible = false;
-        Team1SpecialHonorIcon.Opacity = 0;
-        Team2SpecialHonorIcon.Opacity = 0;
+        HideMatchHonorBadges();
+
+        Team1SpecialHonorIcon.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(IsVisible) || args.PropertyName == nameof(Opacity))
+                HideMatchHonorBadges();
+        };
+        Team2SpecialHonorIcon.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(IsVisible) || args.PropertyName == nameof(Opacity))
+                HideMatchHonorBadges();
+        };
 
         Team1Card.PropertyChanged += (_, args) =>
         {
@@ -37,7 +46,26 @@ public partial class GamePage
                 CorrectTeamCardBackgrounds();
         };
 
+        RoundsContainer.ChildAdded += (_, args) =>
+        {
+            if (args.Element is View view)
+                ApplyPremiumRoundRowStyle(view);
+        };
+
         CorrectTeamCardBackgrounds();
+        ApplyPremiumRoundsContainerStyle();
+    }
+
+    void HideMatchHonorBadges()
+    {
+        Team1SpecialHonorIcon.IsVisible = false;
+        Team2SpecialHonorIcon.IsVisible = false;
+        Team1SpecialHonorIcon.Opacity = 0;
+        Team2SpecialHonorIcon.Opacity = 0;
+        Team1SpecialHonorIcon.WidthRequest = 0;
+        Team2SpecialHonorIcon.WidthRequest = 0;
+        Team1SpecialHonorIcon.HeightRequest = 0;
+        Team2SpecialHonorIcon.HeightRequest = 0;
     }
 
     void CorrectTeamCardBackgrounds()
@@ -109,6 +137,72 @@ public partial class GamePage
         nextLabel.Text = $"{rank.NextIcon} {rank.NextLevel}";
         bar.Progress = rank.Progress;
         percentLabel.Text = $"{rank.Progress * 100:0}%";
+    }
+
+    void ApplyPremiumRoundsContainerStyle()
+    {
+        foreach (var child in RoundsContainer.Children.OfType<View>())
+            ApplyPremiumRoundRowStyle(child);
+    }
+
+    void ApplyPremiumRoundRowStyle(View view)
+    {
+        if (view is Frame frame)
+        {
+            frame.HasShadow = false;
+            frame.BackgroundColor = Color.FromArgb("#101010");
+            frame.BorderColor = Color.FromArgb("#8A5B27");
+            frame.CornerRadius = 18;
+            frame.Padding = DeviceInfo.Idiom == DeviceIdiom.Phone ? 10 : 12;
+            frame.Margin = new Thickness(0, 3);
+        }
+        else if (view is Border border)
+        {
+            border.BackgroundColor = Color.FromArgb("#101010");
+            border.Stroke = Color.FromArgb("#8A5B27");
+            border.StrokeThickness = 1;
+            border.StrokeShape = new RoundRectangle { CornerRadius = 18 };
+            border.Padding = DeviceInfo.Idiom == DeviceIdiom.Phone ? 10 : 12;
+            border.Margin = new Thickness(0, 3);
+        }
+
+        ApplyPremiumRoundTextStyle(view);
+    }
+
+    void ApplyPremiumRoundTextStyle(IView root)
+    {
+        switch (root)
+        {
+            case Label label:
+                label.TextColor = ResolvePremiumRoundLabelColor(label.Text, label.FontAttributes);
+                label.FontSize = Math.Min(label.FontSize, DeviceInfo.Idiom == DeviceIdiom.Phone ? 16 : 18);
+                label.LineBreakMode = LineBreakMode.TailTruncation;
+                break;
+            case Border border when border.Content is IView content:
+                ApplyPremiumRoundTextStyle(content);
+                break;
+            case ContentView contentView when contentView.Content is IView content:
+                ApplyPremiumRoundTextStyle(content);
+                break;
+            case Frame frame when frame.Content is IView content:
+                ApplyPremiumRoundTextStyle(content);
+                break;
+            case Layout layout:
+                foreach (var child in layout.Children)
+                    ApplyPremiumRoundTextStyle(child);
+                break;
+        }
+    }
+
+    static Color ResolvePremiumRoundLabelColor(string? text, FontAttributes attributes)
+    {
+        if (!string.IsNullOrWhiteSpace(text) && text.Contains('#'))
+            return Color.FromArgb("#8C8C8C");
+        if (!string.IsNullOrWhiteSpace(text) && (text.Contains('+') || text.Contains("نقطة")))
+            return Color.FromArgb("#D4AF37");
+        if (attributes.HasFlag(FontAttributes.Bold))
+            return Color.FromArgb("#FFFFFF");
+        return Color.FromArgb("#CFCFCF");
     }
 
     static TeamRankVisual ResolveRank(int xp)
