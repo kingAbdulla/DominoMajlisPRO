@@ -32,7 +32,7 @@ public sealed class LivingVisualPulseOverlay : GraphicsView, IDrawable
         var amount = 1f - progress;
         var x = dirtyRect.Center.X;
         var y = dirtyRect.Top + dirtyRect.Height * 0.705f;
-        var size = MathF.Min(dirtyRect.Width, dirtyRect.Height);
+        var size = MathF.Min((float)dirtyRect.Width, (float)dirtyRect.Height);
         var length = size * (0.22f + 0.08f * amount);
         var width = size * (0.13f + 0.035f * amount);
         var wave = MathF.Sin(seconds * 24f) * size * 0.018f;
