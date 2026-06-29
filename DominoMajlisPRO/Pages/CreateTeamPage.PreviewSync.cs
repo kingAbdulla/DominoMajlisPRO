@@ -26,38 +26,39 @@ public partial class CreateTeamPage
         Player2Entry.TextChanged += OnPreviewIdentityTextChanged;
         TeamEffectCarousel.SelectionChanged += OnTeamEffectVisualSelectionChanged;
 
-        Dispatcher.Dispatch(RefreshCreateTeamVisualPipeline);
+        Dispatcher.Dispatch(() =>
+        {
+            RepairCreateTeamArabicText(this);
+            UpdatePreviewIdentityLabelsSafely();
+            QueueTeamEffectSliderRefresh();
+            _ = LoadOwnedTeamAssetsAsync();
+        });
 
         var runs = 0;
-        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(250), () =>
+        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(450), () =>
         {
             runs++;
-            RefreshCreateTeamVisualPipeline();
-            return Handler != null && runs < 16;
+            RepairCreateTeamArabicText(this);
+            UpdatePreviewIdentityLabelsSafely();
+            return Handler != null && runs < 4;
         });
     }
 
-    private void OnPreviewIdentityTextChanged(object? sender, TextChangedEventArgs e) =>
-        RefreshCreateTeamVisualPipeline();
-
-    private void OnTeamEffectVisualSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
-        _ = SyncTeamEffectChoicesAndPreviewAsync();
-
-    private void RefreshCreateTeamVisualPipeline()
+    private void OnPreviewIdentityTextChanged(object? sender, TextChangedEventArgs e)
     {
         RepairCreateTeamArabicText(this);
         UpdatePreviewIdentityLabelsSafely();
         QueueTeamEffectSliderRefresh();
-        _ = LoadOwnedTeamAssetsAsync();
     }
+
+    private void OnTeamEffectVisualSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+        _ = SyncTeamEffectChoicesAndPreviewAsync();
 
     private void QueueTeamEffectSliderRefresh()
     {
         var version = Interlocked.Increment(ref _teamEffectSyncVersion);
         _ = SyncTeamEffectChoicesAndPreviewAsync(version);
-        _ = DelayedTeamEffectSliderRefreshAsync(version, 160);
-        _ = DelayedTeamEffectSliderRefreshAsync(version, 420);
-        _ = DelayedTeamEffectSliderRefreshAsync(version, 900);
+        _ = DelayedTeamEffectSliderRefreshAsync(version, 220);
     }
 
     private async Task DelayedTeamEffectSliderRefreshAsync(int version, int delayMs)
