@@ -233,7 +233,7 @@ public static class PlayerEffectEngine
             ? DefaultLegacyEffectImage
             : effect.PreviewImage;
 
-    static double ResolvePremiumDefaultScale(double baseScale, EffectPreset effectPreset)
+    static double ResolvePremiumDefaultScale(double baseScale, EffectPresetCatalogItem effectPreset)
     {
         var premiumScale = Math.Max(1.22, baseScale + (effectPreset.DefaultScale - 1.18));
         return Math.Clamp(premiumScale, 0.72, 2.15);
