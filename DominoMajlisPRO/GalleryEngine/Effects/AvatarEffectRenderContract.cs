@@ -19,46 +19,46 @@ public sealed record AvatarEffectRenderContract(
     bool Lightweight,
     string DiagnosticName)
 {
-    public const double PremiumDefaultBaseScale = 1.42;
-    public const double PremiumAvatarRuntimeBaseScale = 1.48;
-    public const double PremiumStoreCardBaseScale = 1.38;
-    public const double PremiumStudioBaseScale = 1.48;
-    public const double PremiumPreviewBaseScale = 1.50;
+    public const double PremiumDefaultBaseScale = 1.72;
+    public const double PremiumAvatarRuntimeBaseScale = 1.95;
+    public const double PremiumStoreCardBaseScale = 1.48;
+    public const double PremiumStudioBaseScale = 1.62;
+    public const double PremiumPreviewBaseScale = 1.66;
 
     public static AvatarEffectRenderContract DeveloperStudio { get; } = new(
         AvatarEffectRenderSurface.DeveloperStudio,
-        168,
+        176,
         PremiumStudioBaseScale,
         false,
         "Developer Studio / exact runtime renderer");
 
     public static AvatarEffectRenderContract StoreCard { get; } = new(
         AvatarEffectRenderSurface.StoreCard,
-        118,
+        122,
         PremiumStoreCardBaseScale,
         true,
         "Store Card / lightweight runtime renderer");
 
     public static AvatarEffectRenderContract StorePreview { get; } = new(
         AvatarEffectRenderSurface.StorePreview,
-        176,
+        184,
         PremiumPreviewBaseScale,
         false,
         "Store Preview / full runtime renderer");
 
     public static AvatarEffectRenderContract Inventory { get; } = new(
         AvatarEffectRenderSurface.Inventory,
-        148,
+        158,
         PremiumAvatarRuntimeBaseScale,
         true,
         "Inventory / lightweight runtime renderer");
 
     public static AvatarEffectRenderContract PlayerAvatarRuntime { get; } = new(
         AvatarEffectRenderSurface.PlayerAvatarRuntime,
-        156,
+        198,
         PremiumAvatarRuntimeBaseScale,
         true,
-        "Player Avatar Runtime / lightweight renderer");
+        "Player Avatar Runtime / visible avatar renderer");
 
     public static AvatarEffectRenderContract ResolveFor(CatalogAssetDisplay? effect, AvatarEffectRenderSurface surface)
     {
@@ -84,8 +84,8 @@ public sealed record AvatarEffectRenderContract(
         var premiumBoost = ResolvePremiumBoost(effect);
         return baseContract with
         {
-            BaseScale = Math.Clamp(baseContract.BaseScale + premiumBoost, 1.18, 1.78),
-            HostSize = Math.Clamp(baseContract.HostSize + premiumBoost * 28, 96, 190)
+            BaseScale = Math.Clamp(baseContract.BaseScale + premiumBoost, 1.35, 2.18),
+            HostSize = Math.Clamp(baseContract.HostSize + premiumBoost * 34, 110, 220)
         };
     }
 
@@ -93,11 +93,11 @@ public sealed record AvatarEffectRenderContract(
     {
         var text = $"{effect.AssetId} {effect.DisplayName} {effect.ArabicDisplayName} {effect.EffectType} {effect.Rarity}".ToLowerInvariant();
         if (text.Contains("legendary") || text.Contains("mythic") || text.Contains("immortal") || text.Contains("أسطوري"))
-            return 0.16;
+            return 0.18;
         if (text.Contains("royal") || text.Contains("dragon") || text.Contains("eagle") || text.Contains("lion") || text.Contains("diamond"))
-            return 0.12;
+            return 0.14;
         if (text.Contains("rare") || text.Contains("epic"))
-            return 0.08;
-        return 0.04;
+            return 0.10;
+        return 0.06;
     }
 }
