@@ -8,8 +8,8 @@ namespace DominoMajlisPRO.GalleryEngine.Admin;
 public sealed class TManSkeletonRuntimePocPage : ContentPage
 {
     private const string PackagePath = "LivingEmblems/t_man/character.glb";
-    private const string RuntimeMode = "LivingVisualHost + Filament procedural skeleton runtime";
-    private readonly ContentView _previewHost = new() { HeightRequest = 360 };
+    private const string RuntimeMode = "Procedural Living Skeleton Runtime - no animation clips";
+    private readonly ContentView _previewHost = new() { HeightRequest = 520 };
 
     public TManSkeletonRuntimePocPage()
     {
@@ -96,7 +96,9 @@ public sealed class TManSkeletonRuntimePocPage : ContentPage
                             Diagnostic("Asset Id", StoreCatalogLivingVisualManifestProvider.TManSkeletonRuntimeAssetId),
                             Diagnostic("Package Path", PackagePath),
                             Diagnostic("Runtime Mode", RuntimeMode),
-                            Diagnostic("Display Location", LivingVisualDisplayLocation.StorePreview.ToString())
+                            Diagnostic("Display Location", LivingVisualDisplayLocation.StorePreview.ToString()),
+                            Diagnostic("Effects", "Disabled for T-Man; fire/smoke are Dragon-only capabilities"),
+                            Diagnostic("Behavior", "Autonomous procedural living mind over skeleton bones")
                         }
                     }),
                     reload
