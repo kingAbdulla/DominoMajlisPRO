@@ -30,29 +30,23 @@ public partial class MainPage
         _settingsSymbolsTimerStarted = true;
         int runs = 0;
 
-        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(300), () =>
+        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(450), () =>
         {
             runs++;
             ApplyMainHeaderAvatarShape();
             _ = ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
-            _ = RefreshMainPreviewTeamEffectsAsync();
-            _ = RefreshMainPreviewLivingEmblemsAsync();
             NormalizeSettingsSymbols();
             RepairVisibleMainPageText(this);
-            return Handler != null && runs < 16;
+            return Handler != null && runs < 4;
         });
 
         if (!_mainTeamEffectsTimerStarted)
         {
             _mainTeamEffectsTimerStarted = true;
-            int effectRuns = 0;
-
-            Dispatcher.StartTimer(TimeSpan.FromMilliseconds(500), () =>
+            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(350), () =>
             {
-                effectRuns++;
                 _ = RefreshMainPreviewTeamEffectsAsync();
                 _ = RefreshMainPreviewLivingEmblemsAsync();
-                return Handler != null && effectRuns < 8;
             });
         }
     }
