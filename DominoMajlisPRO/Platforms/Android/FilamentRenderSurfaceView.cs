@@ -68,6 +68,12 @@ public sealed class FilamentRenderSurfaceView :
         PostFrame();
     }
 
+    public void SetTouchStimulus(string? stimulus)
+    {
+        _filament.SetTouchStimulus(stimulus);
+        PostFrame();
+    }
+
     public void SurfaceCreated(ISurfaceHolder holder)
     {
         _surfaceReady = true;
@@ -234,7 +240,9 @@ public sealed class FilamentRenderSurfaceView :
         private readonly LivingSkeletonBoneMapping _skeletonMapping = new();
         private readonly LivingProceduralSkeletonController _skeletonController = new();
         private bool _proceduralSkeletonRuntimeEnabled;
+        private bool _livingEffectsEnabled = true;
         private bool _skeletonDiagnosticsLogged;
+        private double _lastRenderSeconds;
 
         public bool IsReady =>
             _engine != null &&
@@ -284,7 +292,11 @@ public sealed class FilamentRenderSurfaceView :
             _skeletonMapping.Clear();
             _skeletonDiagnosticsLogged = false;
             _proceduralSkeletonRuntimeEnabled = IsTManSkeletonValidationAsset(assetPath);
-            Log.Info(LogTag, $"Living behavior state controller reset asset='{assetPath}', freezeBonesForArtifactTest={LivingPreviewFreezeBonesForArtifactTest}, skeletonRuntime={_proceduralSkeletonRuntimeEnabled}.");
+            _livingEffectsEnabled = !_proceduralSkeletonRuntimeEnabled;
+            _skeletonController.MovementMultiplier = _proceduralSkeletonRuntimeEnabled
+                ? LivingProceduralSkeletonController.DebugVisibleMovementMultiplier
+                : LivingProceduralSkeletonController.DefaultMovementMultiplier;
+            Log.Info(LogTag, $"Living behavior state controller reset asset='{assetPath}', freezeBonesForArtifactTest={LivingPreviewFreezeBonesForArtifactTest}, skeletonRuntime={_proceduralSkeletonRuntimeEnabled}, effectsEnabled={_livingEffectsEnabled}, movementMultiplier={_skeletonController.MovementMultiplier:F1}.");
 
             var entityManager = EntityManager.Get();
             _materialProvider = new UbershaderProvider(_engine!);
@@ -336,11 +348,24 @@ public sealed class FilamentRenderSurfaceView :
             Log.Info(LogTag, $"Motion command accepted: target={parsed.Target}, axis={parsed.Axis}, value={parsed.ValueDegrees:F1}.");
         }
 
+        public void SetTouchStimulus(string? stimulus)
+        {
+            if (!_proceduralSkeletonRuntimeEnabled ||
+                !LivingTouchStimulus.TryParse(stimulus, out var parsed))
+            {
+                return;
+            }
+
+            _skeletonController.RegisterTouchStimulus(parsed.X, parsed.Y, parsed.Intensity, _lastRenderSeconds);
+            Log.Info(LogTag, $"LivingTouchStimulus accepted: x={parsed.X:F2} y={parsed.Y:F2} intensity={parsed.Intensity:F2} timestamp={parsed.TimestampSeconds:F2} runtimeSeconds={_lastRenderSeconds:F2} zone={parsed.Zone}.");
+        }
+
         public void Render(long frameTimeNanos, double seconds)
         {
             if (!IsReady || _swapChain == null)
                 return;
 
+            _lastRenderSeconds = seconds;
             ApplyProceduralRig(seconds);
             PositionCamera();
             var ok = _renderer!.BeginFrame(_swapChain, frameTimeNanos);
@@ -867,6 +892,8 @@ public sealed class FilamentRenderSurfaceView :
 
             var pose = LivingPreviewFreezeBonesForArtifactTest
                 ? LivingPose.Neutral with { StateName = "FrozenArtifactTest" }
+                : _proceduralSkeletonRuntimeEnabled
+                    ? LivingPose.Neutral with { StateName = "LivingMindRuntimeV1" }
                 : _livingBehavior.Update(seconds);
             var headYaw = pose.HeadYawDegrees;
             var headPitch = pose.HeadPitchDegrees;
@@ -907,6 +934,51 @@ public sealed class FilamentRenderSurfaceView :
                         LogTag,
                         "Rig transforms were applied through TransformManager, but no Animator.UpdateBoneMatrices path was available. " +
                         "If the mesh remains visually static, this GLB may require a Filament skinning/bone-matrix API path beyond node transforms.");
+                }
+
+                if (_proceduralSkeletonRuntimeEnabled)
+                {
+                    var mind = _skeletonController.MindState;
+                    var output = _skeletonController.LastMindOutput;
+                    var emotion = _skeletonController.Emotion;
+                    var intent = _skeletonController.BodyIntent;
+                    Log.Info(
+                        LogTag,
+                        "LivingMind tick " +
+                        $"LivingCreatureAIEnabled={LivingProceduralSkeletonController.TManLivingCreatureAIEnabled} " +
+                        $"currentDecision='{_skeletonController.CurrentDecision}' " +
+                        $"emotionCalm={emotion.Calm:F2} emotionInterested={emotion.Interested:F2} emotionAlert={emotion.Alert:F2} " +
+                        $"emotionRelaxed={emotion.Relaxed:F2} emotionCurious={emotion.Curious:F2} emotionFocused={emotion.Focused:F2} " +
+                        $"emotionStartled={emotion.Startled:F2} emotionUncomfortable={emotion.Uncomfortable:F2} " +
+                        $"FullBodyPoseEnabled={LivingProceduralSkeletonController.FullBodyPoseEnabled} " +
+                        $"hipsMapped={_skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.Hips)} " +
+                        $"shouldersMapped={_skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.LeftShoulder) && _skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.RightShoulder)} " +
+                        $"armsMapped={_skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.LeftArm) && _skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.RightArm)} " +
+                        $"legsMapped={_skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.LeftLeg) && _skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.RightLeg)} " +
+                        $"feetMapped={_skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.LeftFoot) && _skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.RightFoot)} " +
+                        $"interest={emotion.Interested:F2} curiosity={mind.Curiosity:F2} fear={emotion.Uncomfortable:F2} comfort={emotion.Relaxed:F2} " +
+                        $"boredom={mind.Boredom:F2} focus={mind.Attention:F2} awareness={mind.Awareness:F2} calm={mind.Calm:F2} " +
+                        $"focusX={mind.FocusX:F2} focusY={mind.FocusY:F2} breathing={output.BreathingAmount:F2} " +
+                        $"bodyIntentBreath={intent.Breath:F2} bodyIntentWeightShift={intent.WeightShift:F2} bodyIntentShoulderRelax={intent.ShoulderRelax:F2} " +
+                        $"bodyIntentArmRelax={intent.ArmRelax:F2} bodyIntentElbowBend={intent.ElbowBend:F2} bodyIntentKneeSoftness={intent.KneeSoftness:F2} " +
+                        $"armDrop={(LivingProceduralSkeletonController.ArmDropDegrees * output.ArmRelax):F1} " +
+                        $"elbowBend={(LivingProceduralSkeletonController.ElbowBendDegrees * output.ElbowBend):F1} " +
+                        $"weightShift={(LivingProceduralSkeletonController.WeightShiftDegrees * output.WeightShift):F1} " +
+                        $"livingIntensity={output.LivingIntensity:F2} touchActive={output.TouchActive} touchX={output.TouchX:F2} touchY={output.TouchY:F2} " +
+                        $"touchStrength={output.TouchReactionStrength:F2} lastTouchZone={output.LastTouchZone} " +
+                        $"maxAppliedRotation={_skeletonController.LastMaxAppliedRotation:F1} " +
+                        $"clampedBoneCount={_skeletonController.LastClampedBoneCount} " +
+                        $"disabledUnsafeBoneCount={_skeletonController.LastDisabledUnsafeBoneCount} " +
+                        $"fullBodyApplied={LivingProceduralSkeletonController.TManFullBodyEnabled} relaxedPoseApplied={LivingProceduralSkeletonController.TManFullBodyEnabled} " +
+                        $"fullBodyLivingActive={LivingProceduralSkeletonController.FullBodyPoseEnabled} " +
+                        $"armsRelaxed={output.ArmRelax:F2} " +
+                        $"shouldersRelaxed={output.ShoulderRelax:F2} hipsStable={_skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.Hips)} " +
+                        $"feetStable={_skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.LeftFoot) && _skeletonMapping.PrimaryBones.ContainsKey(LivingSkeletonBoneRole.RightFoot)} " +
+                        $"decision={output.Decision} movementMultiplier={_skeletonController.MovementMultiplier:F1} " +
+                        $"skeletonApplied={skeletonApplied} skinningMatricesUpdated={boneMatricesUpdated}.");
+
+                    if (_skeletonController.LastDisabledUnsafeBoneCount > 0)
+                        Log.Warn(LogTag, $"LivingMind safety skipped unsafe bone roles: disabledUnsafeBoneCount={_skeletonController.LastDisabledUnsafeBoneCount}.");
                 }
             }
         }
@@ -989,6 +1061,12 @@ public sealed class FilamentRenderSurfaceView :
 
         private void ApplyLivingEffects(LivingPose pose, double seconds)
         {
+            if (!_livingEffectsEnabled)
+            {
+                ApplyEffectLighting(LivingEffectLighting.Base);
+                return;
+            }
+
             var lighting = _livingEffects.Update(pose, seconds);
             ApplyEffectLighting(lighting);
         }

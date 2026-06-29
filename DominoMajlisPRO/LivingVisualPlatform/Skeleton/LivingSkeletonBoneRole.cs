@@ -4,6 +4,7 @@ public enum LivingSkeletonBoneRole
 {
     Unknown,
     Root,
+    Hips,
     Head,
     Neck,
     Spine,
@@ -14,5 +15,19 @@ public enum LivingSkeletonBoneRole
     Wing,
     Arm,
     ForeArm,
-    Hand
+    Hand,
+    LeftShoulder,
+    RightShoulder,
+    LeftArm,
+    RightArm,
+    LeftForeArm,
+    RightForeArm,
+    LeftHand,
+    RightHand,
+    LeftUpLeg,
+    RightUpLeg,
+    LeftLeg,
+    RightLeg,
+    LeftFoot,
+    RightFoot
 }

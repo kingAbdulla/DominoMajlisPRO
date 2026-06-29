@@ -12,7 +12,8 @@ public sealed class FilamentLivingVisualViewHandler :
         {
             [nameof(FilamentLivingVisualView.AssetPath)] = MapAssetPath,
             [nameof(FilamentLivingVisualView.IsPaused)] = MapIsPaused,
-            [nameof(FilamentLivingVisualView.LastMotionCommandVersion)] = MapLastMotionCommand
+            [nameof(FilamentLivingVisualView.LastMotionCommandVersion)] = MapLastMotionCommand,
+            [nameof(FilamentLivingVisualView.LastTouchStimulusVersion)] = MapLastTouchStimulus
         };
 
     public FilamentLivingVisualViewHandler()
@@ -29,6 +30,7 @@ public sealed class FilamentLivingVisualViewHandler :
         platformView.SetAssetPath(VirtualView.AssetPath);
         platformView.SetPaused(VirtualView.IsPaused);
         platformView.SetMotionCommand(VirtualView.LastMotionCommand);
+        platformView.SetTouchStimulus(VirtualView.LastTouchStimulus);
     }
 
     protected override void DisconnectHandler(FilamentRenderSurfaceView platformView)
@@ -50,6 +52,11 @@ public sealed class FilamentLivingVisualViewHandler :
     private static void MapLastMotionCommand(FilamentLivingVisualViewHandler handler, FilamentLivingVisualView view)
     {
         handler.PlatformView.SetMotionCommand(view.LastMotionCommand);
+    }
+
+    private static void MapLastTouchStimulus(FilamentLivingVisualViewHandler handler, FilamentLivingVisualView view)
+    {
+        handler.PlatformView.SetTouchStimulus(view.LastTouchStimulus);
     }
 }
 #endif

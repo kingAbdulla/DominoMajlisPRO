@@ -1,5 +1,6 @@
 using DominoMajlisPRO.LivingVisualPlatform.Models;
 using DominoMajlisPRO.LivingVisualPlatform.Motion;
+using DominoMajlisPRO.LivingVisualPlatform.Skeleton;
 
 namespace DominoMajlisPRO.LivingVisualPlatform.Rendering;
 
@@ -7,6 +8,7 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
 {
     private LivingVisualAssetManifest? _manifest;
     private bool _isPaused = true;
+    private int _touchStimulusVersion;
 
 #if ANDROID
     private FilamentLivingVisualView? _surface;
@@ -60,14 +62,18 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill,
             BackgroundColor = Colors.Transparent,
-            InputTransparent = true
+            InputTransparent = false
         };
         hostGrid.Children.Add(_surface);
 
-        var hasMouthBurstOverlay = manifest.Capabilities.HasFlag(LivingVisualCapability.Fire) ||
-            manifest.Capabilities.HasFlag(LivingVisualCapability.Smoke);
+        var hasMouthBurstOverlay = !IsTManDeveloperPreview(manifest) &&
+            (manifest.Capabilities.HasFlag(LivingVisualCapability.Fire) ||
+            manifest.Capabilities.HasFlag(LivingVisualCapability.Smoke));
         if (hasMouthBurstOverlay)
             hostGrid.Children.Add(new LivingVisualPulseOverlay());
+
+        if (IsTManDeveloperPreview(manifest))
+            hostGrid.Children.Add(CreateTManTouchLayer(hostGrid));
 
         MainThread.BeginInvokeOnMainThread(() => contentHost.Content = hostGrid);
         return Task.CompletedTask;
@@ -108,5 +114,43 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
         _surface = null;
 #endif
         return ValueTask.CompletedTask;
+    }
+
+    private static bool IsTManDeveloperPreview(LivingVisualAssetManifest manifest)
+    {
+        var packagePath = manifest.LivingPackagePath?.Replace('\\', '/') ?? string.Empty;
+        return string.Equals(manifest.AssetId, Services.StoreCatalogLivingVisualManifestProvider.TManSkeletonRuntimeAssetId, StringComparison.OrdinalIgnoreCase) ||
+            packagePath.Contains("LivingEmblems/t_man/character.glb", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private View CreateTManTouchLayer(Grid hostGrid)
+    {
+        var layer = new BoxView
+        {
+            BackgroundColor = Colors.Transparent,
+            Opacity = 0.01,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
+            InputTransparent = false
+        };
+
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (_, args) =>
+        {
+            if (_surface == null)
+                return;
+
+            var position = args.GetPosition(hostGrid);
+            var width = Math.Max(1.0, hostGrid.Width);
+            var height = Math.Max(1.0, hostGrid.Height);
+            var x = Math.Clamp((position?.X ?? width * 0.5) / width, 0, 1);
+            var y = Math.Clamp((position?.Y ?? height * 0.5) / height, 0, 1);
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0;
+            _surface.LastTouchStimulus = LivingTouchStimulus.Create(x, y, 1.0, timestamp).Serialize();
+            _surface.LastTouchStimulusVersion = ++_touchStimulusVersion;
+        };
+
+        layer.GestureRecognizers.Add(tap);
+        return layer;
     }
 }

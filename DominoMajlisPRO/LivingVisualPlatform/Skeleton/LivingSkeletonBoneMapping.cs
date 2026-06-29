@@ -55,6 +55,7 @@ public sealed class LivingSkeletonBoneMapping
         {
             LivingSkeletonBoneRole.Head,
             LivingSkeletonBoneRole.Neck,
+            LivingSkeletonBoneRole.Hips,
             LivingSkeletonBoneRole.Spine,
             LivingSkeletonBoneRole.Chest,
             LivingSkeletonBoneRole.Jaw,
@@ -63,7 +64,21 @@ public sealed class LivingSkeletonBoneMapping
             LivingSkeletonBoneRole.Wing,
             LivingSkeletonBoneRole.Arm,
             LivingSkeletonBoneRole.ForeArm,
-            LivingSkeletonBoneRole.Hand
+            LivingSkeletonBoneRole.Hand,
+            LivingSkeletonBoneRole.LeftShoulder,
+            LivingSkeletonBoneRole.RightShoulder,
+            LivingSkeletonBoneRole.LeftArm,
+            LivingSkeletonBoneRole.RightArm,
+            LivingSkeletonBoneRole.LeftForeArm,
+            LivingSkeletonBoneRole.RightForeArm,
+            LivingSkeletonBoneRole.LeftHand,
+            LivingSkeletonBoneRole.RightHand,
+            LivingSkeletonBoneRole.LeftUpLeg,
+            LivingSkeletonBoneRole.RightUpLeg,
+            LivingSkeletonBoneRole.LeftLeg,
+            LivingSkeletonBoneRole.RightLeg,
+            LivingSkeletonBoneRole.LeftFoot,
+            LivingSkeletonBoneRole.RightFoot
         };
 
         var missing = expected.Where(role => !_primaryBones.ContainsKey(role)).Select(role => role.ToString());
