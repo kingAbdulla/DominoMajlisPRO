@@ -137,10 +137,16 @@ public sealed class LivingEmblemPublishPreviewPage : ContentPage
                     _diagnosticsLabel,
                     _validationLabel,
                     actions,
+                    Button("Open T-Man Skeleton Runtime POC", OpenTManSkeletonRuntimePocAsync),
                     Button("Publish approved package", PublishAsync)
                 }
             }
         };
+    }
+
+    private async Task OpenTManSkeletonRuntimePocAsync()
+    {
+        await Navigation.PushAsync(new TManSkeletonRuntimePocPage());
     }
 
     private void ResetPreview()
