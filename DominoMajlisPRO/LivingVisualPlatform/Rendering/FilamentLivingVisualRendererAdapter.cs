@@ -63,7 +63,11 @@ public sealed class FilamentLivingVisualRendererAdapter : ILivingVisualRendererA
             InputTransparent = true
         };
         hostGrid.Children.Add(_surface);
-        hostGrid.Children.Add(new LivingVisualPulseOverlay());
+
+        var hasMouthBurstOverlay = manifest.Capabilities.HasFlag(LivingVisualCapability.Fire) ||
+            manifest.Capabilities.HasFlag(LivingVisualCapability.Smoke);
+        if (hasMouthBurstOverlay)
+            hostGrid.Children.Add(new LivingVisualPulseOverlay());
 
         MainThread.BeginInvokeOnMainThread(() => contentHost.Content = hostGrid);
         return Task.CompletedTask;
