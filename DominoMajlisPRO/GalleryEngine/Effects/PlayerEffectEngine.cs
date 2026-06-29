@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Models;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 
@@ -11,7 +11,7 @@ public static class PlayerEffectEngine
     public static void Apply(
         Image overlay,
         CatalogAssetDisplay? effect,
-        double baseScale = 1.18) =>
+        double baseScale = AvatarEffectRenderContract.PremiumAvatarRuntimeBaseScale) =>
         IdentityEffectRenderer.Apply(overlay, effect, baseScale);
 
     public static void Stop(Image overlay) =>
@@ -19,7 +19,7 @@ public static class PlayerEffectEngine
 
     public static EffectDefinitionModel CreateDefinition(
         CatalogAssetDisplay effect,
-        double baseScale = 1.18)
+        double baseScale = AvatarEffectRenderContract.PremiumDefaultBaseScale)
     {
         ArgumentNullException.ThrowIfNull(effect);
 
@@ -37,7 +37,7 @@ public static class PlayerEffectEngine
         var opacity = effect.EffectOpacity > 0 ? effect.EffectOpacity : preset.DefaultOpacity;
         var scale = effect.EffectScale > 0
             ? effect.EffectScale
-            : Math.Max(0.1, baseScale + (preset.DefaultScale - 1.18));
+            : ResolvePremiumDefaultScale(baseScale, preset);
         var speed = effect.EffectSpeed > 0 ? effect.EffectSpeed : preset.DefaultSpeed;
         var intensity = effect.EffectIntensity > 0 ? effect.EffectIntensity : preset.DefaultIntensity;
 
@@ -75,8 +75,8 @@ public static class PlayerEffectEngine
         return new EffectRenderProfile(
             primary,
             secondary,
-            Math.Clamp(definition.Opacity, 0.05, 1.0),
-            Math.Clamp(definition.Scale, 0.1, 3.0),
+            Math.Clamp(definition.Opacity, 0.12, 0.92),
+            Math.Clamp(definition.Scale, 0.72, 3.0),
             ResolveDuration(definition),
             ResolveRadius(definition),
             ResolveShadowOpacity(definition),
@@ -233,30 +233,36 @@ public static class PlayerEffectEngine
             ? DefaultLegacyEffectImage
             : effect.PreviewImage;
 
+    static double ResolvePremiumDefaultScale(double baseScale, EffectPreset effectPreset)
+    {
+        var premiumScale = Math.Max(1.22, baseScale + (effectPreset.DefaultScale - 1.18));
+        return Math.Clamp(premiumScale, 0.72, 2.15);
+    }
+
     static float ResolveRadius(EffectDefinitionModel definition)
     {
-        var layerBoost = definition.Layers.Contains(EffectLayerId.Glow) ? 6 : 0;
+        var layerBoost = definition.Layers.Contains(EffectLayerId.Glow) ? 8 : 0;
         return definition.PresetId switch
         {
-            EffectPresetId.Lightning => 36 + layerBoost,
-            EffectPresetId.Royal => 34 + layerBoost,
-            EffectPresetId.Diamond => 34 + layerBoost,
-            EffectPresetId.Aura => 38 + layerBoost,
-            EffectPresetId.Ring => 28 + layerBoost,
-            EffectPresetId.Shadow => 22,
-            _ => 30 + layerBoost
+            EffectPresetId.Lightning => 42 + layerBoost,
+            EffectPresetId.Royal => 40 + layerBoost,
+            EffectPresetId.Diamond => 42 + layerBoost,
+            EffectPresetId.Aura => 44 + layerBoost,
+            EffectPresetId.Ring => 34 + layerBoost,
+            EffectPresetId.Shadow => 28,
+            _ => 36 + layerBoost
         };
     }
 
     static float ResolveShadowOpacity(EffectDefinitionModel definition)
     {
-        var opacityBoost = definition.Layers.Contains(EffectLayerId.Glow) ? 0.08f : 0f;
+        var opacityBoost = definition.Layers.Contains(EffectLayerId.Glow) ? 0.10f : 0f;
         var value = definition.PresetId switch
         {
             EffectPresetId.Shadow => 0.85f,
-            EffectPresetId.Ring => 0.70f,
-            EffectPresetId.Aura => 0.78f,
-            _ => 0.75f
+            EffectPresetId.Ring => 0.76f,
+            EffectPresetId.Aura => 0.82f,
+            _ => 0.78f
         };
 
         return Math.Clamp(value + opacityBoost, 0.05f, 1f);
@@ -282,4 +288,3 @@ public static class PlayerEffectEngine
         return (uint)Math.Clamp(baseDuration / speed, 180, 4000);
     }
 }
-
