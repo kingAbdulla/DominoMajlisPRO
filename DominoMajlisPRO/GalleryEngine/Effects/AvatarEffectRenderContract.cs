@@ -76,7 +76,6 @@ public sealed record AvatarEffectRenderContract(
             return baseContract;
 
         var isPlayerEffect = effect.AssetType == StoreProductAssetType.Effect ||
-            string.Equals(effect.StoreTypeId, StoreProductAssetType.Effect.ToString(), StringComparison.OrdinalIgnoreCase) ||
             string.Equals(effect.EquipTarget, "PlayerEffect", StringComparison.OrdinalIgnoreCase);
 
         if (!isPlayerEffect)
