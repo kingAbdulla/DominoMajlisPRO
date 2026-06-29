@@ -186,7 +186,6 @@ public sealed class StoreSettingsManagerPage : ContentPage
 
     private static IReadOnlyList<StoreTypeChoice> StoreTypeOptions() =>
         Enum.GetValues<StoreProductAssetType>()
-            .Where(type => type != StoreProductAssetType.Unknown)
             .Select(type => new StoreTypeChoice(DisplayType(type.ToString()), type.ToString()))
             .OrderBy(item => item.Label, StringComparer.CurrentCulture)
             .ToList();
@@ -203,7 +202,6 @@ public sealed class StoreSettingsManagerPage : ContentPage
         nameof(StoreProductAssetType.TeamLivingEmblem) => "الشعارات الحية",
         nameof(StoreProductAssetType.EmblemBackground) => "خلفيات الشعارات",
         nameof(StoreProductAssetType.TeamColor) => "ألوان الفرق",
-        nameof(StoreProductAssetType.TeamBanner) => "لافتات الفرق",
         nameof(StoreProductAssetType.TeamEffect) => "تأثيرات الفرق",
         nameof(StoreProductAssetType.Bundle) => "الحزم",
         _ => typeId ?? "جميع الأقسام"
