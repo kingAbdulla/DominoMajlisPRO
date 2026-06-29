@@ -1139,6 +1139,8 @@ public partial class GamePage : ContentPage
         await RankingService.UpdateRankingsAsync(
             currentMatch);
 
+        // Notify ranking views (teams + players) to refresh from fresh data.
+        AppEvents.RaiseRankingsChanged();
 
         // ALERT
         if (meles)

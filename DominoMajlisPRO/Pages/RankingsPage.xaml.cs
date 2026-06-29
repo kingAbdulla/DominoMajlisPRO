@@ -280,6 +280,17 @@ public partial class RankingsPage : ContentPage
     }
 
     // =========================
+    // PLAYERS RANKING TAB
+    // =========================
+
+    async void OnPlayersRankingClicked(
+        object sender,
+        TappedEventArgs e)
+    {
+        await Navigation.PushAsync(new PlayerRankingsPage());
+    }
+
+    // =========================
     // CHAMPION CARD
     // =========================
 
