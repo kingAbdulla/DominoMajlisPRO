@@ -91,7 +91,7 @@ public class AvatarsSectionView : StoreProductsSectionBase
         for (var index = 0; index < visible.Count; index++)
         {
             var record = visible[index];
-            var owned = inventory.FirstOrDefault(item => string.Equals(item.AssetId, record.Id, StringComparison.OrdinalIgnoreCase));
+            var owned = inventory.FirstOrDefault(item => CanonicalAssetIdentityService.SameAssetId(item.AssetId, record.Id));
             grid.Add(CreatePurchaseCard(record, playerId, wallet, owned), index % 3, index / 3);
         }
     }

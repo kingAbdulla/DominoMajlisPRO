@@ -37,7 +37,7 @@ public static class InventoryDisplayResolver
         items.AddRange(playerInventoryTask.Result
             .Where(item => item.IsOwned && !item.IsExpired)
             .GroupBy(
-                item => $"{StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId)}\u001F{item.AssetId}",
+                item => $"{StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId)}\u001F{CanonicalAssetIdentityService.NormalizeForComparison(item.AssetId)}",
                 StringComparer.OrdinalIgnoreCase)
             .Select(group => group
                 .OrderByDescending(item => item.IsEquipped)
@@ -50,7 +50,7 @@ public static class InventoryDisplayResolver
         items.AddRange(teamInventoryTask.Result
             .Where(item => item.IsOwned)
             .GroupBy(
-                item => $"{StoreAssetCatalogService.CanonicalTypeId(item.TeamAssetTypeId)}\u001F{item.TeamAssetId}",
+                item => $"{StoreAssetCatalogService.CanonicalTypeId(item.TeamAssetTypeId)}\u001F{CanonicalAssetIdentityService.NormalizeForComparison(item.TeamAssetId)}",
                 StringComparer.OrdinalIgnoreCase)
             .Select(group => group
                 .OrderByDescending(item => item.IsEquipped)
@@ -80,10 +80,10 @@ public static class InventoryDisplayResolver
                 .Select(item => item.AssetId);
             var availableIds = catalogIds
                 .Where(item => !string.IsNullOrWhiteSpace(item))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                .Select(CanonicalAssetIdentityService.NormalizeForComparison).ToHashSet(StringComparer.Ordinal);
             var owned = ownedIds
                 .Where(item => !string.IsNullOrWhiteSpace(item))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(CanonicalAssetIdentityService.NormalizeForComparison).Distinct(StringComparer.Ordinal)
                 .Count(item => availableIds.Contains(item));
             var total = availableIds.Count;
             owned = Math.Min(owned, total);
@@ -247,6 +247,7 @@ public static class InventoryDisplayResolver
             StoreProductAssetType.Effect or
             StoreProductAssetType.Title or
             StoreProductAssetType.Emblem or
+            StoreProductAssetType.TeamLivingEmblem or
             StoreProductAssetType.TeamColor or
             StoreProductAssetType.EmblemBackground or
             StoreProductAssetType.Badge or
@@ -260,15 +261,16 @@ public static class InventoryDisplayResolver
         "Effect" => 3,
         "Title" => 4,
         "Emblem" => 5,
-        "TeamColor" => 6,
-        "EmblemBackground" => 7,
-        "Badge" => 8,
-        "SeasonReward" => 9,
+        "TeamLivingEmblem" => 6,
+        "TeamColor" => 7,
+        "EmblemBackground" => 8,
+        "Badge" => 9,
+        "SeasonReward" => 10,
         _ => 100
     };
 
     private static bool Same(string? left, string? right) =>
-        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(left, right);
 
     public static string ResolveImagePath(
         string? imagePath,

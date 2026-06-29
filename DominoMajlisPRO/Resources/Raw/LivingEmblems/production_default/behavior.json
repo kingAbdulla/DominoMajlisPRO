@@ -1,0 +1,12 @@
+{
+  "profileId": "production-default-living-emblem",
+  "idle": "AutoRotate",
+  "breathing": "None",
+  "blink": "None",
+  "headMovement": "None",
+  "materialPulse": "None",
+  "futureAnimations": {
+    "idleAnimation": "Reserved for GLB animation channel exported by DCC tools",
+    "materialPulse": "Reserved for material animation data"
+  }
+}

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using DominoMajlisPRO.Models;
 
 namespace DominoMajlisPRO.Services;
@@ -149,6 +150,7 @@ public static class PlayerProfileService
         if (player == null)
             throw new Exception("لم يتم العثور على اللاعب.");
 
+        var previousAvatarId = player.AvatarImage;
         player.AvatarImage =
             string.IsNullOrWhiteSpace(avatarImage)
                 ? "player_card.png"
@@ -168,6 +170,24 @@ public static class PlayerProfileService
     "🖼",
     "#D4AF37");
         await SavePlayersAsync(players);
+        
+        // Publish to VisualEventBus for Living Visual Identity Engine
+        var payload = new Dictionary<string, object>
+        {
+            { VisualIdentityPayloadKeys.PlayerId, playerId },
+            { VisualIdentityPayloadKeys.AvatarAssetId, player.AvatarImage },
+            { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+        };
+        
+        if (!string.IsNullOrWhiteSpace(previousAvatarId) && previousAvatarId != "player_card.png")
+            payload[VisualIdentityPayloadKeys.PreviousAvatarAssetId] = previousAvatarId;
+        
+        VisualEventBus.Publish(
+            EventCategory.Player,
+            VisualIdentityEventNames.PlayerAvatarChanged,
+            payload,
+            isSticky: true,
+            stickyExpirationMs: 0);
     }
 
     public static async Task SetProfileImageFromDeviceAsync(

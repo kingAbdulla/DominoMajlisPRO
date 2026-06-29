@@ -6,6 +6,9 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class StoreAssetCatalogService
 {
+    public const string LivingProductionDefaultEmblemAssetId = "team-emblem-living-production-default";
+    private const string LegacyLivingFilamentBackendProbeAssetId = "team-emblem-living-filament-backend-probe";
+
     public const string IncompleteDisplayName = "عنصر غير مكتمل البيانات";
 
     public static async Task<IReadOnlyList<CatalogAssetDisplay>> LoadAsync()
@@ -36,7 +39,7 @@ public static class StoreAssetCatalogService
             assets.Add(Create(
                 item.AssetId,
                 type,
-                StoreProductAssetTypeCatalog.GetOwnerScope(type),
+                ResolveOwnerScope(type, item.OwnerScope),
                 item.Title,
                 item.Title,
                 item.ImagePath,
@@ -54,7 +57,17 @@ public static class StoreAssetCatalogService
                 item.EffectOpacity,
                 item.EffectScale,
                 item.EffectSpeed,
-                item.EffectIntensity));
+                item.EffectIntensity,
+                item.LivingVisualScope,
+                item.LivingVisualKind,
+                item.LivingPackageId,
+                item.LivingPackageManifestPath,
+                item.LivingPackagePath,
+                item.PreferredBackend,
+                item.FallbackPolicy,
+                item.LivingVisualVersion,
+                item.LivingPackageVersion,
+                item.Rarity));
         }
         assets.AddRange(avatarsTask.Result.Select(item => Create(
             item.Id,
@@ -83,7 +96,6 @@ public static class StoreAssetCatalogService
             PreferredImage(item.ImagePath, item.BackgroundImagePath),
             item.ColorHex ?? item.BackgroundColorHex ?? string.Empty,
             productIds)));
-
         return assets
             .Where(item => !string.IsNullOrWhiteSpace(item.AssetId))
             .GroupBy(
@@ -140,8 +152,29 @@ public static class StoreAssetCatalogService
                 Same(item.AssetId, assetId) &&
                 (canonicalType == null || item.AssetType == canonicalType))
             .ToList();
-        return matches.Count == 1 ? matches[0] : null;
+        return matches.Count > 0 ? matches[0] : null;
     }
+
+    public static bool IsLivingEmblemAsset(CatalogAssetDisplay? asset) =>
+        (asset?.AssetType == StoreProductAssetType.TeamLivingEmblem ||
+         asset?.AssetType == StoreProductAssetType.Emblem) &&
+        (Same(asset.AssetId, LivingProductionDefaultEmblemAssetId) ||
+         Same(asset.AssetId, LegacyLivingFilamentBackendProbeAssetId) ||
+         !string.IsNullOrWhiteSpace(asset.LivingVisualKind) ||
+         !string.IsNullOrWhiteSpace(asset.LivingPackagePath) ||
+         !string.IsNullOrWhiteSpace(asset.PreferredBackend));
+
+    public static bool IsLivingEmblemAsset(string? assetId, string? assetType) =>
+        (string.Equals(
+             CanonicalTypeId(assetType),
+             StoreProductAssetType.TeamLivingEmblem.ToString(),
+             StringComparison.OrdinalIgnoreCase) ||
+         string.Equals(
+             CanonicalTypeId(assetType),
+             StoreProductAssetType.Emblem.ToString(),
+             StringComparison.OrdinalIgnoreCase)) &&
+        (Same(assetId, LivingProductionDefaultEmblemAssetId) ||
+         Same(assetId, LegacyLivingFilamentBackendProbeAssetId));
 
     public static StoreProductAssetType? CanonicalType(string? assetType)
     {
@@ -151,6 +184,10 @@ public static class StoreAssetCatalogService
             return StoreProductAssetType.ProfileBackground;
         if (Same(assetType, TeamAssetTypes.Emblem.TeamAssetTypeId))
             return StoreProductAssetType.Emblem;
+        if (Same(assetType, "TeamEmblem") ||
+            Same(assetType, "LivingTeamEmblem") ||
+            Same(assetType, "TeamLivingEmblem"))
+            return StoreProductAssetType.TeamLivingEmblem;
         if (Same(assetType, TeamAssetPayloadCatalog.TeamColorTypeId))
             return StoreProductAssetType.TeamColor;
         if (Same(assetType, TeamAssetTypes.EmblemBackground.TeamAssetTypeId))
@@ -185,7 +222,17 @@ public static class StoreAssetCatalogService
         float effectOpacity = 1,
         float effectScale = 1,
         float effectSpeed = 1,
-        float effectIntensity = 1) =>
+        float effectIntensity = 1,
+        string livingVisualScope = "",
+        string livingVisualKind = "",
+        string livingPackageId = "",
+        string livingPackageManifestPath = "",
+        string livingPackagePath = "",
+        string preferredBackend = "",
+        string fallbackPolicy = "",
+        string livingVisualVersion = "",
+        string livingPackageVersion = "",
+        string rarity = "") =>
         new(
             assetId.Trim(),
             assetType,
@@ -214,7 +261,17 @@ public static class StoreAssetCatalogService
             effectOpacity,
             effectScale,
             effectSpeed,
-            effectIntensity);
+            effectIntensity,
+            livingVisualScope?.Trim() ?? string.Empty,
+            livingVisualKind?.Trim() ?? string.Empty,
+            livingPackageId?.Trim() ?? string.Empty,
+            livingPackageManifestPath?.Trim() ?? string.Empty,
+            livingPackagePath?.Trim() ?? string.Empty,
+            preferredBackend?.Trim() ?? string.Empty,
+            fallbackPolicy?.Trim() ?? string.Empty,
+            livingVisualVersion?.Trim() ?? string.Empty,
+            livingPackageVersion?.Trim() ?? string.Empty,
+            rarity?.Trim() ?? string.Empty);
 
     private static StoreProductAssetType TeamType(string typeId) =>
         Same(typeId, TeamAssetTypes.Emblem.TeamAssetTypeId)
@@ -224,6 +281,13 @@ public static class StoreAssetCatalogService
                 : Same(typeId, TeamAssetTypes.Effect.TeamAssetTypeId)
                     ? StoreProductAssetType.TeamEffect
                 : StoreProductAssetType.EmblemBackground;
+
+    private static StoreProductOwnerScope ResolveOwnerScope(
+        StoreProductAssetType type,
+        string? ownerScope) =>
+        Enum.TryParse<StoreProductOwnerScope>(ownerScope?.Trim(), false, out var parsed)
+            ? parsed
+            : StoreProductAssetTypeCatalog.GetOwnerScope(type);
 
     private static string DisplayName(string? arabic, string? english) =>
         !string.IsNullOrWhiteSpace(arabic)
@@ -238,7 +302,7 @@ public static class StoreAssetCatalogService
             : fallback?.Trim() ?? string.Empty;
 
     private static bool Same(string? left, string? right) =>
-        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(left, right);
 
     private sealed record ProductLink(
         string ProductId,

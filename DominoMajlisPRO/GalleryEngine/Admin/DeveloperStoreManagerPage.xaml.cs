@@ -198,6 +198,11 @@ public partial class DeveloperStoreManagerPage : ContentPage
             return;
         }
 
+        if (section.Id == "living-emblems")
+        {
+            await Navigation.PushAsync(new LivingEmblemPublishPreviewPage()); return;
+        }
+
         if (section.Id == "emblem-backgrounds")
         {
             await Navigation.PushAsync(new EmblemBackgroundsManagerPage());

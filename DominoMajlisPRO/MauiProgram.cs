@@ -1,4 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
+#if ANDROID
+using DominoMajlisPRO.LivingVisualPlatform.Rendering;
+using DominoMajlisPRO.Platforms.Android;
+#endif
 namespace DominoMajlisPRO
 {
     public static class MauiProgram
@@ -8,6 +12,12 @@ namespace DominoMajlisPRO
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .ConfigureMauiHandlers(handlers =>
+                {
+#if ANDROID
+                    handlers.AddHandler<FilamentLivingVisualView, FilamentLivingVisualViewHandler>();
+#endif
+                })
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

@@ -51,7 +51,7 @@ public static class RechargeDefaultCatalog
                 new RechargeOfferModel
                 {
                     OfferId = "offer-coins",
-                    Title = "عرض خاص",
+                    Title = "عرض العملات",
                     Subtitle = "باقة العملات",
                     CoinsAmount = 8000,
                     BonusText = "+1,500 مكافأة",
@@ -89,20 +89,20 @@ public static class RechargeDefaultCatalog
             ],
             PaymentMethods =
             [
-                Payment("google-play", "Google Play", "▶", 1),
-                Payment("visa", "VISA", "VISA", 2),
-                Payment("mastercard", "MasterCard", "●●", 3),
-                Payment("apple-pay", "Apple Pay", "", 4),
-                Payment("zain-cash", "Zain Cash", "Zain", 5),
-                Payment("qi-card", "Qi Card", "Qi", 6)
+                Payment("google-play", "Google Play", "▶", 1, "google-play-billing"),
+                Payment("visa", "VISA", "VISA", 2, "card-gateway"),
+                Payment("mastercard", "MasterCard", "MC", 3, "card-gateway"),
+                Payment("apple-pay", "Apple Pay", "", 4, "apple-pay"),
+                Payment("zain-cash", "Zain Cash", "Zain", 5, "zain-cash"),
+                Payment("qi-card", "Qi Card", "Qi", 6, "qi-card")
             ],
             FaqItems =
             [
-                Faq("كيف أستلم الجواهر؟", "تُضاف الجواهر إلى محفظتك فور اكتمال عملية الشراء التجريبية.", 1),
-                Faq("هل يمكن استرداد الأموال؟", "هذه نسخة محاكاة بلا دفع حقيقي. عند ربط بوابة الدفع ستطبق سياسة المتجر المعتمدة.", 2),
-                Faq("كم يستغرق الشحن؟", "يتم تحديث الرصيد وسجل المشتريات مباشرة بعد التأكيد.", 3)
+                Faq("كيف أستلم الجواهر؟", "تُضاف الجواهر إلى محفظتك فور اكتمال عملية الدفع في بيئة Sandbox. عند ربط بوابة حقيقية ستضاف فقط بعد موافقة المزود.", 1),
+                Faq("هل الدفع حقيقي الآن؟", "الحالي Sandbox آمن للتطوير. الربط الحقيقي يحتاج مفاتيح التاجر الرسمية من Zain Cash أو بوابة بطاقات مثل MasterCard/VISA.", 2),
+                Faq("كم يستغرق الشحن؟", "يتم تحديث الرصيد وسجل المشتريات مباشرة بعد موافقة عملية الدفع.", 3)
             ],
-            StoreVersion = "2.0.0",
+            StoreVersion = "2.1.0",
             StoreId = "DM-PRO-001"
         };
     }
@@ -123,8 +123,18 @@ public static class RechargeDefaultCatalog
     private static RechargeRewardModel Reward(string id, string title, string type, string icon) =>
         new() { RewardId = id, Title = title, RewardType = type, IconKey = icon };
 
-    private static PaymentMethodModel Payment(string id, string name, string icon, int order) =>
-        new() { PaymentMethodId = id, Name = name, IconKey = icon, SortOrder = order };
+    private static PaymentMethodModel Payment(string id, string name, string icon, int order, string providerKey) =>
+        new()
+        {
+            PaymentMethodId = id,
+            Name = name,
+            IconKey = icon,
+            SortOrder = order,
+            ProviderKey = providerKey,
+            IsEnabled = true,
+            IsProductionReady = false,
+            StatusText = "Sandbox جاهز"
+        };
 
     private static RechargeFaqItemModel Faq(string question, string answer, int order) =>
         new() { Question = question, Answer = answer, SortOrder = order };

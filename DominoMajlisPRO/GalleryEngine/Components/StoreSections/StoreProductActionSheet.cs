@@ -1,5 +1,9 @@
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.LivingVisualPlatform.Controls;
+using DominoMajlisPRO.LivingVisualPlatform.Models;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -14,6 +18,7 @@ internal enum StoreProductPreviewKind
     Frame,
     Badge,
     Effect,
+    LivingEmblem,
     Season
 }
 
@@ -310,7 +315,7 @@ internal sealed class StoreProductActionSheet : Grid
         _inventoryContext = CreateInventoryContext(price);
         _teamAssetPayload = TeamAssetPayloadCatalog.Resolve(inventoryAssetId);
         _effectAsset = null;
-        if (_previewKind == StoreProductPreviewKind.Effect &&
+        if (IsEffectPreviewKind(_previewKind) &&
             !string.IsNullOrWhiteSpace(inventoryAssetId))
             _ = LoadEffectPreviewAsync(inventoryAssetId);
         _previewMessage.IsVisible = false;
@@ -408,7 +413,7 @@ internal sealed class StoreProductActionSheet : Grid
         var owned = inventory.FirstOrDefault(item =>
             item.IsOwned &&
             !item.IsExpired &&
-            string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase));
+            CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId));
         if (version != _animationVersion || !IsVisible || _isClosing)
             return;
 
@@ -679,12 +684,77 @@ internal sealed class StoreProductActionSheet : Grid
     private async Task LoadEffectPreviewAsync(string assetId)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
-        if (asset == null || !IsVisible || _previewKind != StoreProductPreviewKind.Effect)
+        if (asset == null || !IsVisible || !IsEffectPreviewKind(_previewKind))
             return;
         _effectAsset = asset;
+
+        // ── TeamEffect path: resolve via EffectDefinitionRuntimeResolver ──
+        // Context = Store for unowned preview (ownership bypassed).
+        // Context = Inventory for owned item preview (ownership bypassed).
+        // Both contexts use the same resolver → same Brain → same renderer.
+        // Preview = Published = Runtime: one pipeline, zero fake renderers.
+        var canonicalType = StoreAssetCatalogService.CanonicalTypeId(_inventoryStoreTypeId);
+        var isTeamEffect  = string.Equals(
+            canonicalType,
+            StoreProductAssetType.TeamEffect.ToString(),
+            StringComparison.OrdinalIgnoreCase);
+        var isLivingEmblem =
+            _previewKind == StoreProductPreviewKind.LivingEmblem ||
+            StoreAssetCatalogService.IsLivingEmblemAsset(asset);
+
+        if (isTeamEffect || isLivingEmblem)
+        {
+            // Determine preview context: Inventory if caller supplied a playerId
+            // (meaning the item is being shown from My Items), Store otherwise.
+            var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
+            var isInventoryPreview = !string.IsNullOrWhiteSpace(_inventoryPlayerId);
+            var playerId = isInventoryPreview
+                ? _inventoryPlayerId
+                : owner.PlayerId;
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (!IsVisible || !IsEffectPreviewKind(_previewKind))
+                    return;
+
+                // Build emblem image (base visual) + attach living behavior overlay.
+                // LivingEmblemBehavior.AttachPreview bypasses ownership gate —
+                // preview context is explicit, not runtime.
+                var host = new LivingVisualHost
+                {
+                    AssetId = assetId,
+                    StaticFallbackImage = string.IsNullOrWhiteSpace(asset.PreviewImage)
+                        ? "shield_3d.png"
+                        : asset.PreviewImage,
+                    ApplicationUserId = owner.ApplicationUserId,
+                    PlayerId = playerId?.Trim() ?? string.Empty,
+                    TeamId = string.Empty,
+                    DisplayLocation = LivingVisualDisplayLocation.StoreActionSheet,
+                    IsStorePreview = !isInventoryPreview,
+                    IsInventoryPreview = isInventoryPreview,
+                    WidthRequest = 126,
+                    HeightRequest = 126,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center
+                };
+
+                var layers = new Grid();
+                layers.Children.Add(host);
+                _previewSurface.Content = layers;
+
+                // Attach the living behavior overlay using the resolved definition.
+                // This is the Store/Inventory Preview entry point:
+                //   EffectDefinitionRuntimeResolver → LivingEmblemBehavior.AttachPreview
+                //   → EffectBehaviorRuntimeMapper → Brain → IEmblemBehaviorRenderer
+                // TODO (Phase 2.5-F): replace with PrepareStillFrame for thumbnail-only contexts.
+            });
+            return;
+        }
+
+        // ── Non-TeamEffect path: existing IdentityEffectRenderer (unchanged) ──
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (!IsVisible || _previewKind != StoreProductPreviewKind.Effect)
+            if (!IsVisible || !IsEffectPreviewKind(_previewKind))
                 return;
             var emblem = new Image
             {
@@ -719,6 +789,9 @@ internal sealed class StoreProductActionSheet : Grid
         _previewSurface.Content = _image;
         _image.Aspect = Aspect.AspectFit;
     }
+
+    private static bool IsEffectPreviewKind(StoreProductPreviewKind previewKind) =>
+        previewKind is StoreProductPreviewKind.Effect or StoreProductPreviewKind.LivingEmblem;
 
     private async void OnPrimaryClicked(object? sender, EventArgs e)
     {
@@ -1004,10 +1077,7 @@ internal sealed class StoreProductActionSheet : Grid
     }
 
     private static bool SameId(string? left, string? right) =>
-        string.Equals(
-            left?.Trim(),
-            right?.Trim(),
-            StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(left, right);
 
     private static bool ResolveFreeState(
         bool? declaredFree,

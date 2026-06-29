@@ -1,5 +1,8 @@
 ﻿using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.LivingVisualPlatform.Controls;
+using DominoMajlisPRO.LivingVisualPlatform.Models;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
@@ -17,6 +20,7 @@ public class PremiumGalleryCard : ContentView
     private readonly Label _currencyIcon;
     private readonly Grid _contentGrid;
     private IdentityEffectView? _effectView;
+    private LivingVisualHost? _livingVisualHost;
 
     public PremiumGalleryCard()
     {
@@ -206,6 +210,11 @@ public class PremiumGalleryCard : ContentView
     private async Task ApplyEffectPreviewAsync(string assetId)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
+        var owner = asset?.AssetType == StoreProductAssetType.TeamEffect ||
+            StoreAssetCatalogService.IsLivingEmblemAsset(asset)
+            ? await ApplicationUserService.GetCurrentStoreOwnerAsync()
+            : null;
+
         MainThread.BeginInvokeOnMainThread(() =>
         {
             if (_effectView != null)
@@ -214,8 +223,19 @@ public class PremiumGalleryCard : ContentView
                 _contentGrid.Children.Remove(_effectView);
                 _effectView = null;
             }
+
+            if (_livingVisualHost != null)
+            {
+                _contentGrid.Children.Remove(_livingVisualHost);
+                _livingVisualHost = null;
+            }
+
+            _image.IsVisible = true;
+
+            var isLivingEmblem = StoreAssetCatalogService.IsLivingEmblemAsset(asset);
             if (asset?.AssetType is not (StoreProductAssetType.Effect or
-                StoreProductAssetType.TeamEffect))
+                StoreProductAssetType.TeamEffect) &&
+                !isLivingEmblem)
                 return;
 
             _image.Source = InventoryDisplayResolver.ResolveImageSource(
@@ -223,6 +243,31 @@ public class PremiumGalleryCard : ContentView
                 "shield_3d.png");
             _image.WidthRequest = 72;
             _image.HeightRequest = 72;
+
+            if (asset.AssetType == StoreProductAssetType.TeamEffect ||
+                isLivingEmblem)
+            {
+                _image.IsVisible = false;
+                _livingVisualHost = new LivingVisualHost
+                {
+                    AssetId = asset.AssetId,
+                    StaticFallbackImage = string.IsNullOrWhiteSpace(asset.PreviewImage)
+                        ? "shield_3d.png"
+                        : asset.PreviewImage,
+                    ApplicationUserId = owner?.ApplicationUserId ?? string.Empty,
+                    PlayerId = owner?.PlayerId ?? string.Empty,
+                    TeamId = string.Empty,
+                    DisplayLocation = LivingVisualDisplayLocation.StorePreview,
+                    IsStorePreview = true,
+                    WidthRequest = 90,
+                    HeightRequest = 90,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                _contentGrid.Add(_livingVisualHost, 0, 0);
+                return;
+            }
+
             _effectView = IdentityEffectRenderer.Create(asset, 1.22, lightweight: true);
             _effectView.WidthRequest = 100;
             _effectView.HeightRequest = 100;

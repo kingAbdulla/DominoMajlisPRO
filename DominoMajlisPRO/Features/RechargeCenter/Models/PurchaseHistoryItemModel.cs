@@ -11,5 +11,7 @@ public sealed class PurchaseHistoryItemModel
     public int GemsGranted { get; set; }
     public int CoinsGranted { get; set; }
     public string PaymentMethodId { get; set; } = string.Empty;
+    public string ProviderTransactionId { get; set; } = string.Empty;
+    public bool IsSandboxPayment { get; set; } = true;
     public string CreatedAtText => CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
 }

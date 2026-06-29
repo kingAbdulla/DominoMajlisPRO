@@ -2,6 +2,9 @@ using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
+using DominoMajlisPRO.LivingVisualPlatform.Controls;
+using DominoMajlisPRO.LivingVisualPlatform.Models;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -15,6 +18,16 @@ public partial class PlayerProfilesPage : ContentPage
     ApplicationUserModel? currentUser;
     bool accountHubExpanded = true;
     bool collectionExpanded = true;
+    
+    // VisualEventBus subscription tokens
+    IDisposable? playerAvatarChangedSubscription;
+    IDisposable? playerProfileBackgroundChangedSubscription;
+    IDisposable? playerFrameChangedSubscription;
+    IDisposable? playerEffectChangedSubscription;
+    IDisposable? teamEmblemChangedSubscription;
+    IDisposable? teamColorChangedSubscription;
+    IDisposable? teamEffectChangedSubscription;
+    IDisposable? teamEmblemBackgroundChangedSubscription;
 
     public PlayerProfilesPage()
     {
@@ -41,6 +54,32 @@ public partial class PlayerProfilesPage : ContentPage
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
         StoreAssetQueryService.PublishedContentChanged -= OnPublishedContentChanged;
         StoreAssetQueryService.PublishedContentChanged += OnPublishedContentChanged;
+        
+        // Subscribe to VisualEventBus identity events
+        playerAvatarChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerAvatarChanged);
+        playerProfileBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerProfileBackgroundChanged);
+        playerFrameChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerFrameChanged);
+        playerEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerEffectChanged);
+        teamEmblemChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemChanged);
+        teamColorChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamColorChanged);
+        teamEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEffectChanged);
+        teamEmblemBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemBackgroundChanged);
 
         await RefreshIdentityAsync();
         await RefreshCollectionProgressAsync();
@@ -112,9 +151,91 @@ public partial class PlayerProfilesPage : ContentPage
         });
     }
 
+    // VisualEventBus identity event handlers - reuse existing refresh paths
+    void HandlePlayerIdentityEvent(EventEntry eventEntry)
+    {
+        if (eventEntry.EventData == null)
+            return;
+        
+        if (!eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.PlayerId))
+            return;
+        
+        // Stage C2: PlayerId available for event filtering
+        eventEntry.EventData.TryGetValue(VisualIdentityPayloadKeys.PlayerId, out var playerIdObject);
+        
+        // Conservative filtering: Page displays ALL players, so any player identity change is potentially relevant.
+        // Cannot safely filter without knowing current view state or scroll position.
+        // Preserve existing refresh behavior to avoid false negatives.
+        _ = MainThread.InvokeOnMainThreadAsync(async () => await LoadPlayersAsync());
+    }
+
+    void HandleTeamIdentityEvent(EventEntry eventEntry)
+    {
+        if (eventEntry.EventData == null)
+            return;
+        
+        if (!eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.TeamId))
+            return;
+        
+        // Stage C2: TeamId available for event filtering
+        eventEntry.EventData.TryGetValue(VisualIdentityPayloadKeys.TeamId, out var teamIdObject);
+        
+        if (teamIdObject is not string teamId || string.IsNullOrWhiteSpace(teamId))
+            return;
+        
+        // Conservative filtering: Only refresh if team belongs to current user
+        if (string.IsNullOrWhiteSpace(currentUser?.PlayerId))
+        {
+            // Cannot determine relevance - preserve existing behavior
+            _ = MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await RefreshCollectionProgressAsync();
+                if (InventoryOverlay.IsVisible)
+                    await LoadInventoryAsync();
+            });
+            return;
+        }
+        
+        // Check if team belongs to current user (reuse existing logic from OnTeamAssetsChanged)
+        _ = MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            var team = await TeamProfileService.GetTeamByPlayerIdAsync(currentUser.PlayerId);
+            if (!string.Equals(team?.TeamId, teamId, StringComparison.OrdinalIgnoreCase))
+            {
+                // Event is for a different team - safely skip refresh
+                return;
+            }
+            
+            // Team belongs to current user - proceed with refresh
+            await RefreshCollectionProgressAsync();
+            if (InventoryOverlay.IsVisible)
+                await LoadInventoryAsync();
+        });
+    }
+
+    void OnPlayerAvatarChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerProfileBackgroundChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerFrameChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerEffectChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+
+    void OnTeamEmblemChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamColorChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamEffectChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamEmblemBackgroundChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+
+        // Dispose VisualEventBus subscriptions
+        playerAvatarChangedSubscription?.Dispose();
+        playerProfileBackgroundChangedSubscription?.Dispose();
+        playerFrameChangedSubscription?.Dispose();
+        playerEffectChangedSubscription?.Dispose();
+        teamEmblemChangedSubscription?.Dispose();
+        teamColorChangedSubscription?.Dispose();
+        teamEffectChangedSubscription?.Dispose();
+        teamEmblemBackgroundChangedSubscription?.Dispose();
 
         AppEvents.PlayerProfileChanged -= OnPlayerProfileChanged;
         AppEvents.DataChanged -= OnPlayerProfileChanged;
@@ -771,8 +892,9 @@ public partial class PlayerProfilesPage : ContentPage
             StrokeShape = new RoundRectangle { CornerRadius = 14 }
         };
 
-        visual.Content = string.IsNullOrWhiteSpace(payload.ImagePath)
-            ? new Label
+        visual.Content = CreateInventoryVisualContent(payload);
+        _ = string.IsNullOrWhiteSpace(payload.ImagePath)
+            ? (View)new Label
             {
                 Text = "◆",
                 TextColor = Color.FromArgb("#D4AF37"),
@@ -849,6 +971,44 @@ public partial class PlayerProfilesPage : ContentPage
             StrokeShape = new RoundRectangle { CornerRadius = 16 },
             Content = grid
         };
+    }
+
+    View CreateInventoryVisualContent(InventoryPayload payload)
+    {
+        if ((SameId(payload.AssetType, StoreProductAssetType.TeamEffect.ToString()) ||
+             SameId(payload.AssetType, StoreProductAssetType.Emblem.ToString())) &&
+            currentUser != null &&
+            !string.IsNullOrWhiteSpace(currentUser.ApplicationUserId) &&
+            !string.IsNullOrWhiteSpace(currentUser.PlayerId))
+        {
+            return new LivingVisualHost
+            {
+                AssetId = payload.AssetId,
+                StaticFallbackImage = payload.ImagePath,
+                ApplicationUserId = currentUser.ApplicationUserId,
+                PlayerId = currentUser.PlayerId,
+                TeamId = string.Empty,
+                DisplayLocation = LivingVisualDisplayLocation.Inventory,
+                IsInventoryPreview = true,
+                HorizontalOptions = LayoutOptions.Fill,
+                VerticalOptions = LayoutOptions.Fill
+            };
+        }
+
+        return string.IsNullOrWhiteSpace(payload.ImagePath)
+            ? (View)new Label
+            {
+                Text = "◆",
+                TextColor = Color.FromArgb("#D4AF37"),
+                FontSize = 22,
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center
+            }
+            : new Image
+            {
+                Source = ToImageSource(payload.ImagePath),
+                Aspect = Aspect.AspectFill
+            };
     }
 
     static Label CreateInventoryEmptyLabel(string text) =>

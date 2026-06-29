@@ -1,0 +1,13 @@
+{
+  "authoringTool": "Blender / Hunyuan3D production pipeline",
+  "exporter": "DominoMajlisPRO Living Emblem Pipeline",
+  "sourceAsset": "Dragon Master Production GLB",
+  "artStatus": "Production import v1.0 - developer verified GLB with Root, Bone and Jaw rig",
+  "isTemporaryArt": false,
+  "tags": {
+    "packageType": "LivingEmblem",
+    "runtimeBackend": "Filament",
+    "rig": "Root,Bone,Jaw",
+    "motionMode": "RuntimeProcedural"
+  }
+}

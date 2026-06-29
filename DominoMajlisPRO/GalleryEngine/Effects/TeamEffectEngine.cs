@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 
@@ -53,7 +54,7 @@ public static class TeamEffectEngine
             var ownsEligibleEffect = false;
 
             foreach (var item in inventory.Where(item =>
-                         string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase)))
+                         CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId)))
             {
                 var effect = ResolveTeamEffectFromCatalog(catalog, item.AssetId, item.StoreTypeId);
                 if (effect != null)
@@ -73,10 +74,30 @@ public static class TeamEffectEngine
         if (stored == null)
             return false;
 
+        var previousAssetId = stored.EquippedTeamEffectAssetId;
         stored.EquippedTeamEffectAssetId = assetId?.Trim() ?? string.Empty;
         stored.EquippedTeamEffectOwnerPlayerId =
             string.IsNullOrWhiteSpace(assetId) ? string.Empty : playerId.Trim();
         await TeamProfileService.SaveTeamsAsync(teams);
+        
+        // Publish to VisualEventBus for Living Visual Identity Engine
+        var payload = new Dictionary<string, object>
+        {
+            { "TeamId", teamId },
+            { "EffectAssetId", assetId ?? string.Empty },
+            { "TimestampUtc", DateTimeOffset.UtcNow }
+        };
+        
+        if (!string.IsNullOrWhiteSpace(previousAssetId))
+            payload["PreviousEffectAssetId"] = previousAssetId;
+        
+        VisualEventBus.Publish(
+            EventCategory.Team,
+            VisualIdentityEventNames.TeamEffectChanged,
+            payload,
+            isSticky: true,
+            stickyExpirationMs: 0);
+        
         AppEvents.RaiseTeamEffectChanged(teamId);
         AppEvents.RaiseTeamAssetsChanged(teamId);
         return true;
@@ -120,28 +141,24 @@ public static class TeamEffectEngine
         if (string.IsNullOrWhiteSpace(assetId))
             return null;
 
-        var canonicalTypeId = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+        var teamTyped = StoreAssetCatalogService.Resolve(
+            catalog,
+            assetId,
+            StoreProductAssetType.TeamEffect.ToString());
+        if (teamTyped != null)
+            return teamTyped;
 
-        if (string.Equals(canonicalTypeId, StoreProductAssetType.TeamEffect.ToString(), StringComparison.OrdinalIgnoreCase))
-        {
-            var teamTyped = StoreAssetCatalogService.Resolve(
-                catalog,
-                assetId,
-                StoreProductAssetType.TeamEffect.ToString());
-            if (teamTyped != null)
-                return teamTyped;
-        }
-
-        // Compatibility for effects published before TeamEffect became a canonical type.
-        // CreateTeamPage preview was already able to see these records, but MainPage/GamePage
-        // could not because they resolved only TeamEffect. This is the root cause of the
-        // "preview works, runtime pages do not" mismatch.
         var legacyEffect = StoreAssetCatalogService.Resolve(
             catalog,
             assetId,
             StoreProductAssetType.Effect.ToString());
+        if (legacyEffect == null)
+            return null;
 
-        return legacyEffect != null && IsTeamEffectTarget(legacyEffect)
+        var canonicalTypeId = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+        return IsTeamEffectTarget(legacyEffect) ||
+               string.Equals(canonicalTypeId, StoreProductAssetType.Effect.ToString(), StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(canonicalTypeId, StoreProductAssetType.TeamEffect.ToString(), StringComparison.OrdinalIgnoreCase)
             ? legacyEffect
             : null;
     }

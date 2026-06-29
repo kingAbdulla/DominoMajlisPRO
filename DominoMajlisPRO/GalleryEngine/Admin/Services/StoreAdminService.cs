@@ -16,16 +16,17 @@ public static class StoreAdminService
             CreateSection("avatars", "الصور الشخصية", "إدارة صور اللاعبين الرمزية", "◉", StoreCardTemplateType.Avatar, 4),
             CreateSection("backgrounds", "الخلفيات", "خلفيات البروفايل والمتجر", "▣", StoreCardTemplateType.CategoryCard, 5),
             CreateSection("emblems", "الشعارات", "شعارات الفرق والهوية", "✦", StoreCardTemplateType.ProductCard, 6),
-            CreateSection("emblem-backgrounds", "خلفيات الشعارات", "خلفيات هوية شعارات الفرق", "▧", StoreCardTemplateType.ProductCard, 7),
-            CreateSection("team-colors", "ألوان الفرق", "ألوان هوية الفرق", "◈", StoreCardTemplateType.ProductCard, 8),
-            CreateSection("effects", "التأثيرات", "مؤثرات العرض والزينة", "✧", StoreCardTemplateType.ProductCard, 9),
-            CreateSection("frames", "الإطارات", "إطارات هوية اللاعب", "▢", StoreCardTemplateType.ProductCard, 10),
-            CreateSection("titles", "الألقاب", "ألقاب هوية اللاعب", "T", StoreCardTemplateType.ProductCard, 11),
-            CreateSection("bundles", "الحزم", "مجموعات المنتجات والعروض", "▰", StoreCardTemplateType.ProductCard, 12),
-            CreateSection("currency-pricing", "العملات والأسعار", "الجواهر والعملات وقواعد التسعير", "◆", StoreCardTemplateType.CurrencyPricing, 13),
-            CreateSection("product-cards", "بطاقات المنتجات", "إدارة بطاقات المنتجات المنشورة", "▤", StoreCardTemplateType.ProductCard, 14),
-            CreateSection("category-cards", "بطاقات الفئات", "إدارة بطاقات تصفح الفئات", "▦", StoreCardTemplateType.CategoryCard, 15),
-            CreateSection("store-settings", "إعدادات المتجر", "إعدادات النشر والظهور العامة", "⚙", StoreCardTemplateType.StoreSettings, 16)
+            CreateSection("living-emblems", "الشعارات الحية", "Living Emblems", "✺", StoreCardTemplateType.ProductCard, 7),
+            CreateSection("emblem-backgrounds", "خلفيات الشعارات", "خلفيات هوية شعارات الفرق", "▧", StoreCardTemplateType.ProductCard, 8),
+            CreateSection("team-colors", "ألوان الفرق", "ألوان هوية الفرق", "◈", StoreCardTemplateType.ProductCard, 9),
+            CreateSection("effects", "التأثيرات", "مؤثرات العرض والزينة", "✧", StoreCardTemplateType.ProductCard, 10),
+            CreateSection("frames", "الإطارات", "إطارات هوية اللاعب", "▢", StoreCardTemplateType.ProductCard, 11),
+            CreateSection("titles", "الألقاب", "ألقاب هوية اللاعب", "T", StoreCardTemplateType.ProductCard, 12),
+            CreateSection("bundles", "الحزم", "مجموعات المنتجات والعروض", "▰", StoreCardTemplateType.ProductCard, 13),
+            CreateSection("currency-pricing", "العملات والأسعار", "الجواهر والعملات وقواعد التسعير", "◆", StoreCardTemplateType.CurrencyPricing, 14),
+            CreateSection("product-cards", "بطاقات المنتجات", "إدارة بطاقات المنتجات المنشورة", "▤", StoreCardTemplateType.ProductCard, 15),
+            CreateSection("category-cards", "بطاقات الفئات", "إدارة بطاقات تصفح الفئات", "▦", StoreCardTemplateType.CategoryCard, 16),
+            CreateSection("store-settings", "إعدادات المتجر", "إعدادات النشر والظهور العامة", "⚙", StoreCardTemplateType.StoreSettings, 17)
         };
     }
 
