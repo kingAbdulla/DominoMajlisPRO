@@ -9,7 +9,7 @@ public sealed class TypographyIdentityPreset
     public string DepthPreset { get; set; } = "Low";
     public string MotionPreset { get; set; } = "None";
     public string ParticlePreset { get; set; } = "None";
-    public string FrameStylePreset { get; set; } = "Plate";
+    public string FrameStylePreset { get; set; } = "None";
     public double FrameThickness { get; set; } = 1.4;
     public string PrimaryColor { get; set; } = "#FFD76A";
     public string SecondaryColor { get; set; } = "#2A1B08";
@@ -37,7 +37,7 @@ public sealed class TypographyIdentityPreset
         preset.DepthPreset = NormalizeToken(DepthPreset, "Low");
         preset.MotionPreset = NormalizeToken(MotionPreset, "None");
         preset.ParticlePreset = NormalizeToken(ParticlePreset, "None");
-        preset.FrameStylePreset = NormalizeToken(FrameStylePreset, "Plate");
+        preset.FrameStylePreset = NormalizeToken(FrameStylePreset, "None");
         return preset;
     }
 

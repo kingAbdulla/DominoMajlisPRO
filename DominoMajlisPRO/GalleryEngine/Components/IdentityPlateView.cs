@@ -100,19 +100,26 @@ public sealed class IdentityPlateView : ContentView
         _shadow.FontSize = fontSize;
         _text.TextColor = primary;
         _text.Opacity = preset.Opacity;
-        _frame.Stroke = primary.WithAlpha((float)Math.Clamp(0.35 + preset.Intensity * 0.3, 0.35, 0.9));
-        _frame.StrokeThickness = preset.FrameStylePreset == "None" ? 0 : preset.FrameThickness;
-        _frame.Background = CreateBackground(preset, secondary);
-        _frame.Shadow = new Shadow
-        {
-            Brush = new SolidColorBrush(primary.WithAlpha(0.32f)),
-            Radius = (float)Math.Clamp(8 + preset.Intensity * 6, 8, 18),
-            Opacity = preset.FrameStylePreset == "None" ? 0 : 0.38f,
-            Offset = new Point(0, 2)
-        };
-        _layers.Padding = preset.FrameStylePreset == "None"
-            ? new Thickness(0, 1)
-            : new Thickness(10 + preset.FrameThickness, 3, 10 + preset.FrameThickness, 4);
+        var hasFrame = preset.FrameStylePreset != "None";
+        _frame.Stroke = hasFrame
+            ? primary.WithAlpha((float)Math.Clamp(0.35 + preset.Intensity * 0.3, 0.35, 0.9))
+            : Colors.Transparent;
+        _frame.StrokeThickness = hasFrame ? preset.FrameThickness : 0;
+        _frame.Background = hasFrame
+            ? CreateBackground(preset, secondary)
+            : new SolidColorBrush(Colors.Transparent);
+        _frame.Shadow = hasFrame
+            ? new Shadow
+            {
+                Brush = new SolidColorBrush(primary.WithAlpha(0.32f)),
+                Radius = (float)Math.Clamp(8 + preset.Intensity * 6, 8, 18),
+                Opacity = 0.38f,
+                Offset = new Point(0, 2)
+            }
+            : null;
+        _layers.Padding = hasFrame
+            ? new Thickness(10 + preset.FrameThickness, 3, 10 + preset.FrameThickness, 4)
+            : new Thickness(0, 1);
     }
 
     private static Label CreateLabel() => new()

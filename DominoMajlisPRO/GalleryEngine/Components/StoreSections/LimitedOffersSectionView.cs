@@ -205,6 +205,7 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
             true,
             RefreshAsync,
             RefreshAsync,
+            previewKind: ResolvePreviewKind(card.StoreTypeId),
             inventoryAssetId: card.AssetId,
             inventoryStoreTypeId: card.StoreTypeId,
             inventoryIsFree: isFree,
@@ -226,6 +227,39 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
             rootTap.Tapped += (_, _) => action();
             root.GestureRecognizers.Add(rootTap);
         }
+    }
+
+    private static StoreProductPreviewKind ResolvePreviewKind(
+        string storeTypeId)
+    {
+        var canonicalType =
+            StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+        if (string.Equals(
+                canonicalType,
+                StoreProductAssetType.Frame.ToString(),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return StoreProductPreviewKind.Frame;
+        }
+
+        if (canonicalType is nameof(StoreProductAssetType.PlayerNameEffect) or
+            nameof(StoreProductAssetType.TeamNameEffect) or
+            nameof(StoreProductAssetType.PlayerNameFrame) or
+            nameof(StoreProductAssetType.TeamNameFrame))
+        {
+            return StoreProductPreviewKind.NameTypography;
+        }
+
+        return string.Equals(
+            canonicalType,
+            StoreProductAssetType.Effect.ToString(),
+            StringComparison.OrdinalIgnoreCase)
+                || string.Equals(
+                    canonicalType,
+                    StoreProductAssetType.TeamEffect.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
+                ? StoreProductPreviewKind.Effect
+                : StoreProductPreviewKind.Generic;
     }
 
     private static GalleryItem ToGalleryItem(LimitedOfferRecord record) => new()

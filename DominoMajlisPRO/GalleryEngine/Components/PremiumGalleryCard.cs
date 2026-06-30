@@ -199,12 +199,12 @@ public class PremiumGalleryCard : ContentView
                 : "جديد";
 
         _ = ApplyDynamicBackgroundAsync(imageName);
-        _ = ApplyEffectPreviewAsync(item.Id);
+        _ = ApplyEffectPreviewAsync(item.Id, _name.Text);
 
         ApplyResponsive();
     }
 
-    private async Task ApplyEffectPreviewAsync(string assetId)
+    private async Task ApplyEffectPreviewAsync(string assetId, string displayText)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
         MainThread.BeginInvokeOnMainThread(() =>
@@ -234,9 +234,7 @@ public class PremiumGalleryCard : ContentView
                     HorizontalOptions = LayoutOptions.Fill,
                     VerticalOptions = LayoutOptions.Center
                 };
-                _identityPlate.Bind(asset.AssetType.ToString().StartsWith("Team", StringComparison.Ordinal)
-                    ? "فريق المجالس"
-                    : "اللاعب الذهبي", asset.TypographyPreset);
+                _identityPlate.Bind(displayText, PresetForNameAsset(asset));
                 _contentGrid.Add(_identityPlate, 0, 0);
                 return;
             }
@@ -258,6 +256,16 @@ public class PremiumGalleryCard : ContentView
             _effectView.VerticalOptions = LayoutOptions.Center;
             _contentGrid.Add(_effectView, 0, 0);
         });
+    }
+
+    private static TypographyIdentityPreset PresetForNameAsset(
+        CatalogAssetDisplay asset)
+    {
+        var preset = asset.TypographyPreset;
+        if (asset.AssetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect)
+            preset.FrameStylePreset = "None";
+        return preset.Normalized();
     }
 
     public void Bind(GalleryItem item, object? theme)

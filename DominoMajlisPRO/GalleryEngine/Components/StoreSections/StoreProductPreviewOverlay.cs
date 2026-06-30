@@ -1,4 +1,6 @@
 using Microsoft.Maui.Controls.Shapes;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Services;
 
 using DominoMajlisPRO.GalleryEngine.Models;
@@ -213,10 +215,32 @@ internal sealed class StoreProductPreviewOverlay : Grid
             StoreProductPreviewKind.Frame => FrameVisual(image, request.Accent),
             StoreProductPreviewKind.Badge => IdentityVisual(image, request),
             StoreProductPreviewKind.Season => BackgroundVisual(image, request),
+            StoreProductPreviewKind.NameTypography when request.Effect != null =>
+                NameTypographyVisual(request, request.Effect),
             StoreProductPreviewKind.Effect when request.Effect != null =>
                 EffectVisual(image, request.Effect, request.Accent),
             _ => PreviewCard(image, request.Accent)
         };
+    }
+
+    private static View NameTypographyVisual(
+        StoreProductPreviewRequest request,
+        CatalogAssetDisplay effect)
+    {
+        var preset = effect.TypographyPreset;
+        if (effect.AssetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect)
+            preset.FrameStylePreset = "None";
+
+        var plate = new IdentityPlateView
+        {
+            HeightRequest = 70,
+            MaximumWidthRequest = 420,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+        plate.Bind(request.Name, preset);
+        return PreviewCard(plate, request.Accent);
     }
 
     private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent)

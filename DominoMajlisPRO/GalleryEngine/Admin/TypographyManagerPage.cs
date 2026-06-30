@@ -82,7 +82,7 @@ public sealed class TypographyManagerPage : ContentPage
         _depthPicker.SelectedIndex = 1;
         _motionPicker.SelectedIndex = 0;
         _particlePicker.SelectedIndex = 0;
-        _framePicker.SelectedIndex = 1;
+        _framePicker.SelectedIndex = 0;
 
         _assetTypePicker.SelectedIndexChanged += (_, _) => SyncEquipTarget();
         foreach (var picker in new[] { _fontPicker, _materialPicker, _lightingPicker, _depthPicker, _motionPicker, _particlePicker, _framePicker })
@@ -91,6 +91,9 @@ public sealed class TypographyManagerPage : ContentPage
             slider.ValueChanged += (_, _) => RefreshPreview();
         _primaryColorEntry.TextChanged += (_, _) => RefreshPreview();
         _secondaryColorEntry.TextChanged += (_, _) => RefreshPreview();
+        _titleEntry.TextChanged += (_, _) => RefreshPreview();
+        _descriptionEditor.TextChanged += (_, _) => RefreshPreview();
+        ApplyInputColors();
     }
 
     private void BuildPage()
@@ -252,7 +255,7 @@ public sealed class TypographyManagerPage : ContentPage
             CurrencyType = currency,
             IsFree = currency == NewArrivalCurrencyType.Free || price <= 0,
             EquipTarget = expectedTarget,
-            TypographyPreset = BuildPreset(),
+            TypographyPreset = BuildPreset(type),
             Status = publish ? NewArrivalStatus.Published : NewArrivalStatus.Draft,
             CreatedAt = _currentRecord?.CreatedAt ?? DateTime.UtcNow,
             PublishedAt = publish ? DateTime.UtcNow : _currentRecord?.PublishedAt
@@ -294,24 +297,37 @@ public sealed class TypographyManagerPage : ContentPage
         ApplyPreset(record.TypographyPreset);
     }
 
-    private TypographyIdentityPreset BuildPreset() => new TypographyIdentityPreset
+    private TypographyIdentityPreset BuildPreset() =>
+        BuildPreset(ResolveSelectedAssetType());
+
+    private TypographyIdentityPreset BuildPreset(StoreProductAssetType? assetType)
     {
-        FontFamily = Selected(_fontPicker),
-        FontSize = _fontSizeSlider.Value,
-        MaterialPreset = Selected(_materialPicker),
-        LightingPreset = Selected(_lightingPicker),
-        DepthPreset = Selected(_depthPicker),
-        MotionPreset = Selected(_motionPicker),
-        ParticlePreset = Selected(_particlePicker),
-        FrameStylePreset = Selected(_framePicker),
-        FrameThickness = _thicknessSlider.Value,
-        PrimaryColor = _primaryColorEntry.Text ?? "#FFD76A",
-        SecondaryColor = _secondaryColorEntry.Text ?? "#2A1B08",
-        Opacity = _opacitySlider.Value,
-        Scale = _scaleSlider.Value,
-        Speed = _speedSlider.Value,
-        Intensity = _intensitySlider.Value
-    }.Normalized();
+        var frameStyle = Selected(_framePicker);
+        if (assetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect)
+        {
+            frameStyle = "None";
+        }
+
+        return new TypographyIdentityPreset
+        {
+            FontFamily = Selected(_fontPicker),
+            FontSize = _fontSizeSlider.Value,
+            MaterialPreset = Selected(_materialPicker),
+            LightingPreset = Selected(_lightingPicker),
+            DepthPreset = Selected(_depthPicker),
+            MotionPreset = Selected(_motionPicker),
+            ParticlePreset = Selected(_particlePicker),
+            FrameStylePreset = frameStyle,
+            FrameThickness = _thicknessSlider.Value,
+            PrimaryColor = _primaryColorEntry.Text ?? "#FFD76A",
+            SecondaryColor = _secondaryColorEntry.Text ?? "#2A1B08",
+            Opacity = _opacitySlider.Value,
+            Scale = _scaleSlider.Value,
+            Speed = _speedSlider.Value,
+            Intensity = _intensitySlider.Value
+        }.Normalized();
+    }
 
     private void ApplyPreset(TypographyIdentityPreset? source)
     {
@@ -336,18 +352,72 @@ public sealed class TypographyManagerPage : ContentPage
 
     private void SyncEquipTarget()
     {
-        if (Selected(_assetTypePicker).StartsWith("Team", StringComparison.Ordinal))
+        var selected = Selected(_assetTypePicker);
+        if (selected.StartsWith("Team", StringComparison.Ordinal))
             Select(_equipTargetPicker, "TeamName");
         else
             Select(_equipTargetPicker, "PlayerName");
+        if (selected is nameof(StoreProductAssetType.PlayerNameEffect) or
+            nameof(StoreProductAssetType.TeamNameEffect))
+            Select(_framePicker, "None");
         RefreshPreview();
     }
 
     private void RefreshPreview()
     {
+        if (_titleEntry != null)
+        {
+            var type = ResolveSelectedAssetType();
+            var livePreset = BuildPreset(type);
+            var title = string.IsNullOrWhiteSpace(_titleEntry.Text)
+                ? "ط§ط³ظ… ط§ظ„ظ‡ظˆظٹط©"
+                : _titleEntry.Text.Trim();
+            var isTeam = type is StoreProductAssetType.TeamNameEffect or
+                StoreProductAssetType.TeamNameFrame;
+            _playerPreview.IsVisible = !isTeam;
+            _teamPreview.IsVisible = isTeam;
+            if (isTeam)
+                _teamPreview.Bind(title, livePreset);
+            else
+                _playerPreview.Bind(title, livePreset);
+            return;
+        }
         var preset = BuildPreset();
         _playerPreview.Bind("اللاعب الذهبي الطويل", preset);
         _teamPreview.Bind("فريق المجالس الملكية", preset);
+    }
+
+    private StoreProductAssetType? ResolveSelectedAssetType() =>
+        StoreProductAssetTypeCatalog.TryResolve(
+            Selected(_assetTypePicker),
+            out var type)
+            ? type
+            : null;
+
+    private void ApplyInputColors()
+    {
+        var text = Color.FromArgb("#FFF4D2");
+        var muted = Color.FromArgb("#8F7A55");
+        foreach (var entry in new[]
+                 { _titleEntry, _priceEntry, _primaryColorEntry, _secondaryColorEntry })
+        {
+            entry.TextColor = text;
+            entry.PlaceholderColor = muted;
+        }
+
+        _descriptionEditor.TextColor = text;
+        _descriptionEditor.PlaceholderColor = muted;
+        foreach (var picker in new[]
+                 {
+                     _assetTypePicker, _categoryPicker, _currencyPicker,
+                     _equipTargetPicker, _fontPicker, _materialPicker,
+                     _lightingPicker, _depthPicker, _motionPicker,
+                     _particlePicker, _framePicker
+                 })
+        {
+            picker.TextColor = text;
+            picker.TitleColor = muted;
+        }
     }
 
     private static Border Panel(View content) => new()
