@@ -1,4 +1,6 @@
-﻿namespace DominoMajlisPRO.GalleryEngine.Admin.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Models;
+
+namespace DominoMajlisPRO.GalleryEngine.Admin.Models;
 
 public enum NewArrivalStatus
 {
@@ -40,6 +42,7 @@ public sealed class NewArrivalRecord
     public float EffectScale { get; set; } = 1;
     public float EffectSpeed { get; set; } = 1;
     public float EffectIntensity { get; set; } = 1;
+    public TypographyIdentityPreset? TypographyPreset { get; set; }
     public string EquipTarget { get; set; } = string.Empty;
     public string LivingVisualScope { get; set; } = string.Empty;
     public string LivingVisualKind { get; set; } = string.Empty;
