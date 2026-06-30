@@ -14,8 +14,8 @@ public static class PlayerStoreIdentityService
 
     public static async Task<string?> GetDeviceIdentityPlayerIdAsync()
     {
-        var currentUser = await ApplicationUserService.EnsureCurrentSessionAsync();
-        return string.IsNullOrWhiteSpace(currentUser.PlayerId) ? null : currentUser.PlayerId.Trim();
+        var identity = await HonorIdentityService.LoadAsync();
+        return string.IsNullOrWhiteSpace(identity.PlayerId) ? null : identity.PlayerId;
     }
 
     public static async Task<PlayerWalletModel?> GetDeviceWalletAsync()

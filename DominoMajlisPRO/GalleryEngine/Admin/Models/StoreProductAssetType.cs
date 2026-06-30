@@ -7,7 +7,10 @@ public enum StoreProductAssetType
     Frame,
     Effect,
     TeamEffect,
-    TeamLivingEmblem,
+    PlayerNameEffect,
+    TeamNameEffect,
+    PlayerNameFrame,
+    TeamNameFrame,
     Title,
     Emblem,
     TeamColor,
@@ -41,15 +44,18 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.ProfileBackground or
         StoreProductAssetType.Frame or
         StoreProductAssetType.Effect or
+        StoreProductAssetType.PlayerNameEffect or
+        StoreProductAssetType.PlayerNameFrame or
         StoreProductAssetType.TeamEffect or
-        StoreProductAssetType.TeamLivingEmblem or
         StoreProductAssetType.Title or
         StoreProductAssetType.Badge or
         StoreProductAssetType.SeasonReward => StoreProductOwnerScope.Player,
 
         StoreProductAssetType.Emblem or
         StoreProductAssetType.TeamColor or
-        StoreProductAssetType.EmblemBackground => StoreProductOwnerScope.Team,
+        StoreProductAssetType.EmblemBackground or
+        StoreProductAssetType.TeamNameEffect or
+        StoreProductAssetType.TeamNameFrame => StoreProductOwnerScope.Team,
 
         _ => StoreProductOwnerScope.None
     };
@@ -61,7 +67,6 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.Avatar or
         StoreProductAssetType.ProfileBackground or
         StoreProductAssetType.Emblem or
-        StoreProductAssetType.TeamLivingEmblem or
         StoreProductAssetType.EmblemBackground or
         StoreProductAssetType.Frame;
 
@@ -157,10 +162,14 @@ public static class StoreManagerAssetTypeScopes
         "backgrounds" => Types(StoreProductAssetType.ProfileBackground),
         "emblems" => Types(
             StoreProductAssetType.Emblem,
-            StoreProductAssetType.TeamLivingEmblem,
             StoreProductAssetType.EmblemBackground),
         "emblem-backgrounds" => Types(StoreProductAssetType.EmblemBackground),
-        "effects" => Types(StoreProductAssetType.Effect, StoreProductAssetType.TeamEffect, StoreProductAssetType.TeamLivingEmblem),
+        "effects" => Types(StoreProductAssetType.Effect, StoreProductAssetType.TeamEffect),
+        "name-effects" => Types(
+            StoreProductAssetType.PlayerNameEffect,
+            StoreProductAssetType.TeamNameEffect,
+            StoreProductAssetType.PlayerNameFrame,
+            StoreProductAssetType.TeamNameFrame),
         "frames" => Types(StoreProductAssetType.Frame),
         "titles" => Types(StoreProductAssetType.Title),
         "team-colors" => Types(StoreProductAssetType.TeamColor),

@@ -2,9 +2,6 @@ using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Canonical;
 using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.LivingVisualPlatform.Controls;
-using DominoMajlisPRO.LivingVisualPlatform.Models;
-using DominoMajlisPRO.LivingVisualPlatform.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin;
@@ -12,18 +9,6 @@ namespace DominoMajlisPRO.GalleryEngine.Admin;
 public sealed class EmblemsManagerPage : SpecializedStoreManagerPage
 {
     public EmblemsManagerPage() : base(SpecializedStoreManagerDefinition.Emblems) { }
-}
-
-public sealed class LivingEmblemsManagerPage : SpecializedStoreManagerPage
-{
-    public LivingEmblemsManagerPage()
-        : base(new SpecializedStoreManagerDefinition(
-            "الشعارات الحية",
-            "Living Emblems",
-            new[] { StoreProductAssetType.Emblem },
-            IsLivingEmblem: true))
-    {
-    }
 }
 
 public sealed class EffectsManagerPage : SpecializedStoreManagerPage
@@ -59,12 +44,10 @@ public sealed class TeamColorsManagerPage : SpecializedStoreManagerPage
 public class SpecializedStoreManagerPage : ContentPage
 {
     private readonly SpecializedStoreManagerDefinition _definition;
-    private readonly Entry _titleEntry = new() { Placeholder = "العنوان الرئيسي" };
-    private readonly Editor _descriptionEditor = new() { Placeholder = "التفاصيل", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 82 };
-    private readonly Entry _imageEntry = new() { Placeholder = "اختر صورة", IsReadOnly = true };
+    private readonly Entry _titleEntry = new() { Placeholder = "العنوان / الاسم" };
+    private readonly Editor _descriptionEditor = new() { Placeholder = "الوصف", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 82 };
+    private readonly Entry _imageEntry = new() { Placeholder = "الصورة", IsReadOnly = true };
     private readonly Image _previewImage = new() { HeightRequest = 130, Aspect = Aspect.AspectFit, IsVisible = false };
-    private readonly ContentView _livingEmblemPreviewHost = new() { HeightRequest = 170, IsVisible = false };
-    private readonly Label _livingEmblemDiagnostics = new() { FontSize = 11, IsVisible = false, HorizontalTextAlignment = TextAlignment.End };
     private readonly Picker _assetIdPicker = new() { Title = "معرّف الأصل AssetId" };
     private readonly Picker _assetTypePicker = new() { Title = "Asset Type / نوع الأصل" };
     private readonly Picker _categoryPicker = new() { Title = "التصنيف" };
@@ -74,21 +57,6 @@ public class SpecializedStoreManagerPage : ContentPage
     private readonly Picker _animationTypePicker = new() { Title = "نوع الحركة" };
     private readonly Entry _durationEntry = new() { Placeholder = "المدة بالمللي ثانية", Keyboard = Keyboard.Numeric };
     private readonly Picker _equipTargetPicker = new() { Title = "هدف التجهيز" };
-    private readonly Picker _primaryEffectColorPicker = new() { Title = "اللون الأساسي" };
-    private readonly Picker _secondaryEffectColorPicker = new() { Title = "اللون الثانوي" };
-    private readonly Entry _customPrimaryColorEntry = new() { Placeholder = "لون أساسي مخصص #RRGGBB" };
-    private readonly Entry _customSecondaryColorEntry = new() { Placeholder = "لون ثانوي مخصص #RRGGBB" };
-    private readonly Editor _effectLayersEditor = new() { Placeholder = "طبقات التأثير", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 76, IsReadOnly = true, IsVisible = false };
-    private readonly EffectsLayerBuilderView _layerBuilder = new();
-    private readonly Entry _effectOpacityEntry = new() { Placeholder = "الشفافية 0.05 - 1.00", Keyboard = Keyboard.Numeric, IsVisible = false };
-    private readonly Entry _effectScaleEntry = new() { Placeholder = "الحجم 0.10 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
-    private readonly Entry _effectSpeedEntry = new() { Placeholder = "السرعة 0.25 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
-    private readonly Entry _effectIntensityEntry = new() { Placeholder = "الشدة 0.10 - 3.00", Keyboard = Keyboard.Numeric, IsVisible = false };
-    private readonly EffectsStudioPreviewView _effectsPreview = new();
-    private readonly EffectsStudioSliderView _opacitySlider = new("الشفافية", 0.05, 1.00, 0.74);
-    private readonly EffectsStudioSliderView _scaleSlider = new("الحجم", 0.10, 3.00, 1.18);
-    private readonly EffectsStudioSliderView _speedSlider = new("السرعة", 0.25, 3.00, 1.00);
-    private readonly EffectsStudioSliderView _intensitySlider = new("الشدة", 0.10, 3.00, 1.00);
     private readonly Editor _bundleAssetsEditor = new() { Placeholder = "AssetType:AssetId — أصل واحد في كل سطر", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 92 };
     private readonly Entry _discountEntry = new() { Placeholder = "نسبة الخصم", Keyboard = Keyboard.Numeric };
     private readonly Entry _colorHexEntry = new() { Placeholder = "لون الفريق #RRGGBB" };
@@ -101,9 +69,6 @@ public class SpecializedStoreManagerPage : ContentPage
     private readonly List<DominoMajlisPRO.GalleryEngine.Models.CatalogAssetDisplay> _assetChoices = new();
     private NewArrivalRecord? _currentRecord;
     private bool _editingPublished;
-    private bool _livingPreviewPrepared;
-    private bool _syncingEffectSliders;
-    private bool _syncingLayerBuilder;
 
     protected SpecializedStoreManagerPage(SpecializedStoreManagerDefinition definition)
     {
@@ -125,7 +90,6 @@ public class SpecializedStoreManagerPage : ContentPage
         GalleryThemeEngine.ThemeChanged += OnThemeChanged;
         await LoadAssetChoicesAsync();
         ApplyTheme();
-        UpdateEffectsPreview();
     }
 
     protected override void OnDisappearing()
@@ -146,55 +110,26 @@ public class SpecializedStoreManagerPage : ContentPage
         modeGrid.Add(_modeDot, 0); modeGrid.Add(new VerticalStackLayout { Spacing = 1, Children = { _modeTitle, _modeSubtitle } }, 1);
         _modeCard.Content = modeGrid;
 
+        var imageRow = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10 };
+        imageRow.Add(_imageEntry, 0);
+        var pickImage = new Button { Text = _definition.IsBundle ? "اختيار أيقونة" : "اختيار صورة" };
+        pickImage.Clicked += OnPickImageClicked;
+        imageRow.Add(pickImage, 1);
+
         var form = new VerticalStackLayout { Spacing = 10, Children = { _titleEntry, _descriptionEditor } };
         if (!_definition.IsEffect)
         {
-            var imageRow = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10 };
-            imageRow.Add(_imageEntry, 0);
-            var pickImage = new Button { Text = _definition.IsBundle ? "اختيار أيقونة" : "اختيار صورة" };
-            pickImage.Clicked += OnPickImageClicked;
-            imageRow.Add(pickImage, 1);
             form.Children.Add(imageRow);
             form.Children.Add(_previewImage);
-            if (_definition.IsLivingEmblem)
-            {
-                form.Children.Add(new Label { Text = "Living Emblem Preview", TextColor = Color.FromArgb("#D4AF37"), FontSize = 15, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.End });
-                form.Children.Add(_livingEmblemPreviewHost);
-                form.Children.Add(_livingEmblemDiagnostics);
-            }
         }
         form.Children.Add(_assetTypePicker);
         form.Children.Add(_categoryPicker);
         if (_definition.IsEffect)
         {
-            form.Children.Add(_effectsPreview);
             form.Children.Add(_effectTypePicker);
             form.Children.Add(_animationTypePicker);
             form.Children.Add(_durationEntry);
             form.Children.Add(_equipTargetPicker);
-            form.Children.Add(new Label { Text = "Effects Studio", TextColor = Color.FromArgb("#D4AF37"), FontSize = 15, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.End });
-            form.Children.Add(_primaryEffectColorPicker);
-            form.Children.Add(_secondaryEffectColorPicker);
-            form.Children.Add(_customPrimaryColorEntry);
-            form.Children.Add(_customSecondaryColorEntry);
-            form.Children.Add(new Label { Text = "صورة التأثير (اختياري)", TextColor = Color.FromArgb("#D4AF37"), FontSize = 12, HorizontalTextAlignment = TextAlignment.End });
-            var effectImageRow = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10 };
-            effectImageRow.Add(_imageEntry, 0);
-            var pickEffectImage = new Button { Text = "اختيار صورة التأثير" };
-            pickEffectImage.Clicked += OnPickImageClicked;
-            effectImageRow.Add(pickEffectImage, 1);
-            form.Children.Add(effectImageRow);
-            form.Children.Add(_previewImage);
-            form.Children.Add(_layerBuilder);
-            form.Children.Add(_effectLayersEditor);
-            form.Children.Add(_opacitySlider);
-            form.Children.Add(_scaleSlider);
-            form.Children.Add(_speedSlider);
-            form.Children.Add(_intensitySlider);
-            form.Children.Add(_effectOpacityEntry);
-            form.Children.Add(_effectScaleEntry);
-            form.Children.Add(_effectSpeedEntry);
-            form.Children.Add(_effectIntensityEntry);
         }
         if (_definition.IsBundle)
         {
@@ -235,81 +170,8 @@ public class SpecializedStoreManagerPage : ContentPage
         _effectTypePicker.SetOptions(CanonicalStoreCatalog.EffectTypes());
         _animationTypePicker.SetOptions(CanonicalStoreCatalog.AnimationTypes());
         _equipTargetPicker.SetOptions(CanonicalStoreCatalog.EquipTargets());
-        _primaryEffectColorPicker.SetOptions(EffectsStudioCatalog.ColorPresets());
-        _secondaryEffectColorPicker.SetOptions(EffectsStudioCatalog.ColorPresets());
-        WireEffectsPreviewEvents();
-        WireEffectSliders();
-        WireLayerBuilder();
-        if (_definition.IsLivingEmblem)
-        {
-            _titleEntry.TextChanged += (_, _) => UpdateLivingEmblemPreview();
-            _imageEntry.TextChanged += (_, _) => UpdateLivingEmblemPreview();
-        }
         _bundleAssetsEditor.IsReadOnly = true;
         _bundleAssetsEditor.Focused += OnBundleAssetsFocused;
-    }
-
-    private void WireEffectsPreviewEvents()
-    {
-        foreach (var picker in new[] { _effectTypePicker, _animationTypePicker, _equipTargetPicker, _primaryEffectColorPicker, _secondaryEffectColorPicker })
-            picker.SelectedIndexChanged += (_, _) => UpdateEffectsPreview();
-
-        foreach (var entry in new[] { _titleEntry, _durationEntry, _customPrimaryColorEntry, _customSecondaryColorEntry, _effectOpacityEntry, _effectScaleEntry, _effectSpeedEntry, _effectIntensityEntry })
-            entry.TextChanged += (_, _) => UpdateEffectsPreview();
-
-        _effectLayersEditor.TextChanged += (_, _) => UpdateEffectsPreview();
-    }
-
-    private void WireEffectSliders()
-    {
-        _opacitySlider.ValueChanged += (_, value) => UpdateEffectEntryFromSlider(_effectOpacityEntry, value);
-        _scaleSlider.ValueChanged += (_, value) => UpdateEffectEntryFromSlider(_effectScaleEntry, value);
-        _speedSlider.ValueChanged += (_, value) => UpdateEffectEntryFromSlider(_effectSpeedEntry, value);
-        _intensitySlider.ValueChanged += (_, value) => UpdateEffectEntryFromSlider(_effectIntensityEntry, value);
-    }
-
-    private void WireLayerBuilder()
-    {
-        _layerBuilder.SelectionChanged += (_, _) =>
-        {
-            if (_syncingLayerBuilder)
-                return;
-
-            _effectLayersEditor.Text = string.Join(Environment.NewLine, _layerBuilder.SelectedLayerIds);
-            UpdateEffectsPreview();
-        };
-    }
-
-    private void UpdateEffectEntryFromSlider(Entry entry, double value)
-    {
-        if (_syncingEffectSliders)
-            return;
-
-        entry.Text = value.ToString("0.##");
-        UpdateEffectsPreview();
-    }
-
-    private void SyncEffectSlidersFromEntries()
-    {
-        if (!_definition.IsEffect)
-            return;
-
-        _syncingEffectSliders = true;
-        _opacitySlider.Value = ParseDouble(_effectOpacityEntry.Text, 0.74);
-        _scaleSlider.Value = ParseDouble(_effectScaleEntry.Text, 1.18);
-        _speedSlider.Value = ParseDouble(_effectSpeedEntry.Text, 1.0);
-        _intensitySlider.Value = ParseDouble(_effectIntensityEntry.Text, 1.0);
-        _syncingEffectSliders = false;
-    }
-
-    private void SyncLayerBuilderFromEditor()
-    {
-        if (!_definition.IsEffect)
-            return;
-
-        _syncingLayerBuilder = true;
-        _layerBuilder.SelectLayers(ParseLines(_effectLayersEditor.Text));
-        _syncingLayerBuilder = false;
     }
 
     private async void OnBundleAssetsFocused(object? sender, FocusEventArgs e)
@@ -329,7 +191,10 @@ public class SpecializedStoreManagerPage : ContentPage
 
         var asset = assets[index];
         var value = $"{asset.AssetType}:{asset.AssetId}";
-        var current = ParseLines(_bundleAssetsEditor.Text);
+        var current = _bundleAssetsEditor.Text?
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList()
+            ?? new List<string>();
         if (!current.Contains(value, StringComparer.OrdinalIgnoreCase))
             current.Add(value);
         _bundleAssetsEditor.Text = string.Join(Environment.NewLine, current);
@@ -343,13 +208,13 @@ public class SpecializedStoreManagerPage : ContentPage
             _assetChoices.AddRange(
                 (await StoreAssetCatalogService.LoadAsync())
                     .Where(asset => asset.AssetType == selectedType)
-                    .GroupBy(asset => CanonicalAssetIdentityService.NormalizeForComparison(asset.AssetId), StringComparer.Ordinal)
+                    .GroupBy(asset => asset.AssetId, StringComparer.OrdinalIgnoreCase)
                     .Select(group => group.First())
                     .OrderBy(asset => asset.DisplayName, StringComparer.CurrentCultureIgnoreCase));
         _assetIdPicker.ItemsSource = _assetChoices
             .Select(asset => $"{asset.DisplayName} • {asset.AssetType}")
             .ToList();
-        _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => CanonicalAssetIdentityService.SameAssetId(asset.AssetId, selectedId));
+        _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => string.Equals(asset.AssetId, selectedId, StringComparison.OrdinalIgnoreCase));
     }
 
     private async void OnPickImageClicked(object? sender, EventArgs e)
@@ -361,8 +226,6 @@ public class SpecializedStoreManagerPage : ContentPage
             InventoryDisplayResolver.ResolveOptionalImageSource(
                 _imageEntry.Text);
         _previewImage.IsVisible = _previewImage.Source != null;
-        UpdateLivingEmblemPreview();
-        UpdateEffectsPreview();
     }
 
     private async Task SaveDraftAsync()
@@ -384,196 +247,24 @@ public class SpecializedStoreManagerPage : ContentPage
 
     private bool TryBuildRecord(out NewArrivalRecord record, bool validateForPublish)
     {
-        record = BuildCurrentRecordForEffectsPreview();
+        record = new NewArrivalRecord();
         if (!StoreProductAssetTypeCatalog.TryResolve(_assetTypePicker.SelectedCanonicalId(), out var assetType) || !_definition.AllowedTypes.Contains(assetType)) { ShowError("نوع الأصل غير مسموح في هذا المدير"); return false; }
         _ = int.TryParse(_priceEntry.Text, out var price);
+        _ = int.TryParse(_durationEntry.Text, out var duration);
         _ = int.TryParse(_discountEntry.Text, out var discount);
         var currency = Enum.TryParse<NewArrivalCurrencyType>(_currencyPicker.SelectedCanonicalId(), out var parsedCurrency) ? parsedCurrency : NewArrivalCurrencyType.Gems;
-        if (_definition.IsLivingEmblem)
-            return TryBuildLivingEmblemRecord(out record, validateForPublish, price, currency);
-        var bundleAssets = ParseLines(_bundleAssetsEditor.Text);
-        var effectLayers = ParseLines(_effectLayersEditor.Text);
-        if (_definition.IsEffect && (string.IsNullOrWhiteSpace(_effectTypePicker.SelectedCanonicalId()) || string.IsNullOrWhiteSpace(_animationTypePicker.SelectedCanonicalId()) || record.DurationMilliseconds <= 0 || string.IsNullOrWhiteSpace(_equipTargetPicker.SelectedCanonicalId()))) { ShowError("أكمل نوع التأثير والحركة والمدة وهدف التجهيز"); return false; }
-        if (_definition.IsEffect && effectLayers.Count == 0) { ShowError("اختر طبقة تأثير واحدة على الأقل"); return false; }
+        var bundleAssets = _bundleAssetsEditor.Text?.Split(new[] { '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList() ?? new List<string>();
+        if (_definition.IsEffect && (string.IsNullOrWhiteSpace(_effectTypePicker.SelectedCanonicalId()) || string.IsNullOrWhiteSpace(_animationTypePicker.SelectedCanonicalId()) || duration <= 0 || string.IsNullOrWhiteSpace(_equipTargetPicker.SelectedCanonicalId()))) { ShowError("أكمل نوع التأثير والحركة والمدة وهدف التجهيز"); return false; }
         if (_definition.IsBundle && (bundleAssets.Count < 2 || string.IsNullOrWhiteSpace(_imageEntry.Text))) { ShowError("الحزمة تحتاج أصلين على الأقل وأيقونة"); return false; }
         if (_definition.IsBundle && bundleAssets.Any(item => !ValidBundleComponent(item))) { ShowError("صيغة مكونات الحزمة يجب أن تكون AssetType:AssetId"); return false; }
         if (validateForPublish && string.IsNullOrWhiteSpace(_titleEntry.Text)) { ShowError("العنوان مطلوب"); return false; }
         var productId = _currentRecord?.ProductId ?? Guid.NewGuid().ToString();
         var assetId = _currentRecord?.AssetId;
         if (string.IsNullOrWhiteSpace(assetId))
-            assetId = CanonicalAssetIdentityService.GenerateCanonicalAssetId(assetType.ToString(), _titleEntry.Text);
-
-        record.Id = productId;
-        record.ProductId = productId;
-        record.AssetId = assetId;
-        record.StoreTypeId = assetType.ToString();
-        record.OwnerScope = StoreProductAssetTypeCatalog.GetOwnerScope(assetType).ToString();
-        record.ColorHex = _definition.IsTeamColor ? _colorHexEntry.Text?.Trim() ?? string.Empty : string.Empty;
-        record.Category = _categoryPicker.SelectedCanonicalId();
-        record.Price = currency == NewArrivalCurrencyType.Free ? 0 : price;
-        record.CurrencyType = currency;
-        record.IsFree = currency == NewArrivalCurrencyType.Free || price == 0;
-        record.BundleAssetIds = bundleAssets;
-        record.DiscountPercent = Math.Clamp(discount, 0, 100);
-        record.Status = _editingPublished ? NewArrivalStatus.Published : NewArrivalStatus.Draft;
-        record.CreatedAt = _currentRecord?.CreatedAt ?? DateTime.UtcNow;
-        record.PublishedAt = _currentRecord?.PublishedAt;
+            assetId = GenerateAssetId(assetType, _titleEntry.Text);
+        record = new NewArrivalRecord { Id = productId, ProductId = productId, AssetId = assetId, StoreTypeId = assetType.ToString(), OwnerScope = StoreProductAssetTypeCatalog.GetOwnerScope(assetType).ToString(), Title = _titleEntry.Text?.Trim() ?? string.Empty, Description = _descriptionEditor.Text?.Trim() ?? string.Empty, ButtonText = "عرض", ImagePath = _definition.IsEffect ? string.Empty : _imageEntry.Text?.Trim() ?? string.Empty, ColorHex = _definition.IsTeamColor ? _colorHexEntry.Text?.Trim() ?? string.Empty : string.Empty, Category = _categoryPicker.SelectedCanonicalId(), Price = currency == NewArrivalCurrencyType.Free ? 0 : price, CurrencyType = currency, IsFree = currency == NewArrivalCurrencyType.Free || price == 0, EffectType = _effectTypePicker.SelectedCanonicalId(), AnimationType = _animationTypePicker.SelectedCanonicalId(), DurationMilliseconds = duration, EquipTarget = _equipTargetPicker.SelectedCanonicalId(), BundleAssetIds = bundleAssets, DiscountPercent = Math.Clamp(discount, 0, 100), Status = _editingPublished ? NewArrivalStatus.Published : NewArrivalStatus.Draft, CreatedAt = _currentRecord?.CreatedAt ?? DateTime.UtcNow, PublishedAt = _currentRecord?.PublishedAt };
         _validationLabel.IsVisible = false;
         return true;
-    }
-
-    private bool TryBuildLivingEmblemRecord(
-        out NewArrivalRecord record,
-        bool validateForPublish,
-        int price,
-        NewArrivalCurrencyType currency)
-    {
-        record = new NewArrivalRecord();
-        var title = string.IsNullOrWhiteSpace(_titleEntry.Text)
-            ? "Living Emblem Package"
-            : _titleEntry.Text.Trim();
-        var fallbackImage = string.IsNullOrWhiteSpace(_imageEntry.Text)
-            ? "shield_3d.png"
-            : _imageEntry.Text.Trim();
-
-        if (validateForPublish && !_livingPreviewPrepared)
-        {
-            ShowError("Preview is required before publishing this Living Emblem.");
-            return false;
-        }
-
-        if (validateForPublish && string.IsNullOrWhiteSpace(title))
-        {
-            ShowError("Title is required.");
-            return false;
-        }
-
-        var productId = string.IsNullOrWhiteSpace(_currentRecord?.ProductId)
-            ? "product_" + GenerateAssetId(StoreProductAssetType.Emblem, title)
-            : _currentRecord.ProductId;
-
-        record.Id = productId;
-        record.ProductId = productId;
-        record.AssetId = StoreAssetCatalogService.LivingProductionDefaultEmblemAssetId;
-        record.StoreTypeId = StoreProductAssetType.TeamLivingEmblem.ToString();
-        record.OwnerScope = StoreProductOwnerScope.Player.ToString();
-        record.Title = title;
-        record.Subtitle = "Living Emblems";
-        record.Description = string.IsNullOrWhiteSpace(_descriptionEditor.Text)
-            ? "Real Filament GLB preview before publishing"
-            : _descriptionEditor.Text.Trim();
-        record.ButtonText = "Preview";
-        record.ImagePath = fallbackImage;
-        record.Category = StoreProductAssetType.TeamLivingEmblem.ToString();
-        record.ColorHex = string.Empty;
-        record.EffectType = "LivingVisual";
-        record.AnimationType = "production-default-living-emblem";
-        record.EquipTarget = "TeamEmblem";
-        record.LivingVisualScope = LivingVisualAssetScope.TeamEmblem.ToString();
-        record.LivingVisualKind = LivingVisualAssetKind.LivingLegendaryEmblem.ToString();
-        record.LivingPackageId = "living-emblem-production-default";
-        record.LivingPackageManifestPath = LivingEmblemPackagePaths.Combine(
-            LivingEmblemPackagePaths.DefaultProductionPackagePath,
-            LivingEmblemPackagePaths.ManifestFileName);
-        record.LivingPackagePath = LivingEmblemPackagePaths.DefaultProductionPackagePath;
-        record.PreferredBackend = LivingRendererBackend.Filament.ToString();
-        record.FallbackPolicy = "StaticFallback";
-        record.LivingVisualVersion = "1.0.0";
-        record.LivingPackageVersion = "1.0.0";
-        record.Rarity = "Legendary";
-        record.Price = currency == NewArrivalCurrencyType.Free ? 0 : price;
-        record.CurrencyType = currency;
-        record.IsFree = currency == NewArrivalCurrencyType.Free || price == 0;
-        record.IsFeatured = true;
-        record.Status = _editingPublished ? NewArrivalStatus.Published : NewArrivalStatus.Draft;
-        record.CreatedAt = _currentRecord?.CreatedAt ?? DateTime.UtcNow;
-        record.PublishedAt = _currentRecord?.PublishedAt;
-        _validationLabel.IsVisible = false;
-        return true;
-    }
-
-    private NewArrivalRecord BuildCurrentRecordForEffectsPreview()
-    {
-        _ = int.TryParse(_durationEntry.Text, out var duration);
-        var opacity = ParseDouble(_effectOpacityEntry.Text, 0.74);
-        var scale = ParseDouble(_effectScaleEntry.Text, 1.18);
-        var speed = ParseDouble(_effectSpeedEntry.Text, 1.0);
-        var intensity = ParseDouble(_effectIntensityEntry.Text, 1.0);
-
-        var previewAssetType =
-            StoreProductAssetTypeCatalog.TryResolve(_assetTypePicker.SelectedCanonicalId(), out var selectedPreviewType) &&
-            _definition.AllowedTypes.Contains(selectedPreviewType)
-                ? selectedPreviewType
-                : string.Equals(_equipTargetPicker.SelectedCanonicalId(), "TeamEffect", StringComparison.OrdinalIgnoreCase) ||
-                  string.Equals(_equipTargetPicker.SelectedCanonicalId(), "Team", StringComparison.OrdinalIgnoreCase)
-                    ? StoreProductAssetType.TeamEffect
-                    : StoreProductAssetType.Effect;
-
-        return new NewArrivalRecord
-        {
-            Id = _currentRecord?.Id ?? Guid.NewGuid().ToString(),
-            ProductId = _currentRecord?.ProductId ?? string.Empty,
-            AssetId = _currentRecord?.AssetId ?? "preview-effect",
-            StoreTypeId = previewAssetType.ToString(),
-            OwnerScope = StoreProductAssetTypeCatalog.GetOwnerScope(previewAssetType).ToString(),
-            Title = _titleEntry.Text?.Trim() ?? string.Empty,
-            Description = _descriptionEditor.Text?.Trim() ?? string.Empty,
-            ButtonText = "عرض",
-            ImagePath = _imageEntry.Text?.Trim() ?? string.Empty,
-            Category = _categoryPicker.SelectedCanonicalId(),
-            EffectType = _effectTypePicker.SelectedCanonicalId(),
-            AnimationType = _animationTypePicker.SelectedCanonicalId(),
-            DurationMilliseconds = duration,
-            EquipTarget = _equipTargetPicker.SelectedCanonicalId(),
-            PrimaryColorPresetId = _primaryEffectColorPicker.SelectedCanonicalId(),
-            SecondaryColorPresetId = _secondaryEffectColorPicker.SelectedCanonicalId(),
-            CustomPrimaryColorHex = _customPrimaryColorEntry.Text?.Trim() ?? string.Empty,
-            CustomSecondaryColorHex = _customSecondaryColorEntry.Text?.Trim() ?? string.Empty,
-            EffectLayerIds = ParseLines(_effectLayersEditor.Text),
-            EffectOpacity = (float)Math.Clamp(opacity, 0.05, 1.0),
-            EffectScale = (float)Math.Clamp(scale, 0.10, 3.0),
-            EffectSpeed = (float)Math.Clamp(speed, 0.25, 3.0),
-            EffectIntensity = (float)Math.Clamp(intensity, 0.10, 3.0)
-        };
-    }
-
-    private void UpdateEffectsPreview()
-    {
-        if (!_definition.IsEffect)
-            return;
-
-        _effectsPreview.Preview(BuildCurrentRecordForEffectsPreview());
-    }
-
-    private void UpdateLivingEmblemPreview()
-    {
-        if (!_definition.IsLivingEmblem)
-            return;
-
-        var fallbackImage = string.IsNullOrWhiteSpace(_imageEntry.Text)
-            ? "shield_3d.png"
-            : _imageEntry.Text.Trim();
-
-        _livingEmblemPreviewHost.Content = new LivingVisualHost
-        {
-            AssetId = StoreAssetCatalogService.LivingProductionDefaultEmblemAssetId,
-            StaticFallbackImage = fallbackImage,
-            ApplicationUserId = string.Empty,
-            PlayerId = string.Empty,
-            TeamId = string.Empty,
-            DisplayLocation = LivingVisualDisplayLocation.StorePreview,
-            IsDeveloperPreview = true,
-            IsStorePreview = true,
-            WidthRequest = 160,
-            HeightRequest = 160,
-            HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center
-        };
-        _livingEmblemPreviewHost.IsVisible = true;
-        _livingEmblemDiagnostics.Text =
-            "Manifest: package | Backend: Filament | Package: " + LivingEmblemPackagePaths.DefaultProductionPackagePath + " | Fallback: " + fallbackImage;
-        _livingEmblemDiagnostics.IsVisible = true;
-        _livingPreviewPrepared = true;
     }
 
     private async Task SelectRecordAsync(bool published)
@@ -625,15 +316,10 @@ public class SpecializedStoreManagerPage : ContentPage
         _currentRecord = record; _editingPublished = published;
         _titleEntry.Text = record.Title; _descriptionEditor.Text = record.Description; _imageEntry.Text = record.ImagePath; _assetTypePicker.SelectCanonicalId(record.StoreTypeId); _priceEntry.Text = record.Price.ToString(); _currencyPicker.SelectCanonicalId(record.CurrencyType.ToString()); _colorHexEntry.Text = record.ColorHex;
         _effectTypePicker.SelectCanonicalId(record.EffectType); _animationTypePicker.SelectCanonicalId(record.AnimationType); _durationEntry.Text = record.DurationMilliseconds.ToString(); _equipTargetPicker.SelectCanonicalId(record.EquipTarget); _bundleAssetsEditor.Text = string.Join(Environment.NewLine, record.BundleAssetIds ?? new List<string>()); _discountEntry.Text = record.DiscountPercent.ToString();
-        _primaryEffectColorPicker.SelectCanonicalId(record.PrimaryColorPresetId); _secondaryEffectColorPicker.SelectCanonicalId(record.SecondaryColorPresetId); _customPrimaryColorEntry.Text = record.CustomPrimaryColorHex; _customSecondaryColorEntry.Text = record.CustomSecondaryColorHex; _effectLayersEditor.Text = string.Join(Environment.NewLine, record.EffectLayerIds ?? new List<string>()); _effectOpacityEntry.Text = record.EffectOpacity.ToString("0.##"); _effectScaleEntry.Text = record.EffectScale.ToString("0.##"); _effectSpeedEntry.Text = record.EffectSpeed.ToString("0.##"); _effectIntensityEntry.Text = record.EffectIntensity.ToString("0.##");
-        SyncEffectSlidersFromEntries();
-        SyncLayerBuilderFromEditor();
         if (!string.IsNullOrWhiteSpace(record.ImagePath)) { _previewImage.Source = InventoryDisplayResolver.ResolveOptionalImageSource(record.ImagePath); _previewImage.IsVisible = _previewImage.Source != null; }
         await LoadAssetChoicesAsync();
-        _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => CanonicalAssetIdentityService.SameAssetId(asset.AssetId, record.AssetId));
+        _assetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset => string.Equals(asset.AssetId, record.AssetId, StringComparison.OrdinalIgnoreCase));
         _categoryPicker.SelectCanonicalId(record.Category == "Ass" ? "Avatar" : record.Category);
-        UpdateEffectsPreview();
-        UpdateLivingEmblemPreview();
         SetMode(published ? "Editing Published" : "Editing Draft", published ? "تعديل أصل منشور" : "استكمال المسودة", published ? Color.FromArgb("#27AE60") : Color.FromArgb("#9B51E0"));
     }
 
@@ -641,39 +327,11 @@ public class SpecializedStoreManagerPage : ContentPage
     {
         _currentRecord = null; _editingPublished = false;
         _titleEntry.Text = _descriptionEditor.Text = _imageEntry.Text = _priceEntry.Text = _durationEntry.Text = _bundleAssetsEditor.Text = _discountEntry.Text = _colorHexEntry.Text = string.Empty;
-        _customPrimaryColorEntry.Text = _customSecondaryColorEntry.Text = string.Empty;
-        _effectOpacityEntry.Text = "0.74";
-        _effectScaleEntry.Text = "1.18";
-        _effectSpeedEntry.Text = "1.0";
-        _effectIntensityEntry.Text = "1.0";
-        SyncEffectSlidersFromEntries();
-        _effectLayersEditor.Text = string.Join(Environment.NewLine, new[] { "Glow", "Aura" });
-        SyncLayerBuilderFromEditor();
         _assetIdPicker.SelectedIndex = -1;
         _previewImage.Source = null; _previewImage.IsVisible = false; _categoryPicker.SelectCanonicalId(_definition.AllowedTypes[0].ToString()); _currencyPicker.SelectCanonicalId("Gems");
         if (_definition.AllowedTypes.Count == 1) _assetTypePicker.SelectedIndex = 0; else _assetTypePicker.SelectedIndex = -1;
-        _effectTypePicker.SelectCanonicalId("Glow"); _animationTypePicker.SelectCanonicalId("Breathing"); _equipTargetPicker.SelectCanonicalId("PlayerEffect"); _primaryEffectColorPicker.SelectCanonicalId("Gold"); _secondaryEffectColorPicker.SelectCanonicalId("Gold");
-        _livingPreviewPrepared = false;
-        if (_definition.IsLivingEmblem)
-        {
-            _titleEntry.Text = "Living Emblem Package";
-            _descriptionEditor.Text = "Real Filament GLB preview before publishing";
-            _imageEntry.Text = "LivingEmblems/production_default/fallback.png";
-            _priceEntry.Text = "0";
-            _currencyPicker.SelectCanonicalId(NewArrivalCurrencyType.Free.ToString());
-            _categoryPicker.SelectCanonicalId(StoreProductAssetType.TeamLivingEmblem.ToString());
-            _previewImage.Source = InventoryDisplayResolver.ResolveOptionalImageSource(_imageEntry.Text);
-            _previewImage.IsVisible = _previewImage.Source != null;
-            UpdateLivingEmblemPreview();
-        }
-        else
-        {
-            _livingEmblemPreviewHost.Content = null;
-            _livingEmblemPreviewHost.IsVisible = false;
-            _livingEmblemDiagnostics.IsVisible = false;
-        }
+        _effectTypePicker.SelectedIndex = _animationTypePicker.SelectedIndex = _equipTargetPicker.SelectedIndex = -1;
         _validationLabel.IsVisible = false;
-        UpdateEffectsPreview();
         SetMode("New Product", "جاهز لإضافة أصل جديد", Color.FromArgb("#2F80ED"));
     }
 
@@ -683,17 +341,32 @@ public class SpecializedStoreManagerPage : ContentPage
         return parts.Length == 2 && StoreProductAssetTypeCatalog.TryResolve(parts[0], out _) && !string.IsNullOrWhiteSpace(parts[1]);
     }
 
-    private static List<string> ParseLines(string? value) =>
-        value?.Split(new[] { '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
-        ?? new List<string>();
-
-    private static double ParseDouble(string? value, double fallback) =>
-        double.TryParse(value, out var result) ? result : fallback;
-
     private static string GenerateAssetId(
         StoreProductAssetType assetType,
-        string? title) =>
-        CanonicalAssetIdentityService.GenerateCanonicalAssetId(assetType.ToString(), title);
+        string? title)
+    {
+        var slug = new string((title ?? string.Empty)
+            .Trim()
+            .ToLowerInvariant()
+            .Select(character =>
+                char.IsLetterOrDigit(character) ? character : '-')
+            .ToArray());
+        while (slug.Contains("--", StringComparison.Ordinal))
+            slug = slug.Replace("--", "-", StringComparison.Ordinal);
+        slug = slug.Trim('-');
+        if (string.IsNullOrWhiteSpace(slug))
+            slug = "asset";
+
+        var typeSlug = assetType switch
+        {
+            StoreProductAssetType.ProfileBackground => "profile-background",
+            StoreProductAssetType.EmblemBackground => "emblem-background",
+            StoreProductAssetType.TeamColor => "team-color",
+            _ => assetType.ToString().ToLowerInvariant()
+        };
+        var suffix = Guid.NewGuid().ToString("N")[..6];
+        return $"{typeSlug}-{slug}-{suffix}";
+    }
 
     private string SelectedAssetId() => _assetIdPicker.SelectedIndex >= 0 && _assetIdPicker.SelectedIndex < _assetChoices.Count ? _assetChoices[_assetIdPicker.SelectedIndex].AssetId : string.Empty;
     private void ShowError(string message) { _validationLabel.Text = message; _validationLabel.IsVisible = true; }
@@ -704,24 +377,22 @@ public class SpecializedStoreManagerPage : ContentPage
     {
         var theme = GalleryThemeEngine.Current;
         _modeCard.Background = _formPanel.Background = theme.ActionBackground; _modeCard.Stroke = _formPanel.Stroke = theme.Stroke; _modeTitle.TextColor = theme.TextPrimary; _modeSubtitle.TextColor = theme.TextMuted; _validationLabel.TextColor = Color.FromArgb("#D84A4A");
-        foreach (var entry in new[] { _titleEntry, _imageEntry, _priceEntry, _durationEntry, _discountEntry, _colorHexEntry, _customPrimaryColorEntry, _customSecondaryColorEntry, _effectOpacityEntry, _effectScaleEntry, _effectSpeedEntry, _effectIntensityEntry }) { entry.TextColor = theme.TextPrimary; entry.PlaceholderColor = theme.TextMuted; }
-        foreach (var editor in new[] { _descriptionEditor, _bundleAssetsEditor, _effectLayersEditor }) { editor.TextColor = theme.TextPrimary; editor.PlaceholderColor = theme.TextMuted; }
-        foreach (var picker in new[] { _assetIdPicker, _assetTypePicker, _categoryPicker, _currencyPicker, _effectTypePicker, _animationTypePicker, _equipTargetPicker, _primaryEffectColorPicker, _secondaryEffectColorPicker }) { picker.TextColor = theme.TextPrimary; picker.TitleColor = theme.TextMuted; }
+        foreach (var entry in new[] { _titleEntry, _imageEntry, _priceEntry, _durationEntry, _discountEntry, _colorHexEntry }) { entry.TextColor = theme.TextPrimary; entry.PlaceholderColor = theme.TextMuted; }
+        foreach (var editor in new[] { _descriptionEditor, _bundleAssetsEditor }) { editor.TextColor = theme.TextPrimary; editor.PlaceholderColor = theme.TextMuted; }
+        foreach (var picker in new[] { _assetIdPicker, _assetTypePicker, _categoryPicker, _currencyPicker, _effectTypePicker, _animationTypePicker, _equipTargetPicker }) { picker.TextColor = theme.TextPrimary; picker.TitleColor = theme.TextMuted; }
     }
 
     private static Border Panel() => new() { Padding = 12, StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 18 } };
     private static Button ActionButton(string text, Func<Task> action) { var button = new Button { Text = text }; button.Clicked += async (_, _) => await action(); return button; }
 }
 
-public sealed record SpecializedStoreManagerDefinition(string Title, string Subtitle, IReadOnlyList<StoreProductAssetType> AllowedTypes, bool IsEffect = false, bool IsBundle = false, bool IsTeamColor = false, bool IsLivingEmblem = false)
+public sealed record SpecializedStoreManagerDefinition(string Title, string Subtitle, IReadOnlyList<StoreProductAssetType> AllowedTypes, bool IsEffect = false, bool IsBundle = false, bool IsTeamColor = false)
 {
-    public static SpecializedStoreManagerDefinition Emblems { get; } = new("الشعارات", "نشر شعارات الفرق", new[] { StoreProductAssetType.Emblem, StoreProductAssetType.TeamLivingEmblem });
+    public static SpecializedStoreManagerDefinition Emblems { get; } = new("الشعارات", "نشر شعارات الفرق", new[] { StoreProductAssetType.Emblem });
     public static SpecializedStoreManagerDefinition EmblemBackgrounds { get; } = new("خلفيات الشعارات", "نشر خلفيات هوية شعارات الفرق", new[] { StoreProductAssetType.EmblemBackground });
-    public static SpecializedStoreManagerDefinition Effects { get; } = new("التأثيرات", "نشر مؤثرات اللاعب والفريق القابلة للتجهيز", new[] { StoreProductAssetType.Effect, StoreProductAssetType.TeamEffect }, IsEffect: true);
+    public static SpecializedStoreManagerDefinition Effects { get; } = new("التأثيرات", "نشر مؤثرات اللاعب القابلة للتجهيز", new[] { StoreProductAssetType.Effect }, IsEffect: true);
     public static SpecializedStoreManagerDefinition Frames { get; } = new("الإطارات", "نشر إطارات هوية اللاعب", new[] { StoreProductAssetType.Frame });
     public static SpecializedStoreManagerDefinition Titles { get; } = new("الألقاب", "نشر ألقاب هوية اللاعب", new[] { StoreProductAssetType.Title });
     public static SpecializedStoreManagerDefinition Bundles { get; } = new("الحزم", "نشر حزم متعددة الأصول", new[] { StoreProductAssetType.Bundle }, IsBundle: true);
     public static SpecializedStoreManagerDefinition TeamColors { get; } = new("ألوان الفرق", "نشر ألوان هوية الفرق", new[] { StoreProductAssetType.TeamColor }, IsTeamColor: true);
 }
-
-

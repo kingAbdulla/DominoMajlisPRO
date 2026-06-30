@@ -1,9 +1,9 @@
-﻿using DominoMajlisPRO.Models;
+using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
+using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
-using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 
 namespace DominoMajlisPRO.Pages;
 
@@ -22,16 +22,6 @@ public partial class PlayerDetailsPage : ContentPage
     int timelineVisibleCount = TimelinePageSize;
     IReadOnlyList<PlayerTimelineItemModel> timelineItems =
         Array.Empty<PlayerTimelineItemModel>();
-    
-    // VisualEventBus subscription tokens
-    IDisposable? teamEmblemChangedSubscription;
-    IDisposable? teamColorChangedSubscription;
-    IDisposable? teamEffectChangedSubscription;
-    IDisposable? teamEmblemBackgroundChangedSubscription;
-    IDisposable? playerAvatarChangedSubscription;
-    IDisposable? playerProfileBackgroundChangedSubscription;
-    IDisposable? playerFrameChangedSubscription;
-    IDisposable? playerEffectChangedSubscription;
 
     public PlayerDetailsPage(string playerId)
     {
@@ -195,34 +185,10 @@ public partial class PlayerDetailsPage : ContentPage
         AppEvents.StoreProgressChanged += OnStoreProgressChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
+        AppEvents.PlayerIdentityChanged -= OnPlayerIdentityChanged;
+        AppEvents.PlayerIdentityChanged += OnPlayerIdentityChanged;
         StoreAssetQueryService.PublishedContentChanged -= OnPublishedContentChanged;
         StoreAssetQueryService.PublishedContentChanged += OnPublishedContentChanged;
-        
-        // Subscribe to VisualEventBus identity events
-        teamEmblemChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEmblemChanged);
-        teamColorChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamColorChanged);
-        teamEffectChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEffectChanged);
-        teamEmblemBackgroundChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEmblemBackgroundChanged);
-        playerAvatarChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerAvatarChanged);
-        playerProfileBackgroundChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerProfileBackgroundChanged);
-        playerFrameChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerFrameChanged);
-        playerEffectChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerEffectChanged);
 
         await LoadPlayerAsync();
     }
@@ -230,20 +196,10 @@ public partial class PlayerDetailsPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        
-        // Dispose VisualEventBus subscriptions
-        teamEmblemChangedSubscription?.Dispose();
-        teamColorChangedSubscription?.Dispose();
-        teamEffectChangedSubscription?.Dispose();
-        teamEmblemBackgroundChangedSubscription?.Dispose();
-        playerAvatarChangedSubscription?.Dispose();
-        playerProfileBackgroundChangedSubscription?.Dispose();
-        playerFrameChangedSubscription?.Dispose();
-        playerEffectChangedSubscription?.Dispose();
-
         AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
         AppEvents.StoreProgressChanged -= OnStoreProgressChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.PlayerIdentityChanged -= OnPlayerIdentityChanged;
         StoreAssetQueryService.PublishedContentChanged -= OnPublishedContentChanged;
     }
 
@@ -267,6 +223,14 @@ public partial class PlayerDetailsPage : ContentPage
                 LoadAvatars(selectedCategory);
             }
         });
+    }
+
+    async void OnPlayerIdentityChanged(string playerId)
+    {
+        if (!SameId(playerId, _playerId))
+            return;
+
+        await MainThread.InvokeOnMainThreadAsync(LoadPlayerAsync);
     }
 
     async void OnTeamAssetsChanged(string teamId)
@@ -297,71 +261,6 @@ public partial class PlayerDetailsPage : ContentPage
         });
     }
 
-    // VisualEventBus player identity event handler - reuse existing refresh path
-    void HandlePlayerIdentityEvent(EventEntry eventEntry)
-    {
-        if (eventEntry.EventData == null)
-            return;
-        
-        if (!eventEntry.EventData.TryGetValue(
-                VisualIdentityPayloadKeys.PlayerId,
-                out var playerIdObject))
-        {
-            return;
-        }
-        
-        if (playerIdObject is not string playerId || string.IsNullOrWhiteSpace(playerId))
-            return;
-        
-        // Compare with _playerId using existing SameId() helper
-        if (!SameId(playerId, _playerId))
-            return;
-        
-        // Reuse existing refresh path
-        _ = MainThread.InvokeOnMainThreadAsync(LoadPlayerAsync);
-    }
-
-    // VisualEventBus team identity event handler - reuse existing refresh path
-    async void HandleTeamIdentityEvent(EventEntry eventEntry)
-    {
-        if (eventEntry.EventData == null)
-            return;
-        
-        if (!eventEntry.EventData.TryGetValue(
-                VisualIdentityPayloadKeys.TeamId,
-                out var teamIdObject))
-        {
-            return;
-        }
-        
-        if (teamIdObject is not string teamId || string.IsNullOrWhiteSpace(teamId))
-            return;
-        
-        // If currentPlayer is null, return
-        if (currentPlayer == null)
-            return;
-        
-        // Resolve current player's team using the same pattern as OnTeamAssetsChanged
-        var team = await TeamProfileService.GetTeamByPlayerIdAsync(currentPlayer.PlayerId);
-        
-        if (!SameId(team?.TeamId, teamId))
-            return;
-        
-        // Reuse existing refresh path
-        await MainThread.InvokeOnMainThreadAsync(LoadPlayerAsync);
-    }
-
-    // Individual event handlers
-    void OnTeamEmblemChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
-    void OnTeamColorChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
-    void OnTeamEffectChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
-    void OnTeamEmblemBackgroundChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
-
-    void OnPlayerAvatarChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
-    void OnPlayerProfileBackgroundChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
-    void OnPlayerFrameChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
-    void OnPlayerEffectChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
-
     async Task LoadPlayerAsync()
     {
         await PlayerTeamSyncService.SyncPlayersFromTeamsAsync();
@@ -370,7 +269,7 @@ public partial class PlayerDetailsPage : ContentPage
 
         if (currentPlayer == null)
         {
-            await DisplayAlert("خطأ", "لم يتم العثور على ملف اللاعب.", "حسناً");
+            await DisplayAlert("خطأ", "لم يتم العثور على اللاعب", "حسناً");
             await Navigation.PopAsync();
             return;
         }
@@ -387,11 +286,21 @@ public partial class PlayerDetailsPage : ContentPage
             PlayerRankService.Calculate(currentPlayer.PlayerXP);
 
         PlayerAvatarImage.Source =
+            ResolveAvatarSource(visualIdentity) ??
             PlayerProfileService.GetPlayerImageSource(currentPlayer);
 
         AvatarPreviewImage.Source =
+            ResolveAvatarSource(visualIdentity) ??
             PlayerProfileService.GetPlayerImageSource(currentPlayer);
-        PlayerNameLabel.Text = currentPlayer.PlayerName;
+
+        var nameTypography =
+            await PlayerNameTypographyResolver.ResolveAsync(
+                currentPlayer.PlayerId);
+        IdentityPlateBinder.Apply(
+            PlayerNameLabel,
+            PlayerNamePlate,
+            currentPlayer.PlayerName,
+            nameTypography);
 
         string identityRole =
             await ResolveIdentityRoleAsync(currentPlayer);
@@ -515,7 +424,7 @@ public partial class PlayerDetailsPage : ContentPage
             TimelineContainer.Children.Add(
                 new Label
                 {
-                    Text = "لا توجد أحداث في السجل حالياً",
+                    Text = "لا يوجد سجل نشاط بعد",
                     TextColor = Color.FromArgb("#AAAAAA"),
                     FontSize = 13,
                     HorizontalTextAlignment = TextAlignment.Center
@@ -659,8 +568,8 @@ public partial class PlayerDetailsPage : ContentPage
             return;
 
         bool confirmed = await DisplayAlertAsync(
-            "حذف حدث الهوية",
-            "هل تريد حذف هذا الحدث من سجل الهوية؟",
+            "حذف الحدث",
+            "هل تريد حذف هذا الحدث فقط؟",
             "حذف",
             "إلغاء");
         if (!confirmed ||
@@ -683,9 +592,9 @@ public partial class PlayerDetailsPage : ContentPage
             return;
 
         bool confirmed = await DisplayAlertAsync(
-            "حذف سجل الهوية",
-            "هل تريد حذف جميع أحداث الهوية؟ لا يؤثر هذا على بيانات اللاعب أو سجل المباريات.",
-            "حذف السجل",
+            "حذف سجل الأحداث",
+            "هل تريد حذف جميع أحداث هوية اللاعب؟",
+            "حذف الكل",
             "إلغاء");
         if (!confirmed ||
             !PlayerTimelineService.DeleteAllIdentityEvents(currentPlayer))
@@ -994,7 +903,7 @@ public partial class PlayerDetailsPage : ContentPage
         {
             await DisplayAlert(
                 "تنبيه",
-                "يرجى اختيار Avatar أولاً.",
+                "اختر Avatar أولاً",
                 "حسناً");
 
             return;
@@ -1026,11 +935,11 @@ public partial class PlayerDetailsPage : ContentPage
         }
         catch (OperationCanceledException)
         {
-            await DisplayAlert("تنبيه", "انتهت مهلة تجهيز الصورة الرمزية. حاول مرة أخرى بعد لحظات.", "حسناً");
+            await DisplayAlert("تنبيه", "تم إلغاء العملية أو انتهى الوقت المسموح.", "حسناً");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("خطأ", $"فشل حفظ الصورة الرمزية:\n{ex.Message}", "حسناً");
+            await DisplayAlert("خطأ", $"حدث خطأ أثناء تنفيذ العملية: {ex.Message}", "حسناً");
         }
         finally
         {
@@ -1057,7 +966,7 @@ public partial class PlayerDetailsPage : ContentPage
                 await FilePicker.Default.PickAsync(
                     new PickOptions
                     {
-                        PickerTitle = "اختر صورة اللاعب من الجهاز",
+                        PickerTitle = "اختر صورة اللاعب",
                         FileTypes = FilePickerFileType.Images
                     });
 
@@ -1079,7 +988,7 @@ public partial class PlayerDetailsPage : ContentPage
         {
             await DisplayAlert(
                 "خطأ",
-                $"فشل اختيار صورة اللاعب:\n{ex.Message}",
+                $"تعذر اختيار الصورة:\n{ex.Message}",
                 "حسناً");
         }
     }
@@ -1097,7 +1006,7 @@ public partial class PlayerDetailsPage : ContentPage
     async Task BuildIdentityHistoryAsync(PlayerProfileModel player)
     {
         IdentityLastUpdateLabel.Text =
-            $"آخر تحديث للهوية: {player.LastUpdatedAt:yyyy/MM/dd HH:mm}";
+            $"آخر تحديث: {player.LastUpdatedAt:yyyy/MM/dd HH:mm}";
 
         CurrentTeamsLabel.Text =
             await GetCurrentTeamNamesAsync(player.CurrentTeamIds);
@@ -1115,7 +1024,7 @@ public partial class PlayerDetailsPage : ContentPage
     async Task<string> GetCurrentTeamNamesAsync(string teamIds)
     {
         if (string.IsNullOrWhiteSpace(teamIds))
-            return "لا توجد فرق حالية";
+            return "لا يوجد";
 
         var teams =
             await TeamProfileService.LoadTeamsAsync();
@@ -1135,7 +1044,7 @@ public partial class PlayerDetailsPage : ContentPage
             .ToList();
 
         return names.Count == 0
-            ? "لا توجد فرق حالية"
+            ? "لا يوجد"
             : string.Join("، ", names);
     }
 
@@ -1167,6 +1076,5 @@ public partial class PlayerDetailsPage : ContentPage
             .LastOrDefault() ?? "—";
     }
 }
-
 
 

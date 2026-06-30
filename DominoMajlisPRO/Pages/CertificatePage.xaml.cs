@@ -1,6 +1,5 @@
 ﻿using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
-using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Services;
 using Microsoft.Maui.Graphics;
 namespace DominoMajlisPRO.Pages;
@@ -48,33 +47,29 @@ public partial class CertificatePage : ContentPage
                 .GetTeamByIdAsync(match.Team2Id);
         if (team1 != null)
         {
-            var id1 = await TeamIdentityResolver.ResolveAsync(team1.TeamId);
             CertificateTeam1Emblem.Source =
                 InventoryDisplayResolver.ResolveImageSource(
-                    id1.EmblemImagePath,
+                    team1.Emblem,
                     "shield_3d.png");
-            LivingEmblemBehavior.Attach(CertificateTeam1Emblem, team1.TeamId);
 
             match.Team1Emblem =
-                id1.EmblemImagePath ?? team1.Emblem;
+                team1.Emblem;
 
             match.Team1ColorHex =
-                id1.TeamColorHex ?? team1.ColorHex;
+                team1.ColorHex;
         }
         if (team2 != null)
         {
-            var id2 = await TeamIdentityResolver.ResolveAsync(team2.TeamId);
             CertificateTeam2Emblem.Source =
                 InventoryDisplayResolver.ResolveImageSource(
-                    id2.EmblemImagePath,
+                    team2.Emblem,
                     "shield_3d.png");
-            LivingEmblemBehavior.Attach(CertificateTeam2Emblem, team2.TeamId);
 
             match.Team2Emblem =
-                id2.EmblemImagePath ?? team2.Emblem;
+                team2.Emblem;
 
             match.Team2ColorHex =
-                id2.TeamColorHex ?? team2.ColorHex;
+                team2.ColorHex;
         }
         CertificateMatchIdLabel.Text =
             $"Match ID : {match.MatchId.ToString()[..8].ToUpper()}";

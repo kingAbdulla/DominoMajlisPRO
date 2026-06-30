@@ -198,11 +198,6 @@ public partial class DeveloperStoreManagerPage : ContentPage
             return;
         }
 
-        if (section.Id == "living-emblems")
-        {
-            await Navigation.PushAsync(new LivingEmblemPublishPreviewPage()); return;
-        }
-
         if (section.Id == "emblem-backgrounds")
         {
             await Navigation.PushAsync(new EmblemBackgroundsManagerPage());
@@ -218,6 +213,12 @@ public partial class DeveloperStoreManagerPage : ContentPage
         if (section.Id == "effects")
         {
             await Navigation.PushAsync(new EffectsManagerPage());
+            return;
+        }
+
+        if (section.Id == "name-effects")
+        {
+            await Navigation.PushAsync(new TypographyManagerPage());
             return;
         }
 

@@ -1,8 +1,7 @@
 ﻿using DominoMajlisPRO.Models;
+using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Models;
-using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls;
 namespace DominoMajlisPRO.Pages;
@@ -35,12 +34,6 @@ public partial class GamePage : ContentPage
     TeamProfileModel? team2Profile;
     TeamIdentityModel? team1Identity;
     TeamIdentityModel? team2Identity;
-    
-    // VisualEventBus subscription tokens
-    IDisposable? teamEmblemChangedSubscription;
-    IDisposable? teamColorChangedSubscription;
-    IDisposable? teamEffectChangedSubscription;
-    IDisposable? teamEmblemBackgroundChangedSubscription;
     // =========================
     // NEW MATCH
     // =========================
@@ -135,6 +128,7 @@ public partial class GamePage : ContentPage
         UpdateLeaderUI();
 
         _ = LoadTeamProfiles();
+        _ = ApplyTeamNameTypographyAsync();
 
         UpdateWinRate();
 
@@ -189,6 +183,7 @@ public partial class GamePage : ContentPage
         SelectTeam(1);
         UpdateLeaderUI();
         _ = RefreshLiveTeamVisualsAsync();
+        _ = ApplyTeamNameTypographyAsync();
         StartMatchTimer();
     }
 
@@ -198,34 +193,14 @@ public partial class GamePage : ContentPage
 
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
-        
-        // Subscribe to VisualEventBus team identity events
-        teamEmblemChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEmblemChanged);
-        teamColorChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamColorChanged);
-        teamEffectChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEffectChanged);
-        teamEmblemBackgroundChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEmblemBackgroundChanged);
 
         await RefreshLiveTeamVisualsAsync();
+        await ApplyTeamNameTypographyAsync();
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        
-        // Dispose VisualEventBus subscriptions
-        teamEmblemChangedSubscription?.Dispose();
-        teamColorChangedSubscription?.Dispose();
-        teamEffectChangedSubscription?.Dispose();
-        teamEmblemBackgroundChangedSubscription?.Dispose();
-        
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
     }
     // =========================
@@ -380,36 +355,8 @@ public partial class GamePage : ContentPage
         }
 
         await MainThread.InvokeOnMainThreadAsync(RefreshLiveTeamVisualsAsync);
+        await ApplyTeamNameTypographyAsync();
     }
-
-    // VisualEventBus team identity event handler - reuse existing refresh path
-    void HandleTeamIdentityEvent(EventEntry eventEntry)
-    {
-        if (eventEntry.EventData == null)
-            return;
-        
-        if (!eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.TeamId))
-            return;
-        
-        eventEntry.EventData.TryGetValue(VisualIdentityPayloadKeys.TeamId, out var teamIdObject);
-        
-        if (teamIdObject is not string teamId || string.IsNullOrWhiteSpace(teamId))
-            return;
-        
-        // Filter: Only refresh if teamId matches team1Id or team2Id
-        if (!string.Equals(teamId, team1Id, StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(teamId, team2Id, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-        
-        _ = MainThread.InvokeOnMainThreadAsync(RefreshLiveTeamVisualsAsync);
-    }
-
-    void OnTeamEmblemChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
-    void OnTeamColorChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
-    void OnTeamEffectChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
-    void OnTeamEmblemBackgroundChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
 
     async Task RefreshLiveTeamVisualsAsync()
     {
@@ -434,10 +381,38 @@ public partial class GamePage : ContentPage
                 "shield_3d.png");
         await TeamEffectEngine.ApplyAroundAsync(Team1Emblem, team1Id, 1.18);
         await TeamEffectEngine.ApplyAroundAsync(Team2Emblem, team2Id, 1.18);
-        LivingEmblemBehavior.Attach(Team1Emblem, team1Id);
-        LivingEmblemBehavior.Attach(Team2Emblem, team2Id);
         ApplyTeamIdentityVisual(Team1Card, team1Identity);
         ApplyTeamIdentityVisual(Team2Card, team2Identity);
+    }
+
+    async Task ApplyTeamNameTypographyAsync()
+    {
+        var typographies =
+            await TeamNameTypographyResolver.ResolveManyAsync(
+                new[] { currentMatch.Team1Id, currentMatch.Team2Id });
+
+        typographies.TryGetValue(
+            currentMatch.Team1Id,
+            out var team1Typography);
+
+        typographies.TryGetValue(
+            currentMatch.Team2Id,
+            out var team2Typography);
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            IdentityPlateBinder.Apply(
+                Team1Name,
+                Team1NamePlate,
+                Team1Name.Text,
+                team1Typography);
+
+            IdentityPlateBinder.Apply(
+                Team2Name,
+                Team2NamePlate,
+                Team2Name.Text,
+                team2Typography);
+        });
     }
 
     static void ApplyTeamIdentityVisual(
@@ -1139,8 +1114,6 @@ public partial class GamePage : ContentPage
         await RankingService.UpdateRankingsAsync(
             currentMatch);
 
-        // Notify ranking views (teams + players) to refresh from fresh data.
-        AppEvents.RaiseRankingsChanged();
 
         // ALERT
         if (meles)

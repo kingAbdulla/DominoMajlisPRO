@@ -18,6 +18,12 @@ public static class StoreCheckoutService
         {
             return Failure("The current account has no player profile.");
         }
+        if (!InventoryRouter.IsAvailable(product))
+        {
+            return Failure(
+                InventoryRouter.GetAvailabilityMessage(product) ??
+                "This offer is not currently available.");
+        }
 
         var route = InventoryRouter.Resolve(product);
         if (route.OwnerScope == InventoryOwnerScope.Unsupported)
@@ -32,9 +38,14 @@ public static class StoreCheckoutService
         {
             if (route.OwnerScope == InventoryOwnerScope.Team)
             {
-                if (await PlayerInventoryService.IsOwnedAsync(
-                        owner.PlayerId,
-                        product.AssetId))
+                var teamId = await ResolveActiveTeamIdAsync(owner.PlayerId);
+                if (string.IsNullOrWhiteSpace(teamId))
+                    return Failure("A team identity is required.");
+
+                if (await TeamAssetInventoryService.IsOwnedAsync(
+                        teamId,
+                        product.AssetId,
+                        route.StoreTypeId))
                 {
                     return Failure("Item is already owned.");
                 }
@@ -55,46 +66,78 @@ public static class StoreCheckoutService
 
             bool added;
             bool equipped = false;
-            if (route.OwnerScope == InventoryOwnerScope.Team)
+            try
             {
-                added =
-                    await PlayerInventoryService.AddOwnedItemWithoutNotificationAsync(
-                    owner.PlayerId,
-                    product.AssetId,
-                    route.StoreTypeId,
-                    "StorePurchase",
-                    seasonId: product.SeasonId,
-                    collectionId: product.CollectionId);
-            }
-            else
-            {
-                added = await PlayerInventoryService
-                    .AddOwnedItemWithoutNotificationAsync(
-                        owner.PlayerId,
+                if (route.OwnerScope == InventoryOwnerScope.Team)
+                {
+                    var teamId = await ResolveActiveTeamIdAsync(owner.PlayerId);
+                    if (string.IsNullOrWhiteSpace(teamId))
+                    {
+                        await RefundAsync(owner.PlayerId, currency, product.Price.Value);
+                        return Failure("A team identity is required.");
+                    }
+
+                    added =
+                        await TeamAssetInventoryService.AddOwnedAssetAsync(
+                        teamId,
                         product.AssetId,
                         route.StoreTypeId,
                         "StorePurchase",
                         seasonId: product.SeasonId,
                         collectionId: product.CollectionId);
-                if (added && route.Equipable)
-                {
-                    equipped = route.EquipTarget is
-                        InventoryEquipTarget.Avatar or
-                        InventoryEquipTarget.ProfileBackground or
-                        InventoryEquipTarget.Frame or
-                        InventoryEquipTarget.Effect
-                            ? await StoreEquipService.EquipAsync(
-                                owner.PlayerId,
-                                product.AssetId)
-                            : await PlayerInventoryService
-                                .EquipItemWithoutNotificationAsync(
-                                    owner.PlayerId,
-                                    product.AssetId);
+                    if (added && route.Equipable)
+                        equipped = await TeamAssetInventoryService.EquipAsync(
+                            teamId,
+                            product.AssetId,
+                            route.StoreTypeId);
                 }
+                else
+                {
+                    added = await PlayerInventoryService
+                        .AddOwnedItemWithoutNotificationAsync(
+                            owner.PlayerId,
+                            product.AssetId,
+                            route.StoreTypeId,
+                            "StorePurchase",
+                            seasonId: product.SeasonId,
+                            collectionId: product.CollectionId);
+                    if (added && route.Equipable)
+                    {
+                        try
+                        {
+                            equipped = route.EquipTarget is
+                                InventoryEquipTarget.Avatar or
+                                InventoryEquipTarget.ProfileBackground or
+                                InventoryEquipTarget.Frame or
+                                InventoryEquipTarget.Effect
+                                    ? await StoreEquipService.EquipAsync(
+                                        owner.PlayerId,
+                                        product.AssetId)
+                                    : await PlayerInventoryService
+                                        .EquipItemWithoutNotificationAsync(
+                                            owner.PlayerId,
+                                            product.AssetId);
+                        }
+                        catch
+                        {
+                            // Acquisition is already persisted; a later
+                            // explicit equip remains available in the UI.
+                            equipped = false;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                await RefundAsync(owner.PlayerId, currency, product.Price.Value);
+                return Failure("Purchase could not be completed.");
             }
 
             if (!added)
+            {
+                await RefundAsync(owner.PlayerId, currency, product.Price.Value);
                 return Failure("Item could not be added to inventory.");
+            }
 
             AppEvents.RaiseStoreEconomyChanged(owner.PlayerId);
             return new StoreCheckoutResult(
@@ -133,6 +176,14 @@ public static class StoreCheckoutService
         currency = StorePurchaseCurrencyType.Free;
         return false;
     }
+
+    private static Task<PlayerWalletModel> RefundAsync(
+        string playerId,
+        StorePurchaseCurrencyType currency,
+        int amount) =>
+        currency == StorePurchaseCurrencyType.Coins
+            ? PlayerWalletService.CreditAsync(playerId, coins: amount)
+            : PlayerWalletService.CreditAsync(playerId, gems: amount);
 
     private static async Task<string?> ResolveActiveTeamIdAsync(
         string playerId)

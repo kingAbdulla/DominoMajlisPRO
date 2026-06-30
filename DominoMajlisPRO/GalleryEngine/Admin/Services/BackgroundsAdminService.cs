@@ -1,6 +1,5 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
-using DominoMajlisPRO.GalleryEngine.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin.Services;
 
@@ -11,11 +10,9 @@ public static class BackgroundsAdminService
 
     public static async Task<BackgroundRecord> SaveDraftAsync(BackgroundRecord record)
     {
-        var hadExistingId = !string.IsNullOrWhiteSpace(record.Id);
         var records = await LoadRecordsAsync();
         var existing = records.FirstOrDefault(item => item.Id == record.Id && item.Status == BackgroundStatus.Draft);
-        Prepare(record, existing, hadExistingId);
-        EnsureNoCollision(record, records, hadExistingId);
+        Prepare(record, existing);
         StoreCmsPublishEngine.SaveDraft(records, record, item => item.Id, SetStatus, (item, value) => item.UpdatedAt = value);
         record.PublishedAt = null;
         await SaveRecordsAsync(records);
@@ -41,11 +38,8 @@ public static class BackgroundsAdminService
     public static async Task<BackgroundRecord> PublishAsync(BackgroundRecord record)
     {
         EnsureValid(record);
-        var hadExistingId = !string.IsNullOrWhiteSpace(record.Id);
         var records = await LoadRecordsAsync();
-        var existing = records.FirstOrDefault(item => item.Id == record.Id);
-        Prepare(record, existing, hadExistingId);
-        EnsureNoCollision(record, records, hadExistingId);
+        Prepare(record, records.FirstOrDefault(item => item.Id == record.Id));
         StoreCmsPublishEngine.Publish(records, record, item => item.Id, SetStatus, (item, value) => item.UpdatedAt = value, (item, value) => item.PublishedAt = value);
         await SaveRecordsAsync(records);
         PublishedChanged?.Invoke();
@@ -57,12 +51,9 @@ public static class BackgroundsAdminService
     public static async Task<BackgroundRecord> UpdatePublishedAsync(BackgroundRecord record)
     {
         EnsureValid(record);
-        var hadExistingId = !string.IsNullOrWhiteSpace(record.Id);
         var records = await LoadRecordsAsync();
         var existing = records.FirstOrDefault(item => item.Id == record.Id && item.Status != BackgroundStatus.Draft)
             ?? throw new InvalidOperationException("تعذر العثور على الخلفية المنشورة");
-        Prepare(record, existing, hadExistingId);
-        EnsureNoCollision(record, records, hadExistingId);
         record.CreatedAt = existing.CreatedAt;
         record.PublishedAt = existing.PublishedAt;
         record.Status = BackgroundStatus.Published;
@@ -153,13 +144,7 @@ public static class BackgroundsAdminService
         return value != 0 ? value : Nullable.Compare(right.PublishedAt, left.PublishedAt);
     }));
     private static void EnsureValid(BackgroundRecord record) { if (!ValidateForPublish(record, out var message)) throw new InvalidOperationException(message); }
-    private static void EnsureNoCollision(BackgroundRecord record, IEnumerable<BackgroundRecord> allRecords, bool hadExistingId)
-    {
-        if (hadExistingId) return;
-        var collision = allRecords.Any(item => CanonicalAssetIdentityService.SameAssetId(item.Id, record.Id));
-        if (collision) throw new InvalidOperationException($"Duplicate background asset id: {record.Id}");
-    }
-    private static void Prepare(BackgroundRecord record, BackgroundRecord? existing, bool hadExistingId) { if (hadExistingId) record.Id = record.Id.Trim(); else record.Id = CanonicalAssetIdentityService.GenerateCanonicalAssetId("ProfileBackground", !string.IsNullOrWhiteSpace(record.NameAr) ? record.NameAr : record.NameEn); record.CreatedAt = existing?.CreatedAt ?? (record.CreatedAt == default ? DateTime.UtcNow : record.CreatedAt); record.UpdatedAt = DateTime.UtcNow; }
+    private static void Prepare(BackgroundRecord record, BackgroundRecord? existing) { if (string.IsNullOrWhiteSpace(record.Id)) record.Id = Guid.NewGuid().ToString(); record.CreatedAt = existing?.CreatedAt ?? (record.CreatedAt == default ? DateTime.UtcNow : record.CreatedAt); record.UpdatedAt = DateTime.UtcNow; }
     private static BackgroundRecord Clone(BackgroundRecord source) => new() { NameAr = source.NameAr, NameEn = source.NameEn, Description = source.Description, ImagePath = source.ImagePath, ThumbnailPath = source.ThumbnailPath, CategoryId = source.CategoryId, Collection = source.Collection, Rarity = source.Rarity, CurrencyType = source.CurrencyType, Price = source.Price, IsFree = source.IsFree, UnlockType = source.UnlockType, UnlockRequirement = source.UnlockRequirement, Tag = source.Tag, IsAnimated = source.IsAnimated, IsLimited = source.IsLimited, IsFeatured = source.IsFeatured, FeaturedPriority = source.FeaturedPriority, SortOrder = source.SortOrder, SeasonId = source.SeasonId, EventId = source.EventId, CollectionId = source.CollectionId, Version = source.Version };
     private static IEnumerable<BackgroundRecord> Normalize(IEnumerable<BackgroundRecord> records) { foreach (var record in records) { if (record.CurrencyType == BackgroundCurrencyType.Free) record.IsFree = true; if (record.IsFree) record.Price = 0; yield return record; } }
     private static Task<List<BackgroundRecord>> LoadRecordsAsync() => StoreCmsJsonRepository.LoadListAsync<BackgroundRecord>(GetStoragePath());

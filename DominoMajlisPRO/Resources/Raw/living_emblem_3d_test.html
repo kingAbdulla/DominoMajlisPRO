@@ -1,0 +1,271 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+      color: #fff;
+      font-family: system-ui, sans-serif;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at 50% 35%, rgba(255, 188, 91, .10), rgba(0, 0, 0, 0) 42%);
+    }
+    #hud {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, .38);
+      font-size: 12px;
+      line-height: 1.35;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <div id="hud">Loading glTF proof...</div>
+  <script>
+    const gltfText = __LIVING_EMBLEM_GLTF_JSON__;
+    const gltf = JSON.parse(gltfText);
+    const canvas = document.getElementById('stage');
+    const hud = document.getElementById('hud');
+    const gl = canvas.getContext('webgl', { alpha: true, antialias: true });
+
+    if (!gl) {
+      signal('error', 'WebGL is unavailable in this MAUI WebView.');
+    }
+
+    const roles = {};
+    const behavior = {
+      state: 'Idle',
+      nextDecisionAt: 0,
+      specialCooldownUntil: 0,
+      stateUntil: 0,
+      lookX: 0,
+      lookY: 0,
+      lastSpecialAt: -999,
+      decisions: 0,
+      running: true,
+      startedAt: performance.now(),
+      lastFrameAt: performance.now(),
+      fps: 0
+    };
+
+    function signal(kind, message) {
+      location.href = `living-emblem://${kind}?${encodeURIComponent(message)}`;
+    }
+
+    function assertProofGltf(model) {
+      if (!model || !model.asset || model.asset.version !== '2.0') {
+        throw new Error('The proof asset is not a glTF 2.0 scene.');
+      }
+      for (const node of model.nodes || []) {
+        const role = node.extras && node.extras.proofRole;
+        if (role) roles[role] = node;
+      }
+      for (const required of ['root', 'breathing', 'look', 'jaw']) {
+        if (!roles[required]) throw new Error(`Missing proof node: ${required}`);
+      }
+    }
+
+    const vertexSource = `
+      attribute vec3 aPosition;
+      attribute vec4 aColor;
+      uniform mat4 uMatrix;
+      varying vec4 vColor;
+      void main() {
+        gl_Position = uMatrix * vec4(aPosition, 1.0);
+        vColor = aColor;
+      }`;
+    const fragmentSource = `
+      precision mediump float;
+      varying vec4 vColor;
+      void main() {
+        gl_FragColor = vColor;
+      }`;
+
+    function shader(type, source) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, source);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        throw new Error(gl.getShaderInfoLog(s));
+      }
+      return s;
+    }
+
+    const program = gl.createProgram();
+    gl.attachShader(program, shader(gl.VERTEX_SHADER, vertexSource));
+    gl.attachShader(program, shader(gl.FRAGMENT_SHADER, fragmentSource));
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error(gl.getProgramInfoLog(program));
+    }
+    gl.useProgram(program);
+
+    const positionLocation = gl.getAttribLocation(program, 'aPosition');
+    const colorLocation = gl.getAttribLocation(program, 'aColor');
+    const matrixLocation = gl.getUniformLocation(program, 'uMatrix');
+    const positionBuffer = gl.createBuffer();
+    const colorBuffer = gl.createBuffer();
+
+    function hexToRgba(hex, alpha = 1) {
+      const clean = hex.replace('#', '');
+      const n = parseInt(clean, 16);
+      return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255, alpha];
+    }
+
+    function makePyramid(w, h, d, color) {
+      const c = color;
+      const hi = [Math.min(c[0] + .18, 1), Math.min(c[1] + .12, 1), Math.min(c[2] + .10, 1), c[3]];
+      const lo = [c[0] * .54, c[1] * .54, c[2] * .54, c[3]];
+      const p = [
+        0, h, 0,  -w, -h, d,   w, -h, d,
+        0, h, 0,   w, -h, d,   w, -h, -d,
+        0, h, 0,   w, -h, -d, -w, -h, -d,
+        0, h, 0,  -w, -h, -d, -w, -h, d,
+        -w, -h, d, -w, -h, -d, w, -h, -d,
+        -w, -h, d,  w, -h, -d, w, -h, d
+      ];
+      const colors = [];
+      for (let i = 0; i < 6; i++) {
+        const shade = i < 2 ? hi : i < 4 ? c : lo;
+        colors.push(...shade, ...shade, ...shade);
+      }
+      return { p, colors };
+    }
+
+    function drawMesh(mesh, matrix) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.p), gl.STREAM_DRAW);
+      gl.enableVertexAttribArray(positionLocation);
+      gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.colors), gl.STREAM_DRAW);
+      gl.enableVertexAttribArray(colorLocation);
+      gl.vertexAttribPointer(colorLocation, 4, gl.FLOAT, false, 0, 0);
+      gl.uniformMatrix4fv(matrixLocation, false, matrix);
+      gl.drawArrays(gl.TRIANGLES, 0, mesh.p.length / 3);
+    }
+
+    function mat(tx, ty, tz, sx, sy, sz, rx, ry, rz) {
+      const cx = Math.cos(rx), sxn = Math.sin(rx);
+      const cy = Math.cos(ry), syn = Math.sin(ry);
+      const cz = Math.cos(rz), szn = Math.sin(rz);
+      return new Float32Array([
+        sx * cy * cz, sx * (sxn * syn * cz + cx * szn), sx * (-cx * syn * cz + sxn * szn), 0,
+        sy * -cy * szn, sy * (-sxn * syn * szn + cx * cz), sy * (cx * syn * szn + sxn * cz), 0,
+        sz * syn, sz * -sxn * cy, sz * cx * cy, 0,
+        tx, ty, tz, 1
+      ]);
+    }
+
+    function chooseState(now) {
+      if (now < behavior.nextDecisionAt || behavior.state === 'Special') return;
+      behavior.decisions++;
+      const canSpecial = now > behavior.specialCooldownUntil;
+      const roll = Math.random();
+      if (canSpecial && roll > .92) {
+        behavior.state = 'Special';
+        behavior.stateUntil = now + 1200 + Math.random() * 600;
+        behavior.specialCooldownUntil = now + 8000 + Math.random() * 5000;
+        behavior.lastSpecialAt = now;
+      } else if (roll > .72) {
+        behavior.state = 'Looking';
+        behavior.stateUntil = now + 900 + Math.random() * 1100;
+        behavior.lookX = -.22 + Math.random() * .44;
+        behavior.lookY = -.16 + Math.random() * .32;
+      } else if (roll > .42) {
+        behavior.state = 'Breathing';
+        behavior.stateUntil = now + 1200 + Math.random() * 1600;
+      } else {
+        behavior.state = 'Idle';
+        behavior.stateUntil = now + 700 + Math.random() * 1200;
+      }
+      behavior.nextDecisionAt = behavior.stateUntil + 250 + Math.random() * 900;
+    }
+
+    function render(now) {
+      if (!behavior.running) return;
+      resize();
+      chooseState(now);
+      if (now > behavior.stateUntil && behavior.state !== 'Cooldown') {
+        behavior.state = now < behavior.specialCooldownUntil ? 'Cooldown' : 'Idle';
+      }
+
+      const dt = Math.max(1, now - behavior.lastFrameAt);
+      behavior.lastFrameAt = now;
+      behavior.fps = behavior.fps * .92 + (1000 / dt) * .08;
+
+      const t = (now - behavior.startedAt) / 1000;
+      const breath = 1 + Math.sin(t * 2.2) * .035;
+      const idleTilt = Math.sin(t * .9) * .05;
+      const lookTilt = behavior.state === 'Looking' ? behavior.lookX : Math.sin(t * .7) * .06;
+      const specialPower = behavior.state === 'Special'
+        ? Math.sin(Math.min(1, (behavior.stateUntil - now) / 1200) * Math.PI)
+        : 0;
+
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      drawMesh(makePyramid(.48, .72 * breath, .28, hexToRgba('#B43622', .96)), mat(0, -.08, 0, .88, .88, .88, idleTilt, lookTilt, 0));
+      drawMesh(makePyramid(.24, .32, .18, hexToRgba('#DE7652', .98)), mat(0, .48 + Math.sin(t * 2) * .015, .02, .72, .72, .72, behavior.lookY, lookTilt, 0));
+      drawMesh(makePyramid(.18, .13 + specialPower * .18, .12, hexToRgba('#5E140E', .94)), mat(0, .27 - specialPower * .12, .16, .62, .62, .62, -.65 - specialPower * .85, 0, 0));
+      drawMesh(makePyramid(.20, .52, .05, hexToRgba('#7F2219', .82)), mat(-.47, .02, -.04, .72, 1 + Math.sin(t * 1.7) * .04, .72, 0, 0, .8 + specialPower * .25));
+      drawMesh(makePyramid(.20, .52, .05, hexToRgba('#7F2219', .82)), mat(.47, .02, -.04, .72, 1 + Math.sin(t * 1.7) * .04, .72, 0, 0, -.8 - specialPower * .25));
+      if (specialPower > .02) {
+        drawMesh(makePyramid(.10 + specialPower * .16, .42 + specialPower * .36, .10, hexToRgba('#FFB23D', .70)), mat(0, .05, .36, 1, 1, 1, -1.25, 0, 0));
+      }
+
+      const memory = performance.memory ? ` mem ${(performance.memory.usedJSHeapSize / 1048576).toFixed(1)}MB` : '';
+      hud.textContent = `glTF proof loaded | ${behavior.state} | decisions ${behavior.decisions} | fps ${behavior.fps.toFixed(0)}${memory}`;
+      requestAnimationFrame(render);
+    }
+
+    function resize() {
+      const width = Math.max(1, Math.floor(canvas.clientWidth * devicePixelRatio));
+      const height = Math.max(1, Math.floor(canvas.clientHeight * devicePixelRatio));
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+    }
+
+    window.livingEmblemPause = function () {
+      behavior.running = false;
+      hud.textContent = '3D proof paused safely.';
+    };
+
+    window.livingEmblemResume = function () {
+      if (behavior.running) return;
+      behavior.running = true;
+      behavior.lastFrameAt = performance.now();
+      requestAnimationFrame(render);
+    };
+
+    try {
+      assertProofGltf(gltf);
+      signal('ready', 'WebGL 3D proof ready: glTF scene loaded, procedural brain running.');
+      requestAnimationFrame(render);
+    } catch (error) {
+      signal('error', error.message || 'Unknown 3D proof error.');
+    }
+  </script>
+</body>
+</html>

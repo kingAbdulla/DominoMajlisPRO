@@ -1,5 +1,4 @@
-using System.Text.Json;
-using DominoMajlisPRO.GalleryEngine.VisualIdentity;
+﻿using System.Text.Json;
 using DominoMajlisPRO.Models;
 
 namespace DominoMajlisPRO.Services;
@@ -138,6 +137,36 @@ public static class PlayerProfileService
         await SavePlayersAsync(players);
     }
 
+    public static async Task<bool> AddXpBonusAsync(
+        string playerId,
+        int amount)
+    {
+        if (string.IsNullOrWhiteSpace(playerId) || amount <= 0)
+            return false;
+
+        var players = await LoadPlayersAsync();
+        var player = players.FirstOrDefault(item =>
+            string.Equals(
+                item.PlayerId,
+                playerId.Trim(),
+                StringComparison.OrdinalIgnoreCase));
+        if (player == null)
+            return false;
+
+        player.PlayerXP = checked(player.PlayerXP + amount);
+        player.SeasonXP = checked(player.SeasonXP + amount);
+        player.LifetimeXP = checked(player.LifetimeXP + amount);
+        player.LastActiveAt = DateTime.Now;
+        PlayerTimelineService.AddEvent(
+            player,
+            "مكافأة عجلة الحظ",
+            $"تمت إضافة {amount} XP",
+            "⭐",
+            "#FFD700");
+        await SavePlayersAsync(players);
+        return true;
+    }
+
     public static async Task SetBuiltInAvatarAsync(
         string playerId,
         string avatarImage)
@@ -150,17 +179,12 @@ public static class PlayerProfileService
         if (player == null)
             throw new Exception("لم يتم العثور على اللاعب.");
 
-        var previousAvatarId = player.AvatarImage;
         player.AvatarImage =
             string.IsNullOrWhiteSpace(avatarImage)
                 ? "player_card.png"
                 : avatarImage;
 
         player.ProfileImagePath = "";
-        player.BuiltInAvatar = player.AvatarImage;
-        player.AvatarPath = "";
-        player.UseCustomAvatar = false;
-        player.LastUpdatedAt = DateTime.Now;
 
         PlayerEngine.Normalize(player);
         PlayerTimelineService.AddEvent(
@@ -170,24 +194,6 @@ public static class PlayerProfileService
     "🖼",
     "#D4AF37");
         await SavePlayersAsync(players);
-        
-        // Publish to VisualEventBus for Living Visual Identity Engine
-        var payload = new Dictionary<string, object>
-        {
-            { VisualIdentityPayloadKeys.PlayerId, playerId },
-            { VisualIdentityPayloadKeys.AvatarAssetId, player.AvatarImage },
-            { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
-        };
-        
-        if (!string.IsNullOrWhiteSpace(previousAvatarId) && previousAvatarId != "player_card.png")
-            payload[VisualIdentityPayloadKeys.PreviousAvatarAssetId] = previousAvatarId;
-        
-        VisualEventBus.Publish(
-            EventCategory.Player,
-            VisualIdentityEventNames.PlayerAvatarChanged,
-            payload,
-            isSticky: true,
-            stickyExpirationMs: 0);
     }
 
     public static async Task SetProfileImageFromDeviceAsync(
@@ -227,10 +233,8 @@ public static class PlayerProfileService
         await sourceStream.CopyToAsync(targetStream);
 
         player.ProfileImagePath = targetPath;
-        player.AvatarPath = targetPath;
-        player.UseCustomAvatar = true;
         player.AvatarImage = "";
-        player.LastUpdatedAt = DateTime.Now;
+
         PlayerEngine.Normalize(player);
 
         PlayerTimelineService.AddEvent(
@@ -254,10 +258,6 @@ public static class PlayerProfileService
 
         player.ProfileImagePath = "";
         player.AvatarImage = "player_card.png";
-        player.AvatarPath = "";
-        player.BuiltInAvatar = "player_card.png";
-        player.UseCustomAvatar = false;
-        player.LastUpdatedAt = DateTime.Now;
 
         PlayerEngine.Normalize(player);
 

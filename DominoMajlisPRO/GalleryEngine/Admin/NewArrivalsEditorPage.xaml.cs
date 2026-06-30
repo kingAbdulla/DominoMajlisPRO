@@ -1,4 +1,4 @@
-using DominoMajlisPRO.GalleryEngine.Admin.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Canonical;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -575,7 +575,10 @@ public partial class NewArrivalsEditorPage : ContentPage
             .Select(asset => $"{asset.DisplayName} • {asset.AssetId}")
             .ToList();
         AssetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset =>
-            CanonicalAssetIdentityService.SameAssetId(asset.AssetId, selectedAssetId));
+            string.Equals(
+                asset.AssetId,
+                selectedAssetId,
+                StringComparison.OrdinalIgnoreCase));
     }
 
     private string SelectedAssetId() =>

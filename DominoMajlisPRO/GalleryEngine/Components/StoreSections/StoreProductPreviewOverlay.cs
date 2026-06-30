@@ -1,8 +1,5 @@
 using Microsoft.Maui.Controls.Shapes;
-using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.LivingVisualPlatform.Controls;
-using DominoMajlisPRO.LivingVisualPlatform.Models;
 
 using DominoMajlisPRO.GalleryEngine.Models;
 
@@ -187,7 +184,7 @@ internal sealed class StoreProductPreviewOverlay : Grid
     private async Task AnimateOpenAsync(int version, StoreProductPreviewKind kind)
     {
         await Task.WhenAll(this.FadeToAsync(1, 180, Easing.CubicOut), _panel.ScaleToAsync(1, 220, Easing.CubicOut));
-        if (version != _animationVersion || _isClosing || !IsEffectPreviewKind(kind)) return;
+        if (version != _animationVersion || _isClosing || kind != StoreProductPreviewKind.Effect) return;
         await _visualHost.ScaleToAsync(1.04, 220, Easing.SinInOut);
         await _visualHost.ScaleToAsync(1, 220, Easing.SinInOut);
     }
@@ -218,60 +215,24 @@ internal sealed class StoreProductPreviewOverlay : Grid
             StoreProductPreviewKind.Season => BackgroundVisual(image, request),
             StoreProductPreviewKind.Effect when request.Effect != null =>
                 EffectVisual(image, request.Effect, request.Accent),
-            StoreProductPreviewKind.LivingEmblem when request.Effect != null =>
-                EffectVisual(image, request.Effect, request.Accent),
             _ => PreviewCard(image, request.Accent)
         };
     }
 
     private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent)
     {
-        if (effect.AssetType == StoreProductAssetType.TeamEffect ||
-            StoreAssetCatalogService.IsLivingEmblemAsset(effect))
-        {
-            var host = new LivingVisualHost
-            {
-                AssetId = effect.AssetId,
-                StaticFallbackImage = string.IsNullOrWhiteSpace(effect.PreviewImage)
-                    ? "shield_3d.png"
-                    : effect.PreviewImage,
-                ApplicationUserId = string.Empty,
-                PlayerId = string.Empty,
-                TeamId = string.Empty,
-                DisplayLocation = LivingVisualDisplayLocation.StorePreview,
-                IsStorePreview = true,
-                WidthRequest = 190,
-                HeightRequest = 190,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center
-            };
-
-            return PreviewCard(host, accent);
-        }
-
-        // Player avatar effect: show the developer image as-is when provided,
-        // otherwise the procedural effect only. Never an emblem/shield substitute.
+        image.Source = InventoryDisplayResolver.ResolveImageSource(
+            string.IsNullOrWhiteSpace(effect.PreviewImage) ? "shield_3d.png" : effect.PreviewImage,
+            "shield_3d.png");
+        image.WidthRequest = 190;
+        image.HeightRequest = 190;
+        image.HorizontalOptions = LayoutOptions.Center;
+        image.VerticalOptions = LayoutOptions.Center;
         var layers = new Grid();
-        var providedImage =
-            InventoryDisplayResolver.ResolveOptionalImageSource(effect.PreviewImage);
-        if (providedImage != null)
-        {
-            image.Source = providedImage;
-            image.WidthRequest = 190;
-            image.HeightRequest = 190;
-            image.HorizontalOptions = LayoutOptions.Center;
-            image.VerticalOptions = LayoutOptions.Center;
-            layers.Children.Add(image);
-        }
-        else
-        {
-            layers.Children.Add(IdentityEffectRenderer.Create(effect, 1.28));
-        }
+        layers.Children.Add(IdentityEffectRenderer.Create(effect, 1.28));
+        layers.Children.Add(image);
         return PreviewCard(layers, accent);
     }
-
-    private static bool IsEffectPreviewKind(StoreProductPreviewKind kind) =>
-        kind is StoreProductPreviewKind.Effect or StoreProductPreviewKind.LivingEmblem;
 
     private static View AvatarVisual(Image image, Color accent)
     {

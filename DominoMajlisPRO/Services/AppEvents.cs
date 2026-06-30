@@ -9,9 +9,15 @@ public static class AppEvents
     public static event Action? PlayerProfileChanged;
     public static event Action? CurrentUserChanged;
     public static event Action<string>? StoreEconomyChanged;
+    public static event Action<string>? WalletChanged;
+    public static event Action<string>? InventoryChanged;
+    public static event Action<string>? PlayerEffectChanged;
+    public static event Action<string>? TeamEffectChanged;
+    public static event Action<string>? PlayerIdentityChanged;
+    public static event Action<string>? TeamIdentityChanged;
     public static event Action<string>? StoreProgressChanged;
     public static event Action<string>? TeamAssetsChanged;
-    public static event Action<string>? TeamEffectChanged;
+    public static event Action<string, string>? SeasonChanged;
 
     static void SafeRaise(Action? action)
     {
@@ -41,6 +47,56 @@ public static class AppEvents
         SafeRaise(StoreProgressChanged, playerId);
     }
 
+    public static void RaiseWalletChanged(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+        SafeRaise(WalletChanged, playerId);
+        SafeRaise(StoreEconomyChanged, playerId);
+    }
+
+    public static void RaiseInventoryChanged(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+        SafeRaise(InventoryChanged, playerId);
+        SafeRaise(StoreProgressChanged, playerId);
+        SafeRaise(StoreEconomyChanged, playerId);
+    }
+
+    public static void RaisePlayerEffectChanged(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+        SafeRaise(PlayerEffectChanged, playerId);
+        SafeRaise(PlayerIdentityChanged, playerId);
+        SafeRaise(PlayerProfileChanged);
+    }
+
+    public static void RaisePlayerIdentityChanged(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+        SafeRaise(PlayerIdentityChanged, playerId);
+        SafeRaise(PlayerProfileChanged);
+    }
+
+    public static void RaiseTeamEffectChanged(string teamId)
+    {
+        if (string.IsNullOrWhiteSpace(teamId))
+            return;
+        SafeRaise(TeamEffectChanged, teamId);
+        RaiseTeamAssetsChanged(teamId);
+    }
+
+    public static void RaiseTeamIdentityChanged(string teamId)
+    {
+        if (string.IsNullOrWhiteSpace(teamId))
+            return;
+        SafeRaise(TeamIdentityChanged, teamId);
+        SafeRaise(TeamAssetsChanged, teamId);
+    }
+
     public static void RaisePlayerProfileChanged()
     {
         SafeRaise(PlayerProfileChanged);
@@ -57,16 +113,15 @@ public static class AppEvents
             return;
 
         SafeRaise(TeamAssetsChanged, teamId);
+        SafeRaise(TeamIdentityChanged, teamId);
     }
 
-    public static void RaiseTeamEffectChanged(string teamId)
+    public static void RaiseSeasonChanged(string playerId, string seasonId)
     {
-        if (string.IsNullOrWhiteSpace(teamId))
+        if (string.IsNullOrWhiteSpace(playerId) || string.IsNullOrWhiteSpace(seasonId))
             return;
-
-        SafeRaise(TeamEffectChanged, teamId);
-        SafeRaise(TeamAssetsChanged, teamId);
-        SafeRaise(TeamsChanged);
+        MainThread.BeginInvokeOnMainThread(() => SeasonChanged?.Invoke(playerId, seasonId));
+        SafeRaise(StoreProgressChanged, playerId);
     }
 
     public static void RaiseDataChanged()
@@ -106,4 +161,3 @@ public static class AppEvents
         RaiseRankingsChanged();
     }
 }
-

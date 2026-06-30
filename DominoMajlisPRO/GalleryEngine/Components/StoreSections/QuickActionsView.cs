@@ -24,9 +24,6 @@ public class QuickActionsView : ContentView
         for (int i = 0; i < columns; i++)
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
 
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
         var cards = new List<View>
         {
             CreateActionCard("🎁", "العروض اليومية", "خصومات كل يوم", StoreQuickAction.DailyOffers),
@@ -34,6 +31,10 @@ public class QuickActionsView : ContentView
             CreateActionCard("🎫", "بطاقة الموسم", "جوائز حصرية", StoreQuickAction.SeasonPass),
             CreateActionCard("💎", "اشحن الآن", "احصل على المزيد", StoreQuickAction.TopUp)
         };
+
+        var rowCount = (int)Math.Ceiling(cards.Count / (double)columns);
+        for (int i = 0; i < rowCount; i++)
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         for (int i = 0; i < cards.Count; i++)
             grid.Add(cards[i], i % columns, i / columns);
@@ -184,7 +185,10 @@ public enum StoreQuickAction
     WheelOfFortune,
     DailyOffers,
     TopUp,
-    SeasonPass
+    SeasonPass,
+    ExclusiveContent,
+    SupportDeveloper,
+    AccountSecurity
 }
 
 public sealed class StoreQuickActionEventArgs(StoreQuickAction action) : EventArgs

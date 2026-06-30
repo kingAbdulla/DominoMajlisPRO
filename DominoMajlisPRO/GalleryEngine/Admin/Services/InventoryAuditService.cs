@@ -42,10 +42,10 @@ public static class InventoryAuditService
 
         var duplicateIds = products
             .Where(item => !string.IsNullOrWhiteSpace(item.AssetId))
-            .GroupBy(item => CanonicalAssetIdentityService.NormalizeForComparison(item.AssetId), StringComparer.Ordinal)
+            .GroupBy(item => item.AssetId.Trim(), StringComparer.OrdinalIgnoreCase)
             .Where(group => group.Count() > 1)
             .Select(group => group.Key)
-            .ToHashSet(StringComparer.Ordinal);
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var items = products
             .Select(item => Audit(item, catalog, duplicateIds))
@@ -84,7 +84,7 @@ public static class InventoryAuditService
     {
         var catalog = await LoadCatalogAsync();
         var selected = catalog
-            .Where(asset => SameAssetId(asset.AssetId, assetId) && asset.AssetType == assetType)
+            .Where(asset => Same(asset.AssetId, assetId) && asset.AssetType == assetType)
             .ToList();
         if (selected.Count != 1)
             throw new InvalidOperationException("Select one registered AssetId that belongs to the chosen Asset Type.");
@@ -138,7 +138,7 @@ public static class InventoryAuditService
         IReadOnlySet<string> duplicateIds)
     {
         var exactMatches = catalog
-            .Where(asset => SameAssetId(asset.AssetId, product.AssetId))
+            .Where(asset => Same(asset.AssetId, product.AssetId))
             .ToList();
         var safeMatches = exactMatches.Count > 0
             ? exactMatches
@@ -155,8 +155,7 @@ public static class InventoryAuditService
         else if (!Enum.TryParse<StoreProductOwnerScope>(product.OwnerScope?.Trim(), false, out var owner) ||
                  owner != StoreProductAssetTypeCatalog.GetOwnerScope(type))
             status = InventoryAuditStatus.InvalidOwnerScope;
-        else if (!string.IsNullOrWhiteSpace(product.AssetId) &&
-                 duplicateIds.Contains(CanonicalAssetIdentityService.NormalizeForComparison(product.AssetId)))
+        else if (!string.IsNullOrWhiteSpace(product.AssetId) && duplicateIds.Contains(product.AssetId.Trim()))
             status = InventoryAuditStatus.DuplicateAssetId;
         else if (StoreProductAssetTypeCatalog.IsInventory(type) &&
                  exactMatches.Count(asset => asset.AssetType == type) != 1)
@@ -225,9 +224,6 @@ public static class InventoryAuditService
 
     private static bool Same(string? left, string? right) =>
         string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
-
-    private static bool SameAssetId(string? left, string? right) =>
-        CanonicalAssetIdentityService.SameAssetId(left, right);
 
     private static bool SamePayload(string? left, string? right)
     {

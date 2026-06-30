@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.Pages;
@@ -20,16 +19,6 @@ public partial class HistoryPage : ContentPage
     bool isExpanded = false;
 
     CancellationTokenSource? searchDelay;
-    
-    // VisualEventBus subscription tokens
-    IDisposable? teamEmblemChangedSubscription;
-    IDisposable? teamColorChangedSubscription;
-    IDisposable? teamEffectChangedSubscription;
-    IDisposable? teamEmblemBackgroundChangedSubscription;
-    IDisposable? playerAvatarChangedSubscription;
-    IDisposable? playerProfileBackgroundChangedSubscription;
-    IDisposable? playerFrameChangedSubscription;
-    IDisposable? playerEffectChangedSubscription;
 
     public HistoryPage()
     {
@@ -54,32 +43,6 @@ public partial class HistoryPage : ContentPage
         AppEvents.TeamsChanged += OnHistoryDataChanged;
         AppEvents.PlayerProfileChanged += OnHistoryDataChanged;
         AppEvents.TeamAssetsChanged += OnHistoryTeamAssetsChanged;
-        
-        // Subscribe to VisualEventBus identity events
-        teamEmblemChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEmblemChanged);
-        teamColorChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamColorChanged);
-        teamEffectChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEffectChanged);
-        teamEmblemBackgroundChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEmblemBackgroundChanged);
-        playerAvatarChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerAvatarChanged);
-        playerProfileBackgroundChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerProfileBackgroundChanged);
-        playerFrameChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerFrameChanged);
-        playerEffectChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerEffectChanged);
 
         await LoadHistoryAsync();
     }
@@ -87,16 +50,6 @@ public partial class HistoryPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        
-        // Dispose VisualEventBus subscriptions
-        teamEmblemChangedSubscription?.Dispose();
-        teamColorChangedSubscription?.Dispose();
-        teamEffectChangedSubscription?.Dispose();
-        teamEmblemBackgroundChangedSubscription?.Dispose();
-        playerAvatarChangedSubscription?.Dispose();
-        playerProfileBackgroundChangedSubscription?.Dispose();
-        playerFrameChangedSubscription?.Dispose();
-        playerEffectChangedSubscription?.Dispose();
 
         AppEvents.DataChanged -= OnHistoryDataChanged;
         AppEvents.MatchesChanged -= OnHistoryDataChanged;
@@ -157,35 +110,6 @@ public partial class HistoryPage : ContentPage
     }
 
     void OnHistoryTeamAssetsChanged(string teamId) => OnHistoryDataChanged();
-
-    // VisualEventBus identity event handler - reuse existing refresh path
-    // Filtering is deferred by architecture to avoid false negatives
-    void HandleVisualIdentityEvent(EventEntry eventEntry)
-    {
-        if (eventEntry.EventData == null)
-            return;
-        
-        // Validate payload contains either TeamId or PlayerId
-        bool hasTeamId = eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.TeamId);
-        bool hasPlayerId = eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.PlayerId);
-        
-        if (!hasTeamId && !hasPlayerId)
-            return;
-        
-        // Conservative behavior: always refresh on valid identity events
-        OnHistoryDataChanged();
-    }
-
-    // Individual event handlers
-    void OnTeamEmblemChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnTeamColorChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnTeamEffectChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnTeamEmblemBackgroundChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-
-    void OnPlayerAvatarChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnPlayerProfileBackgroundChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnPlayerFrameChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnPlayerEffectChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
 
     void UpdateDashboard()
     {
