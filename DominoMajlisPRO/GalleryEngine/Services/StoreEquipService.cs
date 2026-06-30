@@ -10,22 +10,11 @@ public sealed record StoreAcquireResult(bool IsOwned, bool IsEquipped, bool WasA
 
 public static class StoreEquipService
 {
-    public static async Task<StoreAcquireResult> AcquireFreeAsync(
-        string playerId,
-        string assetId,
-        string storeTypeId,
-        string? seasonId = null,
-        string? collectionId = null)
+    public static async Task<StoreAcquireResult> AcquireFreeAsync(string playerId, string assetId, string storeTypeId, string? seasonId = null, string? collectionId = null)
     {
         ValidateIdentity(playerId, assetId, storeTypeId);
         var wasOwned = await PlayerInventoryService.IsOwnedAsync(playerId, assetId);
-        var wasAdded = wasOwned || await PlayerInventoryService.AddOwnedItemWithoutNotificationAsync(
-            playerId,
-            assetId,
-            storeTypeId,
-            "FreeAcquire",
-            seasonId: seasonId,
-            collectionId: collectionId);
+        var wasAdded = wasOwned || await PlayerInventoryService.AddOwnedItemWithoutNotificationAsync(playerId, assetId, storeTypeId, "FreeAcquire", seasonId: seasonId, collectionId: collectionId);
 
         if (!wasAdded)
             return new StoreAcquireResult(false, false, false, false);
@@ -37,14 +26,11 @@ public static class StoreEquipService
         {
             equipped = await PlayerInventoryService.EquipItemWithoutNotificationAsync(playerId, assetId);
             if (equipped)
-            {
                 visualApplied = await ApplyVisualAsync(playerId, assetId, storeTypeId);
-            }
         }
-        // Ensure persistence is complete before raising events.
+
         AppEvents.RaiseStoreEconomyChanged(playerId);
-        if (visualApplied)
-            AppEvents.RaisePlayerProfileChanged();
+        RaiseVisualChanged(playerId, storeTypeId, visualApplied);
 
         return new StoreAcquireResult(true, equipped, !wasOwned, visualApplied);
     }
@@ -63,13 +49,11 @@ public static class StoreEquipService
 
         var visualApplied = await ApplyVisualAsync(playerId, assetId, owned.StoreTypeId);
         AppEvents.RaiseStoreEconomyChanged(playerId);
-        if (visualApplied)
-            AppEvents.RaisePlayerProfileChanged();
+        RaiseVisualChanged(playerId, owned.StoreTypeId, visualApplied);
         return true;
     }
 
-    public static Task<bool> UnequipAsync(string playerId, string assetId) =>
-        PlayerInventoryService.UnequipItemAsync(playerId, assetId);
+    public static Task<bool> UnequipAsync(string playerId, string assetId) => PlayerInventoryService.UnequipItemAsync(playerId, assetId);
 
     public static async Task<PlayerOwnedStoreItem?> GetEquippedAsync(string playerId, string storeTypeId)
     {
@@ -90,6 +74,8 @@ public static class StoreEquipService
         SameId(storeTypeId, StoreProductAssetType.ProfileBackground.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.Frame.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.Effect.ToString()) ||
+        SameId(storeTypeId, StoreProductAssetType.PlayerNameEffect.ToString()) ||
+        SameId(storeTypeId, StoreProductAssetType.PlayerNameFrame.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.Title.ToString());
 
     private static async Task<bool> ApplyVisualAsync(string playerId, string assetId, string storeTypeId)
@@ -97,8 +83,7 @@ public static class StoreEquipService
         if (!SameId(storeTypeId, StoreTypeRegistry.Avatar.TypeId))
             return IsEquipCapable(storeTypeId);
 
-        var avatar = (await AvatarsAdminService.LoadPublishedAsync())
-            .FirstOrDefault(item => SameId(item.Id, assetId));
+        var avatar = (await AvatarsAdminService.LoadPublishedAsync()).FirstOrDefault(item => SameId(item.Id, assetId));
         var player = await PlayerProfileService.GetPlayerByIdAsync(playerId);
         if (avatar == null || player == null)
             return false;
@@ -110,8 +95,23 @@ public static class StoreEquipService
         return true;
     }
 
-    private static bool SameId(string? left, string? right) =>
-        CanonicalAssetIdentityService.SameAssetId(left, right);
+    private static void RaiseVisualChanged(string playerId, string storeTypeId, bool visualApplied)
+    {
+        if (!visualApplied)
+            return;
+
+        if (SameId(storeTypeId, StoreProductAssetType.Effect.ToString()) ||
+            SameId(storeTypeId, StoreProductAssetType.PlayerNameEffect.ToString()) ||
+            SameId(storeTypeId, StoreProductAssetType.PlayerNameFrame.ToString()))
+        {
+            AppEvents.RaisePlayerEffectChanged(playerId);
+        }
+
+        AppEvents.RaisePlayerIdentityChanged(playerId);
+        AppEvents.RaisePlayerProfileChanged();
+    }
+
+    private static bool SameId(string? left, string? right) => CanonicalAssetIdentityService.SameAssetId(left, right);
 
     private static void ValidateIdentity(string playerId, string assetId, string? storeTypeId = null)
     {
