@@ -7,6 +7,10 @@ public enum StoreProductAssetType
     Frame,
     Effect,
     TeamEffect,
+    PlayerNameEffect,
+    TeamNameEffect,
+    PlayerNameFrame,
+    TeamNameFrame,
     Title,
     Emblem,
     TeamColor,
@@ -41,19 +45,29 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.Frame or
         StoreProductAssetType.Effect or
         StoreProductAssetType.TeamEffect or
+        StoreProductAssetType.PlayerNameEffect or
+        StoreProductAssetType.PlayerNameFrame or
         StoreProductAssetType.Title or
         StoreProductAssetType.Badge or
         StoreProductAssetType.SeasonReward => StoreProductOwnerScope.Player,
 
         StoreProductAssetType.Emblem or
         StoreProductAssetType.TeamColor or
-        StoreProductAssetType.EmblemBackground => StoreProductOwnerScope.Team,
+        StoreProductAssetType.EmblemBackground or
+        StoreProductAssetType.TeamNameEffect or
+        StoreProductAssetType.TeamNameFrame => StoreProductOwnerScope.Team,
 
         _ => StoreProductOwnerScope.None
     };
 
     public static bool IsInventory(StoreProductAssetType type) =>
         GetOwnerScope(type) != StoreProductOwnerScope.None;
+
+    public static bool IsIdentityPlateType(StoreProductAssetType type) => type is
+        StoreProductAssetType.PlayerNameEffect or
+        StoreProductAssetType.TeamNameEffect or
+        StoreProductAssetType.PlayerNameFrame or
+        StoreProductAssetType.TeamNameFrame;
 
     public static bool RequiresImagePayload(StoreProductAssetType type) => type is
         StoreProductAssetType.Avatar or
@@ -96,7 +110,7 @@ public static class StoreProductAssetTypeCatalog
             return false;
         }
 
-        if (type is StoreProductAssetType.Effect or StoreProductAssetType.TeamEffect &&
+        if (type is StoreProductAssetType.Effect or StoreProductAssetType.TeamEffect or StoreProductAssetType.PlayerNameEffect or StoreProductAssetType.TeamNameEffect or StoreProductAssetType.PlayerNameFrame or StoreProductAssetType.TeamNameFrame &&
             !string.IsNullOrWhiteSpace(colorHex) &&
             !IsValidColorHex(colorHex))
         {
@@ -157,6 +171,11 @@ public static class StoreManagerAssetTypeScopes
             StoreProductAssetType.EmblemBackground),
         "emblem-backgrounds" => Types(StoreProductAssetType.EmblemBackground),
         "effects" => Types(StoreProductAssetType.Effect, StoreProductAssetType.TeamEffect),
+        "name-effects" => Types(
+            StoreProductAssetType.PlayerNameEffect,
+            StoreProductAssetType.TeamNameEffect,
+            StoreProductAssetType.PlayerNameFrame,
+            StoreProductAssetType.TeamNameFrame),
         "frames" => Types(StoreProductAssetType.Frame),
         "titles" => Types(StoreProductAssetType.Title),
         "team-colors" => Types(StoreProductAssetType.TeamColor),
