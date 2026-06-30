@@ -8,62 +8,35 @@ public static class InventoryDisplayResolver
 {
     public const string FallbackImage = "ss.png";
 
-    public static async Task<InventoryCollectionSnapshot> ResolveAsync(
-        string? playerId,
-        string? teamId = null)
+    public static async Task<InventoryCollectionSnapshot> ResolveAsync(string? playerId, string? teamId = null)
     {
         var catalogTask = StoreAssetCatalogService.LoadAsync();
-        var productReferencesTask =
-            StoreAssetCatalogService.LoadProductReferencesAsync();
-        var session = await DominoMajlisPRO.Services.ApplicationUserService.EnsureCurrentSessionAsync();
-                var appUserId = session.ApplicationUserId ?? string.Empty;
-                var playerInventoryTask = string.IsNullOrWhiteSpace(playerId)
-                    ? Task.FromResult<IReadOnlyList<PlayerOwnedStoreItem>>( 
-                        Array.Empty<PlayerOwnedStoreItem>())
-                    : PlayerAssetInventoryService.GetInventoryForPlayerAsync(playerId); // PlayerAssetInventoryService will scope by ApplicationUserId internally.
-                var teamInventoryTask = string.IsNullOrWhiteSpace(teamId)
-                    ? Task.FromResult<IReadOnlyList<TeamOwnedAssetItem>>(
-                        Array.Empty<TeamOwnedAssetItem>())
-                    : TeamAssetInventoryService.GetInventoryForTeamAsync(teamId);
-        await Task.WhenAll(
-            catalogTask,
-            productReferencesTask,
-            playerInventoryTask,
-            teamInventoryTask);
+        var productReferencesTask = StoreAssetCatalogService.LoadProductReferencesAsync();
+        var session = await ApplicationUserService.EnsureCurrentSessionAsync();
+        var appUserId = session.ApplicationUserId ?? string.Empty;
+        var playerInventoryTask = string.IsNullOrWhiteSpace(playerId)
+            ? Task.FromResult<IReadOnlyList<PlayerOwnedStoreItem>>(Array.Empty<PlayerOwnedStoreItem>())
+            : PlayerAssetInventoryService.GetInventoryForPlayerAsync(playerId);
+        var teamInventoryTask = string.IsNullOrWhiteSpace(teamId)
+            ? Task.FromResult<IReadOnlyList<TeamOwnedAssetItem>>(Array.Empty<TeamOwnedAssetItem>())
+            : TeamAssetInventoryService.GetInventoryForTeamAsync(teamId);
+        await Task.WhenAll(catalogTask, productReferencesTask, playerInventoryTask, teamInventoryTask);
 
         var catalog = catalogTask.Result;
         var productReferences = productReferencesTask.Result;
         var items = new List<ResolvedInventoryDisplay>();
         items.AddRange(playerInventoryTask.Result
             .Where(item => item.IsOwned && !item.IsExpired)
-            .GroupBy(
-                item => $"{StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId)}\u001F{CanonicalAssetIdentityService.NormalizeForComparison(item.AssetId)}",
-                StringComparer.OrdinalIgnoreCase)
-            .Select(group => group
-                .OrderByDescending(item => item.IsEquipped)
-                .ThenByDescending(item => item.PurchasedAt)
-                .First())
-            .Select(item => ResolvePlayer(
-                item,
-                catalog,
-                productReferences)));
+            .GroupBy(item => $"{StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId)}\u001F{CanonicalAssetIdentityService.NormalizeForComparison(item.AssetId)}", StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.OrderByDescending(item => item.IsEquipped).ThenByDescending(item => item.PurchasedAt).First())
+            .Select(item => ResolvePlayer(item, catalog, productReferences)));
         items.AddRange(teamInventoryTask.Result
             .Where(item => item.IsOwned)
-            .GroupBy(
-                item => $"{StoreAssetCatalogService.CanonicalTypeId(item.TeamAssetTypeId)}\u001F{CanonicalAssetIdentityService.NormalizeForComparison(item.TeamAssetId)}",
-                StringComparer.OrdinalIgnoreCase)
-            .Select(group => group
-                .OrderByDescending(item => item.IsEquipped)
-                .ThenByDescending(item => item.AcquiredAt)
-                .First())
-            .Select(item => ResolveTeam(
-                item,
-                catalog,
-                productReferences)));
+            .GroupBy(item => $"{StoreAssetCatalogService.CanonicalTypeId(item.TeamAssetTypeId)}\u001F{CanonicalAssetIdentityService.NormalizeForComparison(item.TeamAssetId)}", StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.OrderByDescending(item => item.IsEquipped).ThenByDescending(item => item.AcquiredAt).First())
+            .Select(item => ResolveTeam(item, catalog, productReferences)));
 
-        var supportedCatalog = catalog
-            .Where(item => IsProgressType(item.AssetType))
-            .ToList();
+        var supportedCatalog = catalog.Where(item => IsProgressType(item.AssetType)).ToList();
         var typeIds = supportedCatalog
             .Select(item => item.AssetType.ToString())
             .Concat(items.Select(item => item.AssetType))
@@ -72,27 +45,20 @@ public static class InventoryDisplayResolver
             .ToList();
         var counts = typeIds.Select(typeId =>
         {
-            var catalogIds = supportedCatalog
-                .Where(item => Same(item.AssetType.ToString(), typeId))
-                .Select(item => item.AssetId);
-            var ownedIds = items
-                .Where(item => Same(item.AssetType, typeId))
-                .Select(item => item.AssetId);
+            var catalogIds = supportedCatalog.Where(item => Same(item.AssetType.ToString(), typeId)).Select(item => item.AssetId);
+            var ownedIds = items.Where(item => Same(item.AssetType, typeId)).Select(item => item.AssetId);
             var availableIds = catalogIds
                 .Where(item => !string.IsNullOrWhiteSpace(item))
-                .Select(CanonicalAssetIdentityService.NormalizeForComparison).ToHashSet(StringComparer.Ordinal);
+                .Select(CanonicalAssetIdentityService.NormalizeForComparison)
+                .ToHashSet(StringComparer.Ordinal);
             var owned = ownedIds
                 .Where(item => !string.IsNullOrWhiteSpace(item))
-                .Select(CanonicalAssetIdentityService.NormalizeForComparison).Distinct(StringComparer.Ordinal)
+                .Select(CanonicalAssetIdentityService.NormalizeForComparison)
+                .Distinct(StringComparer.Ordinal)
                 .Count(item => availableIds.Contains(item));
             var total = availableIds.Count;
             owned = Math.Min(owned, total);
-            return new StoreProgressCount
-            {
-                Key = typeId,
-                Owned = owned,
-                Total = total
-            };
+            return new StoreProgressCount { Key = typeId, Owned = owned, Total = total };
         }).ToList();
 
         var missing = items
@@ -101,26 +67,15 @@ public static class InventoryDisplayResolver
             {
                 var productIds = string.IsNullOrWhiteSpace(item.ProductId)
                     ? new[] { string.Empty }
-                    : item.ProductId.Split(
-                        ',',
-                        StringSplitOptions.RemoveEmptyEntries |
-                        StringSplitOptions.TrimEntries);
-                return productIds.Select(productId =>
-                    new MissingCatalogDisplayMetadata(
-                        productId,
-                        item.AssetId,
-                        item.AssetType));
+                    : item.ProductId.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                return productIds.Select(productId => new MissingCatalogDisplayMetadata(productId, item.AssetId, item.AssetType));
             })
             .Distinct()
             .ToList();
         var totalOwned = counts.Sum(item => item.Owned);
         var totalAvailable = counts.Sum(item => item.Total);
         return new InventoryCollectionSnapshot(
-            items
-                .OrderBy(item => TypeOrder(item.AssetType))
-                .ThenByDescending(item => item.IsEquipped)
-                .ThenBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase)
-                .ToList(),
+            items.OrderBy(item => TypeOrder(item.AssetType)).ThenByDescending(item => item.IsEquipped).ThenBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase).ToList(),
             counts,
             totalOwned,
             totalAvailable,
@@ -128,15 +83,10 @@ public static class InventoryDisplayResolver
             missing);
     }
 
-    private static ResolvedInventoryDisplay ResolvePlayer(
-        PlayerOwnedStoreItem item,
-        IReadOnlyList<CatalogAssetDisplay> catalog,
-        IReadOnlyList<StoreProductAssetReference> productReferences)
+    private static ResolvedInventoryDisplay ResolvePlayer(PlayerOwnedStoreItem item, IReadOnlyList<CatalogAssetDisplay> catalog, IReadOnlyList<StoreProductAssetReference> productReferences)
     {
         var typeId = StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId);
-        if (Same(item.Source, "Default") &&
-            Same(typeId, StoreProductAssetType.Avatar.ToString()) &&
-            AvatarService.GetById(item.AssetId) is { } defaultAvatar)
+        if (Same(item.Source, "Default") && Same(typeId, StoreProductAssetType.Avatar.ToString()) && AvatarService.GetById(item.AssetId) is { } defaultAvatar)
         {
             return new ResolvedInventoryDisplay(
                 string.Empty,
@@ -153,41 +103,19 @@ public static class InventoryDisplayResolver
         }
 
         var asset = StoreAssetCatalogService.Resolve(catalog, item.AssetId, typeId);
-        return Resolve(
-            item.AssetId,
-            typeId,
-            item.IsEquipped,
-            false,
-            asset,
-            productReferences);
+        return Resolve(item.AssetId, typeId, item.IsEquipped, false, asset, productReferences);
     }
 
-    private static ResolvedInventoryDisplay ResolveTeam(
-        TeamOwnedAssetItem item,
-        IReadOnlyList<CatalogAssetDisplay> catalog,
-        IReadOnlyList<StoreProductAssetReference> productReferences)
+    private static ResolvedInventoryDisplay ResolveTeam(TeamOwnedAssetItem item, IReadOnlyList<CatalogAssetDisplay> catalog, IReadOnlyList<StoreProductAssetReference> productReferences)
     {
-        var typeId = StoreAssetCatalogService.CanonicalTypeId(
-            ResolveTeamTypeId(item, catalog));
-        var asset = StoreAssetCatalogService.Resolve(
-            catalog,
-            item.TeamAssetId,
-            typeId);
-        return Resolve(
-            item.TeamAssetId,
-            typeId,
-            item.IsEquipped,
-            true,
-            asset,
-            productReferences);
+        var typeId = StoreAssetCatalogService.CanonicalTypeId(ResolveTeamTypeId(item, catalog));
+        var asset = StoreAssetCatalogService.Resolve(catalog, item.TeamAssetId, typeId);
+        return Resolve(item.TeamAssetId, typeId, item.IsEquipped, true, asset, productReferences);
     }
 
-    private static string ResolveTeamTypeId(
-        TeamOwnedAssetItem item,
-        IReadOnlyList<CatalogAssetDisplay> catalog)
+    private static string ResolveTeamTypeId(TeamOwnedAssetItem item, IReadOnlyList<CatalogAssetDisplay> catalog)
     {
-        var canonical = StoreAssetCatalogService.CanonicalType(
-            item.TeamAssetTypeId);
+        var canonical = StoreAssetCatalogService.CanonicalType(item.TeamAssetTypeId);
         if (canonical.HasValue)
             return canonical.Value.ToString();
 
@@ -203,55 +131,52 @@ public static class InventoryDisplayResolver
         return payload?.TeamAssetTypeId ?? item.TeamAssetTypeId;
     }
 
-    private static ResolvedInventoryDisplay Resolve(
-        string assetId,
-        string typeId,
-        bool isEquipped,
-        bool isTeamAsset,
-        CatalogAssetDisplay? asset,
-        IReadOnlyList<StoreProductAssetReference> productReferences)
+    private static ResolvedInventoryDisplay Resolve(string assetId, string typeId, bool isEquipped, bool isTeamAsset, CatalogAssetDisplay? asset, IReadOnlyList<StoreProductAssetReference> productReferences)
     {
         var hasMetadata = asset?.HasDisplayMetadata == true;
         var productIds = asset?.ProductIds ??
             productReferences
-                .Where(item =>
-                    Same(item.AssetId, assetId) &&
-                    Same(item.AssetType, typeId))
+                .Where(item => Same(item.AssetId, assetId) && Same(item.AssetType, typeId))
                 .Select(item => item.ProductId)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        var typographyPreset = asset?.TypographyPresetValue;
+        var previewImage = typographyPreset != null
+            ? string.Empty
+            : hasMetadata
+                ? ResolveImagePath(asset!.PreviewImage)
+                : FallbackImage;
         return new ResolvedInventoryDisplay(
             string.Join(",", productIds),
             assetId,
             typeId,
-            hasMetadata
-                ? asset!.DisplayName
-                : StoreAssetCatalogService.IncompleteDisplayName,
+            hasMetadata ? asset!.DisplayName : StoreAssetCatalogService.IncompleteDisplayName,
             hasMetadata ? asset!.ArabicDisplayName : string.Empty,
-            hasMetadata
-                ? ResolveImagePath(asset!.PreviewImage)
-                : FallbackImage,
+            previewImage,
             asset?.ColorHex ?? string.Empty,
             true,
             isEquipped,
             isTeamAsset,
-            hasMetadata);
+            hasMetadata,
+            typographyPreset);
     }
 
-    private static bool IsProgressType(
-        StoreProductAssetType type) =>
-        type is
-            StoreProductAssetType.Avatar or
-            StoreProductAssetType.ProfileBackground or
-            StoreProductAssetType.Frame or
-            StoreProductAssetType.Effect or
-            StoreProductAssetType.Title or
-            StoreProductAssetType.Emblem or
-            StoreProductAssetType.TeamLivingEmblem or
-            StoreProductAssetType.TeamColor or
-            StoreProductAssetType.EmblemBackground or
-            StoreProductAssetType.Badge or
-            StoreProductAssetType.SeasonReward;
+    private static bool IsProgressType(StoreProductAssetType type) =>
+        type is StoreProductAssetType.Avatar
+            or StoreProductAssetType.ProfileBackground
+            or StoreProductAssetType.Frame
+            or StoreProductAssetType.Effect
+            or StoreProductAssetType.PlayerNameEffect
+            or StoreProductAssetType.PlayerNameFrame
+            or StoreProductAssetType.TeamNameEffect
+            or StoreProductAssetType.TeamNameFrame
+            or StoreProductAssetType.Title
+            or StoreProductAssetType.Emblem
+            or StoreProductAssetType.TeamLivingEmblem
+            or StoreProductAssetType.TeamColor
+            or StoreProductAssetType.EmblemBackground
+            or StoreProductAssetType.Badge
+            or StoreProductAssetType.SeasonReward;
 
     private static int TypeOrder(string typeId) => typeId switch
     {
@@ -259,22 +184,23 @@ public static class InventoryDisplayResolver
         "ProfileBackground" => 1,
         "Frame" => 2,
         "Effect" => 3,
-        "Title" => 4,
-        "Emblem" => 5,
-        "TeamLivingEmblem" => 6,
-        "TeamColor" => 7,
-        "EmblemBackground" => 8,
-        "Badge" => 9,
-        "SeasonReward" => 10,
+        "PlayerNameEffect" => 4,
+        "PlayerNameFrame" => 5,
+        "Title" => 6,
+        "Emblem" => 7,
+        "TeamLivingEmblem" => 8,
+        "TeamColor" => 9,
+        "EmblemBackground" => 10,
+        "TeamNameEffect" => 11,
+        "TeamNameFrame" => 12,
+        "Badge" => 13,
+        "SeasonReward" => 14,
         _ => 100
     };
 
-    private static bool Same(string? left, string? right) =>
-        CanonicalAssetIdentityService.SameAssetId(left, right);
+    private static bool Same(string? left, string? right) => CanonicalAssetIdentityService.SameAssetId(left, right);
 
-    public static string ResolveImagePath(
-        string? imagePath,
-        string fallback = FallbackImage)
+    public static string ResolveImagePath(string? imagePath, string fallback = FallbackImage)
     {
         var resolved = ResolveOptionalImagePath(imagePath);
         return string.IsNullOrWhiteSpace(resolved) ? fallback : resolved;
@@ -308,26 +234,16 @@ public static class InventoryDisplayResolver
         if (normalized.StartsWith(resourcePrefix, StringComparison.OrdinalIgnoreCase))
             normalized = Path.GetFileName(normalized);
 
-        if (Path.IsPathRooted(candidate) ||
-            normalized.Contains('/') ||
-            normalized.Contains(':'))
-        {
+        if (Path.IsPathRooted(candidate) || normalized.Contains('/') || normalized.Contains(':'))
             return null;
-        }
 
-        return HasSupportedImageExtension(normalized)
-            ? normalized
-            : null;
+        return HasSupportedImageExtension(normalized) ? normalized : null;
     }
 
-    public static ImageSource ResolveImageSource(
-        string? imagePath,
-        string fallback = FallbackImage)
+    public static ImageSource ResolveImageSource(string? imagePath, string fallback = FallbackImage)
     {
         var resolved = ResolveImagePath(imagePath, fallback);
-        return File.Exists(resolved)
-            ? ImageSource.FromStream(() => File.OpenRead(resolved))
-            : resolved;
+        return File.Exists(resolved) ? ImageSource.FromStream(() => File.OpenRead(resolved)) : resolved;
     }
 
     public static ImageSource? ResolveOptionalImageSource(string? imagePath)
@@ -336,9 +252,7 @@ public static class InventoryDisplayResolver
         if (string.IsNullOrWhiteSpace(resolved))
             return null;
 
-        return File.Exists(resolved)
-            ? ImageSource.FromStream(() => File.OpenRead(resolved))
-            : resolved;
+        return File.Exists(resolved) ? ImageSource.FromStream(() => File.OpenRead(resolved)) : resolved;
     }
 
     private static bool HasSupportedImageExtension(string value)
