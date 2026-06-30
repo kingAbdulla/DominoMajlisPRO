@@ -4,6 +4,19 @@ namespace DominoMajlisPRO.GalleryEngine.Components;
 
 public static class IdentityPlateBinder
 {
+    public static void ApplyToLabel(Label label, string text, TypographyIdentityPreset? preset)
+    {
+        label.Text = text;
+        if (preset == null)
+            return;
+
+        var normalized = preset.Normalized();
+        label.FontFamily = normalized.FontFamily;
+        label.FontSize = Math.Clamp(normalized.FontSize * normalized.Scale, 11, Math.Max(11, label.FontSize <= 0 ? 34 : label.FontSize * 1.8));
+        label.TextColor = Color.FromArgb(normalized.PrimaryColor);
+        label.Opacity = normalized.Opacity;
+    }
+
     public static void Apply(Label fallbackLabel, IdentityPlateView plate, string text, TypographyIdentityPreset? preset)
     {
         fallbackLabel.Text = text;
