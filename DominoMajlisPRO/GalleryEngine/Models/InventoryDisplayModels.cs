@@ -36,8 +36,7 @@ public sealed record CatalogAssetDisplay(
     string LivingPackageVersion = "",
     string Rarity = "")
 {
-    public IReadOnlyList<string> EffectLayerIds =>
-        EffectLayerIdsValue ?? Array.Empty<string>();
+    public IReadOnlyList<string> EffectLayerIds => EffectLayerIdsValue ?? Array.Empty<string>();
 
     public bool HasDisplayMetadata =>
         !string.IsNullOrWhiteSpace(DisplayName) &&
@@ -60,7 +59,11 @@ public sealed record ResolvedInventoryDisplay(
     bool IsOwned,
     bool IsEquipped,
     bool IsTeamAsset,
-    bool HasCatalogDisplayMetadata);
+    bool HasCatalogDisplayMetadata,
+    TypographyIdentityPreset? TypographyPresetValue = null)
+{
+    public TypographyIdentityPreset? TypographyPreset => TypographyPresetValue?.Normalized();
+}
 
 public sealed record MissingCatalogDisplayMetadata(
     string ProductId,
