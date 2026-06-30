@@ -5,53 +5,6 @@ using Microsoft.Maui.Graphics;
 
 namespace DominoMajlisPRO.GalleryEngine.Services;
 
-public sealed record EffectRenderProfile(
-    string AssetId,
-    string EffectType,
-    string AnimationType,
-    Color PrimaryColor,
-    Color SecondaryColor,
-    IReadOnlyList<string> EffectLayerIds,
-    float Opacity,
-    float Scale,
-    float Speed,
-    float Intensity,
-    int DurationMilliseconds)
-{
-    public static EffectRenderProfile From(CatalogAssetDisplay effect)
-    {
-        var key = $"{effect.AssetId} {effect.DisplayName} {effect.EffectType}".ToLowerInvariant();
-        return new(
-            effect.AssetId,
-            effect.EffectType,
-            effect.AnimationType,
-            Parse(effect.CustomPrimaryColorHex, effect.ColorHex,
-                key.Contains("ice") ? "#79DFFF" : key.Contains("lightning") ? "#E8FBFF" :
-                key.Contains("gold") ? "#FFD45A" : "#FF6B18"),
-            Parse(effect.CustomSecondaryColorHex, string.Empty,
-                key.Contains("ice") ? "#FFFFFF" : key.Contains("lightning") ? "#69CFFF" :
-                key.Contains("gold") ? "#FFF1A8" : "#FFD04A"),
-            effect.EffectLayerIds,
-            Math.Clamp(effect.EffectOpacity <= 0 ? 1f : effect.EffectOpacity, .05f, 1f),
-            Math.Clamp(effect.EffectScale <= 0 ? 1f : effect.EffectScale, .5f, 2f),
-            Math.Clamp(effect.EffectSpeed <= 0 ? 1f : effect.EffectSpeed, .1f, 4f),
-            Math.Clamp(effect.EffectIntensity <= 0 ? 1f : effect.EffectIntensity, .1f, 3f),
-            effect.DurationMilliseconds);
-    }
-
-    private static Color Parse(string? preferred, string? fallback, string defaultHex)
-    {
-        foreach (var value in new[] { preferred, fallback, defaultHex })
-        {
-            var token = value?.Trim();
-            if (!string.IsNullOrWhiteSpace(token) && token[0] == '#' &&
-                (token.Length == 7 || token.Length == 9) && token[1..].All(Uri.IsHexDigit))
-                return Color.FromArgb(token);
-        }
-        return Colors.Gold;
-    }
-}
-
 public sealed class IdentityEffectView : GraphicsView
 {
     private readonly IdentityEffectDrawable _drawable = new();
@@ -68,13 +21,20 @@ public sealed class IdentityEffectView : GraphicsView
 
     public string EffectKey { get; private set; } = string.Empty;
 
-    public void SetEffect(EffectRenderProfile profile, double baseScale = 1.18, bool lightweight = false)
+    public void SetEffect(
+        CatalogAssetDisplay effect,
+        EffectRenderProfile profile,
+        double baseScale = 1.18,
+        bool lightweight = false)
     {
-        var key = $"{profile.AssetId}|{profile.EffectType}|{profile.AnimationType}|{baseScale}|{lightweight}";
+        var key = $"{effect.AssetId}|{effect.EffectType}|{effect.AnimationType}|{baseScale}|{lightweight}";
         if (EffectKey == key)
             return;
         EffectKey = key;
         _drawable.Profile = profile;
+        _drawable.EffectType = effect.EffectType ?? string.Empty;
+        _drawable.Speed = Math.Clamp(effect.EffectSpeed <= 0 ? 1f : effect.EffectSpeed, .1f, 4f);
+        _drawable.Intensity = Math.Clamp(effect.EffectIntensity <= 0 ? 1f : effect.EffectIntensity, .1f, 3f);
         _drawable.BaseScale = (float)baseScale;
         _drawable.Lightweight = lightweight;
         _started = Environment.TickCount64;
@@ -101,7 +61,7 @@ public sealed class IdentityEffectView : GraphicsView
         {
             if (!_running || _drawable.Profile == null || !IsLoaded)
                 return false;
-            _drawable.Phase = (Environment.TickCount64 - _started) / 1000f * _drawable.Profile.Speed;
+            _drawable.Phase = (Environment.TickCount64 - _started) / 1000f * _drawable.Speed;
             Invalidate();
             return true;
         });
@@ -113,6 +73,9 @@ internal sealed class IdentityEffectDrawable : IDrawable
     public EffectRenderProfile? Profile { get; set; }
     public float Phase { get; set; }
     public float BaseScale { get; set; } = 1.18f;
+    public string EffectType { get; set; } = string.Empty;
+    public float Speed { get; set; } = 1f;
+    public float Intensity { get; set; } = 1f;
     public bool Lightweight { get; set; }
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
@@ -121,11 +84,11 @@ internal sealed class IdentityEffectDrawable : IDrawable
         if (p == null || dirtyRect.Width <= 1 || dirtyRect.Height <= 1)
             return;
         canvas.SaveState();
-        canvas.Alpha = p.Opacity;
+        canvas.Alpha = (float)p.Opacity;
         var cx = dirtyRect.Center.X;
         var cy = dirtyRect.Center.Y;
-        var radius = Math.Min(dirtyRect.Width, dirtyRect.Height) * .34f * BaseScale * p.Scale;
-        var type = (p.EffectType ?? string.Empty).Trim().ToLowerInvariant();
+        var radius = Math.Min(dirtyRect.Width, dirtyRect.Height) * .34f * BaseScale * (float)p.Scale;
+        var type = EffectType.Trim().ToLowerInvariant();
         if (type.Contains("fire") || type.Contains("flame")) DrawFire(canvas, cx, cy, radius, p);
         else if (type.Contains("lightning") || type.Contains("bolt")) DrawLightning(canvas, cx, cy, radius, p);
         else if (type.Contains("ice") || type.Contains("crystal") || type.Contains("snow")) DrawIce(canvas, cx, cy, radius, p);
@@ -166,9 +129,9 @@ internal sealed class IdentityEffectDrawable : IDrawable
             var end = PointOn(cx, cy, r * 1.28f, a + .08f * MathF.Sin(i + Phase * 9));
             var m1 = Lerp(start, end, .34f, ((i & 1) == 0 ? 1 : -1) * r * .12f);
             var m2 = Lerp(start, end, .68f, ((i & 1) == 0 ? -1 : 1) * r * .09f);
-            c.StrokeColor = p.PrimaryColor.WithAlpha(.35f); c.StrokeSize = 5f * p.Intensity;
+            c.StrokeColor = p.PrimaryColor.WithAlpha(.35f); c.StrokeSize = 5f * Intensity;
             Lines(c, start, m1, m2, end);
-            c.StrokeColor = p.SecondaryColor; c.StrokeSize = 1.4f * p.Intensity;
+            c.StrokeColor = p.SecondaryColor; c.StrokeSize = 1.4f * Intensity;
             Lines(c, start, m1, m2, end);
             if (!Lightweight) c.DrawLine(m2, PointOn(m2.X, m2.Y, r * .22f, a + .7f));
         }
@@ -203,7 +166,7 @@ internal sealed class IdentityEffectDrawable : IDrawable
             var pt = PointOn(cx, cy, r * (.84f + (i % 5) * .1f), a);
             var pulse = .25f + .75f * MathF.Abs(MathF.Sin(Phase * 3.2f + seed));
             c.FillColor = (i % 4 == 0 ? p.SecondaryColor : p.PrimaryColor).WithAlpha(.45f + .5f * pulse);
-            c.FillCircle(pt, (1.2f + 2.2f * pulse) * p.Intensity);
+            c.FillCircle(pt, (1.2f + 2.2f * pulse) * Intensity);
             if (!Lightweight && pulse > .72f)
             {
                 c.StrokeColor = p.SecondaryColor.WithAlpha(.7f); c.StrokeSize = 1;
@@ -217,7 +180,7 @@ internal sealed class IdentityEffectDrawable : IDrawable
     {
         var pulse = .92f + .08f * MathF.Sin(Phase * MathF.Tau);
         c.StrokeColor = p.PrimaryColor.WithAlpha(type.Contains("glow") ? .35f : .85f);
-        c.StrokeSize = (type.Contains("aura") ? 10 : 5) * p.Intensity;
+        c.StrokeSize = (type.Contains("aura") ? 10 : 5) * Intensity;
         c.DrawCircle(cx, cy, r * pulse);
         if (type.Contains("pulse") || type.Contains("breath"))
         {
@@ -251,7 +214,7 @@ public static class IdentityEffectRenderer
         var holder = Views.GetOrCreateValue(slot);
         if (TryAttach(slot, holder, out var view))
         {
-            view.SetEffect(EffectRenderProfile.From(effect), baseScale, lightweight);
+            view.SetEffect(effect, CreateRenderProfile(effect), baseScale, lightweight);
             slot.IsVisible = false;
         }
         else if (holder.LoadedHandler == null)
@@ -274,7 +237,7 @@ public static class IdentityEffectRenderer
     public static IdentityEffectView Create(CatalogAssetDisplay effect, double baseScale = 1.18, bool lightweight = false)
     {
         var view = new IdentityEffectView();
-        view.SetEffect(EffectRenderProfile.From(effect), baseScale, lightweight);
+        view.SetEffect(effect, CreateRenderProfile(effect), baseScale, lightweight);
         return view;
     }
 
@@ -292,7 +255,43 @@ public static class IdentityEffectRenderer
             return;
         view.ZIndex = emblem.ZIndex + 1;
         emblem.ZIndex = view.ZIndex + 1;
-        view.SetEffect(EffectRenderProfile.From(effect), baseScale, lightweight);
+        view.SetEffect(effect, CreateRenderProfile(effect), baseScale, lightweight);
+    }
+
+    private static EffectRenderProfile CreateRenderProfile(CatalogAssetDisplay effect)
+    {
+        var key = $"{effect.AssetId} {effect.DisplayName} {effect.EffectType}".ToLowerInvariant();
+        var primary = Parse(effect.CustomPrimaryColorHex, effect.ColorHex,
+            key.Contains("ice") ? "#79DFFF" : key.Contains("lightning") ? "#E8FBFF" :
+            key.Contains("gold") ? "#FFD45A" : "#FF6B18");
+        var secondary = Parse(effect.CustomSecondaryColorHex, string.Empty,
+            key.Contains("ice") ? "#FFFFFF" : key.Contains("lightning") ? "#69CFFF" :
+            key.Contains("gold") ? "#FFF1A8" : "#FFD04A");
+        var opacity = Math.Clamp(effect.EffectOpacity <= 0 ? 1.0 : effect.EffectOpacity, .05, 1.0);
+        var scale = Math.Clamp(effect.EffectScale <= 0 ? 1.0 : effect.EffectScale, .5, 2.0);
+        var intensity = Math.Clamp(effect.EffectIntensity <= 0 ? 1f : effect.EffectIntensity, .1f, 3f);
+        return new EffectRenderProfile(
+            primary,
+            secondary,
+            opacity,
+            scale,
+            (uint)Math.Max(0, effect.DurationMilliseconds),
+            16f * intensity,
+            .35f,
+            false,
+            string.Empty);
+    }
+
+    private static Color Parse(string? preferred, string? fallback, string defaultHex)
+    {
+        foreach (var value in new[] { preferred, fallback, defaultHex })
+        {
+            var token = value?.Trim();
+            if (!string.IsNullOrWhiteSpace(token) && token[0] == '#' &&
+                (token.Length == 7 || token.Length == 9) && token[1..].All(Uri.IsHexDigit))
+                return Color.FromArgb(token);
+        }
+        return Colors.Gold;
     }
 
     private static bool TryAttach(Image slot, Holder holder, out IdentityEffectView view)

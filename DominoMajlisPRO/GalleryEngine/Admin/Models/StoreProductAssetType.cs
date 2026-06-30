@@ -13,6 +13,7 @@ public enum StoreProductAssetType
     TeamNameFrame,
     Title,
     Emblem,
+    TeamLivingEmblem,
     TeamColor,
     EmblemBackground,
     Badge,
@@ -52,6 +53,7 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.SeasonReward => StoreProductOwnerScope.Player,
 
         StoreProductAssetType.Emblem or
+        StoreProductAssetType.TeamLivingEmblem or
         StoreProductAssetType.TeamColor or
         StoreProductAssetType.EmblemBackground or
         StoreProductAssetType.TeamNameEffect or
@@ -67,6 +69,7 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.Avatar or
         StoreProductAssetType.ProfileBackground or
         StoreProductAssetType.Emblem or
+        StoreProductAssetType.TeamLivingEmblem or
         StoreProductAssetType.EmblemBackground or
         StoreProductAssetType.Frame;
 

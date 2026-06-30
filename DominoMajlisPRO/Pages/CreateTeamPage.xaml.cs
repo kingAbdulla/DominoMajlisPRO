@@ -53,10 +53,29 @@ public sealed class TeamEffectCarouselItem : INotifyPropertyChanged
 {
     private bool _isSelected;
     public TeamEffectCarouselItem(string assetId, string displayName, CatalogAssetDisplay? effect)
-    { AssetId = assetId; DisplayName = displayName; Effect = effect; }
+        : this(assetId, displayName, effect, string.Empty, string.Empty)
+    {
+    }
+
+    public TeamEffectCarouselItem(
+        string assetId,
+        string displayName,
+        CatalogAssetDisplay? effect,
+        string ownerPlayerId,
+        string ownerApplicationUserId)
+    {
+        AssetId = assetId;
+        DisplayName = displayName;
+        Effect = effect;
+        OwnerPlayerId = ownerPlayerId;
+        OwnerApplicationUserId = ownerApplicationUserId;
+    }
+
     public string AssetId { get; }
     public string DisplayName { get; }
     public CatalogAssetDisplay? Effect { get; }
+    public string OwnerPlayerId { get; }
+    public string OwnerApplicationUserId { get; }
     public bool IsNone => Effect == null;
     public bool IsSelected
     {
@@ -88,6 +107,7 @@ public partial class CreateTeamPage : ContentPage
     string selectedEmblemBackgroundAssetId = "default_background_transparent";
     string selectedTeamEffectAssetId = "";
     string selectedTeamEffectOwnerPlayerId = "";
+    string selectedTeamEffectOwnerApplicationUserId = "";
 
     private TeamProfileModel? CurrentTeam = null;
     private bool _suppressSelectionHandlers = false;

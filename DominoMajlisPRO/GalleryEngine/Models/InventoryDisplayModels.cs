@@ -24,7 +24,13 @@ public sealed record CatalogAssetDisplay(
     float EffectScale = 1,
     float EffectSpeed = 1,
     float EffectIntensity = 1,
-    TypographyIdentityPreset? TypographyPresetValue = null)
+    TypographyIdentityPreset? TypographyPresetValue = null,
+    string Rarity = "",
+    string LivingVisualKind = "",
+    string LivingPackageId = "",
+    string LivingPackageManifestPath = "",
+    string LivingPackagePath = "",
+    string LivingPackageVersion = "")
 {
     public IReadOnlyList<string> EffectLayerIds =>
         EffectLayerIdsValue ?? Array.Empty<string>();

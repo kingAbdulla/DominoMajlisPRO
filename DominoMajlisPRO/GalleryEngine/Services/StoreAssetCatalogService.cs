@@ -6,6 +6,8 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class StoreAssetCatalogService
 {
+    public const string LivingProductionDefaultEmblemAssetId = "team-emblem-living-production-default";
+
     public const string IncompleteDisplayName = "عنصر غير مكتمل البيانات";
 
     public static async Task<IReadOnlyList<CatalogAssetDisplay>> LoadAsync()
