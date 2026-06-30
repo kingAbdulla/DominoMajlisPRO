@@ -1,0 +1,399 @@
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Services;
+using DominoMajlisPRO.GalleryEngine.Components;
+using DominoMajlisPRO.GalleryEngine.Models;
+using Microsoft.Maui.Controls.Shapes;
+
+namespace DominoMajlisPRO.GalleryEngine.Admin;
+
+public sealed class TypographyManagerPage : ContentPage
+{
+    private readonly Entry _titleEntry = new() { Placeholder = "العنوان" };
+    private readonly Editor _descriptionEditor = new() { Placeholder = "الوصف", AutoSize = EditorAutoSizeOption.TextChanges, HeightRequest = 72 };
+    private readonly Picker _assetTypePicker = new() { Title = "نوع الأصل" };
+    private readonly Picker _categoryPicker = new() { Title = "التصنيف" };
+    private readonly Entry _priceEntry = new() { Placeholder = "السعر", Keyboard = Keyboard.Numeric };
+    private readonly Picker _currencyPicker = new() { Title = "العملة" };
+    private readonly Picker _equipTargetPicker = new() { Title = "هدف التجهيز" };
+    private readonly Picker _fontPicker = new() { Title = "الخط" };
+    private readonly Slider _fontSizeSlider = new() { Minimum = 12, Maximum = 34, Value = 18 };
+    private readonly Picker _materialPicker = new() { Title = "Material" };
+    private readonly Picker _lightingPicker = new() { Title = "Lighting" };
+    private readonly Picker _depthPicker = new() { Title = "Depth" };
+    private readonly Picker _motionPicker = new() { Title = "Motion" };
+    private readonly Picker _particlePicker = new() { Title = "Particles" };
+    private readonly Picker _framePicker = new() { Title = "Frame style" };
+    private readonly Slider _thicknessSlider = new() { Minimum = 0.8, Maximum = 4, Value = 1.4 };
+    private readonly Entry _primaryColorEntry = new() { Placeholder = "#FFD76A", Text = "#FFD76A" };
+    private readonly Entry _secondaryColorEntry = new() { Placeholder = "#2A1B08", Text = "#2A1B08" };
+    private readonly Slider _opacitySlider = new() { Minimum = 0.35, Maximum = 1, Value = 1 };
+    private readonly Slider _scaleSlider = new() { Minimum = 0.8, Maximum = 1.35, Value = 1 };
+    private readonly Slider _speedSlider = new() { Minimum = 0.5, Maximum = 2, Value = 1 };
+    private readonly Slider _intensitySlider = new() { Minimum = 0.2, Maximum = 1.6, Value = 1 };
+    private readonly IdentityPlateView _preview = new() { HeightRequest = 46, MaximumWidthRequest = 370 };
+    private readonly Label _validationLabel = new() { TextColor = Color.FromArgb("#FF6B6B"), FontSize = 12, IsVisible = false, HorizontalTextAlignment = TextAlignment.End };
+    private NewArrivalRecord? _currentRecord;
+    private bool _editingPublished;
+
+    public TypographyManagerPage()
+    {
+        Title = "تأثيرات أسماء اللاعبين والفرق";
+        FlowDirection = FlowDirection.RightToLeft;
+        BackgroundColor = Color.FromArgb("#050505");
+        NavigationPage.SetHasNavigationBar(this, false);
+        ConfigureControls();
+        BuildPage();
+        RefreshPreview();
+    }
+
+    private void ConfigureControls()
+    {
+        SetPicker(_assetTypePicker, new[]
+        {
+            StoreProductAssetType.PlayerNameEffect.ToString(),
+            StoreProductAssetType.TeamNameEffect.ToString(),
+            StoreProductAssetType.PlayerNameFrame.ToString(),
+            StoreProductAssetType.TeamNameFrame.ToString()
+        });
+        SetPicker(_categoryPicker, new[] { "PlayerNameEffect", "TeamNameEffect", "PlayerNameFrame", "TeamNameFrame" });
+        SetPicker(_currencyPicker, Enum.GetNames<NewArrivalCurrencyType>());
+        SetPicker(_equipTargetPicker, new[] { "PlayerName", "TeamName" });
+        SetPicker(_fontPicker, TypographyFontCatalog.FontFamilies);
+        SetPicker(_materialPicker, TypographyPresetCatalog.Materials);
+        SetPicker(_lightingPicker, TypographyPresetCatalog.Lighting);
+        SetPicker(_depthPicker, TypographyPresetCatalog.Depth);
+        SetPicker(_motionPicker, TypographyPresetCatalog.Motion);
+        SetPicker(_particlePicker, TypographyPresetCatalog.Particles);
+        SetPicker(_framePicker, TypographyPresetCatalog.Frames);
+
+        _assetTypePicker.SelectedIndex = 0;
+        _categoryPicker.SelectedIndex = 0;
+        _currencyPicker.SelectedItem = NewArrivalCurrencyType.Free.ToString();
+        _equipTargetPicker.SelectedIndex = 0;
+        _fontPicker.SelectedItem = TypographyFontCatalog.DefaultFontFamily;
+        _materialPicker.SelectedIndex = 0;
+        _lightingPicker.SelectedIndex = 0;
+        _depthPicker.SelectedIndex = 1;
+        _motionPicker.SelectedIndex = 0;
+        _particlePicker.SelectedIndex = 0;
+        _framePicker.SelectedIndex = 0;
+
+        _assetTypePicker.SelectedIndexChanged += (_, _) => SyncByType();
+        foreach (var picker in new[] { _fontPicker, _materialPicker, _lightingPicker, _depthPicker, _motionPicker, _particlePicker, _framePicker })
+            picker.SelectedIndexChanged += (_, _) => RefreshPreview();
+        foreach (var slider in new[] { _fontSizeSlider, _thicknessSlider, _opacitySlider, _scaleSlider, _speedSlider, _intensitySlider })
+            slider.ValueChanged += (_, _) => RefreshPreview();
+        _primaryColorEntry.TextChanged += (_, _) => RefreshPreview();
+        _secondaryColorEntry.TextChanged += (_, _) => RefreshPreview();
+        _titleEntry.TextChanged += (_, _) => RefreshPreview();
+        ApplyInputColors();
+    }
+
+    private void BuildPage()
+    {
+        var back = new Button { Text = "‹", FontSize = 26, WidthRequest = 44, HeightRequest = 44, Padding = 0 };
+        back.Clicked += async (_, _) => await Navigation.PopAsync();
+
+        var header = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 12 };
+        header.Add(back, 0, 0);
+        header.Add(new VerticalStackLayout
+        {
+            Children =
+            {
+                new Label { Text = "تأثيرات أسماء اللاعبين والفرق", FontFamily = "Tajawal-Regular", FontSize = 23, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.End },
+                new Label { Text = "نشر تأثيرات وإطارات أسماء اللاعب والفريق بجودة AAA", FontFamily = "Tajawal-Regular", FontSize = 12, TextColor = Color.FromArgb("#B8A77D"), HorizontalTextAlignment = TextAlignment.End }
+            }
+        }, 1, 0);
+
+        var form = new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
+            {
+                new Label { Text = "معاينة مباشرة", FontFamily = "Tajawal-Regular", FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FFD76A"), HorizontalTextAlignment = TextAlignment.End },
+                _preview,
+                _titleEntry,
+                _descriptionEditor,
+                _assetTypePicker,
+                _categoryPicker,
+                Two(_priceEntry, _currencyPicker),
+                _equipTargetPicker,
+                _fontPicker,
+                Labeled("حجم الخط", _fontSizeSlider),
+                _materialPicker,
+                _lightingPicker,
+                _depthPicker,
+                _motionPicker,
+                _particlePicker,
+                _framePicker,
+                Labeled("سماكة / كثافة الإطار", _thicknessSlider),
+                Two(_primaryColorEntry, _secondaryColorEntry),
+                Labeled("الشفافية", _opacitySlider),
+                Labeled("الحجم", _scaleSlider),
+                Labeled("السرعة", _speedSlider),
+                Labeled("الكثافة", _intensitySlider),
+                _validationLabel
+            }
+        };
+
+        var actions = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) },
+            RowDefinitions = { new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Auto) },
+            ColumnSpacing = 10,
+            RowSpacing = 10
+        };
+        actions.Add(ActionButton("نشر", async () => await SaveAsync(true)), 0, 0);
+        actions.Add(ActionButton("حفظ كمسودة", async () => await SaveAsync(false)), 1, 0);
+        actions.Add(ActionButton("المنشور", async () => await SelectRecordAsync(true)), 0, 1);
+        actions.Add(ActionButton("المسودات", async () => await SelectRecordAsync(false)), 1, 1);
+
+        Content = new ScrollView
+        {
+            Content = new VerticalStackLayout
+            {
+                Padding = new Thickness(16, 18, 16, 28),
+                Spacing = 14,
+                Children = { header, Panel(form), actions }
+            }
+        };
+    }
+
+    private async Task SaveAsync(bool publish)
+    {
+        if (!TryBuildRecord(publish, out var record))
+            return;
+
+        if (publish && !NewArrivalsAdminService.ValidateForPublish(record, out var message))
+        {
+            ShowError(message);
+            return;
+        }
+
+        _currentRecord = publish
+            ? _editingPublished ? await NewArrivalsAdminService.UpdatePublishedAsync(record) : await NewArrivalsAdminService.PublishAsync(record)
+            : await NewArrivalsAdminService.SaveDraftAsync(record);
+        _editingPublished = publish;
+        _validationLabel.IsVisible = false;
+        await DisplayAlert(Title, publish ? "تم النشر" : "تم حفظ المسودة", "حسناً");
+    }
+
+    private bool TryBuildRecord(bool publish, out NewArrivalRecord record)
+    {
+        record = new NewArrivalRecord();
+        if (!StoreProductAssetTypeCatalog.TryResolve(Selected(_assetTypePicker), out var type))
+        {
+            ShowError("نوع الأصل مطلوب.");
+            return false;
+        }
+
+        var expectedTarget = type is StoreProductAssetType.PlayerNameEffect or StoreProductAssetType.PlayerNameFrame ? "PlayerName" : "TeamName";
+        if (!string.Equals(Selected(_equipTargetPicker), expectedTarget, StringComparison.Ordinal))
+        {
+            ShowError("هدف التجهيز لا يطابق نوع الأصل.");
+            return false;
+        }
+
+        if (publish && string.IsNullOrWhiteSpace(_titleEntry.Text))
+        {
+            ShowError("العنوان مطلوب.");
+            return false;
+        }
+
+        _ = int.TryParse(_priceEntry.Text, out var price);
+        var currency = Enum.TryParse<NewArrivalCurrencyType>(Selected(_currencyPicker), out var parsed) ? parsed : NewArrivalCurrencyType.Free;
+        var productId = string.IsNullOrWhiteSpace(_currentRecord?.ProductId) ? Guid.NewGuid().ToString("N") : _currentRecord!.ProductId;
+
+        record = new NewArrivalRecord
+        {
+            Id = productId,
+            ProductId = productId,
+            AssetId = _currentRecord?.AssetId ?? GenerateAssetId(type, _titleEntry.Text),
+            StoreTypeId = type.ToString(),
+            OwnerScope = StoreProductAssetTypeCatalog.GetOwnerScope(type).ToString(),
+            Title = _titleEntry.Text?.Trim() ?? string.Empty,
+            Description = _descriptionEditor.Text?.Trim() ?? string.Empty,
+            ButtonText = "عرض",
+            ImagePath = string.Empty,
+            Category = Selected(_categoryPicker),
+            Price = currency == NewArrivalCurrencyType.Free ? 0 : Math.Max(0, price),
+            CurrencyType = currency,
+            IsFree = currency == NewArrivalCurrencyType.Free || price <= 0,
+            EquipTarget = expectedTarget,
+            TypographyPreset = BuildPreset(type),
+            Status = publish ? NewArrivalStatus.Published : NewArrivalStatus.Draft,
+            CreatedAt = _currentRecord?.CreatedAt ?? DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            PublishedAt = publish ? DateTime.UtcNow : _currentRecord?.PublishedAt
+        };
+        return true;
+    }
+
+    private async Task SelectRecordAsync(bool published)
+    {
+        var allowed = StoreManagerAssetTypeScopes.ForSection("name-effects");
+        var records = (published ? await NewArrivalsAdminService.LoadManagedAsync() : await NewArrivalsAdminService.LoadAllDraftsAsync())
+            .Where(record => allowed.Contains(record.StoreTypeId, StringComparer.Ordinal))
+            .ToList();
+        if (records.Count == 0)
+        {
+            await DisplayAlert(Title, "لا توجد عناصر.", "حسناً");
+            return;
+        }
+
+        var selected = await DisplayActionSheet("اختيار عنصر", "إلغاء", null, records.Select(record => record.Title).ToArray());
+        var record = records.FirstOrDefault(item => item.Title == selected);
+        if (record != null)
+            Populate(record, published);
+    }
+
+    private void Populate(NewArrivalRecord record, bool published)
+    {
+        _currentRecord = record;
+        _editingPublished = published;
+        _titleEntry.Text = record.Title;
+        _descriptionEditor.Text = record.Description;
+        Select(_assetTypePicker, record.StoreTypeId);
+        Select(_categoryPicker, record.Category);
+        Select(_currencyPicker, record.CurrencyType.ToString());
+        _priceEntry.Text = record.Price.ToString();
+        Select(_equipTargetPicker, record.EquipTarget);
+        ApplyPreset(record.TypographyPreset);
+    }
+
+    private TypographyIdentityPreset BuildPreset(StoreProductAssetType? assetType)
+    {
+        var frameStyle = Selected(_framePicker);
+        if (assetType is StoreProductAssetType.PlayerNameEffect or StoreProductAssetType.TeamNameEffect)
+            frameStyle = "None";
+
+        return new TypographyIdentityPreset
+        {
+            FontFamily = Selected(_fontPicker),
+            FontSize = _fontSizeSlider.Value,
+            MaterialPreset = Selected(_materialPicker),
+            LightingPreset = Selected(_lightingPicker),
+            DepthPreset = Selected(_depthPicker),
+            MotionPreset = Selected(_motionPicker),
+            ParticlePreset = Selected(_particlePicker),
+            FrameStylePreset = frameStyle,
+            FrameThickness = _thicknessSlider.Value,
+            PrimaryColor = _primaryColorEntry.Text ?? "#FFD76A",
+            SecondaryColor = _secondaryColorEntry.Text ?? "#2A1B08",
+            Opacity = _opacitySlider.Value,
+            Scale = _scaleSlider.Value,
+            Speed = _speedSlider.Value,
+            Intensity = _intensitySlider.Value
+        }.Normalized();
+    }
+
+    private void ApplyPreset(TypographyIdentityPreset? source)
+    {
+        var preset = (source ?? TypographyIdentityPreset.CreateDefault()).Normalized();
+        Select(_fontPicker, preset.FontFamily);
+        _fontSizeSlider.Value = preset.FontSize;
+        Select(_materialPicker, preset.MaterialPreset);
+        Select(_lightingPicker, preset.LightingPreset);
+        Select(_depthPicker, preset.DepthPreset);
+        Select(_motionPicker, preset.MotionPreset);
+        Select(_particlePicker, preset.ParticlePreset);
+        Select(_framePicker, preset.FrameStylePreset);
+        _thicknessSlider.Value = preset.FrameThickness;
+        _primaryColorEntry.Text = preset.PrimaryColor;
+        _secondaryColorEntry.Text = preset.SecondaryColor;
+        _opacitySlider.Value = preset.Opacity;
+        _scaleSlider.Value = preset.Scale;
+        _speedSlider.Value = preset.Speed;
+        _intensitySlider.Value = preset.Intensity;
+        RefreshPreview();
+    }
+
+    private void SyncByType()
+    {
+        var selected = Selected(_assetTypePicker);
+        Select(_equipTargetPicker, selected.StartsWith("Team", StringComparison.Ordinal) ? "TeamName" : "PlayerName");
+        Select(_categoryPicker, selected);
+        if (selected is nameof(StoreProductAssetType.PlayerNameEffect) or nameof(StoreProductAssetType.TeamNameEffect))
+            Select(_framePicker, "None");
+        RefreshPreview();
+    }
+
+    private void RefreshPreview()
+    {
+        var type = StoreProductAssetTypeCatalog.TryResolve(Selected(_assetTypePicker), out var parsed) ? parsed : StoreProductAssetType.PlayerNameEffect;
+        var title = string.IsNullOrWhiteSpace(_titleEntry.Text) ? (type.ToString().Contains("Team", StringComparison.Ordinal) ? "فريق المجالس الملكية" : "اللاعب الذهبي") : _titleEntry.Text.Trim();
+        _preview.Bind(title, BuildPreset(type));
+    }
+
+    private void ApplyInputColors()
+    {
+        var text = Color.FromArgb("#FFF4D2");
+        var muted = Color.FromArgb("#8F7A55");
+        foreach (var entry in new[] { _titleEntry, _priceEntry, _primaryColorEntry, _secondaryColorEntry })
+        {
+            entry.TextColor = text;
+            entry.PlaceholderColor = muted;
+        }
+        _descriptionEditor.TextColor = text;
+        _descriptionEditor.PlaceholderColor = muted;
+        foreach (var picker in new[] { _assetTypePicker, _categoryPicker, _currencyPicker, _equipTargetPicker, _fontPicker, _materialPicker, _lightingPicker, _depthPicker, _motionPicker, _particlePicker, _framePicker })
+        {
+            picker.TextColor = text;
+            picker.TitleColor = muted;
+        }
+    }
+
+    private static Border Panel(View content) => new()
+    {
+        Padding = 12,
+        Stroke = Color.FromArgb("#4A3A17"),
+        Background = Color.FromArgb("#12100A"),
+        StrokeThickness = 1,
+        StrokeShape = new RoundRectangle { CornerRadius = 18 },
+        Content = content
+    };
+
+    private static Grid Two(View left, View right)
+    {
+        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 10 };
+        grid.Add(left, 0, 0);
+        grid.Add(right, 1, 0);
+        return grid;
+    }
+
+    private static VerticalStackLayout Labeled(string title, View control) => new()
+    {
+        Spacing = 3,
+        Children = { new Label { Text = title, FontFamily = "Tajawal-Regular", FontSize = 11, TextColor = Color.FromArgb("#B8A77D"), HorizontalTextAlignment = TextAlignment.End }, control }
+    };
+
+    private static Button ActionButton(string text, Func<Task> action)
+    {
+        var button = new Button { Text = text, FontFamily = "Tajawal-Regular" };
+        button.Clicked += async (_, _) => await action();
+        return button;
+    }
+
+    private static void SetPicker(Picker picker, IEnumerable<string> values) => picker.ItemsSource = values.ToList();
+    private static string Selected(Picker picker) => picker.SelectedItem?.ToString() ?? string.Empty;
+
+    private static void Select(Picker picker, string? value)
+    {
+        var items = picker.ItemsSource?.Cast<object>().Select(item => item.ToString()).ToList() ?? new List<string?>();
+        picker.SelectedIndex = items.FindIndex(item => string.Equals(item, value, StringComparison.Ordinal));
+    }
+
+    private void ShowError(string message)
+    {
+        _validationLabel.Text = message;
+        _validationLabel.IsVisible = true;
+    }
+
+    private static string GenerateAssetId(StoreProductAssetType assetType, string? title)
+    {
+        var seed = new string((title ?? "name-asset").Where(char.IsLetterOrDigit).ToArray());
+        if (string.IsNullOrWhiteSpace(seed))
+            seed = "name-asset";
+        return $"{assetType.ToString().ToLowerInvariant()}-{seed.ToLowerInvariant()}-{Guid.NewGuid():N}"[..54];
+    }
+}
