@@ -30,7 +30,7 @@ public static class StoreEquipService
         }
 
         AppEvents.RaiseStoreEconomyChanged(playerId);
-        RaiseVisualChanged(playerId, storeTypeId, visualApplied);
+        RaiseVisualChanged(playerId, visualApplied);
 
         return new StoreAcquireResult(true, equipped, !wasOwned, visualApplied);
     }
@@ -49,7 +49,7 @@ public static class StoreEquipService
 
         var visualApplied = await ApplyVisualAsync(playerId, assetId, owned.StoreTypeId);
         AppEvents.RaiseStoreEconomyChanged(playerId);
-        RaiseVisualChanged(playerId, owned.StoreTypeId, visualApplied);
+        RaiseVisualChanged(playerId, visualApplied);
         return true;
     }
 
@@ -95,19 +95,12 @@ public static class StoreEquipService
         return true;
     }
 
-    private static void RaiseVisualChanged(string playerId, string storeTypeId, bool visualApplied)
+    private static void RaiseVisualChanged(string playerId, bool visualApplied)
     {
         if (!visualApplied)
             return;
 
-        if (SameId(storeTypeId, StoreProductAssetType.Effect.ToString()) ||
-            SameId(storeTypeId, StoreProductAssetType.PlayerNameEffect.ToString()) ||
-            SameId(storeTypeId, StoreProductAssetType.PlayerNameFrame.ToString()))
-        {
-            AppEvents.RaisePlayerEffectChanged(playerId);
-        }
-
-        AppEvents.RaisePlayerIdentityChanged(playerId);
+        AppEvents.RaiseStoreProgressChanged(playerId);
         AppEvents.RaisePlayerProfileChanged();
     }
 
