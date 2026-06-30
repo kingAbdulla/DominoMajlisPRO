@@ -5,19 +5,16 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class PlayerVisualIdentityResolver
 {
-    public static async Task<PlayerVisualIdentity> ResolveAsync(
-        string playerId)
+    public static async Task<PlayerVisualIdentity> ResolveAsync(string playerId)
     {
         if (string.IsNullOrWhiteSpace(playerId))
             return Empty(string.Empty);
 
-        // Ensure we prefer PlayerId lookups; playerId may be a name in legacy records, so attempt by id first then fallback to name.
         var players = await PlayerProfileService.LoadPlayersAsync();
         string resolvedPlayerId = playerId.Trim();
         var matchById = players.FirstOrDefault(p => string.Equals(p.PlayerId, resolvedPlayerId, StringComparison.OrdinalIgnoreCase));
         if (matchById == null)
         {
-            // fallback to name normalization for legacy data
             var byName = players.FirstOrDefault(p => PlayerIdentityService.NormalizePlayerName(p.PlayerName) == PlayerIdentityService.NormalizePlayerName(resolvedPlayerId));
             if (byName != null)
                 resolvedPlayerId = byName.PlayerId;
@@ -27,16 +24,10 @@ public static class PlayerVisualIdentityResolver
         var session = await ApplicationUserService.EnsureCurrentSessionAsync();
         var appUserId = session.ApplicationUserId ?? string.Empty;
         _ = appUserId;
-        var inventoryTask =
-            PlayerAssetInventoryService.GetInventoryForPlayerAsync(resolvedPlayerId);
+        var inventoryTask = PlayerAssetInventoryService.GetInventoryForPlayerAsync(resolvedPlayerId);
         await Task.WhenAll(catalogTask, inventoryTask);
 
-        var equipped = inventoryTask.Result
-            .Where(item =>
-                item.IsOwned &&
-                !item.IsExpired &&
-                item.IsEquipped)
-            .ToList();
+        var equipped = inventoryTask.Result.Where(item => item.IsOwned && !item.IsExpired && item.IsEquipped).ToList();
         var catalog = catalogTask.Result;
         return new PlayerVisualIdentity(
             resolvedPlayerId,
@@ -44,66 +35,30 @@ public static class PlayerVisualIdentityResolver
             Resolve(equipped, catalog, "ProfileBackground"),
             Resolve(equipped, catalog, "Frame"),
             Resolve(equipped, catalog, "Effect"),
+            Resolve(equipped, catalog, "PlayerNameEffect"),
+            Resolve(equipped, catalog, "PlayerNameFrame"),
             Resolve(equipped, catalog, "Title"));
     }
 
-    public static async Task<IReadOnlyDictionary<string, PlayerVisualIdentity>>
-        ResolveManyAsync(IEnumerable<string?> playerIds)
+    public static async Task<IReadOnlyDictionary<string, PlayerVisualIdentity>> ResolveManyAsync(IEnumerable<string?> playerIds)
     {
-        var ids = playerIds
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Select(id => id!.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var ids = playerIds.Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id!.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var identities = await Task.WhenAll(ids.Select(ResolveAsync));
-        return identities.ToDictionary(
-            item => item.PlayerId,
-            StringComparer.OrdinalIgnoreCase);
+        return identities.ToDictionary(item => item.PlayerId, StringComparer.OrdinalIgnoreCase);
     }
 
-    private static CatalogAssetDisplay? Resolve(
-        IReadOnlyList<PlayerOwnedStoreItem> inventory,
-        IReadOnlyList<CatalogAssetDisplay> catalog,
-        string assetType)
+    private static CatalogAssetDisplay? Resolve(IReadOnlyList<PlayerOwnedStoreItem> inventory, IReadOnlyList<CatalogAssetDisplay> catalog, string assetType)
     {
         var strictItem = inventory.FirstOrDefault(candidate =>
-            string.Equals(
-                StoreAssetCatalogService.CanonicalTypeId(
-                    candidate.StoreTypeId),
-                assetType,
-                StringComparison.OrdinalIgnoreCase) &&
-            StoreAssetCatalogService.Resolve(
-                catalog,
-                candidate.AssetId,
-                assetType) != null);
+            string.Equals(StoreAssetCatalogService.CanonicalTypeId(candidate.StoreTypeId), assetType, StringComparison.OrdinalIgnoreCase) &&
+            StoreAssetCatalogService.Resolve(catalog, candidate.AssetId, assetType) != null);
 
         if (strictItem != null)
-        {
-            return StoreAssetCatalogService.Resolve(
-                catalog,
-                strictItem.AssetId,
-                assetType);
-        }
+            return StoreAssetCatalogService.Resolve(catalog, strictItem.AssetId, assetType);
 
-        // Recovery path for older inventory rows whose StoreTypeId was saved before
-        // the canonical picker/type migration. The asset is accepted only when the
-        // catalog itself confirms the requested canonical type; this prevents a
-        // TeamEffect from being rendered as a player Effect and keeps the player/team
-        // separation intact.
-        var fallbackItem = inventory.FirstOrDefault(candidate =>
-            StoreAssetCatalogService.Resolve(
-                catalog,
-                candidate.AssetId,
-                assetType) != null);
-
-        return fallbackItem == null
-            ? null
-            : StoreAssetCatalogService.Resolve(
-                catalog,
-                fallbackItem.AssetId,
-                assetType);
+        var fallbackItem = inventory.FirstOrDefault(candidate => StoreAssetCatalogService.Resolve(catalog, candidate.AssetId, assetType) != null);
+        return fallbackItem == null ? null : StoreAssetCatalogService.Resolve(catalog, fallbackItem.AssetId, assetType);
     }
 
-    private static PlayerVisualIdentity Empty(string playerId) =>
-        new(playerId, null, null, null, null, null);
+    private static PlayerVisualIdentity Empty(string playerId) => new(playerId, null, null, null, null, null, null, null);
 }
