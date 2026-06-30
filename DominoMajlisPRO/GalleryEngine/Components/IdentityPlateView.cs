@@ -29,7 +29,7 @@ public sealed class IdentityPlateView : ContentView
     public IdentityPlateView()
     {
         FlowDirection = FlowDirection.RightToLeft;
-        HorizontalOptions = LayoutOptions.Fill;
+        HorizontalOptions = LayoutOptions.Start;
         VerticalOptions = LayoutOptions.Center;
         IsClippedToBounds = true;
 
@@ -43,7 +43,7 @@ public sealed class IdentityPlateView : ContentView
         _layers = new Grid
         {
             Padding = new Thickness(10, 3),
-            ColumnDefinitions = { new ColumnDefinition(GridLength.Star) },
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Auto) },
             RowDefinitions = { new RowDefinition(GridLength.Auto) },
             Children = { _shadow, _text }
         };
@@ -53,7 +53,7 @@ public sealed class IdentityPlateView : ContentView
             StrokeShape = new RoundRectangle { CornerRadius = 13 },
             StrokeThickness = 1.4,
             Padding = 0,
-            HorizontalOptions = LayoutOptions.Fill,
+            HorizontalOptions = LayoutOptions.Start,
             VerticalOptions = LayoutOptions.Center,
             Content = _layers
         };
@@ -131,7 +131,7 @@ public sealed class IdentityPlateView : ContentView
         VerticalTextAlignment = TextAlignment.Center,
         MaxLines = 1,
         LineBreakMode = LineBreakMode.TailTruncation,
-        HorizontalOptions = LayoutOptions.Fill
+        HorizontalOptions = LayoutOptions.Start
     };
 
     private static Brush CreateBackground(TypographyIdentityPreset preset, Color secondary)
