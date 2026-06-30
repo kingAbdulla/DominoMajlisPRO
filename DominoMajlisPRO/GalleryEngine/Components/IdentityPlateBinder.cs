@@ -12,21 +12,17 @@ public static class IdentityPlateBinder
     {
         fallbackLabel.Text = text;
         var preset = identity?.ResolvePreset();
-        var hasVisual = preset != null;
-        fallbackLabel.IsVisible = !hasVisual;
-        plate.IsVisible = hasVisual;
-        if (!hasVisual)
+        plate.IsVisible = false;
+        fallbackLabel.IsVisible = true;
+
+        if (preset == null)
             return;
 
-        plate.Bind(text, preset);
-        plate.FlowDirection = FlowDirection.RightToLeft;
-        plate.HorizontalOptions = fallbackLabel.HorizontalOptions;
-        plate.VerticalOptions = fallbackLabel.VerticalOptions;
-        plate.MaximumWidthRequest = fallbackLabel.MaximumWidthRequest;
-        plate.WidthRequest = fallbackLabel.WidthRequest;
-        plate.HeightRequest = fallbackLabel.HeightRequest > 0
-            ? fallbackLabel.HeightRequest
-            : Math.Max(34, fallbackLabel.FontSize + 16);
+        var normalized = preset.Normalized();
+        fallbackLabel.FontFamily = normalized.FontFamily;
+        fallbackLabel.FontSize = Math.Clamp(normalized.FontSize * normalized.Scale, 11, 34);
+        fallbackLabel.TextColor = Color.FromArgb(normalized.PrimaryColor);
+        fallbackLabel.Opacity = normalized.Opacity;
     }
 
     public static View Create(
