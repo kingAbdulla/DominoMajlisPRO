@@ -20,13 +20,14 @@ public static class StoreAdminService
             CreateSection("emblem-backgrounds", "خلفيات الشعارات", "خلفيات هوية شعارات الفرق", "▧", StoreCardTemplateType.ProductCard, 8),
             CreateSection("team-colors", "ألوان الفرق", "ألوان هوية الفرق", "◈", StoreCardTemplateType.ProductCard, 9),
             CreateSection("effects", "التأثيرات", "مؤثرات العرض والزينة", "✧", StoreCardTemplateType.ProductCard, 10),
-            CreateSection("frames", "الإطارات", "إطارات هوية اللاعب", "▢", StoreCardTemplateType.ProductCard, 11),
-            CreateSection("titles", "الألقاب", "ألقاب هوية اللاعب", "T", StoreCardTemplateType.ProductCard, 12),
-            CreateSection("bundles", "الحزم", "مجموعات المنتجات والعروض", "▰", StoreCardTemplateType.ProductCard, 13),
-            CreateSection("currency-pricing", "العملات والأسعار", "الجواهر والعملات وقواعد التسعير", "◆", StoreCardTemplateType.CurrencyPricing, 14),
-            CreateSection("product-cards", "بطاقات المنتجات", "إدارة بطاقات المنتجات المنشورة", "▤", StoreCardTemplateType.ProductCard, 15),
-            CreateSection("category-cards", "بطاقات الفئات", "إدارة بطاقات تصفح الفئات", "▦", StoreCardTemplateType.CategoryCard, 16),
-            CreateSection("store-settings", "إعدادات المتجر", "إعدادات النشر والظهور العامة", "⚙", StoreCardTemplateType.StoreSettings, 17)
+            CreateSection("name-effects", "تأثيرات الأسماء", "أسماء وإطارات اللاعبين والفرق", "A", StoreCardTemplateType.ProductCard, 11),
+            CreateSection("frames", "الإطارات", "إطارات هوية اللاعب", "▢", StoreCardTemplateType.ProductCard, 12),
+            CreateSection("titles", "الألقاب", "ألقاب هوية اللاعب", "T", StoreCardTemplateType.ProductCard, 13),
+            CreateSection("bundles", "الحزم", "مجموعات المنتجات والعروض", "▰", StoreCardTemplateType.ProductCard, 14),
+            CreateSection("currency-pricing", "العملات والأسعار", "الجواهر والعملات وقواعد التسعير", "◆", StoreCardTemplateType.CurrencyPricing, 15),
+            CreateSection("product-cards", "بطاقات المنتجات", "إدارة بطاقات المنتجات المنشورة", "▤", StoreCardTemplateType.ProductCard, 16),
+            CreateSection("category-cards", "بطاقات الفئات", "إدارة بطاقات تصفح الفئات", "▦", StoreCardTemplateType.CategoryCard, 17),
+            CreateSection("store-settings", "إعدادات المتجر", "إعدادات النشر والظهور العامة", "⚙", StoreCardTemplateType.StoreSettings, 18)
         };
     }
 
@@ -57,13 +58,7 @@ public static class StoreAdminService
         return Path.Combine(FileSystem.AppDataDirectory, "gallery-store-admin");
     }
 
-    private static StoreAdminSection CreateSection(
-        string id,
-        string title,
-        string subtitle,
-        string icon,
-        StoreCardTemplateType templateType,
-        int sortOrder)
+    private static StoreAdminSection CreateSection(string id, string title, string subtitle, string icon, StoreCardTemplateType templateType, int sortOrder)
     {
         return new StoreAdminSection
         {
