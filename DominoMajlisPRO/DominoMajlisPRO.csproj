@@ -70,6 +70,10 @@
 		<PackageReference Include="PdfSharpCore" Version="1.3.67" />
 	</ItemGroup>
 
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<PackageReference Include="Com.Google.Android.Filament.Maui" Version="1.65.1" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<Folder Include="Exports\" />
 		<Folder Include="GalleryEngine\Assets\Backgrounds\" />
