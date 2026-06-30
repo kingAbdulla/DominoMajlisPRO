@@ -8,6 +8,10 @@ public enum StoreProductAssetType
     Effect,
     TeamEffect,
     TeamLivingEmblem,
+    PlayerNameEffect,
+    TeamNameEffect,
+    PlayerNameFrame,
+    TeamNameFrame,
     Title,
     Emblem,
     TeamColor,
@@ -43,13 +47,17 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.Effect or
         StoreProductAssetType.TeamEffect or
         StoreProductAssetType.TeamLivingEmblem or
+        StoreProductAssetType.PlayerNameEffect or
+        StoreProductAssetType.PlayerNameFrame or
         StoreProductAssetType.Title or
         StoreProductAssetType.Badge or
         StoreProductAssetType.SeasonReward => StoreProductOwnerScope.Player,
 
         StoreProductAssetType.Emblem or
         StoreProductAssetType.TeamColor or
-        StoreProductAssetType.EmblemBackground => StoreProductOwnerScope.Team,
+        StoreProductAssetType.EmblemBackground or
+        StoreProductAssetType.TeamNameEffect or
+        StoreProductAssetType.TeamNameFrame => StoreProductOwnerScope.Team,
 
         _ => StoreProductOwnerScope.None
     };
@@ -64,6 +72,12 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.TeamLivingEmblem or
         StoreProductAssetType.EmblemBackground or
         StoreProductAssetType.Frame;
+
+    public static bool IsTypographyAsset(StoreProductAssetType type) => type is
+        StoreProductAssetType.PlayerNameEffect or
+        StoreProductAssetType.TeamNameEffect or
+        StoreProductAssetType.PlayerNameFrame or
+        StoreProductAssetType.TeamNameFrame;
 
     public static bool Validate(
         string? storeTypeId,
@@ -161,6 +175,11 @@ public static class StoreManagerAssetTypeScopes
             StoreProductAssetType.EmblemBackground),
         "emblem-backgrounds" => Types(StoreProductAssetType.EmblemBackground),
         "effects" => Types(StoreProductAssetType.Effect, StoreProductAssetType.TeamEffect, StoreProductAssetType.TeamLivingEmblem),
+        "name-effects" => Types(
+            StoreProductAssetType.PlayerNameEffect,
+            StoreProductAssetType.TeamNameEffect,
+            StoreProductAssetType.PlayerNameFrame,
+            StoreProductAssetType.TeamNameFrame),
         "frames" => Types(StoreProductAssetType.Frame),
         "titles" => Types(StoreProductAssetType.Title),
         "team-colors" => Types(StoreProductAssetType.TeamColor),
