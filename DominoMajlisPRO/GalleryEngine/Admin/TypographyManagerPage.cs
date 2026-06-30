@@ -370,7 +370,7 @@ public sealed class TypographyManagerPage : ContentPage
             var type = ResolveSelectedAssetType();
             var livePreset = BuildPreset(type);
             var title = string.IsNullOrWhiteSpace(_titleEntry.Text)
-                ? "ط§ط³ظ… ط§ظ„ظ‡ظˆظٹط©"
+                ? "العنوان©"
                 : _titleEntry.Text.Trim();
             var isTeam = type is StoreProductAssetType.TeamNameEffect or
                 StoreProductAssetType.TeamNameFrame;
