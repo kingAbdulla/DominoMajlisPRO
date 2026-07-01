@@ -3,8 +3,8 @@ using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.LivingVisualPlatform.Controls;
 using DominoMajlisPRO.LivingVisualPlatform.Models;
-
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Components;
 
 namespace DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 
@@ -203,9 +203,7 @@ internal sealed class StoreProductPreviewOverlay : Grid
     {
         var image = new Image
         {
-            Source =
-                InventoryDisplayResolver.ResolveImageSource(
-                    request.ImagePath),
+            Source = InventoryDisplayResolver.ResolveImageSource(request.ImagePath),
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
         };
@@ -216,25 +214,39 @@ internal sealed class StoreProductPreviewOverlay : Grid
             StoreProductPreviewKind.Frame => FrameVisual(image, request.Accent),
             StoreProductPreviewKind.Badge => IdentityVisual(image, request),
             StoreProductPreviewKind.Season => BackgroundVisual(image, request),
-            StoreProductPreviewKind.Effect when request.Effect != null =>
-                EffectVisual(image, request.Effect, request.Accent),
-            StoreProductPreviewKind.LivingEmblem when request.Effect != null =>
-                EffectVisual(image, request.Effect, request.Accent),
+            StoreProductPreviewKind.Effect when request.Effect != null => EffectVisual(image, request.Effect, request.Accent, request.Name),
+            StoreProductPreviewKind.LivingEmblem when request.Effect != null => EffectVisual(image, request.Effect, request.Accent, request.Name),
             _ => PreviewCard(image, request.Accent)
         };
     }
 
-    private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent)
+    private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent, string visibleName)
     {
-        if (effect.AssetType == StoreProductAssetType.TeamEffect ||
-            StoreAssetCatalogService.IsLivingEmblemAsset(effect))
+        if (IsNameTypographyAsset(effect.AssetType))
+        {
+            var plate = new IdentityPlateView
+            {
+                WidthRequest = 310,
+                HeightRequest = 82,
+                MaximumWidthRequest = 330,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                Margin = new Thickness(20)
+            };
+            plate.Bind(string.IsNullOrWhiteSpace(visibleName) ? effect.DisplayName : visibleName, effect.TypographyPreset);
+            return new Grid
+            {
+                HeightRequest = 240,
+                Children = { plate }
+            };
+        }
+
+        if (effect.AssetType == StoreProductAssetType.TeamEffect || StoreAssetCatalogService.IsLivingEmblemAsset(effect))
         {
             var host = new LivingVisualHost
             {
                 AssetId = effect.AssetId,
-                StaticFallbackImage = string.IsNullOrWhiteSpace(effect.PreviewImage)
-                    ? "shield_3d.png"
-                    : effect.PreviewImage,
+                StaticFallbackImage = string.IsNullOrWhiteSpace(effect.PreviewImage) ? "shield_3d.png" : effect.PreviewImage,
                 ApplicationUserId = string.Empty,
                 PlayerId = string.Empty,
                 TeamId = string.Empty,
@@ -245,15 +257,11 @@ internal sealed class StoreProductPreviewOverlay : Grid
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center
             };
-
             return PreviewCard(host, accent);
         }
 
-        // Player avatar effect: show the developer image as-is when provided,
-        // otherwise the procedural effect only. Never an emblem/shield substitute.
         var layers = new Grid();
-        var providedImage =
-            InventoryDisplayResolver.ResolveOptionalImageSource(effect.PreviewImage);
+        var providedImage = InventoryDisplayResolver.ResolveOptionalImageSource(effect.PreviewImage);
         if (providedImage != null)
         {
             image.Source = providedImage;
@@ -269,6 +277,12 @@ internal sealed class StoreProductPreviewOverlay : Grid
         }
         return PreviewCard(layers, accent);
     }
+
+    private static bool IsNameTypographyAsset(StoreProductAssetType assetType) =>
+        assetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect or
+            StoreProductAssetType.PlayerNameFrame or
+            StoreProductAssetType.TeamNameFrame;
 
     private static bool IsEffectPreviewKind(StoreProductPreviewKind kind) =>
         kind is StoreProductPreviewKind.Effect or StoreProductPreviewKind.LivingEmblem;
