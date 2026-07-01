@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Services;
 
@@ -45,8 +46,16 @@ public static class NameTypographyResolver
         if (string.IsNullOrWhiteSpace(teamId))
             return null;
 
-        var effectTask = ResolveEquippedTeamAssetAsync(teamId, StoreProductAssetType.TeamNameEffect.ToString());
-        var frameTask = ResolveEquippedTeamAssetAsync(teamId, StoreProductAssetType.TeamNameFrame.ToString());
+        var currentOwner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
+        if (currentOwner.IsGhost || string.IsNullOrWhiteSpace(currentOwner.PlayerId))
+            return null;
+
+        var team = await TeamProfileService.GetTeamByIdAsync(teamId);
+        if (team == null || !PlayerBelongsToTeam(currentOwner.PlayerId, team))
+            return null;
+
+        var effectTask = ResolveEquippedPlayerAssetAsync(currentOwner.PlayerId, StoreProductAssetType.TeamNameEffect.ToString());
+        var frameTask = ResolveEquippedPlayerAssetAsync(currentOwner.PlayerId, StoreProductAssetType.TeamNameFrame.ToString());
         await Task.WhenAll(effectTask, frameTask);
         return new NameTypographyIdentity(teamId, effectTask.Result, frameTask.Result);
     }
@@ -57,9 +66,7 @@ public static class NameTypographyResolver
         return equipped == null ? null : await StoreAssetCatalogService.ResolveAsync(equipped.AssetId, assetType);
     }
 
-    private static async Task<CatalogAssetDisplay?> ResolveEquippedTeamAssetAsync(string teamId, string assetType)
-    {
-        var equipped = await TeamAssetInventoryService.GetEquippedAsync(teamId, assetType);
-        return equipped == null ? null : await StoreAssetCatalogService.ResolveAsync(equipped.TeamAssetId, assetType);
-    }
+    private static bool PlayerBelongsToTeam(string playerId, DominoMajlisPRO.Models.TeamProfileModel team) =>
+        string.Equals(team.Player1Id?.Trim(), playerId.Trim(), StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(team.Player2Id?.Trim(), playerId.Trim(), StringComparison.OrdinalIgnoreCase);
 }
