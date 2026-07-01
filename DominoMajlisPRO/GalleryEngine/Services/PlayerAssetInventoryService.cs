@@ -15,6 +15,8 @@ public static class PlayerAssetInventoryService
             "Effect",
             "PlayerNameEffect",
             "PlayerNameFrame",
+            "TeamNameEffect",
+            "TeamNameFrame",
             "Title"
         };
 
@@ -69,7 +71,7 @@ public static class PlayerAssetInventoryService
             return true;
         }
 
-        return canonicalType is "Avatar" or "ProfileBackground" or "Frame" or "Effect" or "PlayerNameEffect" or "PlayerNameFrame"
+        return canonicalType is "Avatar" or "ProfileBackground" or "Frame" or "Effect" or "PlayerNameEffect" or "PlayerNameFrame" or "TeamNameEffect" or "TeamNameFrame"
             ? await StoreEquipService.EquipAsync(playerId, assetId)
             : await PlayerInventoryService.EquipItemAsync(playerId, assetId);
     }
