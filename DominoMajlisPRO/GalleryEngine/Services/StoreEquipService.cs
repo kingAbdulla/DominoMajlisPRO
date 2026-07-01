@@ -30,7 +30,7 @@ public static class StoreEquipService
         }
 
         AppEvents.RaiseStoreEconomyChanged(playerId);
-        RaiseVisualChanged(playerId, visualApplied);
+        RaiseVisualChanged(playerId, visualApplied, storeTypeId);
 
         return new StoreAcquireResult(true, equipped, !wasOwned, visualApplied);
     }
@@ -49,7 +49,7 @@ public static class StoreEquipService
 
         var visualApplied = await ApplyVisualAsync(playerId, assetId, owned.StoreTypeId);
         AppEvents.RaiseStoreEconomyChanged(playerId);
-        RaiseVisualChanged(playerId, visualApplied);
+        RaiseVisualChanged(playerId, visualApplied, owned.StoreTypeId);
         return true;
     }
 
@@ -76,6 +76,8 @@ public static class StoreEquipService
         SameId(storeTypeId, StoreProductAssetType.Effect.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.PlayerNameEffect.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.PlayerNameFrame.ToString()) ||
+        SameId(storeTypeId, StoreProductAssetType.TeamNameEffect.ToString()) ||
+        SameId(storeTypeId, StoreProductAssetType.TeamNameFrame.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.Title.ToString());
 
     private static async Task<bool> ApplyVisualAsync(string playerId, string assetId, string storeTypeId)
@@ -95,13 +97,25 @@ public static class StoreEquipService
         return true;
     }
 
-    private static void RaiseVisualChanged(string playerId, bool visualApplied)
+    private static void RaiseVisualChanged(string playerId, bool visualApplied, string? storeTypeId)
     {
         if (!visualApplied)
             return;
 
         AppEvents.RaiseStoreProgressChanged(playerId);
         AppEvents.RaisePlayerProfileChanged();
+
+        if (SameId(storeTypeId, StoreProductAssetType.TeamNameEffect.ToString()) ||
+            SameId(storeTypeId, StoreProductAssetType.TeamNameFrame.ToString()))
+        {
+            _ = MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                var team = await TeamProfileService.GetTeamByPlayerIdAsync(playerId);
+                if (!string.IsNullOrWhiteSpace(team?.TeamId))
+                    AppEvents.RaiseTeamAssetsChanged(team.TeamId);
+                AppEvents.RaiseTeamsChanged();
+            });
+        }
     }
 
     private static bool SameId(string? left, string? right) => CanonicalAssetIdentityService.SameAssetId(left, right);
