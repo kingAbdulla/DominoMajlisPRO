@@ -391,9 +391,21 @@ public sealed class TypographyManagerPage : ContentPage
 
     private static string GenerateAssetId(StoreProductAssetType assetType, string? title)
     {
-        var seed = new string((title ?? "name-asset").Where(char.IsLetterOrDigit).ToArray());
+        var seed = new string((title ?? string.Empty).Where(char.IsLetterOrDigit).ToArray());
+
         if (string.IsNullOrWhiteSpace(seed))
-            seed = "name-asset";
-        return $"{assetType.ToString().ToLowerInvariant()}-{seed.ToLowerInvariant()}-{Guid.NewGuid():N}"[..54];
+            seed = "nameasset";
+
+        seed = seed.ToLowerInvariant();
+
+        const int maxAssetIdLength = 54;
+        var prefix = $"{assetType.ToString().ToLowerInvariant()}-";
+        var suffix = $"-{Guid.NewGuid():N}";
+        var maxSeedLength = Math.Max(1, maxAssetIdLength - prefix.Length - suffix.Length);
+
+        if (seed.Length > maxSeedLength)
+            seed = seed[..maxSeedLength];
+
+        return $"{prefix}{seed}{suffix}";
     }
 }
