@@ -30,6 +30,8 @@ public partial class GamePage
                 await NameTypographyRuntime.ApplyTeamAsync(Team1Name, team1Id);
                 await NameTypographyRuntime.ApplyTeamAsync(Team2Name, team2Id);
             });
+
+            await NameTypographyPageScanner.ApplyDelayedAsync(this);
         }
         catch
         {
