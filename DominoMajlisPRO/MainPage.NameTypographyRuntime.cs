@@ -44,6 +44,8 @@ public partial class MainPage
                 if (selectedTeam2 != null)
                     await NameTypographyRuntime.ApplyTeamAsync(PreviewTeam2NameLabel, selectedTeam2.TeamId);
             });
+
+            await NameTypographyPageScanner.ApplyDelayedAsync(this);
         }
         catch
         {
