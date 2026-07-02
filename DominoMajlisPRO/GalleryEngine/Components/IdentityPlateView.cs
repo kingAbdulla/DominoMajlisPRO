@@ -15,6 +15,7 @@ public sealed class IdentityPlateView : ContentView
     private TypographyIdentityPreset? _activePreset;
     private uint _animationToken;
     private double _progress;
+    private DateTime _lastFrameUtc;
 
     public IdentityPlateView()
     {
@@ -176,13 +177,14 @@ public sealed class IdentityPlateView : ContentView
 
     private void StartMotion(TypographyIdentityPreset preset)
     {
-        if (preset.Speed <= 0 || !ShouldAnimate(preset))
+        if (preset.Speed <= 0 || !HasMotionPreset(preset))
             return;
 
         var token = ++_animationToken;
+        _lastFrameUtc = DateTime.UtcNow;
         _animationTimer?.Stop();
         _animationTimer = Dispatcher.CreateTimer();
-        _animationTimer.Interval = TimeSpan.FromMilliseconds(33);
+        _animationTimer.Interval = TimeSpan.FromMilliseconds(16);
         _animationTimer.Tick += (_, _) =>
         {
             if (token != _animationToken || Handler == null)
@@ -191,19 +193,24 @@ public sealed class IdentityPlateView : ContentView
                 return;
             }
 
-            _progress = (_progress + (0.0065 * Math.Clamp(preset.Speed, 0.5, 2))) % 1;
+            var now = DateTime.UtcNow;
+            var delta = Math.Clamp((now - _lastFrameUtc).TotalSeconds, 0.001, 0.05);
+            _lastFrameUtc = now;
+            _progress = (_progress + (delta * 0.24 * Math.Clamp(preset.Speed, 0.45, 2.4))) % 1;
             ConfigureDrawables(preset);
             ApplyLayerMotion(preset);
         };
         _animationTimer.Start();
     }
 
-    private static bool ShouldAnimate(TypographyIdentityPreset preset) =>
-        !string.Equals(preset.MotionPreset, "None", StringComparison.OrdinalIgnoreCase) ||
-        !string.Equals(preset.ParticlePreset, "None", StringComparison.OrdinalIgnoreCase) ||
-        !string.Equals(preset.DistortionPreset, "None", StringComparison.OrdinalIgnoreCase) ||
-        !string.Equals(preset.ReflectionPreset, "None", StringComparison.OrdinalIgnoreCase) ||
-        preset.LightingPreset is "SoftShine" or "TopSheen" or "MovingHighlight" or "MetallicSweep" or "Aurora" or "EnergyCore";
+    private static bool HasMotionPreset(TypographyIdentityPreset preset)
+    {
+        var motion = preset.MotionPreset?.Trim() ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(motion) &&
+               !string.Equals(motion, "None", StringComparison.OrdinalIgnoreCase) &&
+               !string.Equals(motion, "Flat", StringComparison.OrdinalIgnoreCase) &&
+               !string.Equals(motion, "Static", StringComparison.OrdinalIgnoreCase);
+    }
 
     private void StopMotion()
     {
@@ -219,14 +226,15 @@ public sealed class IdentityPlateView : ContentView
     private void ApplyLayerMotion(TypographyIdentityPreset preset)
     {
         var wave = Math.Sin(_progress * Math.PI * 2);
+        var smoothWave = (1 - Math.Cos(_progress * Math.PI * 2)) * 0.5;
         var motion = preset.MotionPreset.Trim();
-        _frame.Scale = motion is "Breath" or "Breathing"
-            ? 1 + Math.Min(0.04, preset.Intensity * 0.025) * wave
+        _frame.Scale = motion is "Breath" or "Breathing" or "OrganicMotion"
+            ? 1 + Math.Min(0.028, preset.Intensity * 0.018) * wave
             : 1;
-        _text.Scale = motion is "Pulse" or "Heartbeat" or "ShockPulse"
-            ? 1 + Math.Min(0.055, preset.Intensity * 0.035) * Math.Max(0, wave)
+        _text.Scale = motion is "Pulse" or "Heartbeat" or "ShockPulse" or "EnergyWave"
+            ? 1 + Math.Min(0.038, preset.Intensity * 0.026) * smoothWave
             : 1;
-        var offset = motion is "Floating" or "Wind" or "Gravity"
+        var offset = motion is "Floating" or "Wind" or "Gravity" or "MagneticDrift" or "LiquidMotion"
             ? ResolveMotionOffset(motion, preset.Intensity)
             : new Point(0, 0);
         _frame.TranslationX = offset.X * wave;
@@ -263,11 +271,12 @@ public sealed class IdentityPlateView : ContentView
 
     private static Point ResolveMotionOffset(string motion, double intensity)
     {
-        var amount = Math.Clamp(intensity * 2.2, 1, 5);
+        var amount = Math.Clamp(intensity * 1.45, 0.8, 3.2);
         return motion switch
         {
-            "Floating" or "Wind" => new Point(0, -amount),
+            "Floating" or "Wind" or "LiquidMotion" => new Point(0, -amount),
             "Gravity" => new Point(0, amount),
+            "MagneticDrift" => new Point(amount, 0),
             _ => new Point(0, 0)
         };
     }
