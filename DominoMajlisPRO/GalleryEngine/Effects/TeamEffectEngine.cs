@@ -8,7 +8,7 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class TeamEffectEngine
 {
-    public const double DefaultTeamEffectScale = 0.38;
+    public const double DefaultTeamEffectScale = 1.08;
 
     public static async Task ApplyAsync(
         Image overlaySlot,
@@ -29,13 +29,7 @@ public static class TeamEffectEngine
         bool lightweight = false)
     {
         var effect = await ResolveTeamEffectAsync(team);
-        if (effect == null)
-        {
-            IdentityEffectRenderer.Clear(overlaySlot);
-            return;
-        }
-
-        IdentityEffectRenderer.Apply(overlaySlot, effect, baseScale, lightweight);
+        IdentityEffectRenderer.ApplyAround(overlaySlot, effect, baseScale, lightweight);
     }
 
     public static async Task<bool> EquipAsync(string playerId, string teamId, string? assetId)
@@ -79,25 +73,24 @@ public static class TeamEffectEngine
         stored.EquippedTeamEffectOwnerPlayerId =
             string.IsNullOrWhiteSpace(assetId) ? string.Empty : playerId.Trim();
         await TeamProfileService.SaveTeamsAsync(teams);
-        
-        // Publish to VisualEventBus for Living Visual Identity Engine
+
         var payload = new Dictionary<string, object>
         {
             { "TeamId", teamId },
             { "EffectAssetId", assetId ?? string.Empty },
             { "TimestampUtc", DateTimeOffset.UtcNow }
         };
-        
+
         if (!string.IsNullOrWhiteSpace(previousAssetId))
             payload["PreviousEffectAssetId"] = previousAssetId;
-        
+
         VisualEventBus.Publish(
             EventCategory.Team,
             VisualIdentityEventNames.TeamEffectChanged,
             payload,
             isSticky: true,
             stickyExpirationMs: 0);
-        
+
         AppEvents.RaiseTeamEffectChanged(teamId);
         AppEvents.RaiseTeamAssetsChanged(teamId);
         return true;
