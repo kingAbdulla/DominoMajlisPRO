@@ -1,4 +1,5 @@
 using DominoMajlisPRO.GalleryEngine.Components;
+using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Services;
 
@@ -40,24 +41,57 @@ public partial class PlayerDetailsPage
         var version = Interlocked.Increment(ref _avatarEffectRepairVersion);
         try
         {
-            var identity = await PlayerVisualIdentityResolver.ResolveAsync(_playerId);
+            var effect = await ResolveEquippedPlayerEffectDirectAsync(_playerId);
             if (version != _avatarEffectRepairVersion || Handler == null)
                 return;
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                IdentityEffectRenderer.ApplyAround(PlayerAvatarImage, null);
                 AvatarEffectOverlay.ZIndex = Math.Max(PlayerAvatarImage.ZIndex + 2, 5);
-                AvatarEffectOverlay.WidthRequest = AvatarFrame.WidthRequest;
-                AvatarEffectOverlay.HeightRequest = AvatarFrame.HeightRequest;
+                AvatarEffectOverlay.WidthRequest = AvatarFrame.WidthRequest > 0 ? AvatarFrame.WidthRequest : 155;
+                AvatarEffectOverlay.HeightRequest = AvatarFrame.HeightRequest > 0 ? AvatarFrame.HeightRequest : 155;
                 AvatarEffectOverlay.HorizontalOptions = LayoutOptions.Center;
                 AvatarEffectOverlay.VerticalOptions = LayoutOptions.Center;
-                PlayerEffectEngine.Apply(AvatarEffectOverlay, identity.Effect, 1.18);
+                PlayerEffectEngine.Apply(AvatarEffectOverlay, effect, 1.18);
             });
         }
         catch
         {
         }
+    }
+
+    static async Task<CatalogAssetDisplay?> ResolveEquippedPlayerEffectDirectAsync(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return null;
+
+        var inventory = await PlayerInventoryService.GetInventoryForPlayerAsync(playerId.Trim());
+        var equipped = inventory
+            .Where(item => item.IsOwned && !item.IsExpired && item.IsEquipped)
+            .ToList();
+
+        if (equipped.Count == 0)
+            return null;
+
+        var catalog = await StoreAssetCatalogService.LoadAsync();
+
+        foreach (var item in equipped)
+        {
+            var canonical = StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId);
+            if (!string.Equals(canonical, "Effect", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(canonical, "PlayerEffect", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var effect = StoreAssetCatalogService.Resolve(catalog, item.AssetId, "Effect")
+                         ?? StoreAssetCatalogService.Resolve(catalog, item.AssetId, canonical)
+                         ?? catalog.FirstOrDefault(asset =>
+                             CanonicalAssetIdentityService.SameAssetId(asset.AssetId, item.AssetId));
+
+            if (effect != null)
+                return effect;
+        }
+
+        return null;
     }
 
     void CenterNameSurfaceOnly()
