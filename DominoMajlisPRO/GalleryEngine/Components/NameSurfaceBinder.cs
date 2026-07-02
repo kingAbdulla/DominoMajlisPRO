@@ -62,11 +62,11 @@ public static class NameSurfaceBinder
         {
             PlayerId = playerId?.Trim() ?? string.Empty,
             DisplayText = displayText,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Center
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            InputTransparent = true
         };
-        if (heightRequest.HasValue)
-            surface.HeightRequest = heightRequest.Value;
+        ApplyInlineSizing(surface, displayText, heightRequest);
         return surface;
     }
 
@@ -79,11 +79,11 @@ public static class NameSurfaceBinder
         {
             TeamId = teamId?.Trim() ?? string.Empty,
             DisplayText = displayText,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Center
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            InputTransparent = true
         };
-        if (heightRequest.HasValue)
-            surface.HeightRequest = heightRequest.Value;
+        ApplyInlineSizing(surface, displayText, heightRequest);
         return surface;
     }
 
@@ -129,19 +129,44 @@ public static class NameSurfaceBinder
 
     private static void MirrorLayout(Label label, RuntimeNameSurfaceView surface)
     {
+        var text = ResolveDisplayText(label.Text);
         surface.Margin = label.Margin;
         surface.MinimumWidthRequest = label.MinimumWidthRequest;
-        surface.MaximumWidthRequest = label.MaximumWidthRequest;
         surface.MinimumHeightRequest = label.MinimumHeightRequest;
         surface.MaximumHeightRequest = label.MaximumHeightRequest;
-        surface.WidthRequest = label.WidthRequest;
+        surface.WidthRequest = -1;
         surface.HeightRequest = label.HeightRequest > 0
-            ? label.HeightRequest
-            : Math.Max(26, label.FontSize + 12);
-        surface.HorizontalOptions = label.HorizontalOptions;
+            ? Math.Min(label.HeightRequest, InlineHeight(label.FontSize))
+            : InlineHeight(label.FontSize);
+        surface.MaximumWidthRequest = label.MaximumWidthRequest > 0
+            ? label.MaximumWidthRequest
+            : InlineWidth(text, label.FontSize);
+        surface.HorizontalOptions = label.HorizontalOptions.Alignment == LayoutAlignment.Fill
+            ? LayoutOptions.Start
+            : label.HorizontalOptions;
         surface.VerticalOptions = label.VerticalOptions;
         surface.FlowDirection = label.FlowDirection;
-        surface.InputTransparent = label.InputTransparent;
+        surface.InputTransparent = true;
+    }
+
+    private static void ApplyInlineSizing(RuntimeNameSurfaceView surface, string? displayText, double? heightRequest)
+    {
+        var fontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 13d : 16d;
+        surface.HeightRequest = heightRequest.HasValue
+            ? Math.Min(heightRequest.Value, InlineHeight(fontSize))
+            : InlineHeight(fontSize);
+        surface.MaximumWidthRequest = InlineWidth(displayText, fontSize);
+        surface.WidthRequest = -1;
+    }
+
+    private static double InlineHeight(double fontSize) => Math.Clamp(fontSize + 14, 26, 38);
+
+    private static double InlineWidth(string? text, double fontSize)
+    {
+        var length = Math.Clamp((text ?? string.Empty).Trim().Length, 2, 18);
+        var estimated = 28 + (length * Math.Clamp(fontSize * 0.72, 8, 13));
+        var max = DeviceInfo.Idiom == DeviceIdiom.Phone ? 176 : 260;
+        return Math.Clamp(estimated, 48, max);
     }
 
     private static void RestoreLabel(Label label, string? displayText)
