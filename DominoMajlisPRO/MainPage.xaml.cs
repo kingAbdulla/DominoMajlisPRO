@@ -98,6 +98,7 @@ public partial class MainPage : ContentPage
         AppEvents.RankingsChanged -= OnAppDataChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.StoreEconomyChanged -= OnStoreEconomyChanged;
+        AppEvents.StoreProgressChanged -= OnStoreProgressChanged;
         AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
 
         AppEvents.DataChanged += OnAppDataChanged;
@@ -107,6 +108,7 @@ public partial class MainPage : ContentPage
         AppEvents.RankingsChanged += OnAppDataChanged;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
         AppEvents.StoreEconomyChanged += OnStoreEconomyChanged;
+        AppEvents.StoreProgressChanged += OnStoreProgressChanged;
         AppEvents.CurrentUserChanged += OnCurrentUserChanged;
         
         // Subscribe to VisualEventBus identity events
@@ -175,6 +177,7 @@ public partial class MainPage : ContentPage
         AppEvents.RankingsChanged -= OnAppDataChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.StoreEconomyChanged -= OnStoreEconomyChanged;
+        AppEvents.StoreProgressChanged -= OnStoreProgressChanged;
         AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
     }
     // =========================
@@ -996,6 +999,23 @@ TextChangedEventArgs e)
         await RefreshHeaderPlayerAsync();
     }
 
+    async void OnStoreProgressChanged(string playerId)
+    {
+        var devicePlayerId =
+            await PlayerStoreIdentityService.GetDeviceIdentityPlayerIdAsync();
+
+        if (!string.Equals(
+                playerId,
+                devicePlayerId,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        await MainThread.InvokeOnMainThreadAsync(
+            RefreshHeaderPlayerAsync);
+    }
+
     async void OnCurrentUserChanged()
     {
         await MainThread.InvokeOnMainThreadAsync(
@@ -1268,7 +1288,7 @@ TextChangedEventArgs e)
             {
                 HeaderPlayerAvatar.Source = DefaultHeaderAvatar;
                 HeaderAvatarFrameOverlay.IsVisible = false;
-                HeaderAvatarEffectOverlay.IsVisible = false;
+                PlayerEffectEngine.Stop(HeaderAvatarEffectOverlay);
                 HeaderProfileBackgroundImage.IsVisible = false;
                 HeaderPlayerNameLabel.Text =
                     string.IsNullOrWhiteSpace(currentUser.DisplayName)
@@ -1299,10 +1319,17 @@ TextChangedEventArgs e)
             ApplyHeaderOverlay(
                 HeaderAvatarFrameOverlay,
                 visualIdentity.Frame?.PreviewImage);
-            PlayerEffectEngine.Apply(
-                HeaderAvatarEffectOverlay,
-                visualIdentity.Effect,
-                1.08);
+            if (visualIdentity.Effect == null)
+            {
+                PlayerEffectEngine.Stop(HeaderAvatarEffectOverlay);
+            }
+            else
+            {
+                PlayerEffectEngine.Apply(
+                    HeaderAvatarEffectOverlay,
+                    visualIdentity.Effect,
+                    1.18);
+            }
 
             if (string.IsNullOrWhiteSpace(avatarPath))
                 avatarPath = ResolveHeaderAvatarFallback(profile);
@@ -1335,7 +1362,7 @@ TextChangedEventArgs e)
         {
             HeaderPlayerAvatar.Source = DefaultHeaderAvatar;
             HeaderAvatarFrameOverlay.IsVisible = false;
-            HeaderAvatarEffectOverlay.IsVisible = false;
+            PlayerEffectEngine.Stop(HeaderAvatarEffectOverlay);
             HeaderProfileBackgroundImage.IsVisible = false;
             HeaderPlayerNameLabel.Text = "اللاعب";
             GalleryEngine.Components.NameSurfaceBinder.BindPlayer(
