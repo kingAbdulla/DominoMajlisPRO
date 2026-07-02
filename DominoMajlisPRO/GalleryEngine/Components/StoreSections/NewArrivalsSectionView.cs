@@ -159,6 +159,14 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
     {
         var canonicalType =
             StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+        if (string.Equals(canonicalType, StoreProductAssetType.PlayerNameEffect.ToString(), StringComparison.OrdinalIgnoreCase) ||
+    string.Equals(canonicalType, StoreProductAssetType.TeamNameEffect.ToString(), StringComparison.OrdinalIgnoreCase) ||
+    string.Equals(canonicalType, StoreProductAssetType.PlayerNameFrame.ToString(), StringComparison.OrdinalIgnoreCase) ||
+    string.Equals(canonicalType, StoreProductAssetType.TeamNameFrame.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            return StoreProductPreviewKind.Effect;
+        }
+
         if (StoreAssetCatalogService.IsLivingEmblemAsset(assetId, canonicalType))
             return StoreProductPreviewKind.LivingEmblem;
 
