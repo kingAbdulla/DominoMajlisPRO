@@ -42,17 +42,18 @@ public static class NameTypographyRuntime
         label.CancelAnimations();
 
         var normalized = preset.Normalized();
-        var primary = Color.FromArgb(normalized.PrimaryColor);
+        var textColor = Color.FromArgb(normalized.TextColor);
+        var shadowColor = Color.FromArgb(normalized.ShadowColor);
         label.FontFamily = normalized.FontFamily;
         label.FontSize = Math.Clamp(normalized.FontSize * normalized.Scale, 10, 34);
-        label.TextColor = primary;
+        label.TextColor = textColor;
         label.Opacity = normalized.Opacity;
         label.Scale = 1;
         label.TranslationX = 0;
         label.TranslationY = 0;
         label.Shadow = new Shadow
         {
-            Brush = new SolidColorBrush(primary.WithAlpha((float)Math.Clamp(0.24 + normalized.Intensity * 0.18, 0.24, 0.62))),
+            Brush = new SolidColorBrush(shadowColor.WithAlpha((float)Math.Clamp(0.24 + normalized.Intensity * 0.18, 0.24, 0.62))),
             Offset = new Point(0, 1),
             Radius = (float)Math.Clamp(7 + normalized.Intensity * 8, 7, 22),
             Opacity = (float)Math.Clamp(0.26 + normalized.Intensity * 0.16, 0.26, 0.58)

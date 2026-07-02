@@ -75,7 +75,7 @@ public partial class GamePage : ContentPage
 
         Team2Players.Text =
             team2Players;
-        BindTeamNameSurfaces();
+        BindTeamNameSurfaces(team1Name, team2Name);
 
         // RULES
         RulesLabel.Text =
@@ -175,7 +175,7 @@ public partial class GamePage : ContentPage
             match.Team2Name;
         Team2Players.Text =
             match.Team2Players;
-        BindTeamNameSurfaces();
+        BindTeamNameSurfaces(match.Team1Name, match.Team2Name);
         Team1Score.Text =
             team1Score.ToString();
         Team2Score.Text =
@@ -218,16 +218,16 @@ public partial class GamePage : ContentPage
         await RefreshLiveTeamVisualsAsync();
     }
 
-    void BindTeamNameSurfaces()
+    void BindTeamNameSurfaces(string team1DisplayName, string team2DisplayName)
     {
         GalleryEngine.Components.NameSurfaceBinder.BindTeam(
             Team1Name,
             team1Id,
-            Team1Name.Text);
+            team1DisplayName);
         GalleryEngine.Components.NameSurfaceBinder.BindTeam(
             Team2Name,
             team2Id,
-            Team2Name.Text);
+            team2DisplayName);
     }
 
     protected override void OnDisappearing()

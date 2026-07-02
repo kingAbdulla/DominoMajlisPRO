@@ -16,6 +16,12 @@ public sealed class TypographyIdentityPreset
     public double FrameThickness { get; set; } = 1.4;
     public string PrimaryColor { get; set; } = "#FFD76A";
     public string SecondaryColor { get; set; } = "#2A1B08";
+    public string TextColor { get; set; } = "";
+    public string FrameColor { get; set; } = "";
+    public string ParticleColor { get; set; } = "";
+    public string LightingColor { get; set; } = "";
+    public string ReflectionColor { get; set; } = "";
+    public string ShadowColor { get; set; } = "";
     public double Opacity { get; set; } = 1;
     public double Scale { get; set; } = 1;
     public double Speed { get; set; } = 1;
@@ -35,6 +41,12 @@ public sealed class TypographyIdentityPreset
         preset.Intensity = Math.Clamp(Intensity <= 0 ? 1 : Intensity, 0.2, 1.6);
         preset.PrimaryColor = ValidColor(PrimaryColor, "#FFD76A");
         preset.SecondaryColor = ValidColor(SecondaryColor, "#2A1B08");
+        preset.TextColor = ValidColor(TextColor, preset.PrimaryColor);
+        preset.FrameColor = ValidColor(FrameColor, preset.PrimaryColor);
+        preset.ParticleColor = ValidColor(ParticleColor, preset.PrimaryColor);
+        preset.LightingColor = ValidColor(LightingColor, preset.PrimaryColor);
+        preset.ReflectionColor = ValidColor(ReflectionColor, "#FFFFFF");
+        preset.ShadowColor = ValidColor(ShadowColor, preset.PrimaryColor);
         preset.MaterialPreset = NormalizeToken(MaterialPreset, "SatinGold");
         preset.LightingPreset = NormalizeToken(LightingPreset, "SoftRim");
         preset.DepthPreset = NormalizeToken(DepthPreset, "Low");

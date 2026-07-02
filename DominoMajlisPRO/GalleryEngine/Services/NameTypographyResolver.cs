@@ -24,6 +24,7 @@ public sealed record NameTypographyIdentity(
         var framePreset = frame.Normalized();
         merged.FrameStylePreset = framePreset.FrameStylePreset;
         merged.FrameThickness = framePreset.FrameThickness;
+        merged.FrameColor = framePreset.FrameColor;
         merged.SecondaryColor = framePreset.SecondaryColor;
         return merged.Normalized();
     }

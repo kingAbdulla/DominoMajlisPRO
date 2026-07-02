@@ -28,7 +28,7 @@ public static class NameSurfaceBinder
         if (surface is RuntimePlayerNameSurfaceView playerSurface)
         {
             playerSurface.PlayerId = playerId.Trim();
-            playerSurface.DisplayText = ResolveDisplayText(label, displayText);
+            playerSurface.DisplayText = ResolveDisplayText(displayText);
         }
     }
 
@@ -49,7 +49,7 @@ public static class NameSurfaceBinder
         if (surface is RuntimeTeamNameSurfaceView teamSurface)
         {
             teamSurface.TeamId = teamId.Trim();
-            teamSurface.DisplayText = ResolveDisplayText(label, displayText);
+            teamSurface.DisplayText = ResolveDisplayText(displayText);
         }
     }
 
@@ -159,8 +159,6 @@ public static class NameSurfaceBinder
         label.IsVisible = true;
     }
 
-    private static string ResolveDisplayText(Label label, string? displayText) =>
-        string.IsNullOrWhiteSpace(displayText)
-            ? (label.Text ?? string.Empty)
-            : displayText.Trim();
+    private static string ResolveDisplayText(string? displayText) =>
+        displayText?.Trim() ?? string.Empty;
 }

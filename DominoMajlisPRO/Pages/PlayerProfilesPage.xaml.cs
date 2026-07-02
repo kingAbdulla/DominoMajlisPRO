@@ -265,7 +265,9 @@ public partial class PlayerProfilesPage : ContentPage
         GalleryEngine.Components.NameSurfaceBinder.BindPlayer(
             AccountDisplayNameLabel,
             currentUser.PlayerId,
-            AccountDisplayNameLabel.Text);
+            string.IsNullOrWhiteSpace(currentUser.DisplayName)
+                ? role
+                : currentUser.DisplayName);
         IdentityUserIdLabel.Text =
             ShortId(currentUser.ApplicationUserId);
         IdentityPlayerIdLabel.Text =

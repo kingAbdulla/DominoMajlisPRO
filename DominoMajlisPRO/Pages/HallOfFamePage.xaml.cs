@@ -228,7 +228,7 @@ public partial class HallOfFamePage : ContentPage
             GalleryEngine.Components.NameSurfaceBinder.BindTeam(
                 HeroTeamNameLabel,
                 null,
-                HeroTeamNameLabel.Text);
+                "\u0644\u0627 \u062a\u0648\u062c\u062f \u0623\u0633\u0637\u0648\u0631\u0629");
             HeroWinsLabel.Text = "0";
             HeroWinRateLabel.Text = "0%";
             HeroLegacyLabel.Text = "0";

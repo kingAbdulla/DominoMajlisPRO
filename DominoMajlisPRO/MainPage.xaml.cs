@@ -1277,7 +1277,9 @@ TextChangedEventArgs e)
                 GalleryEngine.Components.NameSurfaceBinder.BindPlayer(
                     HeaderPlayerNameLabel,
                     null,
-                    HeaderPlayerNameLabel.Text);
+                    string.IsNullOrWhiteSpace(currentUser.DisplayName)
+                        ? "\u0627\u0644\u0644\u0627\u0639\u0628"
+                        : currentUser.DisplayName);
                 MemberLevelLabel.Text =
                     ResolveHeaderRoleLabel(currentUser.Role);
                 return;
@@ -1319,7 +1321,11 @@ TextChangedEventArgs e)
             GalleryEngine.Components.NameSurfaceBinder.BindPlayer(
                 HeaderPlayerNameLabel,
                 playerId,
-                HeaderPlayerNameLabel.Text);
+                string.IsNullOrWhiteSpace(profile?.PlayerName)
+                    ? string.IsNullOrWhiteSpace(currentUser.DisplayName)
+                        ? "\u0627\u0644\u0644\u0627\u0639\u0628"
+                        : currentUser.DisplayName
+                    : profile.PlayerName);
             MemberLevelLabel.Text =
                 visualIdentity.Title != null
                     ? $"{ResolveHeaderRoleLabel(currentUser.Role)} • {visualIdentity.Title.DisplayName}"
@@ -1335,7 +1341,7 @@ TextChangedEventArgs e)
             GalleryEngine.Components.NameSurfaceBinder.BindPlayer(
                 HeaderPlayerNameLabel,
                 null,
-                HeaderPlayerNameLabel.Text);
+                "\u0627\u0644\u0644\u0627\u0639\u0628");
             MemberLevelLabel.Text = "Guest";
         }
     }

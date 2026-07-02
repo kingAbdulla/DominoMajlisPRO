@@ -26,6 +26,12 @@ public sealed class TypographyManagerPage : ContentPage
     private readonly Slider _thicknessSlider = new() { Minimum = 0.8, Maximum = 4, Value = 1.4 };
     private readonly Entry _primaryColorEntry = new() { Placeholder = "#FFD76A", Text = "#FFD76A" };
     private readonly Entry _secondaryColorEntry = new() { Placeholder = "#2A1B08", Text = "#2A1B08" };
+    private readonly Entry _textColorEntry = new() { Placeholder = "#FFD76A", Text = "#FFD76A" };
+    private readonly Entry _frameColorEntry = new() { Placeholder = "#FFD76A", Text = "#FFD76A" };
+    private readonly Entry _particleColorEntry = new() { Placeholder = "#FFD76A", Text = "#FFD76A" };
+    private readonly Entry _lightingColorEntry = new() { Placeholder = "#FFD76A", Text = "#FFD76A" };
+    private readonly Entry _reflectionColorEntry = new() { Placeholder = "#FFFFFF", Text = "#FFFFFF" };
+    private readonly Entry _shadowColorEntry = new() { Placeholder = "#FFD76A", Text = "#FFD76A" };
     private readonly Slider _opacitySlider = new() { Minimum = 0.35, Maximum = 1, Value = 1 };
     private readonly Slider _scaleSlider = new() { Minimum = 0.8, Maximum = 1.35, Value = 1 };
     private readonly Slider _speedSlider = new() { Minimum = 0.5, Maximum = 2, Value = 1 };
@@ -83,8 +89,8 @@ public sealed class TypographyManagerPage : ContentPage
             picker.SelectedIndexChanged += (_, _) => RefreshPreview();
         foreach (var slider in new[] { _fontSizeSlider, _thicknessSlider, _opacitySlider, _scaleSlider, _speedSlider, _intensitySlider })
             slider.ValueChanged += (_, _) => RefreshPreview();
-        _primaryColorEntry.TextChanged += (_, _) => RefreshPreview();
-        _secondaryColorEntry.TextChanged += (_, _) => RefreshPreview();
+        foreach (var entry in ColorEntries())
+            entry.TextChanged += (_, _) => RefreshPreview();
         _titleEntry.TextChanged += (_, _) => RefreshPreview();
         ApplyInputColors();
     }
@@ -127,7 +133,10 @@ public sealed class TypographyManagerPage : ContentPage
                 _particlePicker,
                 _framePicker,
                 Labeled("سماكة / كثافة الإطار", _thicknessSlider),
-                Two(_primaryColorEntry, _secondaryColorEntry),
+                Two(Labeled("PrimaryColor", _primaryColorEntry), Labeled("SecondaryColor", _secondaryColorEntry)),
+                Two(Labeled("TextColor", _textColorEntry), Labeled("FrameColor", _frameColorEntry)),
+                Two(Labeled("ParticleColor", _particleColorEntry), Labeled("LightingColor", _lightingColorEntry)),
+                Two(Labeled("ReflectionColor", _reflectionColorEntry), Labeled("ShadowColor", _shadowColorEntry)),
                 Labeled("الشفافية", _opacitySlider),
                 Labeled("الحجم", _scaleSlider),
                 Labeled("السرعة", _speedSlider),
@@ -280,6 +289,12 @@ public sealed class TypographyManagerPage : ContentPage
             FrameThickness = _thicknessSlider.Value,
             PrimaryColor = _primaryColorEntry.Text ?? "#FFD76A",
             SecondaryColor = _secondaryColorEntry.Text ?? "#2A1B08",
+            TextColor = _textColorEntry.Text ?? "#FFD76A",
+            FrameColor = _frameColorEntry.Text ?? "#FFD76A",
+            ParticleColor = _particleColorEntry.Text ?? "#FFD76A",
+            LightingColor = _lightingColorEntry.Text ?? "#FFD76A",
+            ReflectionColor = _reflectionColorEntry.Text ?? "#FFFFFF",
+            ShadowColor = _shadowColorEntry.Text ?? "#FFD76A",
             Opacity = _opacitySlider.Value,
             Scale = _scaleSlider.Value,
             Speed = _speedSlider.Value,
@@ -301,6 +316,12 @@ public sealed class TypographyManagerPage : ContentPage
         _thicknessSlider.Value = preset.FrameThickness;
         _primaryColorEntry.Text = preset.PrimaryColor;
         _secondaryColorEntry.Text = preset.SecondaryColor;
+        _textColorEntry.Text = preset.TextColor;
+        _frameColorEntry.Text = preset.FrameColor;
+        _particleColorEntry.Text = preset.ParticleColor;
+        _lightingColorEntry.Text = preset.LightingColor;
+        _reflectionColorEntry.Text = preset.ReflectionColor;
+        _shadowColorEntry.Text = preset.ShadowColor;
         _opacitySlider.Value = preset.Opacity;
         _scaleSlider.Value = preset.Scale;
         _speedSlider.Value = preset.Speed;
@@ -329,7 +350,7 @@ public sealed class TypographyManagerPage : ContentPage
     {
         var text = Color.FromArgb("#FFF4D2");
         var muted = Color.FromArgb("#8F7A55");
-        foreach (var entry in new[] { _titleEntry, _priceEntry, _primaryColorEntry, _secondaryColorEntry })
+        foreach (var entry in new[] { _titleEntry, _priceEntry }.Concat(ColorEntries()))
         {
             entry.TextColor = text;
             entry.PlaceholderColor = muted;
@@ -376,6 +397,18 @@ public sealed class TypographyManagerPage : ContentPage
 
     private static void SetPicker(Picker picker, IEnumerable<string> values) => picker.ItemsSource = values.ToList();
     private static string Selected(Picker picker) => picker.SelectedItem?.ToString() ?? string.Empty;
+
+    private Entry[] ColorEntries() =>
+    [
+        _primaryColorEntry,
+        _secondaryColorEntry,
+        _textColorEntry,
+        _frameColorEntry,
+        _particleColorEntry,
+        _lightingColorEntry,
+        _reflectionColorEntry,
+        _shadowColorEntry
+    ];
 
     private static void Select(Picker picker, string? value)
     {
