@@ -84,13 +84,19 @@ public partial class MainPage
 
         HeaderAvatarEffectOverlay.StyleId = MainHeaderEffectOverlayStyleId;
         PlayerEffectEngine.Apply(
-            HeaderAvatarEffectOverlay,
-            null,
-            MainHeaderAvatarEffectScale);
-        HeaderAvatarEffectOverlay.IsVisible = false;
-        HeaderAvatarEffectOverlay.Opacity = 0;
+      HeaderAvatarEffectOverlay,
+      identity.Effect,
+      MainHeaderAvatarEffectScale);
 
-        RemoveHeaderAvatarDecorativeRings();
+        bool hasEffect = identity.Effect != null;
+
+        HeaderAvatarEffectOverlay.IsVisible = hasEffect;
+        HeaderAvatarEffectOverlay.Opacity = hasEffect ? 1 : 0;
+
+        if (!hasEffect)
+        {
+            RemoveHeaderAvatarDecorativeRings();
+        }
     }
 
     void RemoveHeaderAvatarDecorativeRings()
