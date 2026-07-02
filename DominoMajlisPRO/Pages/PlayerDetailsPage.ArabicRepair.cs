@@ -11,7 +11,7 @@ public partial class PlayerDetailsPage
     {
         base.OnHandlerChanged();
 
-        SuppressAvatarGlowAndCenterNameSurface();
+        CenterNameSurfaceOnly();
 
         if (Handler == null || _arabicRepairTimerStarted)
             return;
@@ -26,20 +26,15 @@ public partial class PlayerDetailsPage
                 runs++;
                 RepairStaticArabicUiText();
                 RepairAllVisibleText(this);
-                SuppressAvatarGlowAndCenterNameSurface();
+                CenterNameSurfaceOnly();
                 return Handler != null && runs < 12;
             });
     }
 
-    void SuppressAvatarGlowAndCenterNameSurface()
+    void CenterNameSurfaceOnly()
     {
         try
         {
-            AvatarFrame.Shadow = null;
-            AvatarEffectOverlay.IsVisible = false;
-            AvatarEffectOverlay.Opacity = 0;
-            AvatarEffectOverlay.Shadow = null;
-
             PlayerNameLabel.HorizontalOptions = LayoutOptions.Center;
             PlayerNameLabel.HorizontalTextAlignment = TextAlignment.Center;
             PlayerNameLabel.Margin = new Thickness(0, -2, 0, 0);
@@ -61,7 +56,6 @@ public partial class PlayerDetailsPage
         }
         catch
         {
-            // Visual-only normalization must never block the player details page.
         }
     }
 
