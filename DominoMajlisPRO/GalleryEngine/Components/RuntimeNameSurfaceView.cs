@@ -10,16 +10,19 @@ public abstract class RuntimeNameSurfaceView : ContentView
 
     private readonly IdentityPlateView _plate = new()
     {
-        HorizontalOptions = LayoutOptions.Fill,
-        VerticalOptions = LayoutOptions.Center
+        HorizontalOptions = LayoutOptions.Center,
+        VerticalOptions = LayoutOptions.Center,
+        InputTransparent = true
     };
 
     private int _refreshVersion;
 
     protected RuntimeNameSurfaceView()
     {
-        HorizontalOptions = LayoutOptions.Fill;
+        HorizontalOptions = LayoutOptions.Center;
         VerticalOptions = LayoutOptions.Center;
+        InputTransparent = true;
+        IsClippedToBounds = true;
         Content = _plate;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -42,13 +45,20 @@ public abstract class RuntimeNameSurfaceView : ContentView
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                if (version == _refreshVersion)
-                    _plate.Bind(DisplayText, identity?.ResolvePreset());
+                if (version != _refreshVersion)
+                    return;
+
+                ClampInlineSize();
+                _plate.Bind(DisplayText, identity?.ResolvePreset());
             });
         }
         catch
         {
-            await MainThread.InvokeOnMainThreadAsync(() => _plate.Bind(DisplayText, null));
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                ClampInlineSize();
+                _plate.Bind(DisplayText, null);
+            });
         }
     }
 
@@ -81,6 +91,16 @@ public abstract class RuntimeNameSurfaceView : ContentView
 
     private void OnRefresh() => _ = RefreshAsync();
     private void OnStoreRefresh(string id) => _ = RefreshAsync();
+
+    private void ClampInlineSize()
+    {
+        var textLength = Math.Clamp((DisplayText ?? string.Empty).Trim().Length, 2, 18);
+        var max = DeviceInfo.Idiom == DeviceIdiom.Phone ? 176d : 260d;
+        MaximumWidthRequest = MaximumWidthRequest > 0 ? Math.Min(MaximumWidthRequest, max) : Math.Min(max, 36 + textLength * 12);
+        HeightRequest = HeightRequest > 0 ? Math.Min(HeightRequest, 38) : 32;
+        _plate.MaximumWidthRequest = MaximumWidthRequest;
+        _plate.HeightRequest = HeightRequest;
+    }
 
     private static void OnChanged(BindableObject bindable, object oldValue, object newValue) =>
         _ = ((RuntimeNameSurfaceView)bindable).RefreshAsync();
