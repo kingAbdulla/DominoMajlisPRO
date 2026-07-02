@@ -171,6 +171,7 @@ public partial class CreateTeamPage
                     selectedTeamEffectOwnerPlayerId = string.Empty;
                     selectedTeamEffectOwnerApplicationUserId = string.Empty;
                     ClearPreviewLivingTeamEffectHost();
+                    IdentityEffectRenderer.ApplyAround(PreviewEmblem, null);
                     IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
                     if (selected != null && !ReferenceEquals(TeamEffectCarousel.SelectedItem, selected))
                         TeamEffectCarousel.SelectedItem = selected;
@@ -183,8 +184,10 @@ public partial class CreateTeamPage
                 if (!ReferenceEquals(TeamEffectCarousel.SelectedItem, selected))
                     TeamEffectCarousel.SelectedItem = selected;
 
+                ClearPreviewLivingTeamEffectHost();
                 IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
-                ApplyPreviewLivingTeamEffect(selected);
+                PreviewTeamEffectOverlay.IsVisible = false;
+                IdentityEffectRenderer.ApplyAround(PreviewEmblem, selected.Effect, 1.18);
             });
         }
         catch
@@ -312,7 +315,7 @@ public partial class CreateTeamPage
             .Replace("ط¥ظ†ط´ط§ط، ط§ظ„ظپط±ظٹظ‚", "إنشاء الفريق", StringComparison.Ordinal)
             .Replace("طھط­ط¯ظٹط« ط§ظ„ظپط±ظٹظ‚", "تحديث الفريق", StringComparison.Ordinal)
             .Replace("طھظ†ط¨ظٹظ‡", "تنبيه", StringComparison.Ordinal)
-            .Replace("ط­ط³ظ†ط§ظ‹", "حسناً", StringComparison.Ordinal)
+            .Replace("ط­ط³ظ†ط§‹", "حسناً", StringComparison.Ordinal)
             .Replace("طھظ…", "تم", StringComparison.Ordinal)
             .Replace("ظ…ظ…طھط§ط²", "ممتاز", StringComparison.Ordinal)
             .Replace("ط¥ظ„ط؛ط§ط،", "إلغاء", StringComparison.Ordinal)
