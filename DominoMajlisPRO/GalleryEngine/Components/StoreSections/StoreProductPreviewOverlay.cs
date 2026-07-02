@@ -1,8 +1,7 @@
 using Microsoft.Maui.Controls.Shapes;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.LivingVisualPlatform.Controls;
-using DominoMajlisPRO.LivingVisualPlatform.Models;
 
 using DominoMajlisPRO.GalleryEngine.Models;
 
@@ -187,7 +186,7 @@ internal sealed class StoreProductPreviewOverlay : Grid
     private async Task AnimateOpenAsync(int version, StoreProductPreviewKind kind)
     {
         await Task.WhenAll(this.FadeToAsync(1, 180, Easing.CubicOut), _panel.ScaleToAsync(1, 220, Easing.CubicOut));
-        if (version != _animationVersion || _isClosing || !IsEffectPreviewKind(kind)) return;
+        if (version != _animationVersion || _isClosing || kind != StoreProductPreviewKind.Effect) return;
         await _visualHost.ScaleToAsync(1.04, 220, Easing.SinInOut);
         await _visualHost.ScaleToAsync(1, 220, Easing.SinInOut);
     }
@@ -216,62 +215,48 @@ internal sealed class StoreProductPreviewOverlay : Grid
             StoreProductPreviewKind.Frame => FrameVisual(image, request.Accent),
             StoreProductPreviewKind.Badge => IdentityVisual(image, request),
             StoreProductPreviewKind.Season => BackgroundVisual(image, request),
+            StoreProductPreviewKind.NameTypography when request.Effect != null =>
+                NameTypographyVisual(request, request.Effect),
             StoreProductPreviewKind.Effect when request.Effect != null =>
-                EffectVisual(image, request.Effect, request.Accent),
-            StoreProductPreviewKind.LivingEmblem when request.Effect != null =>
                 EffectVisual(image, request.Effect, request.Accent),
             _ => PreviewCard(image, request.Accent)
         };
     }
 
-    private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent)
+    private static View NameTypographyVisual(
+        StoreProductPreviewRequest request,
+        CatalogAssetDisplay effect)
     {
-        if (effect.AssetType == StoreProductAssetType.TeamEffect ||
-            StoreAssetCatalogService.IsLivingEmblemAsset(effect))
-        {
-            var host = new LivingVisualHost
-            {
-                AssetId = effect.AssetId,
-                StaticFallbackImage = string.IsNullOrWhiteSpace(effect.PreviewImage)
-                    ? "shield_3d.png"
-                    : effect.PreviewImage,
-                ApplicationUserId = string.Empty,
-                PlayerId = string.Empty,
-                TeamId = string.Empty,
-                DisplayLocation = LivingVisualDisplayLocation.StorePreview,
-                IsStorePreview = true,
-                WidthRequest = 190,
-                HeightRequest = 190,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center
-            };
+        var preset = effect.TypographyPreset;
+        if (effect.AssetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect)
+            preset.FrameStylePreset = "None";
 
-            return PreviewCard(host, accent);
-        }
-
-        // Player avatar effect: show the developer image as-is when provided,
-        // otherwise the procedural effect only. Never an emblem/shield substitute.
-        var layers = new Grid();
-        var providedImage =
-            InventoryDisplayResolver.ResolveOptionalImageSource(effect.PreviewImage);
-        if (providedImage != null)
+        var plate = new IdentityPlateView
         {
-            image.Source = providedImage;
-            image.WidthRequest = 190;
-            image.HeightRequest = 190;
-            image.HorizontalOptions = LayoutOptions.Center;
-            image.VerticalOptions = LayoutOptions.Center;
-            layers.Children.Add(image);
-        }
-        else
-        {
-            layers.Children.Add(IdentityEffectRenderer.Create(effect, 1.28));
-        }
-        return PreviewCard(layers, accent);
+            HeightRequest = 70,
+            MaximumWidthRequest = 420,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+        plate.Bind(request.Name, preset);
+        return PreviewCard(plate, request.Accent);
     }
 
-    private static bool IsEffectPreviewKind(StoreProductPreviewKind kind) =>
-        kind is StoreProductPreviewKind.Effect or StoreProductPreviewKind.LivingEmblem;
+    private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent)
+    {
+        image.Source = InventoryDisplayResolver.ResolveImageSource(
+            string.IsNullOrWhiteSpace(effect.PreviewImage) ? "shield_3d.png" : effect.PreviewImage,
+            "shield_3d.png");
+        image.WidthRequest = 190;
+        image.HeightRequest = 190;
+        image.HorizontalOptions = LayoutOptions.Center;
+        image.VerticalOptions = LayoutOptions.Center;
+        var layers = new Grid();
+        layers.Children.Add(IdentityEffectRenderer.Create(effect, 1.28));
+        layers.Children.Add(image);
+        return PreviewCard(layers, accent);
+    }
 
     private static View AvatarVisual(Image image, Color accent)
     {

@@ -1,9 +1,8 @@
 using DominoMajlisPRO.Models;
+using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Pages;
-using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -23,16 +22,8 @@ public partial class MainPage : ContentPage
     TeamProfileModel? selectedTeam2;
     readonly Dictionary<string, TeamIdentityModel> liveTeamIdentities =
         new(StringComparer.OrdinalIgnoreCase);
-    
-    // VisualEventBus subscription tokens
-    IDisposable? teamEmblemChangedSubscription;
-    IDisposable? teamColorChangedSubscription;
-    IDisposable? teamEffectChangedSubscription;
-    IDisposable? teamEmblemBackgroundChangedSubscription;
-    IDisposable? playerAvatarChangedSubscription;
-    IDisposable? playerProfileBackgroundChangedSubscription;
-    IDisposable? playerFrameChangedSubscription;
-    IDisposable? playerEffectChangedSubscription;
+    readonly Dictionary<string, NameTypographyIdentity> liveTeamNameTypographies =
+        new(StringComparer.OrdinalIgnoreCase);
 
     sealed class TeamPickerVisualItem
     {
@@ -97,6 +88,7 @@ public partial class MainPage : ContentPage
         AppEvents.MatchesChanged -= OnAppDataChanged;
         AppEvents.RankingsChanged -= OnAppDataChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.PlayerIdentityChanged -= OnPlayerIdentityChanged;
         AppEvents.StoreEconomyChanged -= OnStoreEconomyChanged;
         AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
 
@@ -106,34 +98,9 @@ public partial class MainPage : ContentPage
         AppEvents.MatchesChanged += OnAppDataChanged;
         AppEvents.RankingsChanged += OnAppDataChanged;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
+        AppEvents.PlayerIdentityChanged += OnPlayerIdentityChanged;
         AppEvents.StoreEconomyChanged += OnStoreEconomyChanged;
         AppEvents.CurrentUserChanged += OnCurrentUserChanged;
-        
-        // Subscribe to VisualEventBus identity events
-        teamEmblemChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEmblemChanged);
-        teamColorChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamColorChanged);
-        teamEffectChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEffectChanged);
-        teamEmblemBackgroundChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEmblemBackgroundChanged);
-        playerAvatarChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerAvatarChanged);
-        playerProfileBackgroundChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerProfileBackgroundChanged);
-        playerFrameChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerFrameChanged);
-        playerEffectChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerEffectChanged);
 
         if (await ApplicationUserService.RequiresIdentityChoiceAsync())
             await ShowIdentityLoginRegisterFlowAsync();
@@ -157,16 +124,6 @@ public partial class MainPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        
-        // Dispose VisualEventBus subscriptions
-        teamEmblemChangedSubscription?.Dispose();
-        teamColorChangedSubscription?.Dispose();
-        teamEffectChangedSubscription?.Dispose();
-        teamEmblemBackgroundChangedSubscription?.Dispose();
-        playerAvatarChangedSubscription?.Dispose();
-        playerProfileBackgroundChangedSubscription?.Dispose();
-        playerFrameChangedSubscription?.Dispose();
-        playerEffectChangedSubscription?.Dispose();
 
         AppEvents.DataChanged -= OnAppDataChanged;
         AppEvents.PlayerProfileChanged -= OnMainProfileChanged;
@@ -174,6 +131,7 @@ public partial class MainPage : ContentPage
         AppEvents.MatchesChanged -= OnAppDataChanged;
         AppEvents.RankingsChanged -= OnAppDataChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.PlayerIdentityChanged -= OnPlayerIdentityChanged;
         AppEvents.StoreEconomyChanged -= OnStoreEconomyChanged;
         AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
     }
@@ -218,11 +176,15 @@ public partial class MainPage : ContentPage
             $"{selectedTeam1.Player1} - {selectedTeam1.Player2}";
 
         await RefreshLiveTeamIdentityAsync(selectedTeam1);
+        await RefreshLiveTeamNameTypographyAsync(selectedTeam1);
+        ApplyTeamNamePlate(
+            PreviewTeam1NameLabel,
+            PreviewTeam1NamePlate,
+            selectedTeam1);
         PreviewTeam1Logo.Source =
             ResolveStoredImage(GetLiveEmblem(selectedTeam1));
         await TeamEffectEngine.ApplyAroundAsync(
             PreviewTeam1Logo, selectedTeam1.TeamId, 1.18);
-        LivingEmblemBehavior.Attach(PreviewTeam1Logo, selectedTeam1.TeamId);
         var color =
             GetTeamColor(GetLiveTeamColor(selectedTeam1));
 
@@ -328,11 +290,15 @@ public partial class MainPage : ContentPage
             $"{selectedTeam2.Player1} - {selectedTeam2.Player2}";
 
         await RefreshLiveTeamIdentityAsync(selectedTeam2);
+        await RefreshLiveTeamNameTypographyAsync(selectedTeam2);
+        ApplyTeamNamePlate(
+            PreviewTeam2NameLabel,
+            PreviewTeam2NamePlate,
+            selectedTeam2);
         PreviewTeam2Logo.Source =
             ResolveStoredImage(GetLiveEmblem(selectedTeam2));
         await TeamEffectEngine.ApplyAroundAsync(
             PreviewTeam2Logo, selectedTeam2.TeamId, 1.18);
-        LivingEmblemBehavior.Attach(PreviewTeam2Logo, selectedTeam2.TeamId);
 
         UpdateMatchPreview();
     }
@@ -356,10 +322,18 @@ public partial class MainPage : ContentPage
         PreviewTeam1NameLabel.Text =
             FormatTeamName(
                 selectedTeam1.TeamName);
+        ApplyTeamNamePlate(
+            PreviewTeam1NameLabel,
+            PreviewTeam1NamePlate,
+            selectedTeam1);
 
         PreviewTeam2NameLabel.Text =
             FormatTeamName(
                 selectedTeam2.TeamName);
+        ApplyTeamNamePlate(
+            PreviewTeam2NameLabel,
+            PreviewTeam2NamePlate,
+            selectedTeam2);
 
         string team1Players =
             string.IsNullOrWhiteSpace(
@@ -986,6 +960,23 @@ TextChangedEventArgs e)
             RefreshHeaderPlayerAsync);
     }
 
+    async void OnPlayerIdentityChanged(string playerId)
+    {
+        var devicePlayerId =
+            await PlayerStoreIdentityService.GetDeviceIdentityPlayerIdAsync();
+
+        if (!string.Equals(
+                playerId,
+                devicePlayerId,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        await MainThread.InvokeOnMainThreadAsync(
+            RefreshHeaderPlayerAsync);
+    }
+
     async void OnTeamAssetsChanged(string teamId)
     {
         if (string.IsNullOrWhiteSpace(teamId))
@@ -1012,93 +1003,17 @@ TextChangedEventArgs e)
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
             liveTeamIdentities.Remove(teamId);
+            liveTeamNameTypographies.Remove(teamId);
             if (selectedTeam != null)
+            {
                 await RefreshLiveTeamIdentityAsync(selectedTeam);
+                await RefreshLiveTeamNameTypographyAsync(selectedTeam);
+            }
             if (pickerContainsTeam)
                 await SetTeamPickerItemsAsync(filteredTeams);
             UpdateMatchPreview();
         });
     }
-
-    // VisualEventBus team identity event handler - reuse existing refresh path
-    void HandleTeamIdentityEvent(EventEntry eventEntry)
-    {
-        if (eventEntry.EventData == null)
-            return;
-        
-        if (!eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.TeamId))
-            return;
-        
-        eventEntry.EventData.TryGetValue(VisualIdentityPayloadKeys.TeamId, out var teamIdObject);
-        
-        if (teamIdObject is not string teamId || string.IsNullOrWhiteSpace(teamId))
-            return;
-        
-        // Reuse the same relevance rules as OnTeamAssetsChanged
-        var selectedTeam = new[] { selectedTeam1, selectedTeam2 }
-            .FirstOrDefault(team =>
-                string.Equals(
-                    team?.TeamId,
-                    teamId,
-                    StringComparison.OrdinalIgnoreCase));
-
-        var pickerContainsTeam =
-            TeamPickerOverlay.IsVisible &&
-            filteredTeams.Any(team =>
-                string.Equals(
-                    team.TeamId,
-                    teamId,
-                    StringComparison.OrdinalIgnoreCase));
-
-        if (selectedTeam == null && !pickerContainsTeam)
-            return;
-        
-        // Reuse existing refresh path
-        _ = MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            liveTeamIdentities.Remove(teamId);
-            if (selectedTeam != null)
-                await RefreshLiveTeamIdentityAsync(selectedTeam);
-            if (pickerContainsTeam)
-                await SetTeamPickerItemsAsync(filteredTeams);
-            UpdateMatchPreview();
-        });
-    }
-
-    // VisualEventBus player identity event handler - reuse existing refresh path
-    async void HandlePlayerIdentityEvent(EventEntry eventEntry)
-    {
-        if (eventEntry.EventData == null)
-            return;
-        
-        if (!eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.PlayerId))
-            return;
-        
-        eventEntry.EventData.TryGetValue(VisualIdentityPayloadKeys.PlayerId, out var playerIdObject);
-        
-        if (playerIdObject is not string playerId || string.IsNullOrWhiteSpace(playerId))
-            return;
-        
-        // Get current user's PlayerId
-        var devicePlayerId = await PlayerStoreIdentityService.GetDeviceIdentityPlayerIdAsync();
-        
-        if (!string.Equals(playerId, devicePlayerId, StringComparison.OrdinalIgnoreCase))
-            return;
-        
-        // Reuse existing refresh pipeline - single source of truth
-        OnMainProfileChanged();
-    }
-
-    // Individual event handlers
-    void OnTeamEmblemChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
-    void OnTeamColorChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
-    void OnTeamEffectChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
-    void OnTeamEmblemBackgroundChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
-
-    void OnPlayerAvatarChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
-    void OnPlayerProfileBackgroundChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
-    void OnPlayerFrameChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
-    void OnPlayerEffectChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
 
     async Task RefreshLiveTeamVisualsAsync()
     {
@@ -1107,7 +1022,10 @@ TextChangedEventArgs e)
             .Cast<TeamProfileModel>();
 
         foreach (var team in selectedTeams)
+        {
             await RefreshLiveTeamIdentityAsync(team);
+            await RefreshLiveTeamNameTypographyAsync(team);
+        }
     }
 
     async Task RefreshLiveTeamIdentityAsync(TeamProfileModel team)
@@ -1126,11 +1044,38 @@ TextChangedEventArgs e)
         }
     }
 
+    async Task RefreshLiveTeamNameTypographyAsync(TeamProfileModel team)
+    {
+        if (string.IsNullOrWhiteSpace(team.TeamId))
+            return;
+
+        liveTeamNameTypographies[team.TeamId] =
+            await TeamNameTypographyResolver.ResolveAsync(team.TeamId);
+    }
+
+    void ApplyTeamNamePlate(
+        Label label,
+        IdentityPlateView plate,
+        TeamProfileModel team)
+    {
+        liveTeamNameTypographies.TryGetValue(
+            team.TeamId,
+            out var typography);
+        IdentityPlateBinder.Apply(
+            label,
+            plate,
+            FormatTeamName(team.TeamName),
+            typography);
+    }
+
     async Task SetTeamPickerItemsAsync(IEnumerable<TeamProfileModel> teams)
     {
         var teamList = teams.ToList();
         foreach (var team in teamList)
+        {
             await RefreshLiveTeamIdentityAsync(team);
+            await RefreshLiveTeamNameTypographyAsync(team);
+        }
 
         TeamPickerCollection.ItemsSource = teamList
             .Select(team => new TeamPickerVisualItem
@@ -1260,6 +1205,8 @@ TextChangedEventArgs e)
                         : currentUser.DisplayName;
                 MemberLevelLabel.Text =
                     ResolveHeaderRoleLabel(currentUser.Role);
+                HeaderPlayerNameLabel.IsVisible = true;
+                HeaderPlayerNamePlate.IsVisible = false;
                 return;
             }
 
@@ -1296,6 +1243,13 @@ TextChangedEventArgs e)
                     ? "اللاعب"
                     : currentUser.DisplayName
                 : profile.PlayerName;
+            var nameTypography =
+                await PlayerNameTypographyResolver.ResolveAsync(playerId);
+            IdentityPlateBinder.Apply(
+                HeaderPlayerNameLabel,
+                HeaderPlayerNamePlate,
+                HeaderPlayerNameLabel.Text,
+                nameTypography);
             MemberLevelLabel.Text =
                 visualIdentity.Title != null
                     ? $"{ResolveHeaderRoleLabel(currentUser.Role)} • {visualIdentity.Title.DisplayName}"
@@ -1308,6 +1262,8 @@ TextChangedEventArgs e)
             HeaderAvatarEffectOverlay.IsVisible = false;
             HeaderProfileBackgroundImage.IsVisible = false;
             HeaderPlayerNameLabel.Text = "اللاعب";
+            HeaderPlayerNameLabel.IsVisible = true;
+            HeaderPlayerNamePlate.IsVisible = false;
             MemberLevelLabel.Text = "Guest";
         }
     }

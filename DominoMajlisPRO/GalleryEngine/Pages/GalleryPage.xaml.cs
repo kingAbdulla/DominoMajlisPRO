@@ -1,4 +1,4 @@
-using DominoMajlisPRO.GalleryEngine.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
@@ -34,16 +34,23 @@ public partial class GalleryPage : ContentPage
     private async Task LoadPageAsync()
     {
         _catalog = GalleryService.GetCatalog();
+
         var currentSeason = GalleryService.GetCurrentSeason();
+
         if (currentSeason == null)
             return;
+
         await ApplySeasonAsync(currentSeason);
     }
 
     public async Task SwitchSeasonAsync(GallerySeason season)
     {
-        if (season == null || _season?.Id == season.Id)
+        if (season == null)
             return;
+
+        if (_season?.Id == season.Id)
+            return;
+
         await ApplySeasonAsync(season);
     }
 
@@ -53,9 +60,14 @@ public partial class GalleryPage : ContentPage
             return;
 
         _catalog ??= GalleryService.GetCatalog();
-        var season = _catalog.Seasons.FirstOrDefault(x => x.Id == seasonId);
+
+        var season = _catalog
+            .Seasons
+            .FirstOrDefault(x => x.Id == seasonId);
+
         if (season == null)
             return;
+
         await SwitchSeasonAsync(season);
     }
 
@@ -63,10 +75,16 @@ public partial class GalleryPage : ContentPage
     {
         _catalog ??= GalleryService.GetCatalog();
         _season = season;
-        _items = _catalog?.Items.Where(x => x.SeasonId == _season.Id).ToList() ?? new List<GalleryItem>();
+
+        _items = _catalog?.Items
+            .Where(x => x.SeasonId == _season.Id)
+            .ToList() ?? new List<GalleryItem>();
+
         var seasonImage = GetSeasonThemeImage();
+
         var theme = await GalleryThemeEngine.BuildThemeFromSeasonImageAsync(seasonImage);
         Background = theme.Background;
+
         HeroSlider.BindSeason(_season);
         BindSections();
     }
@@ -83,7 +101,7 @@ public partial class GalleryPage : ContentPage
         switch (e.Action)
         {
             case StoreQuickAction.WheelOfFortune:
-                await SpinWheelAsync();
+                await Navigation.PushAsync(new WheelOfFortunePage());
                 break;
 
             case StoreQuickAction.DailyOffers:
@@ -96,26 +114,31 @@ public partial class GalleryPage : ContentPage
                 break;
 
             case StoreQuickAction.SeasonPass:
-                await RechargeNavigationService.OpenAsync(Navigation);
+                await Navigation.PushAsync(new SeasonPassPage());
+                break;
+
+            case StoreQuickAction.ExclusiveContent:
+                await Navigation.PushAsync(new ExclusiveContentPage());
+                break;
+
+            case StoreQuickAction.SupportDeveloper:
+                await Navigation.PushAsync(new SupportDeveloperPage());
+                break;
+
+            case StoreQuickAction.AccountSecurity:
+                await Navigation.PushAsync(new AccountSecurityStorePage());
                 break;
         }
     }
 
-    private async Task SpinWheelAsync()
+    private async Task ShowWalletPlaceholderAsync()
     {
-        var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
-        if (string.IsNullOrWhiteSpace(owner.PlayerId))
-        {
-            await ShowPlaceholderAsync("عجلة الحظ", "اختر أو أنشئ لاعباً قبل استخدام عجلة الحظ.");
-            return;
-        }
+        var wallet = await PlayerStoreIdentityService.GetDeviceWalletAsync();
+        var balance = wallet == null
+            ? null
+            : $"🪙 العملات: {wallet.Coins}     💎 الجواهر: {wallet.Gems}";
 
-        var confirmed = await DisplayAlert("عجلة الحظ", "تدوير العجلة الآن للحصول على مكافأة عشوائية؟", "تدوير", "إلغاء");
-        if (!confirmed)
-            return;
-
-        var result = await RechargePurchaseService.GrantWheelRewardAsync(owner.PlayerId);
-        await ShowPlaceholderAsync("عجلة الحظ", result.Message);
+        await ShowPlaceholderAsync("المحفظة", "خيارات الشحن قيد التجهيز", balance);
     }
 
     private async Task ShowPlaceholderAsync(string title, string message, string? balance = null)
@@ -137,11 +160,13 @@ public partial class GalleryPage : ContentPage
 
     private void OnPlaceholderBackdropTapped(object? sender, TappedEventArgs e)
     {
+        // The premium overlay is modal; only its explicit close button dismisses it.
     }
 
     private async void OnBottomTabRequested(object? sender, StoreBottomTabRequestedEventArgs e)
     {
         BottomNavigation.SelectTab(e.Tab);
+
         switch (e.Tab)
         {
             case StoreBottomTab.Store:
@@ -155,7 +180,7 @@ public partial class GalleryPage : ContentPage
                 break;
 
             case StoreBottomTab.Rewards:
-                await RechargeNavigationService.OpenAsync(Navigation);
+                await ShowPlaceholderAsync("المكافآت", "قسم المكافآت قيد التجهيز");
                 break;
 
             case StoreBottomTab.Account:
@@ -178,34 +203,37 @@ public partial class GalleryPage : ContentPage
 
     private async Task ShowStoreIdentityPlaceholderAsync()
     {
-        var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
+        var identity = await HonorIdentityService.LoadAsync();
         var playerName = "غير محدد";
-        var role = ResolveRoleLabel(owner.Role);
+        var role = ResolveRoleLabel(identity.Role);
         var coins = 0;
         var gems = 0;
         var progressText = "0 / 0   0%";
 
-        if (!string.IsNullOrWhiteSpace(owner.PlayerId))
+        if (!string.IsNullOrWhiteSpace(identity.PlayerId))
         {
-            var profile = await PlayerProfileService.GetPlayerByIdAsync(owner.PlayerId);
-            var wallet = await PlayerStoreIdentityService.GetWalletAsync(owner.PlayerId);
-            var progress = await PlayerStoreIdentityService.GetCollectionProgressAsync(owner.PlayerId);
+            var profile = await PlayerProfileService.GetPlayerByIdAsync(identity.PlayerId);
+            var wallet = await PlayerStoreIdentityService.GetWalletAsync(identity.PlayerId);
+            var progress = await PlayerStoreIdentityService.GetCollectionProgressAsync(identity.PlayerId);
             playerName = string.IsNullOrWhiteSpace(profile?.PlayerName) ? "غير محدد" : profile.PlayerName;
             coins = wallet.Coins;
             gems = wallet.Gems;
-            var percent = progress.TotalPublished == 0 ? 0 : (int)Math.Round(progress.TotalOwned * 100d / progress.TotalPublished);
+            var percent = progress.TotalPublished == 0
+                ? 0
+                : (int)Math.Round(progress.TotalOwned * 100d / progress.TotalPublished);
             progressText = $"{progress.TotalOwned} / {progress.TotalPublished}   {percent}%";
         }
 
         var details = $"{playerName}\n{role}\n🪙 {coins:N0}     💎 {gems:N0}\nالمقتنيات: {progressText}";
-        await ShowPlaceholderAsync("حسابي", "حالة حساب المتجر الحالية", details);
+        await ShowPlaceholderAsync("حسابي", "صفحة الحساب قيد الربط", details);
     }
 
-    private static string ResolveRoleLabel(ApplicationUserRole role) => role switch
+    private static string ResolveRoleLabel(HonorRoleType role) => role switch
     {
-        ApplicationUserRole.Developer => "مطور",
-        ApplicationUserRole.Member => "لاعب",
-        _ => "ضيف"
+        HonorRoleType.Developer => "مطور",
+        HonorRoleType.Founder => "مؤسس",
+        HonorRoleType.Honor => "عضو شرف",
+        _ => "لاعب"
     };
 
     private async void OnCategorySelected(object? sender, StoreCategorySelectedEventArgs e)
@@ -240,7 +268,9 @@ public partial class GalleryPage : ContentPage
     {
         StoreNavigation.SetAvailableItemCount(0);
         StoreNavigation.SwitchTo(view);
-        BottomNavigation.SelectTab(view == StoreView.LimitedOffers ? StoreBottomTab.Offers : StoreBottomTab.Store);
+        BottomNavigation.SelectTab(view == StoreView.LimitedOffers
+            ? StoreBottomTab.Offers
+            : StoreBottomTab.Store);
 
         if (view == StoreView.Home)
         {
@@ -253,7 +283,9 @@ public partial class GalleryPage : ContentPage
             HomeContent.IsVisible = true;
             HomeTopContent.Opacity = 0;
             HomeContent.Opacity = 0;
-            await Task.WhenAll(HomeTopContent.FadeToAsync(1, 100), HomeContent.FadeToAsync(1, 100));
+            await Task.WhenAll(
+                HomeTopContent.FadeToAsync(1, 100),
+                HomeContent.FadeToAsync(1, 100));
             return;
         }
 
@@ -301,15 +333,10 @@ public partial class GalleryPage : ContentPage
                 _effectsSection ??= CreateEffectsSection();
                 SelectedSectionHost.Content = _effectsSection;
                 break;
-            case StoreView.Bundles:
-                CategoriesSection.Select(StoreView.NewArrivals);
-                _newArrivalsFullSection ??= CreateNewArrivalsSection();
-                SelectedSectionHost.Content = _newArrivalsFullSection;
-                break;
             default:
                 SelectedSectionHost.Content = null;
                 SelectedSectionHost.IsVisible = false;
-                ShowSectionMessage($"قسم {GetCategoryName(view)} لا يحتوي عناصر منشورة حالياً");
+                ShowSectionMessage($"قسم {GetCategoryName(view)} قيد التجهيز");
                 break;
         }
     }
@@ -355,17 +382,25 @@ public partial class GalleryPage : ContentPage
 
     private NewArrivalsSectionView CreateEffectsSection()
     {
-        var section = new NewArrivalsSectionView("المؤثرات", "EFFECTS", StoreProductAssetType.Effect.ToString());
+        var section = new NewArrivalsSectionView(
+            "المؤثرات",
+            "EFFECTS",
+            StoreProductAssetType.Effect.ToString());
         section.SetVisibleItemCount(StoreNavigationState.PageSize);
-        section.AvailableItemCountChanged += (_, count) => OnAvailableItemCountChanged(StoreView.Effects, count);
+        section.AvailableItemCountChanged += (_, count) =>
+            OnAvailableItemCountChanged(StoreView.Effects, count);
         return section;
     }
 
     private NewArrivalsSectionView CreateFramesSection()
     {
-        var section = new NewArrivalsSectionView("الإطارات", "FRAMES", StoreProductAssetType.Frame.ToString());
+        var section = new NewArrivalsSectionView(
+            "الإطارات",
+            "FRAMES",
+            StoreProductAssetType.Frame.ToString());
         section.SetVisibleItemCount(StoreNavigationState.PageSize);
-        section.AvailableItemCountChanged += (_, count) => OnAvailableItemCountChanged(StoreView.Frames, count);
+        section.AvailableItemCountChanged += (_, count) =>
+            OnAvailableItemCountChanged(StoreView.Frames, count);
         return section;
     }
 
@@ -385,6 +420,7 @@ public partial class GalleryPage : ContentPage
     private void OnShowMoreClicked(object? sender, EventArgs e)
     {
         StoreNavigation.ShowMore();
+
         switch (StoreNavigation.CurrentView)
         {
             case StoreView.NewArrivals:
@@ -406,6 +442,7 @@ public partial class GalleryPage : ContentPage
                 _effectsSection?.SetVisibleItemCount(StoreNavigation.VisibleItemCount);
                 break;
         }
+
         ShowMoreButton.IsVisible = StoreNavigation.CanShowMore;
     }
 
@@ -427,7 +464,7 @@ public partial class GalleryPage : ContentPage
 
     private async void OnSeasonSwitchTestClicked(object? sender, EventArgs e)
     {
-        await SwitchToNextSeasonForTestAsync();
+        await Navigation.PushAsync(new SeasonSelectorPage(SwitchSeasonAsync));
     }
 
     private async void OnCartRequested(object? sender, EventArgs e)
@@ -447,21 +484,42 @@ public partial class GalleryPage : ContentPage
 
     private async void OnIdentityRequested(object? sender, EventArgs e)
     {
-        await OpenAccountAsync();
+        var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
+        if (!owner.HasPlayerProfile)
+        {
+            await DisplayAlertAsync("هوية اللاعب", "سجّل الدخول بحساب لاعب أولاً.", "حسنًا");
+            return;
+        }
+        await Navigation.PushAsync(new PlayerDetailsPage(owner.PlayerId));
     }
 
+    // TEMP DEV: Season switch test control. Remove before production.
     private async Task SwitchToNextSeasonForTestAsync()
     {
         _catalog ??= GalleryService.GetCatalog();
-        var seasons = _catalog.Seasons.Where(x => !string.IsNullOrWhiteSpace(x.Id)).ToList();
+
+        var seasons = _catalog
+            .Seasons
+            .Where(x => !string.IsNullOrWhiteSpace(x.Id))
+            .ToList();
+
         if (seasons.Count <= 1)
         {
-            await DisplayAlert("تنبيه", "لا توجد مواسم أخرى للتجربة", "حسنًا");
+            await DisplayAlert(
+                "تنبيه",
+                "لا توجد مواسم أخرى للتجربة",
+                "حسنًا");
+
             return;
         }
 
         var currentIndex = seasons.FindIndex(x => x.Id == _season?.Id);
-        _seasonSwitchIndex = currentIndex >= 0 ? (currentIndex + 1) % seasons.Count : (_seasonSwitchIndex + 1) % seasons.Count;
+
+        _seasonSwitchIndex =
+            currentIndex >= 0
+                ? (currentIndex + 1) % seasons.Count
+                : (_seasonSwitchIndex + 1) % seasons.Count;
+
         await SwitchSeasonAsync(seasons[_seasonSwitchIndex]);
     }
 
@@ -470,26 +528,46 @@ public partial class GalleryPage : ContentPage
         if (_season != null)
         {
             var seasonType = _season.GetType();
-            string[] possibleNames = { "Image", "HeroImage", "BannerImage", "BackgroundImage", "SeasonImage", "ThemeImage" };
+
+            string[] possibleNames =
+            {
+                "Image",
+                "HeroImage",
+                "BannerImage",
+                "BackgroundImage",
+                "SeasonImage",
+                "ThemeImage"
+            };
+
             foreach (var name in possibleNames)
             {
                 var property = seasonType.GetProperty(name);
                 var value = property?.GetValue(_season)?.ToString();
+
                 if (!string.IsNullOrWhiteSpace(value))
                     return value;
             }
         }
 
-        var firstItemImage = _items.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.Image))?.Image;
-        return string.IsNullOrWhiteSpace(firstItemImage) ? "gallery_lion.png" : firstItemImage;
+        var firstItemImage = _items
+            .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.Image))
+            ?.Image;
+
+        return string.IsNullOrWhiteSpace(firstItemImage)
+            ? "gallery_lion.png"
+            : firstItemImage;
     }
 
     private List<GalleryItem> Normalize(List<GalleryItem> source, int count)
     {
         var result = source.ToList();
         var fallback = _items.FirstOrDefault();
+
         while (result.Count < count && fallback != null)
+        {
             result.Add(fallback);
+        }
+
         return result.Take(count).ToList();
     }
 }

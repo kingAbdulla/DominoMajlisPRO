@@ -2,10 +2,9 @@ using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 using System.Reflection;
-using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
-using DominoMajlisPRO.GalleryEngine.VisualIdentity;
+using DominoMajlisPRO.GalleryEngine.Components;
 
 namespace DominoMajlisPRO.Pages;
 
@@ -17,16 +16,9 @@ public partial class HallOfFamePage : ContentPage
     IReadOnlyDictionary<string, TeamIdentityModel> teamIdentities =
         new Dictionary<string, TeamIdentityModel>(
             StringComparer.OrdinalIgnoreCase);
-    
-    // VisualEventBus subscription tokens
-    IDisposable? teamEmblemChangedSubscription;
-    IDisposable? teamColorChangedSubscription;
-    IDisposable? teamEffectChangedSubscription;
-    IDisposable? teamEmblemBackgroundChangedSubscription;
-    IDisposable? playerAvatarChangedSubscription;
-    IDisposable? playerProfileBackgroundChangedSubscription;
-    IDisposable? playerFrameChangedSubscription;
-    IDisposable? playerEffectChangedSubscription;
+    IReadOnlyDictionary<string, NameTypographyIdentity> teamNameTypographies =
+        new Dictionary<string, NameTypographyIdentity>(
+            StringComparer.OrdinalIgnoreCase);
 
     const string CardGlass = "#151515";
     const string BronzeStroke = "#5B3B18";
@@ -57,32 +49,6 @@ public partial class HallOfFamePage : ContentPage
         AppEvents.TeamsChanged += OnHallDataChanged;
         AppEvents.RankingsChanged += OnHallDataChanged;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
-        
-        // Subscribe to VisualEventBus identity events
-        teamEmblemChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEmblemChanged);
-        teamColorChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamColorChanged);
-        teamEffectChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEffectChanged);
-        teamEmblemBackgroundChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Team,
-            OnTeamEmblemBackgroundChanged);
-        playerAvatarChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerAvatarChanged);
-        playerProfileBackgroundChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerProfileBackgroundChanged);
-        playerFrameChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerFrameChanged);
-        playerEffectChangedSubscription = VisualEventBus.Subscribe(
-            EventCategory.Player,
-            OnPlayerEffectChanged);
 
         await LoadHallOfFameAsync();
     }
@@ -90,16 +56,6 @@ public partial class HallOfFamePage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        
-        // Dispose VisualEventBus subscriptions
-        teamEmblemChangedSubscription?.Dispose();
-        teamColorChangedSubscription?.Dispose();
-        teamEffectChangedSubscription?.Dispose();
-        teamEmblemBackgroundChangedSubscription?.Dispose();
-        playerAvatarChangedSubscription?.Dispose();
-        playerProfileBackgroundChangedSubscription?.Dispose();
-        playerFrameChangedSubscription?.Dispose();
-        playerEffectChangedSubscription?.Dispose();
 
         AppEvents.DataChanged -= OnHallDataChanged;
         AppEvents.PlayerProfileChanged -= OnHallDataChanged;
@@ -120,40 +76,13 @@ public partial class HallOfFamePage : ContentPage
 
     void OnTeamAssetsChanged(string teamId) => OnHallDataChanged();
 
-    // VisualEventBus identity event handler - reuse existing refresh path
-    // Filtering is deferred by architecture to avoid false negatives
-    void HandleVisualIdentityEvent(EventEntry eventEntry)
-    {
-        if (eventEntry.EventData == null)
-            return;
-        
-        // Validate payload contains either TeamId or PlayerId
-        bool hasTeamId = eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.TeamId);
-        bool hasPlayerId = eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.PlayerId);
-        
-        if (!hasTeamId && !hasPlayerId)
-            return;
-        
-        // Conservative behavior: always refresh on valid identity events
-        OnHallDataChanged();
-    }
-
-    // Individual event handlers
-    void OnTeamEmblemChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnTeamColorChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnTeamEffectChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnTeamEmblemBackgroundChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-
-    void OnPlayerAvatarChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnPlayerProfileBackgroundChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnPlayerFrameChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-    void OnPlayerEffectChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
-
     async Task LoadHallOfFameAsync()
     {
         matches = await GameService.LoadMatchesAsync();
         teams = await TeamProfileService.LoadTeamsAsync();
         teamIdentities = await TeamIdentityResolver.ResolveManyAsync(
+            teams.Select(team => team.TeamId));
+        teamNameTypographies = await TeamNameTypographyResolver.ResolveManyAsync(
             teams.Select(team => team.TeamId));
         players = await PlayerProfileService.LoadPlayersAsync();
 
@@ -521,7 +450,6 @@ public partial class HallOfFamePage : ContentPage
             HorizontalOptions = LayoutOptions.Center
         };
         TeamEffectBehavior.SetTeamId(teamEmblem, team.Key);
-        LivingEmblemBehavior.Attach(teamEmblem, team.Key);
         layout.Children.Add(new Grid
         {
             HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 72 : 98,
@@ -529,16 +457,10 @@ public partial class HallOfFamePage : ContentPage
         });
 
         layout.Children.Add(
-            new Label
-            {
-                Text = team.DisplayName,
-                TextColor = Colors.White,
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 15 : 19,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
+            CreateTeamNameView(
+                team,
+                DeviceInfo.Idiom == DeviceIdiom.Phone ? 15 : 19,
+                260));
 
         layout.Children.Add(
             new Label
@@ -730,6 +652,30 @@ public partial class HallOfFamePage : ContentPage
             });
     }
 
+    View CreateTeamNameView(
+        TeamLegendResult result,
+        double fontSize,
+        double maxWidth)
+    {
+        var team = teams.FirstOrDefault(item =>
+            string.Equals(item.TeamId, result.Key, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.TeamName, result.DisplayName, StringComparison.OrdinalIgnoreCase));
+        NameTypographyIdentity? typography = null;
+        if (!string.IsNullOrWhiteSpace(team?.TeamId))
+        {
+            teamNameTypographies.TryGetValue(
+                team.TeamId,
+                out typography);
+        }
+
+        return IdentityPlateBinder.Create(
+            result.DisplayName,
+            typography,
+            fontSize,
+            Colors.White,
+            maxWidth: maxWidth);
+    }
+
     static void AddPlayerEffect(
         Grid container,
         CatalogAssetDisplay? effect,
@@ -810,17 +756,15 @@ public partial class HallOfFamePage : ContentPage
             });
 
         layout.Children.Add(
-            new Label
-            {
-                Text = playerName,
-                TextColor = Colors.White,
-                FontFamily = "timesbi",
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 13 : 17,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
+            IdentityPlateBinder.Create(
+                playerName,
+                new NameTypographyIdentity(
+                    string.Empty,
+                    identity?.PlayerNameEffect,
+                    identity?.PlayerNameFrame),
+                DeviceInfo.Idiom == DeviceIdiom.Phone ? 13 : 17,
+                Colors.White,
+                maxWidth: 240));
 
         layout.Children.Add(
             new Label

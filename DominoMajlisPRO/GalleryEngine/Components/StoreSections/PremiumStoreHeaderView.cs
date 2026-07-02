@@ -1,4 +1,4 @@
-using Microsoft.Maui.Controls.Shapes;
+﻿using Microsoft.Maui.Controls.Shapes;
 using GalleryTheme = DominoMajlisPRO.GalleryEngine.Services.GalleryTheme;
 using GalleryThemeEngine = DominoMajlisPRO.GalleryEngine.Services.GalleryThemeEngine;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -25,11 +25,13 @@ public class PremiumStoreHeaderView : ContentView
     private readonly Border _cartCountBadge;
     private readonly Border _walletPanel;
 
-    private readonly Label _playerNameLabel;
+    private Label _playerNameLabel = null!;
+
     private readonly Label _avatarLabel;
     private readonly Label _crownLabel;
     private readonly Label _titleLabel;
     private readonly Label _subtitleLabel;
+    private readonly Label _identityTitleLabel;
     private readonly Label _memberLabel;
     private readonly Label _seasonButtonLabel;
     private readonly Label _cartLabel;
@@ -55,16 +57,20 @@ public class PremiumStoreHeaderView : ContentView
         _crownLabel = CreateLabel("♛", _isPhone ? 18 : 24);
         _titleLabel = CreateTextLabel("متجر دومينو", _isPhone ? 24 : 32, true);
         _subtitleLabel = CreateTextLabel("كل ما يميزك في مكان واحد", _isPhone ? 10.5 : 13, false);
+
         _cartLabel = CreateLabel("🛒", _isPhone ? 22 : 28);
         _cartCountLabel = CreateTextLabel("0", _isPhone ? 8 : 10, true, "CinzelDecorative-Bold");
+
         _coinsIconLabel = CreateWalletIcon("🪙");
         _gemsIconLabel = CreateWalletIcon("💎");
         _coinsLabel = CreateWalletValue("0");
         _gemsLabel = CreateWalletValue("0");
         _coinsPlusLabel = CreateWalletPlus();
         _gemsPlusLabel = CreateWalletPlus();
+
+        _identityTitleLabel = CreateTextLabel("الهوية الرسمية", _isPhone ? 11 : 13, true);
         _memberLabel = CreateTextLabel("ضيف", _isPhone ? 9 : 10, true);
-        _playerNameLabel = CreateTextLabel("اختر لاعباً", _isPhone ? 11 : 13, true);
+
         _avatarLabel = CreateLabel("♟", _isPhone ? 18 : 22);
         _avatarImage = new Image { Aspect = Aspect.AspectFill, IsVisible = false };
         _seasonButtonLabel = CreateTextLabel("تبديل الموسم", _isPhone ? 12 : 14, true);
@@ -75,6 +81,7 @@ public class PremiumStoreHeaderView : ContentView
         _cartCountBadge = CreateCartCountBadge();
         _cartButton = CreateCartButton();
         _walletPanel = CreateWalletPanel();
+
         _avatarFrame = CreateAvatarFrame();
         _memberBadge = CreateMemberBadge();
         _identityCard = CreateIdentityCard();
@@ -91,10 +98,15 @@ public class PremiumStoreHeaderView : ContentView
         Content = new VerticalStackLayout
         {
             Spacing = 7,
-            Children = { _headerCard, CreateBelowHeaderRow() }
+            Children =
+            {
+                _headerCard,
+                CreateBelowHeaderRow()
+            }
         };
 
         ApplyTheme();
+
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
@@ -102,24 +114,39 @@ public class PremiumStoreHeaderView : ContentView
     public void ApplyTheme()
     {
         var theme = GalleryThemeEngine.Current;
+
         _headerCard.Background = theme.ActionBackground;
         _headerCard.Stroke = theme.Stroke;
-        _headerCard.Shadow = new Shadow { Brush = new SolidColorBrush(theme.Glow), Radius = 14, Opacity = 0.20f, Offset = new Point(0, 2) };
+        _headerCard.Shadow = new Shadow
+        {
+            Brush = new SolidColorBrush(theme.Glow),
+            Radius = 14,
+            Opacity = 0.20f,
+            Offset = new Point(0, 2)
+        };
+
         _walletPanel.Background = theme.CardBackground;
         _walletPanel.Stroke = theme.Stroke;
+
         _cartCountBadge.Background = new SolidColorBrush(theme.Accent);
         _cartCountBadge.Stroke = theme.Gold;
+
         _identityCard.Background = theme.CardBackground;
         _identityCard.Stroke = theme.Stroke;
+
         _seasonButton.Background = theme.CardBackground;
         _seasonButton.Stroke = theme.Stroke;
+
         _avatarFrame.Background = theme.ActionBackground;
         _avatarFrame.Stroke = theme.Gold;
+
         _memberBadge.Background = theme.ActionBackground;
         _memberBadge.Stroke = theme.Stroke;
+
         _crownLabel.TextColor = theme.Gold;
         _titleLabel.TextColor = theme.TextPrimary;
         _subtitleLabel.TextColor = theme.TextSecondary;
+
         _cartCountLabel.TextColor = theme.TextPrimary;
         _coinsLabel.TextColor = theme.TextPrimary;
         _gemsLabel.TextColor = theme.TextPrimary;
@@ -127,7 +154,9 @@ public class PremiumStoreHeaderView : ContentView
         _gemsIconLabel.TextColor = theme.Gold;
         _coinsPlusLabel.TextColor = theme.Gold;
         _gemsPlusLabel.TextColor = theme.Gold;
+
         _avatarLabel.TextColor = theme.Gold;
+        _identityTitleLabel.TextColor = theme.TextMuted;
         _playerNameLabel.TextColor = theme.TextPrimary;
         _memberLabel.TextColor = theme.TextSecondary;
         _seasonButtonLabel.TextColor = theme.Gold;
@@ -143,19 +172,35 @@ public class PremiumStoreHeaderView : ContentView
             Spacing = _isPhone ? 2 : 4,
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Center,
-            Children = { _crownLabel, _titleLabel, _subtitleLabel }
+            Children =
+            {
+                _crownLabel,
+                _titleLabel,
+                _subtitleLabel
+            }
         };
 
         var actionRow = new Grid
         {
             FlowDirection = FlowDirection.LeftToRight,
             ColumnSpacing = _isPhone ? 8 : 14,
-            ColumnDefinitions = { new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition { Width = GridLength.Star }, new ColumnDefinition { Width = GridLength.Auto } }
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            }
         };
+
         actionRow.Add(_seasonButton, 0, 0);
         actionRow.Add(new BoxView { Opacity = 0 }, 1, 0);
         actionRow.Add(_cartButton, 2, 0);
-        return new VerticalStackLayout { Spacing = _isPhone ? 3 : 5, Children = { brandStack, actionRow } };
+
+        return new VerticalStackLayout
+        {
+            Spacing = _isPhone ? 3 : 5,
+            Children = { brandStack, actionRow }
+        };
     }
 
     private View CreateBelowHeaderRow()
@@ -166,15 +211,21 @@ public class PremiumStoreHeaderView : ContentView
             ColumnSpacing = 8,
             ColumnDefinitions = { new ColumnDefinition { Width = GridLength.Star }, new ColumnDefinition { Width = GridLength.Auto } }
         };
+
         row.Add(_identityCard, 0, 0);
         row.Add(_walletPanel, 1, 0);
+
         return new VerticalStackLayout
         {
             Spacing = 4,
             Children =
             {
                 row,
-                new VerticalStackLayout { Spacing = 1, Children = { _collectionTitleLabel, _collectionProgressLabel, _collectionProgress } }
+                new VerticalStackLayout
+                {
+                    Spacing = 1,
+                    Children = { _collectionTitleLabel, _collectionProgressLabel, _collectionProgress }
+                }
             }
         };
     }
@@ -188,12 +239,22 @@ public class PremiumStoreHeaderView : ContentView
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
         };
+
         grid.Children.Add(_cartLabel);
         grid.Children.Add(_cartCountBadge);
+
         _cartCountBadge.HorizontalOptions = LayoutOptions.End;
         _cartCountBadge.VerticalOptions = LayoutOptions.Start;
         _cartCountBadge.Margin = new Thickness(0, 2, 2, 0);
-        AddTap(grid, () => CartRequested?.Invoke(this, EventArgs.Empty));
+
+        AddTap(grid, () =>
+        {
+            if (CartRequested is not null)
+                CartRequested.Invoke(this, EventArgs.Empty);
+            else
+                _ = ShowCartPlaceholderAsync();
+        });
+
         return grid;
     }
 
@@ -204,12 +265,23 @@ public class PremiumStoreHeaderView : ContentView
             FlowDirection = FlowDirection.LeftToRight,
             RowSpacing = _isPhone ? 2 : 3,
             ColumnSpacing = _isPhone ? 5 : 7,
-            RowDefinitions = { new RowDefinition { Height = GridLength.Auto }, new RowDefinition { Height = GridLength.Auto } },
-            ColumnDefinitions = { new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition { Width = GridLength.Star }, new ColumnDefinition { Width = GridLength.Auto } }
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Auto }
+            },
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            }
         };
+
         grid.Add(_coinsIconLabel, 0, 0);
         grid.Add(_coinsLabel, 1, 0);
         grid.Add(_coinsPlusLabel, 2, 0);
+
         grid.Add(_gemsIconLabel, 0, 1);
         grid.Add(_gemsLabel, 1, 1);
         grid.Add(_gemsPlusLabel, 2, 1);
@@ -224,7 +296,7 @@ public class PremiumStoreHeaderView : ContentView
         AddTap(gemsTapTarget, () => GemsRequested?.Invoke(this, EventArgs.Empty));
         grid.Add(gemsTapTarget, 0, 1);
 
-        return new Border
+        var border = new Border
         {
             WidthRequest = _isPhone ? 98 : 122,
             StrokeThickness = 0.8,
@@ -233,19 +305,39 @@ public class PremiumStoreHeaderView : ContentView
             Content = grid,
             VerticalOptions = LayoutOptions.Center
         };
+
+        return border;
     }
 
     private Border CreateIdentityCard()
     {
-        var textStack = new VerticalStackLayout { Spacing = 1, VerticalOptions = LayoutOptions.Center, Children = { _playerNameLabel, _memberBadge } };
+        _playerNameLabel = CreateTextLabel("اختر لاعباً", _isPhone ? 11 : 13, true);
+
+        var textStack = new VerticalStackLayout
+        {
+            Spacing = 1,
+            VerticalOptions = LayoutOptions.Center,
+            Children =
+            {
+                _playerNameLabel,
+                _memberBadge
+            }
+        };
+
         var content = new Grid
         {
             FlowDirection = FlowDirection.RightToLeft,
-            ColumnDefinitions = { new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition { Width = GridLength.Star } },
-            ColumnSpacing = 7
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 7,
         };
+
         content.Add(_avatarFrame, 0, 0);
         content.Add(textStack, 1, 0);
+
         var border = new Border
         {
             MinimumWidthRequest = _isPhone ? 170 : 220,
@@ -254,7 +346,9 @@ public class PremiumStoreHeaderView : ContentView
             StrokeShape = new RoundRectangle { CornerRadius = _isPhone ? 14 : 18 },
             Content = content
         };
+
         AddTap(border, () => IdentityRequested?.Invoke(this, EventArgs.Empty));
+
         return border;
     }
 
@@ -269,13 +363,16 @@ public class PremiumStoreHeaderView : ContentView
             StrokeShape = new RoundRectangle { CornerRadius = _isPhone ? 15 : 18 },
             Content = _seasonButtonLabel
         };
+
         AddTap(border, () => SeasonSwitchRequested?.Invoke(this, EventArgs.Empty));
+
         return border;
     }
 
     private Border CreateAvatarFrame()
     {
         var size = _isPhone ? 32 : 40;
+
         return new Border
         {
             WidthRequest = size,
@@ -286,22 +383,28 @@ public class PremiumStoreHeaderView : ContentView
         };
     }
 
-    private Border CreateMemberBadge() => new()
+    private Border CreateMemberBadge()
     {
-        Padding = _isPhone ? new Thickness(7, 1) : new Thickness(8, 2),
-        StrokeThickness = 0.7,
-        StrokeShape = new RoundRectangle { CornerRadius = _isPhone ? 8 : 10 },
-        Content = _memberLabel
-    };
+        return new Border
+        {
+            Padding = _isPhone ? new Thickness(7, 1) : new Thickness(8, 2),
+            StrokeThickness = 0.7,
+            StrokeShape = new RoundRectangle { CornerRadius = _isPhone ? 8 : 10 },
+            Content = _memberLabel
+        };
+    }
 
-    private Border CreateCartCountBadge() => new()
+    private Border CreateCartCountBadge()
     {
-        WidthRequest = _isPhone ? 16 : 19,
-        HeightRequest = _isPhone ? 16 : 19,
-        StrokeThickness = 0.6,
-        StrokeShape = new RoundRectangle { CornerRadius = _isPhone ? 8 : 10 },
-        Content = _cartCountLabel
-    };
+        return new Border
+        {
+            WidthRequest = _isPhone ? 16 : 19,
+            HeightRequest = _isPhone ? 16 : 19,
+            StrokeThickness = 0.6,
+            StrokeShape = new RoundRectangle { CornerRadius = _isPhone ? 8 : 10 },
+            Content = _cartCountLabel
+        };
+    }
 
     private Label CreateLabel(string text, double fontSize) => new()
     {
@@ -325,7 +428,11 @@ public class PremiumStoreHeaderView : ContentView
 
     private Label CreateWalletIcon(string text) => CreateLabel(text, _isPhone ? 12 : 15);
 
-    private Label CreateWalletValue(string text) => CreateTextLabel(text, _isPhone ? 11 : 14, true, "CinzelDecorative-Bold");
+    private Label CreateWalletValue(string text) => CreateTextLabel(
+        text,
+        _isPhone ? 11 : 14,
+        true,
+        "CinzelDecorative-Bold");
 
     private Label CreateWalletPlus() => CreateTextLabel("+", _isPhone ? 12 : 15, true);
 
@@ -344,8 +451,8 @@ public class PremiumStoreHeaderView : ContentView
         AppEvents.StoreEconomyChanged += OnStoreEconomyChanged;
         AppEvents.PlayerProfileChanged -= OnPlayerProfileChanged;
         AppEvents.PlayerProfileChanged += OnPlayerProfileChanged;
-        AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
-        AppEvents.CurrentUserChanged += OnCurrentUserChanged;
+        AppEvents.CurrentUserChanged -= OnPlayerProfileChanged;
+        AppEvents.CurrentUserChanged += OnPlayerProfileChanged;
         AvatarsAdminService.PublishedChanged -= OnCollectiblesChanged;
         AvatarsAdminService.PublishedChanged += OnCollectiblesChanged;
         BackgroundsAdminService.PublishedChanged -= OnCollectiblesChanged;
@@ -359,77 +466,103 @@ public class PremiumStoreHeaderView : ContentView
         GalleryThemeEngine.ThemeChanged -= OnThemeChanged;
         AppEvents.StoreEconomyChanged -= OnStoreEconomyChanged;
         AppEvents.PlayerProfileChanged -= OnPlayerProfileChanged;
-        AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
+        AppEvents.CurrentUserChanged -= OnPlayerProfileChanged;
         AvatarsAdminService.PublishedChanged -= OnCollectiblesChanged;
         BackgroundsAdminService.PublishedChanged -= OnCollectiblesChanged;
     }
 
-    private void OnThemeChanged(object? sender, GalleryTheme theme) => ApplyTheme();
+    private void OnThemeChanged(object? sender, GalleryTheme theme)
+    {
+        ApplyTheme();
+    }
+
     private void OnStoreEconomyChanged(string playerId) => _ = RefreshStoreIdentityAsync();
     private void OnPlayerProfileChanged() => _ = RefreshStoreIdentityAsync();
-    private void OnCurrentUserChanged() => _ = RefreshStoreIdentityAsync();
     private void OnCollectiblesChanged() => _ = RefreshStoreIdentityAsync();
+
+    private static Task ShowCartPlaceholderAsync()
+    {
+        var page = Shell.Current?.CurrentPage ?? Application.Current?.Windows.FirstOrDefault()?.Page;
+        return page?.DisplayAlert("سلة المشتريات", "سلة المشتريات فارغة حالياً", "حسناً") ?? Task.CompletedTask;
+    }
 
     private async Task RefreshStoreIdentityAsync()
     {
+        var identity = await HonorIdentityService.LoadAsync();
         var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
-        _seasonButton.IsVisible = owner.Role == ApplicationUserRole.Developer;
+        _seasonButton.IsVisible = identity.IsActivated && identity.Role == HonorRoleType.Developer;
 
-        if (string.IsNullOrWhiteSpace(owner.PlayerId))
+        if (!owner.HasPlayerProfile || string.IsNullOrWhiteSpace(owner.PlayerId))
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 _playerNameLabel.Text = "اختر لاعباً";
-                _memberLabel.Text = owner.Role == ApplicationUserRole.Ghost ? "ضيف" : RoleLabel(owner.Role);
-                _avatarImage.Source = null;
+                _memberLabel.Text = identity.IsActivated ? RoleLabel(identity.Role) : "ضيف";
                 _avatarImage.IsVisible = false;
                 _avatarLabel.IsVisible = true;
                 _coinsLabel.Text = "0";
                 _gemsLabel.Text = "0";
+                _cartCountLabel.Text = "0";
+                _cartCountBadge.IsVisible = false;
                 _collectionProgress.Progress = 0;
                 _collectionProgressLabel.Text = "0 / 0   0%";
             });
             return;
         }
 
-        var profile = await PlayerProfileService.GetPlayerByIdAsync(owner.PlayerId) ?? await ApplicationUserService.EnsureCurrentUserPlayerProfileAsync();
-        var wallet = await PlayerStoreIdentityService.GetWalletAsync(owner.PlayerId);
-        var progress = await PlayerStoreIdentityService.GetCollectionProgressAsync(owner.PlayerId);
+        var playerId = owner.PlayerId.Trim();
+        var wallet = await PlayerStoreIdentityService.GetWalletAsync(playerId);
+        var progress = await PlayerStoreIdentityService.GetCollectionProgressAsync(playerId);
+        var profile = await PlayerProfileService.GetPlayerByIdAsync(playerId);
+        var cartCount = (await StoreFeatureService.GetCartAsync(playerId)).Count;
         var ratio = progress.TotalPublished == 0 ? 0 : progress.TotalOwned / (double)progress.TotalPublished;
-        var avatarSource = profile == null ? null : PlayerProfileService.GetPlayerImageSource(profile);
-
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            _playerNameLabel.Text = string.IsNullOrWhiteSpace(profile?.PlayerName) ? "لاعب" : profile.PlayerName;
-            _memberLabel.Text = ResolveRoleLabel(owner.Role, profile);
-            _avatarImage.Source = avatarSource;
-            _avatarImage.IsVisible = avatarSource != null;
+            _playerNameLabel.Text = string.IsNullOrWhiteSpace(profile?.PlayerName) ? "اختر لاعباً" : profile.PlayerName;
+            _memberLabel.Text = ResolveRoleLabel(identity.Role, profile);
+            var avatarPath = ResolveAvatarPath(profile);
+            _avatarImage.Source =
+                InventoryDisplayResolver.ResolveOptionalImageSource(
+                    avatarPath);
+            _avatarImage.IsVisible = _avatarImage.Source != null;
             _avatarLabel.IsVisible = !_avatarImage.IsVisible;
             _coinsLabel.Text = wallet.Coins.ToString("N0");
             _gemsLabel.Text = wallet.Gems.ToString("N0");
+            _cartCountLabel.Text = cartCount.ToString();
+            _cartCountBadge.IsVisible = cartCount > 0;
             _collectionProgress.Progress = ratio;
             var percent = progress.TotalPublished == 0 ? 0 : (int)Math.Round(ratio * 100);
             _collectionProgressLabel.Text = $"{progress.TotalOwned} / {progress.TotalPublished}   {percent}%";
         });
     }
 
-    private static string RoleLabel(ApplicationUserRole role) => role switch
+    private static string RoleLabel(HonorRoleType role) => role switch
     {
-        ApplicationUserRole.Developer => "مطور",
-        ApplicationUserRole.Member => "لاعب",
-        _ => "ضيف"
+        HonorRoleType.Developer => "مطور",
+        HonorRoleType.Founder => "مؤسس",
+        HonorRoleType.Honor => "عضو شرف",
+        _ => "لاعب"
     };
 
-    private static string ResolveRoleLabel(ApplicationUserRole role, PlayerProfileModel? profile)
+    private static string ResolveRoleLabel(HonorRoleType role, PlayerProfileModel? profile)
     {
-        if (role == ApplicationUserRole.Developer)
-            return "مطور";
+        if (role != HonorRoleType.None)
+            return RoleLabel(role);
         return profile?.ProfileStatus switch
         {
             PlayerProfileStatus.Developer => "مطور",
             PlayerProfileStatus.Founder => "مؤسس",
             PlayerProfileStatus.Honor => "عضو شرف",
-            _ => RoleLabel(role)
+            _ => "لاعب"
         };
+    }
+
+    private static string ResolveAvatarPath(PlayerProfileModel? profile)
+    {
+        if (profile == null) return string.Empty;
+        if (profile.UseCustomAvatar && !string.IsNullOrWhiteSpace(profile.AvatarPath)) return profile.AvatarPath;
+        if (!string.IsNullOrWhiteSpace(profile.ProfileImagePath)) return profile.ProfileImagePath;
+        if (!string.IsNullOrWhiteSpace(profile.AvatarImage)) return profile.AvatarImage;
+        return profile.BuiltInAvatar;
     }
 }

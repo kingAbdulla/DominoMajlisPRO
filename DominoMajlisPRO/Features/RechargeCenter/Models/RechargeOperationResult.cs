@@ -3,8 +3,7 @@ namespace DominoMajlisPRO.Features.RechargeCenter.Models;
 public sealed record RechargeOperationResult(
     bool Success,
     string Message,
-    RechargeWalletModel? Wallet = null,
-    PaymentTransactionResult? Payment = null);
+    RechargeWalletModel? Wallet = null);
 
 public sealed class RechargeClaimState
 {

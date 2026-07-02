@@ -24,16 +24,13 @@ public sealed record CatalogAssetDisplay(
     float EffectScale = 1,
     float EffectSpeed = 1,
     float EffectIntensity = 1,
-    string LivingVisualScope = "",
+    TypographyIdentityPreset? TypographyPresetValue = null,
+    string Rarity = "",
     string LivingVisualKind = "",
     string LivingPackageId = "",
     string LivingPackageManifestPath = "",
     string LivingPackagePath = "",
-    string PreferredBackend = "",
-    string FallbackPolicy = "",
-    string LivingVisualVersion = "",
-    string LivingPackageVersion = "",
-    string Rarity = "")
+    string LivingPackageVersion = "")
 {
     public IReadOnlyList<string> EffectLayerIds =>
         EffectLayerIdsValue ?? Array.Empty<string>();
@@ -41,7 +38,11 @@ public sealed record CatalogAssetDisplay(
     public bool HasDisplayMetadata =>
         !string.IsNullOrWhiteSpace(DisplayName) &&
         (!string.IsNullOrWhiteSpace(PreviewImage) ||
-         !string.IsNullOrWhiteSpace(ColorHex));
+         !string.IsNullOrWhiteSpace(ColorHex) ||
+         TypographyPresetValue != null);
+
+    public TypographyIdentityPreset TypographyPreset =>
+        (TypographyPresetValue ?? TypographyIdentityPreset.CreateDefault()).Normalized();
 }
 
 public sealed record ResolvedInventoryDisplay(
@@ -81,6 +82,8 @@ public sealed record PlayerVisualIdentity(
     CatalogAssetDisplay? ProfileBackground,
     CatalogAssetDisplay? Frame,
     CatalogAssetDisplay? Effect,
+    CatalogAssetDisplay? PlayerNameEffect,
+    CatalogAssetDisplay? PlayerNameFrame,
     CatalogAssetDisplay? Title);
 
 public sealed record StoreCheckoutResult(

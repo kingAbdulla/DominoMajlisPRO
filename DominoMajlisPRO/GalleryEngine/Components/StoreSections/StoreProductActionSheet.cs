@@ -1,9 +1,7 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
-using DominoMajlisPRO.GalleryEngine.Effects;
+using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.LivingVisualPlatform.Controls;
-using DominoMajlisPRO.LivingVisualPlatform.Models;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -18,7 +16,7 @@ internal enum StoreProductPreviewKind
     Frame,
     Badge,
     Effect,
-    LivingEmblem,
+    NameTypography,
     Season
 }
 
@@ -315,7 +313,8 @@ internal sealed class StoreProductActionSheet : Grid
         _inventoryContext = CreateInventoryContext(price);
         _teamAssetPayload = TeamAssetPayloadCatalog.Resolve(inventoryAssetId);
         _effectAsset = null;
-        if (IsEffectPreviewKind(_previewKind) &&
+        if ((_previewKind == StoreProductPreviewKind.Effect ||
+             _previewKind == StoreProductPreviewKind.NameTypography) &&
             !string.IsNullOrWhiteSpace(inventoryAssetId))
             _ = LoadEffectPreviewAsync(inventoryAssetId);
         _previewMessage.IsVisible = false;
@@ -413,7 +412,7 @@ internal sealed class StoreProductActionSheet : Grid
         var owned = inventory.FirstOrDefault(item =>
             item.IsOwned &&
             !item.IsExpired &&
-            CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId));
+            string.Equals(item.AssetId, assetId, StringComparison.OrdinalIgnoreCase));
         if (version != _animationVersion || !IsVisible || _isClosing)
             return;
 
@@ -618,6 +617,16 @@ internal sealed class StoreProductActionSheet : Grid
         _preview.IsEnabled = false;
         try
         {
+            if (_effectAsset == null &&
+                (_previewKind is StoreProductPreviewKind.Effect or
+                    StoreProductPreviewKind.NameTypography) &&
+                !string.IsNullOrWhiteSpace(_inventoryAssetId))
+            {
+                _effectAsset = await StoreAssetCatalogService.ResolveAsync(
+                    _inventoryAssetId,
+                    null);
+            }
+
             _previewOverlay.Show(new StoreProductPreviewRequest(
                 _imagePath,
                 _name.Text ?? string.Empty,
@@ -669,6 +678,13 @@ internal sealed class StoreProductActionSheet : Grid
                 _image.Aspect = Aspect.AspectFill;
                 break;
 
+            case StoreProductPreviewKind.NameTypography:
+                _previewSurface.HeightRequest = 120;
+                _previewSurface.Background = new SolidColorBrush(Color.FromArgb("#10000000"));
+                _previewSurface.StrokeShape = new RoundRectangle { CornerRadius = 20 };
+                _image.Aspect = Aspect.AspectFit;
+                break;
+
             default:
                 _previewSurface.HeightRequest = 230;
                 _previewSurface.Background = new SolidColorBrush(Color.FromArgb("#241B0C"));
@@ -684,99 +700,51 @@ internal sealed class StoreProductActionSheet : Grid
     private async Task LoadEffectPreviewAsync(string assetId)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
-        if (asset == null || !IsVisible || !IsEffectPreviewKind(_previewKind))
+        if (asset == null ||
+            !IsVisible ||
+            _previewKind is not (StoreProductPreviewKind.Effect or
+                StoreProductPreviewKind.NameTypography))
             return;
         _effectAsset = asset;
-
-        // ── TeamEffect path: resolve via EffectDefinitionRuntimeResolver ──
-        // Context = Store for unowned preview (ownership bypassed).
-        // Context = Inventory for owned item preview (ownership bypassed).
-        // Both contexts use the same resolver → same Brain → same renderer.
-        // Preview = Published = Runtime: one pipeline, zero fake renderers.
-        var canonicalType = StoreAssetCatalogService.CanonicalTypeId(_inventoryStoreTypeId);
-        var isTeamEffect  = string.Equals(
-            canonicalType,
-            StoreProductAssetType.TeamEffect.ToString(),
-            StringComparison.OrdinalIgnoreCase);
-        var isLivingEmblem =
-            _previewKind == StoreProductPreviewKind.LivingEmblem ||
-            StoreAssetCatalogService.IsLivingEmblemAsset(asset);
-
-        if (isTeamEffect || isLivingEmblem)
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            // Determine preview context: Inventory if caller supplied a playerId
-            // (meaning the item is being shown from My Items), Store otherwise.
-            var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
-            var isInventoryPreview = !string.IsNullOrWhiteSpace(_inventoryPlayerId);
-            var playerId = isInventoryPreview
-                ? _inventoryPlayerId
-                : owner.PlayerId;
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            if (!IsVisible ||
+                _previewKind is not (StoreProductPreviewKind.Effect or
+                    StoreProductPreviewKind.NameTypography))
+                return;
+            if (_previewKind == StoreProductPreviewKind.NameTypography)
             {
-                if (!IsVisible || !IsEffectPreviewKind(_previewKind))
-                    return;
-
-                // Build emblem image (base visual) + attach living behavior overlay.
-                // LivingEmblemBehavior.AttachPreview bypasses ownership gate —
-                // preview context is explicit, not runtime.
-                var host = new LivingVisualHost
+                var preset = asset.TypographyPreset;
+                if (asset.AssetType is StoreProductAssetType.PlayerNameEffect or
+                    StoreProductAssetType.TeamNameEffect)
+                    preset.FrameStylePreset = "None";
+                var plate = new IdentityPlateView
                 {
-                    AssetId = assetId,
-                    StaticFallbackImage = string.IsNullOrWhiteSpace(asset.PreviewImage)
-                        ? "shield_3d.png"
-                        : asset.PreviewImage,
-                    ApplicationUserId = owner.ApplicationUserId,
-                    PlayerId = playerId?.Trim() ?? string.Empty,
-                    TeamId = string.Empty,
-                    DisplayLocation = LivingVisualDisplayLocation.StoreActionSheet,
-                    IsStorePreview = !isInventoryPreview,
-                    IsInventoryPreview = isInventoryPreview,
-                    WidthRequest = 126,
-                    HeightRequest = 126,
+                    HeightRequest = 64,
+                    MaximumWidthRequest = 420,
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center
                 };
-
-                var layers = new Grid();
-                layers.Children.Add(host);
-                _previewSurface.Content = layers;
-
-                // Attach the living behavior overlay using the resolved definition.
-                // This is the Store/Inventory Preview entry point:
-                //   EffectDefinitionRuntimeResolver → LivingEmblemBehavior.AttachPreview
-                //   → EffectBehaviorRuntimeMapper → Brain → IEmblemBehaviorRenderer
-                // TODO (Phase 2.5-F): replace with PrepareStillFrame for thumbnail-only contexts.
-            });
-            return;
-        }
-
-        // ── Player avatar Effect path: same renderer contract as store card and
-        // runtime. Developer image is shown as-is when provided; otherwise the
-        // procedural effect only. No emblem/shield substitute for player effects.
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            if (!IsVisible || !IsEffectPreviewKind(_previewKind))
+                plate.Bind(_name.Text ?? asset.DisplayName, preset);
+                _previewSurface.HeightRequest = 120;
+                _previewSurface.Padding = 8;
+                _previewSurface.Content = plate;
                 return;
+            }
 
+            var emblem = new Image
+            {
+                Source = InventoryDisplayResolver.ResolveImageSource(
+                    string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
+                    "shield_3d.png"),
+                WidthRequest = 126,
+                HeightRequest = 126,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            };
             var layers = new Grid();
-            var providedImage =
-                InventoryDisplayResolver.ResolveOptionalImageSource(asset.PreviewImage);
-            if (providedImage != null)
-            {
-                layers.Children.Add(new Image
-                {
-                    Source = providedImage,
-                    WidthRequest = 126,
-                    HeightRequest = 126,
-                    HorizontalOptions = LayoutOptions.Center,
-                    VerticalOptions = LayoutOptions.Center
-                });
-            }
-            else
-            {
-                layers.Children.Add(IdentityEffectRenderer.Create(asset, 1.24));
-            }
+            layers.Children.Add(IdentityEffectRenderer.Create(asset, 1.24));
+            layers.Children.Add(emblem);
             _previewSurface.Content = layers;
         });
     }
@@ -797,9 +765,6 @@ internal sealed class StoreProductActionSheet : Grid
         _previewSurface.Content = _image;
         _image.Aspect = Aspect.AspectFit;
     }
-
-    private static bool IsEffectPreviewKind(StoreProductPreviewKind previewKind) =>
-        previewKind is StoreProductPreviewKind.Effect or StoreProductPreviewKind.LivingEmblem;
 
     private async void OnPrimaryClicked(object? sender, EventArgs e)
     {
@@ -1085,7 +1050,10 @@ internal sealed class StoreProductActionSheet : Grid
     }
 
     private static bool SameId(string? left, string? right) =>
-        CanonicalAssetIdentityService.SameAssetId(left, right);
+        string.Equals(
+            left?.Trim(),
+            right?.Trim(),
+            StringComparison.OrdinalIgnoreCase);
 
     private static bool ResolveFreeState(
         bool? declaredFree,

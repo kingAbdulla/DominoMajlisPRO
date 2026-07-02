@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Services;
 
@@ -38,6 +39,7 @@ public static class PlayerWalletService
             wallet.Gems = checked(wallet.Gems + gems);
             wallet.UpdatedAt = DateTime.UtcNow;
             await SaveAsync(wallets);
+            AppEvents.RaiseWalletChanged(playerId);
             return wallet;
         }
         finally { Gate.Release(); }
@@ -67,6 +69,7 @@ public static class PlayerWalletService
             if (currency == StorePurchaseCurrencyType.Gems) wallet.Gems -= amount;
             wallet.UpdatedAt = DateTime.UtcNow;
             await SaveAsync(wallets);
+            AppEvents.RaiseWalletChanged(playerId);
             return (true, wallet);
         }
         finally { Gate.Release(); }

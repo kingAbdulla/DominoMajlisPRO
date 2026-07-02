@@ -1,8 +1,5 @@
 ﻿using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.LivingVisualPlatform.Controls;
-using DominoMajlisPRO.LivingVisualPlatform.Models;
-using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
@@ -20,7 +17,7 @@ public class PremiumGalleryCard : ContentView
     private readonly Label _currencyIcon;
     private readonly Grid _contentGrid;
     private IdentityEffectView? _effectView;
-    private LivingVisualHost? _livingVisualHost;
+    private IdentityPlateView? _identityPlate;
 
     public PremiumGalleryCard()
     {
@@ -202,19 +199,14 @@ public class PremiumGalleryCard : ContentView
                 : "جديد";
 
         _ = ApplyDynamicBackgroundAsync(imageName);
-        _ = ApplyEffectPreviewAsync(item.Id);
+        _ = ApplyEffectPreviewAsync(item.Id, _name.Text);
 
         ApplyResponsive();
     }
 
-    private async Task ApplyEffectPreviewAsync(string assetId)
+    private async Task ApplyEffectPreviewAsync(string assetId, string displayText)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
-        var owner = asset?.AssetType == StoreProductAssetType.TeamEffect ||
-            StoreAssetCatalogService.IsLivingEmblemAsset(asset)
-            ? await ApplicationUserService.GetCurrentStoreOwnerAsync()
-            : null;
-
         MainThread.BeginInvokeOnMainThread(() =>
         {
             if (_effectView != null)
@@ -223,64 +215,40 @@ public class PremiumGalleryCard : ContentView
                 _contentGrid.Children.Remove(_effectView);
                 _effectView = null;
             }
-
-            if (_livingVisualHost != null)
+            if (_identityPlate != null)
             {
-                _contentGrid.Children.Remove(_livingVisualHost);
-                _livingVisualHost = null;
+                _contentGrid.Children.Remove(_identityPlate);
+                _identityPlate = null;
+            }
+
+            if (asset?.AssetType is StoreProductAssetType.PlayerNameEffect or
+                StoreProductAssetType.TeamNameEffect or
+                StoreProductAssetType.PlayerNameFrame or
+                StoreProductAssetType.TeamNameFrame)
+            {
+                _image.IsVisible = false;
+                _identityPlate = new IdentityPlateView
+                {
+                    HeightRequest = 40,
+                    Margin = new Thickness(10, 0),
+                    HorizontalOptions = LayoutOptions.Fill,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                _identityPlate.Bind(displayText, PresetForNameAsset(asset));
+                _contentGrid.Add(_identityPlate, 0, 0);
+                return;
             }
 
             _image.IsVisible = true;
-
-            var isLivingEmblem = StoreAssetCatalogService.IsLivingEmblemAsset(asset);
             if (asset?.AssetType is not (StoreProductAssetType.Effect or
-                StoreProductAssetType.TeamEffect) &&
-                !isLivingEmblem)
+                StoreProductAssetType.TeamEffect))
                 return;
 
-            if (asset.AssetType == StoreProductAssetType.TeamEffect ||
-                isLivingEmblem)
-            {
-                _image.Source = InventoryDisplayResolver.ResolveImageSource(
-                    string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
-                    "shield_3d.png");
-                _image.WidthRequest = 72;
-                _image.HeightRequest = 72;
-                _image.IsVisible = false;
-                _livingVisualHost = new LivingVisualHost
-                {
-                    AssetId = asset.AssetId,
-                    StaticFallbackImage = string.IsNullOrWhiteSpace(asset.PreviewImage)
-                        ? "shield_3d.png"
-                        : asset.PreviewImage,
-                    ApplicationUserId = owner?.ApplicationUserId ?? string.Empty,
-                    PlayerId = owner?.PlayerId ?? string.Empty,
-                    TeamId = string.Empty,
-                    DisplayLocation = LivingVisualDisplayLocation.StorePreview,
-                    IsStorePreview = true,
-                    WidthRequest = 90,
-                    HeightRequest = 90,
-                    HorizontalOptions = LayoutOptions.Center,
-                    VerticalOptions = LayoutOptions.Center
-                };
-                _contentGrid.Add(_livingVisualHost, 0, 0);
-                return;
-            }
-
-            // Player avatar effect: show the developer image if one was attached,
-            // otherwise the procedural effect only. Never a team emblem / shield.
-            var providedImage =
-                InventoryDisplayResolver.ResolveOptionalImageSource(asset.PreviewImage);
-            if (providedImage != null)
-            {
-                _image.Source = providedImage;
-                _image.WidthRequest = 90;
-                _image.HeightRequest = 90;
-                _image.IsVisible = true;
-                return;
-            }
-
-            _image.IsVisible = false;
+            _image.Source = InventoryDisplayResolver.ResolveImageSource(
+                string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
+                "shield_3d.png");
+            _image.WidthRequest = 72;
+            _image.HeightRequest = 72;
             _effectView = IdentityEffectRenderer.Create(asset, 1.22, lightweight: true);
             _effectView.WidthRequest = 100;
             _effectView.HeightRequest = 100;
@@ -288,6 +256,16 @@ public class PremiumGalleryCard : ContentView
             _effectView.VerticalOptions = LayoutOptions.Center;
             _contentGrid.Add(_effectView, 0, 0);
         });
+    }
+
+    private static TypographyIdentityPreset PresetForNameAsset(
+        CatalogAssetDisplay asset)
+    {
+        var preset = asset.TypographyPreset;
+        if (asset.AssetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect)
+            preset.FrameStylePreset = "None";
+        return preset.Normalized();
     }
 
     public void Bind(GalleryItem item, object? theme)

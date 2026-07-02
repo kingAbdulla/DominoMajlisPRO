@@ -23,7 +23,11 @@ public enum InventoryEquipTarget
     Emblem,
     TeamColor,
     EmblemBackground,
-    TeamEffect
+    TeamEffect,
+    PlayerNameEffect,
+    PlayerNameFrame,
+    TeamNameEffect,
+    TeamNameFrame
 }
 
 public sealed record InventoryProductContext(
@@ -116,14 +120,16 @@ public static class InventoryRouter
         }
 
         var canonicalTypeId = assetType.ToString();
-        if (assetType == StoreProductAssetType.TeamLivingEmblem)
-            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Emblem, false);
         if (assetType == StoreProductAssetType.Emblem)
             return TeamRoute(canonicalTypeId, InventoryEquipTarget.Emblem);
         if (assetType == StoreProductAssetType.TeamColor)
             return TeamRoute(canonicalTypeId, InventoryEquipTarget.TeamColor);
         if (assetType == StoreProductAssetType.EmblemBackground)
             return TeamRoute(canonicalTypeId, InventoryEquipTarget.EmblemBackground);
+        if (assetType == StoreProductAssetType.TeamNameEffect)
+            return TeamRoute(canonicalTypeId, InventoryEquipTarget.TeamNameEffect);
+        if (assetType == StoreProductAssetType.TeamNameFrame)
+            return TeamRoute(canonicalTypeId, InventoryEquipTarget.TeamNameFrame);
         if (assetType == StoreProductAssetType.Avatar)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Avatar, true);
         if (assetType == StoreProductAssetType.ProfileBackground)
@@ -132,6 +138,10 @@ public static class InventoryRouter
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Frame, true);
         if (assetType == StoreProductAssetType.Effect)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Effect, true);
+        if (assetType == StoreProductAssetType.PlayerNameEffect)
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.PlayerNameEffect, true);
+        if (assetType == StoreProductAssetType.PlayerNameFrame)
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.PlayerNameFrame, true);
         if (assetType == StoreProductAssetType.TeamEffect)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamEffect, false);
         if (assetType == StoreProductAssetType.Title)
@@ -159,16 +169,24 @@ public static class InventoryRouter
 
         if (route.OwnerScope == InventoryOwnerScope.Team)
         {
-            var inventory =
-                await PlayerInventoryService.GetInventoryForPlayerAsync(
-                    owner.PlayerId);
-            var owned = inventory.FirstOrDefault(item =>
-                item.IsOwned && !item.IsExpired &&
-                SameId(item.AssetId, product.AssetId) &&
-                SameId(item.StoreTypeId, route.StoreTypeId));
+            var teamId = await ResolveActiveTeamIdAsync(owner.PlayerId);
+            if (string.IsNullOrWhiteSpace(teamId))
+                return new InventoryState(
+                    route, free, false, false,
+                    false, false, true, owner.PlayerId, null,
+                    IsAvailable(product),
+                    GetAvailabilityMessage(product));
+
+            var owned = await TeamAssetInventoryService.GetEquippedAsync(
+                teamId,
+                route.StoreTypeId);
+            var isOwned = await TeamAssetInventoryService.IsOwnedAsync(
+                teamId,
+                product.AssetId,
+                route.StoreTypeId);
             return new InventoryState(
-                route, free, owned != null, false,
-                false, false, false, owner.PlayerId, null,
+                route, free, isOwned, SameId(owned?.TeamAssetId, product.AssetId),
+                false, false, false, owner.PlayerId, teamId,
                 IsAvailable(product),
                 GetAvailabilityMessage(product));
         }
@@ -217,8 +235,8 @@ public static class InventoryRouter
         {
             if (!before.IsOwned)
             {
-                wasAdded = await PlayerInventoryService.AddOwnedItemWithoutNotificationAsync(
-                    before.PlayerId!,
+                wasAdded = await TeamAssetInventoryService.AddOwnedAssetAsync(
+                    before.TeamId!,
                     product.AssetId,
                     before.Route.StoreTypeId,
                     "FreeAcquire",
@@ -227,14 +245,21 @@ public static class InventoryRouter
             }
 
             var acquired = before.IsOwned || wasAdded ||
-                await PlayerInventoryService.IsOwnedAsync(
-                    before.PlayerId!,
-                    product.AssetId);
+                await TeamAssetInventoryService.IsOwnedAsync(
+                    before.TeamId!,
+                    product.AssetId,
+                    before.Route.StoreTypeId);
 
-            changed = wasAdded;
+            changed = acquired && await TeamAssetInventoryService.EquipAsync(
+                before.TeamId!,
+                product.AssetId,
+                before.Route.StoreTypeId);
 
             if (acquired)
+            {
                 AppEvents.RaiseStoreEconomyChanged(before.PlayerId!);
+                AppEvents.RaiseTeamIdentityChanged(before.TeamId!);
+            }
         }
         else
         {
@@ -281,7 +306,9 @@ public static class InventoryRouter
         if (route.EquipTarget is InventoryEquipTarget.Avatar or
             InventoryEquipTarget.ProfileBackground or
             InventoryEquipTarget.Frame or
-            InventoryEquipTarget.Effect)
+            InventoryEquipTarget.Effect or
+            InventoryEquipTarget.PlayerNameEffect or
+            InventoryEquipTarget.PlayerNameFrame)
         {
             return await StoreEquipService.EquipAsync(playerId, assetId);
         }
@@ -336,7 +363,7 @@ public static class InventoryRouter
     }
 
     private static bool SameId(string? left, string? right) =>
-        CanonicalAssetIdentityService.SameAssetId(left, right);
+        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private static void ValidateProduct(InventoryProductContext product)
     {

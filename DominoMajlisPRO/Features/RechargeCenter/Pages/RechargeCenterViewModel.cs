@@ -23,57 +23,27 @@ public sealed class RechargeCenterViewModel : INotifyPropertyChanged
     public IReadOnlyList<RechargeRewardModel> FirstRechargeRewards => Catalog.FirstRechargeRewards;
     public IReadOnlyList<RechargeFaqItemModel> FaqItems => Catalog.FaqItems;
     public RechargeVipPlanModel VipPlan => Catalog.VipPlan;
-
     public RechargeWalletModel Wallet
     {
         get => _wallet;
-        private set
-        {
-            _wallet = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(CoinsText));
-            OnPropertyChanged(nameof(GemsText));
-        }
+        private set { _wallet = value; OnPropertyChanged(); OnPropertyChanged(nameof(CoinsText)); OnPropertyChanged(nameof(GemsText)); }
     }
-
     public string CoinsText => Wallet.Coins.ToString("N0");
     public string GemsText => Wallet.Gems.ToString("N0");
-
     public int TotalPurchasedGems
     {
         get => _totalPurchasedGems;
-        private set
-        {
-            _totalPurchasedGems = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(ProgressText));
-            OnPropertyChanged(nameof(ProgressValue));
-        }
+        private set { _totalPurchasedGems = value; OnPropertyChanged(); OnPropertyChanged(nameof(ProgressText)); OnPropertyChanged(nameof(ProgressValue)); }
     }
-
     public string ProgressText => $"{TotalPurchasedGems:N0} / 1,000";
     public double ProgressValue => Math.Clamp(TotalPurchasedGems / 1000d, 0, 1);
-
     public string SelectedPaymentMethodId
     {
         get => _selectedPaymentMethodId;
-        private set
-        {
-            _selectedPaymentMethodId = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(SelectedPaymentText));
-        }
+        private set { _selectedPaymentMethodId = value; OnPropertyChanged(); OnPropertyChanged(nameof(SelectedPaymentText)); }
     }
-
-    public string SelectedPaymentText
-    {
-        get
-        {
-            var method = PaymentMethods.FirstOrDefault(x => x.PaymentMethodId == SelectedPaymentMethodId);
-            return method == null ? "غير محدد" : $"{method.DisplayName} • {method.StatusText}";
-        }
-    }
-
+    public string SelectedPaymentText =>
+        PaymentMethods.FirstOrDefault(x => x.PaymentMethodId == SelectedPaymentMethodId)?.Name ?? "غير محدد";
     public bool IsBusy
     {
         get => _isBusy;
@@ -89,15 +59,11 @@ public sealed class RechargeCenterViewModel : INotifyPropertyChanged
             var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
             if (string.IsNullOrWhiteSpace(owner.PlayerId))
                 return "اختر أو أنشئ ملف لاعب قبل فتح مركز الشحن.";
-
             PlayerId = owner.PlayerId;
             Catalog = await RechargeCatalogService.LoadAsync();
             Packages = RechargeCatalogService.VisiblePackages(Catalog).ToList();
             Offers = RechargeCatalogService.VisibleOffers(Catalog).ToList();
             PaymentMethods = RechargeCatalogService.VisiblePaymentMethods(Catalog).ToList();
-            if (!PaymentMethods.Any(x => x.PaymentMethodId == SelectedPaymentMethodId && x.IsEnabled))
-                SelectedPaymentMethodId = PaymentMethods.FirstOrDefault(x => x.IsEnabled)?.PaymentMethodId ?? string.Empty;
-
             Wallet = await RechargeWalletService.GetOrCreateAsync(PlayerId);
             await RefreshPurchaseStateAsync();
             RaiseCatalogProperties();
@@ -115,8 +81,7 @@ public sealed class RechargeCenterViewModel : INotifyPropertyChanged
 
     public void SelectPaymentMethod(PaymentMethodModel method)
     {
-        if (method.IsEnabled)
-            SelectedPaymentMethodId = method.PaymentMethodId;
+        if (method.IsEnabled) SelectedPaymentMethodId = method.PaymentMethodId;
     }
 
     public async Task<RechargeOperationResult> PurchasePackageAsync(RechargePackageModel package) =>
@@ -134,9 +99,6 @@ public sealed class RechargeCenterViewModel : INotifyPropertyChanged
     public async Task<RechargeOperationResult> ClaimProgressAsync(RechargeProgressRewardModel reward) =>
         await ExecuteAndRefreshAsync(() => RechargePurchaseService.ClaimProgressRewardAsync(PlayerId, reward));
 
-    public async Task<RechargeOperationResult> ClaimWheelRewardAsync() =>
-        await ExecuteAndRefreshAsync(() => RechargePurchaseService.GrantWheelRewardAsync(PlayerId));
-
     public async Task<IReadOnlyList<PurchaseHistoryItemModel>> GetHistoryAsync() =>
         await RechargePurchaseService.GetHistoryAsync(PlayerId);
 
@@ -147,11 +109,7 @@ public sealed class RechargeCenterViewModel : INotifyPropertyChanged
         try
         {
             var result = await action();
-            if (result.Wallet != null)
-                Wallet = result.Wallet;
-            else if (!string.IsNullOrWhiteSpace(PlayerId))
-                Wallet = await RechargeWalletService.GetOrCreateAsync(PlayerId);
-
+            if (result.Wallet != null) Wallet = result.Wallet;
             await RefreshPurchaseStateAsync();
             return result;
         }

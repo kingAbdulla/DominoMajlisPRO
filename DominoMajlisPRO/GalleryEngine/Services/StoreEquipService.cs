@@ -42,9 +42,8 @@ public static class StoreEquipService
             }
         }
         // Ensure persistence is complete before raising events.
-        AppEvents.RaiseStoreEconomyChanged(playerId);
-        if (visualApplied)
-            AppEvents.RaisePlayerProfileChanged();
+        AppEvents.RaiseInventoryChanged(playerId);
+        RaiseVisualChanged(playerId, storeTypeId, visualApplied);
 
         return new StoreAcquireResult(true, equipped, !wasOwned, visualApplied);
     }
@@ -62,9 +61,8 @@ public static class StoreEquipService
             return false;
 
         var visualApplied = await ApplyVisualAsync(playerId, assetId, owned.StoreTypeId);
-        AppEvents.RaiseStoreEconomyChanged(playerId);
-        if (visualApplied)
-            AppEvents.RaisePlayerProfileChanged();
+        AppEvents.RaiseInventoryChanged(playerId);
+        RaiseVisualChanged(playerId, owned.StoreTypeId, visualApplied);
         return true;
     }
 
@@ -90,6 +88,8 @@ public static class StoreEquipService
         SameId(storeTypeId, StoreProductAssetType.ProfileBackground.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.Frame.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.Effect.ToString()) ||
+        SameId(storeTypeId, StoreProductAssetType.PlayerNameEffect.ToString()) ||
+        SameId(storeTypeId, StoreProductAssetType.PlayerNameFrame.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.Title.ToString());
 
     private static async Task<bool> ApplyVisualAsync(string playerId, string assetId, string storeTypeId)
@@ -111,7 +111,22 @@ public static class StoreEquipService
     }
 
     private static bool SameId(string? left, string? right) =>
-        CanonicalAssetIdentityService.SameAssetId(left, right);
+        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private static void RaiseVisualChanged(
+        string playerId,
+        string storeTypeId,
+        bool visualApplied)
+    {
+        if (!visualApplied)
+            return;
+
+        if (SameId(storeTypeId, StoreProductAssetType.Effect.ToString()) ||
+            SameId(storeTypeId, StoreProductAssetType.PlayerNameEffect.ToString()))
+            AppEvents.RaisePlayerEffectChanged(playerId);
+        else
+            AppEvents.RaisePlayerIdentityChanged(playerId);
+    }
 
     private static void ValidateIdentity(string playerId, string assetId, string? storeTypeId = null)
     {

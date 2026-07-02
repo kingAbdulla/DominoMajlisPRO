@@ -9,7 +9,13 @@ public static class PlayerAssetInventoryService
     private static readonly HashSet<string> PlayerTypes =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            "Avatar", "ProfileBackground", "Frame", "Effect", "Title"
+            "Avatar",
+            "ProfileBackground",
+            "Frame",
+            "Effect",
+            "Title",
+            "PlayerNameEffect",
+            "PlayerNameFrame"
         };
 
     public static async Task<IReadOnlyList<PlayerOwnedStoreItem>>
@@ -33,7 +39,7 @@ public static class PlayerAssetInventoryService
         return CreateDefaultAssets(playerId)
             .Concat(purchased)
             .GroupBy(
-                item => $"{StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId)}\u001F{item.AssetId}",
+                item => StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId) + "|" + item.AssetId,
                 StringComparer.OrdinalIgnoreCase)
             .Select(group => group
                 .OrderByDescending(item => item.IsEquipped)
@@ -90,7 +96,12 @@ public static class PlayerAssetInventoryService
             return true;
         }
 
-        return assetType is "Avatar" or "ProfileBackground"
+        return assetType is "Avatar" or
+            "ProfileBackground" or
+            "Frame" or
+            "Effect" or
+            "PlayerNameEffect" or
+            "PlayerNameFrame"
             ? await StoreEquipService.EquipAsync(playerId, assetId)
             : await PlayerInventoryService.EquipItemAsync(playerId, assetId);
     }

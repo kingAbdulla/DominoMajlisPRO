@@ -19,8 +19,8 @@ public static class TeamIdentityResolver
         TeamProfileModel? legacyProfile = null;
         try
         {
-            // Prefer ID-first resolution but allow TeamName fallback for legacy data.
-            legacyProfile = await TeamProfileService.GetTeamAsync(normalizedTeamId);
+            legacyProfile =
+                await TeamProfileService.GetTeamByIdAsync(normalizedTeamId);
         }
         catch
         {
@@ -43,9 +43,7 @@ public static class TeamIdentityResolver
             legacyProfile?.EmblemBackgroundAssetId,
             TeamAssetTypes.EmblemBackground.TeamAssetTypeId);
         var catalogEmblem = StoreAssetCatalogService.Resolve(
-            catalog, legacyProfile?.EmblemAssetId, "TeamLivingEmblem")
-            ?? StoreAssetCatalogService.Resolve(
-                catalog, legacyProfile?.EmblemAssetId, "Emblem");
+            catalog, legacyProfile?.EmblemAssetId, "Emblem");
         var catalogColor = StoreAssetCatalogService.Resolve(
             catalog, legacyProfile?.TeamColorAssetId, "TeamColor");
         var catalogBackground = StoreAssetCatalogService.Resolve(

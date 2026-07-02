@@ -8,7 +8,7 @@ public static class TeamEligibleAssetService
     private static readonly HashSet<string> TeamTypes =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            "Emblem", "TeamLivingEmblem", "TeamColor", "EmblemBackground", "TeamEffect"
+            "Emblem", "TeamColor", "EmblemBackground", "TeamEffect"
         };
 
     public static Task<IReadOnlyList<TeamOwnedAssetItem>> GetEligibleAsync(
@@ -37,10 +37,7 @@ public static class TeamEligibleAssetService
                 .Select(item => new TeamOwnedAssetItem
                 {
                     TeamInventoryItemId = item.InventoryItemId,
-                    ApplicationUserId = string.IsNullOrWhiteSpace(item.ApplicationUserId)
-                        ? appUserId
-                        : item.ApplicationUserId.Trim(),
-                    OwnerPlayerId = playerId,
+                    ApplicationUserId = appUserId,
                     TeamId = teamId?.Trim() ?? string.Empty,
                     TeamAssetId = item.AssetId,
                     TeamAssetTypeId =
@@ -74,11 +71,10 @@ public static class TeamEligibleAssetService
             {
                 TeamInventoryItemId =
                     $"DEFAULT-{payload.TeamAssetTypeId}-{payload.TeamAssetId}",
-                OwnerPlayerId = string.Empty,
                 TeamId = teamId?.Trim() ?? string.Empty,
                 TeamAssetId = payload.TeamAssetId,
                 TeamAssetTypeId = payload.TeamAssetTypeId,
-                IsOwned = true,
+                IsOwned = false,
                 AcquiredAt = new DateTime(
                     2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                 Source = "Default"

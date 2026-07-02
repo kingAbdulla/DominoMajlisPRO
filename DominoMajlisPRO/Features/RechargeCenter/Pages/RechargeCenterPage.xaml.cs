@@ -141,22 +141,12 @@ public partial class RechargeCenterPage : ContentPage
         var history = await _viewModel.GetHistoryAsync();
         var message = history.Count == 0
             ? "لا توجد عمليات شراء حتى الآن."
-            : string.Join("\n\n", history.Take(12).Select(x => $"{x.ItemTitle}  •  {x.PriceText}\n{x.Status}  •  {x.CreatedAtText}\nطريقة الدفع: {x.PaymentMethodId}\nالمرجع: {ShortRef(x.ProviderTransactionId)}"));
+            : string.Join("\n\n", history.Take(12).Select(x => $"{x.ItemTitle}  •  {x.PriceText}\n{x.Status}  •  {x.CreatedAtText}"));
         await DisplayAlert("سجل المشتريات", message, "إغلاق");
     }
 
-    private async void OnAddCoinsClicked(object? sender, EventArgs e)
-    {
-        var coinOffer = _viewModel.Offers.FirstOrDefault(x => x.CoinsAmount > 0);
-        if (coinOffer != null)
-        {
-            await PageScroll.ScrollToAsync(OffersVipGrid, ScrollToPosition.Start, true);
-            await DisplayAlert("شحن العملات", $"أقرب خيار شحن عملات متاح الآن هو: {coinOffer.Title} مقابل {coinOffer.NewPriceText}.", "حسناً");
-            return;
-        }
-
-        await DisplayAlert("شحن العملات", "لا توجد باقة عملات منشورة حالياً.", "حسناً");
-    }
+    private async void OnAddCoinsClicked(object? sender, EventArgs e) =>
+        await DisplayAlert("شحن العملات", "سيتم ربط باقات العملات الكاملة لاحقاً. يمكنك حالياً شراء عرض العملات المحدود.", "حسناً");
 
     private async void OnAddGemsClicked(object? sender, EventArgs e)
     {
@@ -166,11 +156,7 @@ public partial class RechargeCenterPage : ContentPage
     private async void OnPackageClicked(object? sender, EventArgs e)
     {
         if (sender is not Button { CommandParameter: RechargePackageModel package }) return;
-        var confirmed = await DisplayAlert(
-            "تأكيد الشراء",
-            $"شراء {package.TotalGems:N0} جوهرة مقابل {package.PriceText}?\nطريقة الدفع: {_viewModel.SelectedPaymentText}",
-            "تأكيد",
-            "إلغاء");
+        var confirmed = await DisplayAlert("تأكيد الشراء", $"شراء {package.TotalGems:N0} جوهرة مقابل {package.PriceText}؟\nطريقة الدفع: {_viewModel.SelectedPaymentText}", "تأكيد", "إلغاء");
         if (!confirmed) return;
         await ShowResultAsync(await _viewModel.PurchasePackageAsync(package));
     }
@@ -178,22 +164,14 @@ public partial class RechargeCenterPage : ContentPage
     private async void OnOfferClicked(object? sender, EventArgs e)
     {
         if (sender is not Button { CommandParameter: RechargeOfferModel offer }) return;
-        var confirmed = await DisplayAlert(
-            "تأكيد العرض",
-            $"شراء {offer.Title} مقابل {offer.NewPriceText}?\nطريقة الدفع: {_viewModel.SelectedPaymentText}",
-            "تأكيد",
-            "إلغاء");
+        var confirmed = await DisplayAlert("تأكيد العرض", $"شراء {offer.Title} مقابل {offer.NewPriceText}؟", "تأكيد", "إلغاء");
         if (!confirmed) return;
         await ShowResultAsync(await _viewModel.PurchaseOfferAsync(offer));
     }
 
     private async void OnVipClicked(object? sender, EventArgs e)
     {
-        var confirmed = await DisplayAlert(
-            "DOMINO VIP",
-            $"تفعيل الاشتراك مقابل {_viewModel.VipPlan.MonthlyPriceText}?\nطريقة الدفع: {_viewModel.SelectedPaymentText}",
-            "اشترك الآن",
-            "إلغاء");
+        var confirmed = await DisplayAlert("DOMINO VIP", $"تفعيل الاشتراك مقابل {_viewModel.VipPlan.MonthlyPriceText}؟", "اشترك الآن", "إلغاء");
         if (!confirmed) return;
         await ShowResultAsync(await _viewModel.SubscribeVipAsync());
     }
@@ -216,10 +194,7 @@ public partial class RechargeCenterPage : ContentPage
             return;
         }
         _viewModel.SelectPaymentMethod(method);
-        var message = method.IsProductionReady
-            ? $"تم اختيار {method.Name}."
-            : $"تم اختيار {method.Name} في وضع Sandbox. الدفع الحقيقي يتطلب بيانات التاجر من المزود.";
-        await DisplayAlert("طريقة الدفع", message, "حسناً");
+        await DisplayAlert("طريقة الدفع", $"تم اختيار {method.Name}.", "حسناً");
     }
 
     private void OnFaqTapped(object? sender, TappedEventArgs e)
@@ -229,22 +204,8 @@ public partial class RechargeCenterPage : ContentPage
     }
 
     private async void OnSupportClicked(object? sender, EventArgs e) =>
-        await DisplayAlert(
-            "الدعم الفني",
-            "احتفظ بصورة من سجل العملية ورقم المرجع. عند ربط بوابة الدفع الحقيقية سيتم إرسال رقم العملية إلى الدعم تلقائياً.",
-            "حسناً");
+        await DisplayAlert("الدعم الفني", "سيتم ربط الدعم الفني لاحقاً", "حسناً");
 
-    private async Task ShowResultAsync(RechargeOperationResult result)
-    {
-        var message = result.Message;
-        if (result.Payment != null && !string.IsNullOrWhiteSpace(result.Payment.ProviderTransactionId))
-            message += $"\n\nرقم العملية: {ShortRef(result.Payment.ProviderTransactionId)}";
-        await DisplayAlert(result.Success ? "تمت العملية" : "تعذر إكمال العملية", message, "حسناً");
-    }
-
-    private static string ShortRef(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return "-";
-        return value.Length <= 18 ? value : value[^18..];
-    }
+    private async Task ShowResultAsync(RechargeOperationResult result) =>
+        await DisplayAlert(result.Success ? "تمت العملية" : "تعذر إكمال العملية", result.Message, "حسناً");
 }

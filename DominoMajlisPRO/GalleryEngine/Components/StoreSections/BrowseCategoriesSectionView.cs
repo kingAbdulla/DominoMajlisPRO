@@ -1,5 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Models;
-
+using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Components.StoreSections;
@@ -31,16 +30,11 @@ public class BrowseCategoriesSectionView : StoreProductsSectionBase
     {
         Admin.Services.StoreCategoriesAdminService.PublishedChanged -= OnPublishedChanged;
         Admin.Services.StoreCategoriesAdminService.PublishedChanged += OnPublishedChanged;
-        Admin.Services.NewArrivalsAdminService.PublishedChanged -= OnPublishedChanged;
-        Admin.Services.NewArrivalsAdminService.PublishedChanged += OnPublishedChanged;
         _ = RefreshFromCmsAsync();
     }
 
-    private void OnCmsUnloaded(object? sender, EventArgs e)
-    {
+    private void OnCmsUnloaded(object? sender, EventArgs e) =>
         Admin.Services.StoreCategoriesAdminService.PublishedChanged -= OnPublishedChanged;
-        Admin.Services.NewArrivalsAdminService.PublishedChanged -= OnPublishedChanged;
-    }
 
     private void OnPublishedChanged() => _ = RefreshFromCmsAsync();
 
@@ -68,8 +62,11 @@ public class BrowseCategoriesSectionView : StoreProductsSectionBase
 
     private void AttachShowAllTap()
     {
-        if (Content is not VerticalStackLayout { Children.Count: > 0 } section || section.Children[0] is not Grid header || header.Children.FirstOrDefault() is not Label actionLabel)
+        if (Content is not VerticalStackLayout { Children.Count: > 0 } section ||
+            section.Children[0] is not Grid header ||
+            header.Children.FirstOrDefault() is not Label actionLabel)
             return;
+
         var tap = new TapGestureRecognizer();
         tap.Tapped += (_, _) => ShowAllRequested?.Invoke(this, EventArgs.Empty);
         actionLabel.GestureRecognizers.Add(tap);
@@ -77,12 +74,31 @@ public class BrowseCategoriesSectionView : StoreProductsSectionBase
 
     private void BuildTappableCards(IReadOnlyList<CategoryCard> categories)
     {
-        if (Content is not VerticalStackLayout section || section.Children.Count < 2 || section.Children[1] is not Grid grid)
+        if (Content is not VerticalStackLayout section ||
+            section.Children.Count < 2 ||
+            section.Children[1] is not Grid grid)
             return;
 
         grid.Children.Clear();
         grid.RowDefinitions.Clear();
         grid.ColumnDefinitions.Clear();
+
+        if (categories.Count == 0)
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.Add(new Label
+            {
+                Text = "لا توجد فئات منشورة حالياً.",
+                FontFamily = "Tajawal-Regular",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#B8A77D"),
+                HorizontalTextAlignment = TextAlignment.Center,
+                Margin = new Thickness(0, 8)
+            }, 0, 0);
+            return;
+        }
+
         for (var column = 0; column < 3; column++)
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
         for (var row = 0; row < Math.Ceiling(categories.Count / 3d); row++)
@@ -115,7 +131,9 @@ public class BrowseCategoriesSectionView : StoreProductsSectionBase
     private static GalleryItem ToGalleryItem(Admin.Models.StoreCategoryRecord record) => new()
     {
         Id = record.Id,
-        Name = string.IsNullOrWhiteSpace(record.Collection) ? (string.IsNullOrWhiteSpace(record.NameAr) ? record.NameEn : record.NameAr) : record.Collection,
+        Name = string.IsNullOrWhiteSpace(record.Collection)
+            ? (string.IsNullOrWhiteSpace(record.NameAr) ? record.NameEn : record.NameAr)
+            : record.Collection,
         Subtitle = record.Category,
         Description = record.Description,
         Category = record.Category,

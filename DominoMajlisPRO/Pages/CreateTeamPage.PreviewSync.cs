@@ -281,6 +281,18 @@ public partial class CreateTeamPage
             : null;
     }
 
+    private void ClearPreviewLivingTeamEffectHost()
+    {
+    }
+
+    private void ApplyPreviewLivingTeamEffect(TeamEffectCarouselItem selected)
+    {
+        if (selected.Effect == null)
+            return;
+
+        IdentityEffectRenderer.Apply(PreviewTeamEffectOverlay, selected.Effect);
+    }
+
     private static void RepairCreateTeamArabicText(Element element)
     {
         if (element is Label label)

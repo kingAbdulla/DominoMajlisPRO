@@ -3,6 +3,7 @@
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:galleryComponents="clr-namespace:DominoMajlisPRO.GalleryEngine.Components"
     x:Class="DominoMajlisPRO.Pages.MatchDetailsPage"
     BackgroundColor="#080808"
     NavigationPage.HasNavigationBar="False">
@@ -124,6 +125,13 @@
                     MaxLines="1"
                     LineBreakMode="TailTruncation"/>
 
+                                    <galleryComponents:IdentityPlateView
+                    x:Name="Team1NamePlate"
+                    HeightRequest="30"
+                    MaximumWidthRequest="180"
+                    HorizontalOptions="Fill"
+                    IsVisible="False"/>
+
                                     <Label
                     x:Name="Team1IdLabel"
                     FontSize="11"
@@ -202,6 +210,13 @@
                     TextColor="White"
                     MaxLines="1"
                     LineBreakMode="TailTruncation"/>
+
+                                    <galleryComponents:IdentityPlateView
+                    x:Name="Team2NamePlate"
+                    HeightRequest="30"
+                    MaximumWidthRequest="180"
+                    HorizontalOptions="Fill"
+                    IsVisible="False"/>
 
                                     <Label
                     x:Name="Team2IdLabel"

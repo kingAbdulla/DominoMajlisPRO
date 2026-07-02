@@ -1,5 +1,4 @@
-using DominoMajlisPRO.Localization;
-using DominoMajlisPRO.Models;
+﻿using DominoMajlisPRO.Models;
 
 namespace DominoMajlisPRO.Services;
 
@@ -8,13 +7,14 @@ public static class PlayerTimelineService
     public static async Task<List<PlayerTimelineItemModel>> BuildTimelineAsync(
         PlayerProfileModel player)
     {
+
+
         List<PlayerTimelineItemModel> items = new();
 
         AddHistory(items, player.RankHistory, "ترقية الرتبة", "تم الوصول إلى رتبة", "🏅", "#D4AF37");
         AddHistory(items, player.XPHistory, "تحديث XP", "وصل اللاعب إلى", "⚡", "#FFD700");
         AddHistory(items, player.AchievementHistory, "إنجاز جديد", "تم فتح إنجاز", "🏆", "#00C853");
         AddHistory(items, player.HonorHistory, "وسام جديد", "تم منح وسام", "👑", "#B887FF");
-
         if (!string.IsNullOrWhiteSpace(player.TimelineHistory))
         {
             var lines = SplitTimeline(player.TimelineHistory);
@@ -27,33 +27,19 @@ public static class PlayerTimelineService
                     continue;
 
                 DateTime.TryParse(parts[0], out DateTime date);
-                if (date == DateTime.MinValue)
-                    date = DateTime.Now;
-
-                var title = NormalizeTitle(parts[1]);
-                var details = Recover(parts[2]);
-                var icon = NormalizeIcon(parts[3], title);
-                var colorHex = NormalizeColor(parts[4]);
-
-                if (string.IsNullOrWhiteSpace(title) ||
-                    string.IsNullOrWhiteSpace(details))
-                {
-                    continue;
-                }
 
                 items.Add(new PlayerTimelineItemModel
                 {
                     EventId = line,
                     IsIdentityEvent = true,
                     Date = date,
-                    Title = title,
-                    Details = details,
-                    Icon = icon,
-                    ColorHex = colorHex
+                    Title = parts[1],
+                    Details = parts[2],
+                    Icon = parts[3],
+                    ColorHex = parts[4]
                 });
             }
         }
-
         string teamNames =
             await GetTeamNamesAsync(player.CurrentTeamIds);
 
@@ -104,22 +90,18 @@ public static class PlayerTimelineService
             if (date == DateTime.MinValue)
                 date = DateTime.Now;
 
-            var value = Recover(parts[1]);
-            if (string.IsNullOrWhiteSpace(value) || IsBroken(value))
-                value = "لا يوجد";
-
             items.Add(
                 new PlayerTimelineItemModel
                 {
                     Date = date,
                     Title = title,
-                    Details = $"{detailsPrefix}: {value}",
+                    Details = $"{detailsPrefix}: {parts[1]}",
                     Icon = icon,
                     ColorHex = colorHex
                 });
         }
     }
-
+    // This method retrieves team names based on the provided team IDs
     static async Task<string> GetTeamNamesAsync(string teamIds)
     {
         if (string.IsNullOrWhiteSpace(teamIds))
@@ -137,14 +119,15 @@ public static class PlayerTimelineService
         var names =
             teams
             .Where(x => ids.Contains(x.TeamId))
-            .Select(x => Recover(x.TeamName))
-            .Where(x => !string.IsNullOrWhiteSpace(x) && !IsBroken(x))
+            .Select(x => x.TeamName)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
             .Distinct()
             .ToList();
 
         return string.Join("، ", names);
     }
 
+    // This method can be called whenever a significant event occurs for the player
     public static void AddEvent(
         PlayerProfileModel player,
         string title,
@@ -222,64 +205,6 @@ public static class PlayerTimelineService
         player.TimelineHistory = string.Empty;
         player.LastUpdatedAt = DateTime.Now;
         return true;
-    }
-
-    private static string NormalizeTitle(string value)
-    {
-        var recovered = Recover(value);
-
-        if (IsBroken(recovered))
-            return "تحديث هوية اللاعب";
-
-        if (recovered.Contains("Avatar", StringComparison.OrdinalIgnoreCase) ||
-            recovered.Contains("الصورة", StringComparison.OrdinalIgnoreCase))
-        {
-            return "تغيير الصورة الشخصية";
-        }
-
-        return recovered;
-    }
-
-    private static string NormalizeIcon(string value, string title)
-    {
-        if (!IsBroken(value) && !string.IsNullOrWhiteSpace(value))
-            return value.Trim();
-
-        if (title.Contains("الصورة", StringComparison.OrdinalIgnoreCase) ||
-            title.Contains("Avatar", StringComparison.OrdinalIgnoreCase))
-        {
-            return "🖼️";
-        }
-
-        return "⭐";
-    }
-
-    private static string NormalizeColor(string value)
-    {
-        var color = value?.Trim() ?? string.Empty;
-        if (color.StartsWith('#') &&
-            (color.Length == 7 || color.Length == 9))
-        {
-            return color;
-        }
-
-        return "#D4AF37";
-    }
-
-    private static string Recover(string? value) =>
-        ArabicTextRecoveryService.RecoverDisplayText(value);
-
-    private static bool IsBroken(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return false;
-
-        return value.Contains('�') ||
-               value.Contains("?�", StringComparison.Ordinal) ||
-               value.Contains("â", StringComparison.Ordinal) ||
-               value.Contains("Ã", StringComparison.Ordinal) ||
-               value.Contains("ط", StringComparison.Ordinal) ||
-               value.Contains("ظ", StringComparison.Ordinal);
     }
 
     private static IEnumerable<string> SplitTimeline(string? history) =>

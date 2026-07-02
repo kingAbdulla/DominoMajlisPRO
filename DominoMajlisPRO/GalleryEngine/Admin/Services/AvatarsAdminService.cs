@@ -1,6 +1,5 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
-using DominoMajlisPRO.GalleryEngine.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin.Services;
 
@@ -11,11 +10,7 @@ public static class AvatarsAdminService
 
     public static async Task<AvatarRecord> SaveDraftAsync(AvatarRecord record)
     {
-        var hadExistingId = !string.IsNullOrWhiteSpace(record.Id);
-        var records = await LoadRecordsAsync();
-        var existing = records.FirstOrDefault(item => item.Id == record.Id && item.Status == AvatarStatus.Draft);
-        Prepare(record, existing, hadExistingId);
-        EnsureNoCollision(record, records, hadExistingId);
+        var records = await LoadRecordsAsync(); var existing = records.FirstOrDefault(item => item.Id == record.Id && item.Status == AvatarStatus.Draft); Prepare(record, existing);
         StoreCmsPublishEngine.SaveDraft(records, record, item => item.Id, (item, status) => item.Status = (AvatarStatus)(int)status, (item, updated) => item.UpdatedAt = updated); record.PublishedAt = null;
         await SaveRecordsAsync(records); return record;
     }
@@ -29,24 +24,14 @@ public static class AvatarsAdminService
 
     public static async Task<AvatarRecord> PublishAsync(AvatarRecord record)
     {
-        EnsureValid(record);
-        var hadExistingId = !string.IsNullOrWhiteSpace(record.Id);
-        var records = await LoadRecordsAsync();
-        var existing = records.FirstOrDefault(item => item.Id == record.Id);
-        Prepare(record, existing, hadExistingId);
-        EnsureNoCollision(record, records, hadExistingId);
+        EnsureValid(record); var records = await LoadRecordsAsync(); var existing = records.FirstOrDefault(item => item.Id == record.Id); Prepare(record, existing);
         StoreCmsPublishEngine.Publish(records, record, item => item.Id, (item, status) => item.Status = (AvatarStatus)(int)status, (item, updated) => item.UpdatedAt = updated, (item, published) => item.PublishedAt = published);
         await SaveRecordsAsync(records); PublishedChanged?.Invoke(); return record;
     }
     public static Task<AvatarRecord> Publish(AvatarRecord record) => PublishAsync(record);
     public static async Task<AvatarRecord> UpdatePublishedAsync(AvatarRecord record)
     {
-        EnsureValid(record);
-        var hadExistingId = !string.IsNullOrWhiteSpace(record.Id);
-        var records = await LoadRecordsAsync();
-        var existing = records.FirstOrDefault(item => item.Id == record.Id && item.Status != AvatarStatus.Draft) ?? throw new InvalidOperationException("تعذر العثور على الصورة المنشورة");
-        Prepare(record, existing, hadExistingId);
-        EnsureNoCollision(record, records, hadExistingId);
+        EnsureValid(record); var records = await LoadRecordsAsync(); var existing = records.FirstOrDefault(item => item.Id == record.Id && item.Status != AvatarStatus.Draft) ?? throw new InvalidOperationException("تعذر العثور على الصورة المنشورة");
         record.CreatedAt = existing.CreatedAt; record.PublishedAt = existing.PublishedAt; record.Status = AvatarStatus.Published;
         StoreCmsPublishEngine.UpdatePublished(records, record, item => item.Id, (item, updated) => item.UpdatedAt = updated);
         await SaveRecordsAsync(records); PublishedChanged?.Invoke(); return record;
@@ -83,55 +68,7 @@ public static class AvatarsAdminService
     public static string GetStoragePath() => Path.Combine(StoreAdminService.GetAdminStorageRoot(), FileName);
     private static IEnumerable<AvatarRecord> Order(IEnumerable<AvatarRecord> records) => StoreCmsOrderingEngine.ByCustom(records, Comparer<AvatarRecord>.Create((left, right) => { var value = right.IsFeatured.CompareTo(left.IsFeatured); if (value != 0) return value; value = left.FeaturedPriority.CompareTo(right.FeaturedPriority); if (value != 0) return value; value = right.Rarity.CompareTo(left.Rarity); if (value != 0) return value; value = left.SortOrder.CompareTo(right.SortOrder); return value != 0 ? value : Nullable.Compare(right.PublishedAt, left.PublishedAt); }));
     private static void EnsureValid(AvatarRecord record) { if (!ValidateForPublish(record, out var message)) throw new InvalidOperationException(message); }
-private static void EnsureNoCollision(
-    AvatarRecord record,
-    IEnumerable<AvatarRecord> allRecords,
-    bool hadExistingId)
-{
-    if (hadExistingId)
-        return;
-
-    var collision = allRecords.Any(item =>
-        CanonicalAssetIdentityService.SameAssetId(
-            item.Id,
-            record.Id));
-
-    if (collision)
-    {
-        throw new InvalidOperationException(
-            $"المعرف {record.Id} مستخدم بالفعل لعنصر آخر.");
-    }
-}
-
-private static void Prepare(
-    AvatarRecord record,
-    AvatarRecord? existing,
-    bool hadExistingId)
-{
-    if (hadExistingId)
-    {
-        record.Id = record.Id.Trim();
-    }
-    else
-    {
-        var title = !string.IsNullOrWhiteSpace(record.NameAr)
-            ? record.NameAr
-            : record.NameEn;
-
-        record.Id =
-            CanonicalAssetIdentityService.GenerateCanonicalAssetId(
-                "avatar",
-                title);
-    }
-
-    record.CreatedAt =
-        existing?.CreatedAt ??
-        (record.CreatedAt == default
-            ? DateTime.UtcNow
-            : record.CreatedAt);
-
-    record.UpdatedAt = DateTime.UtcNow;
-}
+    private static void Prepare(AvatarRecord record, AvatarRecord? existing) { if (string.IsNullOrWhiteSpace(record.Id)) record.Id = Guid.NewGuid().ToString(); record.CreatedAt = existing?.CreatedAt ?? (record.CreatedAt == default ? DateTime.UtcNow : record.CreatedAt); record.UpdatedAt = DateTime.UtcNow; }
     private static AvatarRecord Clone(AvatarRecord source) => new() { NameAr = source.NameAr, NameEn = source.NameEn, Description = source.Description, ImagePath = source.ImagePath, ThumbnailPath = source.ThumbnailPath, CategoryId = source.CategoryId, Collection = source.Collection, Rarity = source.Rarity, CurrencyType = source.CurrencyType, Price = source.Price, IsFree = source.IsFree, UnlockType = source.UnlockType, UnlockRequirement = source.UnlockRequirement, Tag = source.Tag, GenderOrStyle = source.GenderOrStyle, IsAnimated = source.IsAnimated, IsLimited = source.IsLimited, IsFeatured = source.IsFeatured, FeaturedPriority = source.FeaturedPriority, SortOrder = source.SortOrder, SeasonId = source.SeasonId, EventId = source.EventId, CollectionId = source.CollectionId, AnimationId = source.AnimationId, FrameId = source.FrameId, GlowEffect = source.GlowEffect, Version = source.Version };
     private static IEnumerable<AvatarRecord> Normalize(IEnumerable<AvatarRecord> records) { foreach (var record in records) { if (record.CurrencyType == AvatarCurrencyType.Free) { record.IsFree = true; record.Price = 0; } if (record.IsFree) record.Price = 0; yield return record; } }
     private static Task<List<AvatarRecord>> LoadRecordsAsync() => StoreCmsJsonRepository.LoadListAsync<AvatarRecord>(GetStoragePath());

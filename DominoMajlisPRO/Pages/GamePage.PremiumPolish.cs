@@ -157,14 +157,10 @@ public partial class GamePage
             var teams = await TeamProfileService.LoadTeamsAsync();
             team1Profile = teams.FirstOrDefault(team => string.Equals(team.TeamId, team1Id, StringComparison.OrdinalIgnoreCase)) ?? team1Profile;
             team2Profile = teams.FirstOrDefault(team => string.Equals(team.TeamId, team2Id, StringComparison.OrdinalIgnoreCase)) ?? team2Profile;
-            ApplyRankBar(team1Profile, Team1CurrentRankLabel, Team1NextRankLabel, Team1RankProgressBar, Team1RankPercentLabel);
-            ApplyRankBar(team2Profile, Team2CurrentRankLabel, Team2NextRankLabel, Team2RankProgressBar, Team2RankPercentLabel);
             CorrectTeamCardBackgrounds();
         }
         catch
         {
-            ApplyRankBar(null, Team1CurrentRankLabel, Team1NextRankLabel, Team1RankProgressBar, Team1RankPercentLabel);
-            ApplyRankBar(null, Team2CurrentRankLabel, Team2NextRankLabel, Team2RankProgressBar, Team2RankPercentLabel);
         }
     }
 
