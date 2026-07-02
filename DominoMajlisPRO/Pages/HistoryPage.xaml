@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:effects="clr-namespace:DominoMajlisPRO.GalleryEngine.Services"
+    xmlns:components="clr-namespace:DominoMajlisPRO.GalleryEngine.Components"
     x:Class="DominoMajlisPRO.Pages.HistoryPage"
     BackgroundColor="#050505"
     FlowDirection="RightToLeft"
@@ -135,9 +136,9 @@
                                        effects:TeamEffectBehavior.Lightweight="True"/>
 
                                 <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="{Binding Team1Name}" TextColor="White" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation"/>
+                                    <components:RuntimeTeamNameSurfaceView TeamId="{Binding Team1Id}" DisplayText="{Binding Team1Name}" HeightRequest="32" HorizontalOptions="Fill"/>
                                     <Label Text="VS" TextColor="Gold" FontSize="12" HorizontalTextAlignment="Center"/>
-                                    <Label Text="{Binding Team2Name}" TextColor="White" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation"/>
+                                    <components:RuntimeTeamNameSurfaceView TeamId="{Binding Team2Id}" DisplayText="{Binding Team2Name}" HeightRequest="32" HorizontalOptions="Fill"/>
                                 </VerticalStackLayout>
 
                                 <Image Grid.Column="2" Source="{Binding Team2EmblemSource}" WidthRequest="40" HeightRequest="40"

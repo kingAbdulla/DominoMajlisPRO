@@ -617,23 +617,10 @@ public partial class RankingsPage : ContentPage
             });
 
         rankSection.Children.Add(
-            new Label
-            {
-                Text = team.TeamName,
-
-                FontSize = 15,
-
-                FontAttributes =
-                    FontAttributes.Bold,
-
-                TextColor =
-                    Colors.White,
-
-                MaxLines = 1,
-
-                HorizontalTextAlignment =
-                    TextAlignment.Center
-            });
+            GalleryEngine.Components.NameSurfaceBinder.TeamSurface(
+                team.TeamId,
+                team.TeamName,
+                32));
 
         Grid.SetColumn(rankSection, 4);
 
@@ -955,32 +942,10 @@ public partial class RankingsPage : ContentPage
             });
 
         layout.Children.Add(
-
-            new Label
-            {
-                Text =
-                    team.TeamName,
-
-                FontSize =
-                    isChampion ? 18 : 15,
-
-                FontAttributes =
-                    FontAttributes.Bold,
-
-                TextColor =
-                    Colors.White,
-
-                HorizontalTextAlignment =
-                    TextAlignment.Center,
-
-                MaxLines = 1,
-
-                LineBreakMode =
-                    LineBreakMode.TailTruncation
-
-
-
-            });
+            GalleryEngine.Components.NameSurfaceBinder.TeamSurface(
+                team.TeamId,
+                team.TeamName,
+                isChampion ? 38 : 32));
 
         layout.Children.Add(
        CreateBadgeIconsRow(team, position == 1 ? 30 : 24));
@@ -1349,16 +1314,10 @@ public partial class RankingsPage : ContentPage
      };
 
         teamInfo.Children.Add(
-            new Label
-            {
-                Text = team.TeamName,
-                FontSize = 14,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Colors.White,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation,
-                VerticalTextAlignment = TextAlignment.Center
-            });
+            GalleryEngine.Components.NameSurfaceBinder.TeamSurface(
+                team.TeamId,
+                team.TeamName,
+                32));
 
         teamInfo.Children.Add(
             CreateBadgeIconsRow(team, 30));

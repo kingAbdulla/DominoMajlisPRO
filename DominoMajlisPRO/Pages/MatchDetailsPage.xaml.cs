@@ -127,6 +127,10 @@ public partial class MatchDetailsPage : ContentPage
 
         Team1NameLabel.Text =
             match.Team1Name;
+        GalleryEngine.Components.NameSurfaceBinder.BindTeam(
+            Team1NameLabel,
+            match.Team1Id,
+            match.Team1Name);
 
         if (team1 != null)
         {
@@ -170,6 +174,10 @@ public partial class MatchDetailsPage : ContentPage
 
         Team2NameLabel.Text =
             match.Team2Name;
+        GalleryEngine.Components.NameSurfaceBinder.BindTeam(
+            Team2NameLabel,
+            match.Team2Id,
+            match.Team2Name);
 
         if (team2 != null)
         {

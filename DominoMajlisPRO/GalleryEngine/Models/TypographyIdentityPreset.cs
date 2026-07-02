@@ -7,8 +7,11 @@ public sealed class TypographyIdentityPreset
     public string MaterialPreset { get; set; } = "SatinGold";
     public string LightingPreset { get; set; } = "SoftRim";
     public string DepthPreset { get; set; } = "Low";
+    public string ShadowPreset { get; set; } = "Soft";
+    public string ReflectionPreset { get; set; } = "SoftSheen";
     public string MotionPreset { get; set; } = "None";
     public string ParticlePreset { get; set; } = "None";
+    public string DistortionPreset { get; set; } = "None";
     public string FrameStylePreset { get; set; } = "None";
     public double FrameThickness { get; set; } = 1.4;
     public string PrimaryColor { get; set; } = "#FFD76A";
@@ -35,8 +38,11 @@ public sealed class TypographyIdentityPreset
         preset.MaterialPreset = NormalizeToken(MaterialPreset, "SatinGold");
         preset.LightingPreset = NormalizeToken(LightingPreset, "SoftRim");
         preset.DepthPreset = NormalizeToken(DepthPreset, "Low");
+        preset.ShadowPreset = NormalizeToken(ShadowPreset, "Soft");
+        preset.ReflectionPreset = NormalizeToken(ReflectionPreset, "SoftSheen");
         preset.MotionPreset = NormalizeToken(MotionPreset, "None");
         preset.ParticlePreset = NormalizeToken(ParticlePreset, "None");
+        preset.DistortionPreset = NormalizeToken(DistortionPreset, "None");
         preset.FrameStylePreset = NormalizeToken(FrameStylePreset, "None");
         return preset;
     }
@@ -84,10 +90,49 @@ public static class TypographyFontCatalog
 
 public static class TypographyPresetCatalog
 {
-    public static IReadOnlyList<string> Materials { get; } = ["SatinGold", "IvoryInk", "PearlSteel", "EmeraldGlass", "RubyLacquer"];
-    public static IReadOnlyList<string> Lighting { get; } = ["SoftRim", "TopSheen", "InnerGlow", "LowContrast"];
-    public static IReadOnlyList<string> Depth { get; } = ["Flat", "Low", "Medium"];
-    public static IReadOnlyList<string> Motion { get; } = ["None", "Breath", "SoftShine"];
-    public static IReadOnlyList<string> Particles { get; } = ["None", "Dust", "TinySparks"];
-    public static IReadOnlyList<string> Frames { get; } = ["None", "Plate", "Ribbon", "GemInset", "SoftCapsule"];
+    public static IReadOnlyList<string> Materials { get; } =
+    [
+        "SatinGold", "IvoryInk", "PearlSteel", "EmeraldGlass", "RubyLacquer",
+        "RealMetallicGold", "Obsidian", "CarbonFiber", "Diamond", "Crystal",
+        "Lava", "Ice", "LiquidMetal", "Emerald", "NeonGlass", "Pearl"
+    ];
+
+    public static IReadOnlyList<string> Lighting { get; } =
+    [
+        "SoftRim", "TopSheen", "InnerGlow", "LowContrast",
+        "MovingHighlight", "MetallicSweep", "Aurora", "EnergyCore",
+        "FireReflection", "IceReflection", "CosmicReflection"
+    ];
+
+    public static IReadOnlyList<string> Depth { get; } = ["Flat", "Low", "Medium", "Deep"];
+    public static IReadOnlyList<string> Shadows { get; } = ["None", "Soft", "Hard", "Long", "Glow"];
+    public static IReadOnlyList<string> Reflections { get; } = ["None", "SoftSheen", "Mirror", "Metallic", "Glass"];
+
+    public static IReadOnlyList<string> Motion { get; } =
+    [
+        "None", "Breath", "Breathing", "SoftShine", "Pulse", "OrganicMotion",
+        "Floating", "EnergyWave", "Heartbeat", "Wind", "HeatDistortion",
+        "ShockPulse", "Gravity", "MagneticDrift", "LiquidMotion"
+    ];
+
+    public static IReadOnlyList<string> Particles { get; } =
+    [
+        "None", "Dust", "TinySparks", "Smoke", "Spark", "Ash", "Fire",
+        "Lightning", "Magic", "Snow", "Leaves", "WaterDrops", "Stars",
+        "Galaxy", "Sand", "Petals", "Runes", "Pixels", "CrystalShards",
+        "Embers"
+    ];
+
+    public static IReadOnlyList<string> Distortions { get; } =
+    [
+        "None", "Heat", "Glass", "Ripple", "Refraction", "Magnetic",
+        "Shockwave", "ChromaticAberration", "GravityLens"
+    ];
+
+    public static IReadOnlyList<string> Frames { get; } =
+    [
+        "None", "Plate", "Ribbon", "GemInset", "SoftCapsule",
+        "Dragon", "Electric", "Flame", "Crystal", "Royal",
+        "Arabian", "Shadow", "Cyber", "Frozen", "Galaxy"
+    ];
 }

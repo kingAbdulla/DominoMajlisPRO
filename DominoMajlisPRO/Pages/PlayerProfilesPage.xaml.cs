@@ -262,6 +262,10 @@ public partial class PlayerProfilesPage : ContentPage
                 : currentUser.DisplayName;
         AccountRoleSessionLabel.Text =
             $"{role} • {sessionState}";
+        GalleryEngine.Components.NameSurfaceBinder.BindPlayer(
+            AccountDisplayNameLabel,
+            currentUser.PlayerId,
+            AccountDisplayNameLabel.Text);
         IdentityUserIdLabel.Text =
             ShortId(currentUser.ApplicationUserId);
         IdentityPlayerIdLabel.Text =
@@ -1390,15 +1394,10 @@ public partial class PlayerProfilesPage : ContentPage
 
     View CreatePlayerHeader(int rank, PlayerProfileModel player)
     {
-        return new Label
-        {
-            Text = $"#{rank}  {player.PlayerName}",
-            TextColor = Colors.White,
-            FontSize = 19,
-            FontAttributes = FontAttributes.Bold,
-            LineBreakMode = LineBreakMode.TailTruncation,
-            MaxLines = 1
-        };
+        return GalleryEngine.Components.NameSurfaceBinder.PlayerSurface(
+            player.PlayerId,
+            $"#{rank}  {player.PlayerName}",
+            38);
     }
 
     View CreateStatusRankLabel(

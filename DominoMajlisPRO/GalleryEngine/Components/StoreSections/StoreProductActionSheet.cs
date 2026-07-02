@@ -702,6 +702,30 @@ internal sealed class StoreProductActionSheet : Grid
             _previewKind == StoreProductPreviewKind.LivingEmblem ||
             StoreAssetCatalogService.IsLivingEmblemAsset(asset);
 
+        if (IsNameTypographyAsset(asset.AssetType))
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (!IsVisible || !IsEffectPreviewKind(_previewKind))
+                    return;
+
+                var plate = new IdentityPlateView
+                {
+                    WidthRequest = 300,
+                    HeightRequest = 82,
+                    MaximumWidthRequest = 330,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                plate.Bind(string.IsNullOrWhiteSpace(_name.Text) ? asset.DisplayName : _name.Text, asset.TypographyPreset);
+                _previewSurface.Content = new Grid
+                {
+                    Children = { plate }
+                };
+            });
+            return;
+        }
+
         if (isTeamEffect || isLivingEmblem)
         {
             // Determine preview context: Inventory if caller supplied a playerId
@@ -800,6 +824,12 @@ internal sealed class StoreProductActionSheet : Grid
 
     private static bool IsEffectPreviewKind(StoreProductPreviewKind previewKind) =>
         previewKind is StoreProductPreviewKind.Effect or StoreProductPreviewKind.LivingEmblem;
+
+    private static bool IsNameTypographyAsset(StoreProductAssetType assetType) =>
+        assetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect or
+            StoreProductAssetType.PlayerNameFrame or
+            StoreProductAssetType.TeamNameFrame;
 
     private async void OnPrimaryClicked(object? sender, EventArgs e)
     {

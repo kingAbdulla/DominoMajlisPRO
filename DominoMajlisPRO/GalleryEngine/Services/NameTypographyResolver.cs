@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.Services;
@@ -30,15 +31,32 @@ public sealed record NameTypographyIdentity(
 
 public static class NameTypographyResolver
 {
+    private static readonly ConcurrentDictionary<string, NameTypographyIdentity?> Cache = new(StringComparer.OrdinalIgnoreCase);
+
+    static NameTypographyResolver()
+    {
+        AppEvents.PlayerProfileChanged += ClearCache;
+        AppEvents.TeamsChanged += ClearCache;
+        AppEvents.StoreEconomyChanged += _ => ClearCache();
+        AppEvents.StoreProgressChanged += _ => ClearCache();
+        AppEvents.TeamAssetsChanged += _ => ClearCache();
+    }
+
     public static async Task<NameTypographyIdentity?> ResolvePlayerAsync(string playerId)
     {
         if (string.IsNullOrWhiteSpace(playerId))
             return null;
 
+        var cacheKey = $"player:{playerId.Trim()}";
+        if (Cache.TryGetValue(cacheKey, out var cached))
+            return cached;
+
         var effectTask = ResolveEquippedPlayerAssetAsync(playerId, StoreProductAssetType.PlayerNameEffect.ToString());
         var frameTask = ResolveEquippedPlayerAssetAsync(playerId, StoreProductAssetType.PlayerNameFrame.ToString());
         await Task.WhenAll(effectTask, frameTask);
-        return new NameTypographyIdentity(playerId, effectTask.Result, frameTask.Result);
+        var resolved = new NameTypographyIdentity(playerId, effectTask.Result, frameTask.Result);
+        Cache[cacheKey] = resolved;
+        return resolved;
     }
 
     public static async Task<NameTypographyIdentity?> ResolveTeamAsync(string teamId)
@@ -50,6 +68,10 @@ public static class NameTypographyResolver
         if (currentOwner.IsGhost || string.IsNullOrWhiteSpace(currentOwner.PlayerId))
             return null;
 
+        var cacheKey = $"team:{teamId.Trim()}:owner:{currentOwner.PlayerId.Trim()}";
+        if (Cache.TryGetValue(cacheKey, out var cached))
+            return cached;
+
         var team = await TeamProfileService.GetTeamByIdAsync(teamId);
         if (team == null || !PlayerBelongsToTeam(currentOwner.PlayerId, team))
             return null;
@@ -57,8 +79,12 @@ public static class NameTypographyResolver
         var effectTask = ResolveEquippedPlayerAssetAsync(currentOwner.PlayerId, StoreProductAssetType.TeamNameEffect.ToString());
         var frameTask = ResolveEquippedPlayerAssetAsync(currentOwner.PlayerId, StoreProductAssetType.TeamNameFrame.ToString());
         await Task.WhenAll(effectTask, frameTask);
-        return new NameTypographyIdentity(teamId, effectTask.Result, frameTask.Result);
+        var resolved = new NameTypographyIdentity(teamId, effectTask.Result, frameTask.Result);
+        Cache[cacheKey] = resolved;
+        return resolved;
     }
+
+    public static void ClearCache() => Cache.Clear();
 
     private static async Task<CatalogAssetDisplay?> ResolveEquippedPlayerAssetAsync(string playerId, string assetType)
     {

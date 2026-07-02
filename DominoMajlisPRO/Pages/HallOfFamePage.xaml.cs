@@ -225,6 +225,10 @@ public partial class HallOfFamePage : ContentPage
         {
             HeroTeamNameLabel.Text = "لا توجد أسطورة";
             HeroSubtitleLabel.Text = "بانتظار فريق يحقق شروط الدستور";
+            GalleryEngine.Components.NameSurfaceBinder.BindTeam(
+                HeroTeamNameLabel,
+                null,
+                HeroTeamNameLabel.Text);
             HeroWinsLabel.Text = "0";
             HeroWinRateLabel.Text = "0%";
             HeroLegacyLabel.Text = "0";
@@ -233,6 +237,10 @@ public partial class HallOfFamePage : ContentPage
 
         HeroTeamNameLabel.Text = champion.DisplayName;
         HeroSubtitleLabel.Text = "دخل قاعة الأساطير وفق الدستور";
+        GalleryEngine.Components.NameSurfaceBinder.BindTeam(
+            HeroTeamNameLabel,
+            champion.Key,
+            champion.DisplayName);
         HeroWinsLabel.Text = champion.Wins.ToString();
         HeroWinRateLabel.Text = $"{champion.WinRate:0}%";
         HeroLegacyLabel.Text = champion.LegacyScore.ToString();
@@ -529,16 +537,10 @@ public partial class HallOfFamePage : ContentPage
         });
 
         layout.Children.Add(
-            new Label
-            {
-                Text = team.DisplayName,
-                TextColor = Colors.White,
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 15 : 19,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
+            GalleryEngine.Components.NameSurfaceBinder.TeamSurface(
+                team.Key,
+                team.DisplayName,
+                DeviceInfo.Idiom == DeviceIdiom.Phone ? 32 : 38));
 
         layout.Children.Add(
             new Label
@@ -927,17 +929,10 @@ public partial class HallOfFamePage : ContentPage
             };
 
         middle.Children.Add(
-            new Label
-            {
-                Text = team.DisplayName,
-                TextColor = Colors.White,
-                FontFamily = "timesbi",
-                FontSize = 14,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.End,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
+            GalleryEngine.Components.NameSurfaceBinder.TeamSurface(
+                team.Key,
+                team.DisplayName,
+                32));
 
         middle.Children.Add(
             new Label

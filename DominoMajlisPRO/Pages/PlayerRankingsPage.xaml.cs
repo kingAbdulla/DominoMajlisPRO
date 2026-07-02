@@ -731,16 +731,11 @@ public partial class PlayerRankingsPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         playerCell.Children.Add(BuildAvatar(entry, 38));
-        playerCell.Children.Add(new Label
-        {
-            Text = entry.DisplayName,
-            TextColor = Colors.White,
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            VerticalTextAlignment = TextAlignment.Center,
-            LineBreakMode = LineBreakMode.TailTruncation,
-            MaxLines = 1
-        });
+        playerCell.Children.Add(
+            GalleryEngine.Components.NameSurfaceBinder.PlayerSurface(
+                entry.PlayerId,
+                entry.DisplayName,
+                30));
         Grid.SetColumn(playerCell, 1);
         grid.Children.Add(playerCell);
 
@@ -813,15 +808,11 @@ public partial class PlayerRankingsPage : ContentPage
             Spacing = 4,
             VerticalOptions = LayoutOptions.Center
         };
-        middle.Children.Add(new Label
-        {
-            Text = entry.DisplayName,
-            TextColor = Colors.White,
-            FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            LineBreakMode = LineBreakMode.TailTruncation,
-            MaxLines = 1
-        });
+        middle.Children.Add(
+            GalleryEngine.Components.NameSurfaceBinder.PlayerSurface(
+                entry.PlayerId,
+                entry.DisplayName,
+                32));
         var rank = PlayerRankService.Calculate(entry.XP);
         middle.Children.Add(new Label
         {

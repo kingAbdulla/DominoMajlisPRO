@@ -392,6 +392,10 @@ public partial class PlayerDetailsPage : ContentPage
         AvatarPreviewImage.Source =
             PlayerProfileService.GetPlayerImageSource(currentPlayer);
         PlayerNameLabel.Text = currentPlayer.PlayerName;
+        GalleryEngine.Components.NameSurfaceBinder.BindPlayer(
+            PlayerNameLabel,
+            currentPlayer.PlayerId,
+            currentPlayer.PlayerName);
 
         string identityRole =
             await ResolveIdentityRoleAsync(currentPlayer);

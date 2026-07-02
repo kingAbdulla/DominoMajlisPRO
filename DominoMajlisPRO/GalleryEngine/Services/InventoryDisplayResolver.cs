@@ -172,6 +172,7 @@ public static class InventoryDisplayResolver
             or StoreProductAssetType.TeamNameFrame
             or StoreProductAssetType.Title
             or StoreProductAssetType.Emblem
+            or StoreProductAssetType.TeamEffect
             or StoreProductAssetType.TeamLivingEmblem
             or StoreProductAssetType.TeamColor
             or StoreProductAssetType.EmblemBackground
@@ -188,13 +189,14 @@ public static class InventoryDisplayResolver
         "PlayerNameFrame" => 5,
         "Title" => 6,
         "Emblem" => 7,
-        "TeamLivingEmblem" => 8,
-        "TeamColor" => 9,
-        "EmblemBackground" => 10,
-        "TeamNameEffect" => 11,
-        "TeamNameFrame" => 12,
-        "Badge" => 13,
-        "SeasonReward" => 14,
+        "TeamEffect" => 8,
+        "TeamLivingEmblem" => 9,
+        "TeamColor" => 10,
+        "EmblemBackground" => 11,
+        "TeamNameEffect" => 12,
+        "TeamNameFrame" => 13,
+        "Badge" => 14,
+        "SeasonReward" => 15,
         _ => 100
     };
 

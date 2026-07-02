@@ -214,6 +214,10 @@ public partial class MainPage : ContentPage
             return;
         PreviewTeam1NameLabel.Text =
         FormatTeamName(selectedTeam1.TeamName);
+        GalleryEngine.Components.NameSurfaceBinder.BindTeam(
+            PreviewTeam1NameLabel,
+            selectedTeam1.TeamId,
+            FormatTeamName(selectedTeam1.TeamName));
         PreviewTeam1PlayersLabel.Text =
             $"{selectedTeam1.Player1} - {selectedTeam1.Player2}";
 
@@ -323,6 +327,10 @@ public partial class MainPage : ContentPage
 
         PreviewTeam2NameLabel.Text =
             FormatTeamName(selectedTeam2.TeamName);
+        GalleryEngine.Components.NameSurfaceBinder.BindTeam(
+            PreviewTeam2NameLabel,
+            selectedTeam2.TeamId,
+            FormatTeamName(selectedTeam2.TeamName));
 
         PreviewTeam2PlayersLabel.Text =
             $"{selectedTeam2.Player1} - {selectedTeam2.Player2}";
@@ -356,10 +364,18 @@ public partial class MainPage : ContentPage
         PreviewTeam1NameLabel.Text =
             FormatTeamName(
                 selectedTeam1.TeamName);
+        GalleryEngine.Components.NameSurfaceBinder.BindTeam(
+            PreviewTeam1NameLabel,
+            selectedTeam1.TeamId,
+            FormatTeamName(selectedTeam1.TeamName));
 
         PreviewTeam2NameLabel.Text =
             FormatTeamName(
                 selectedTeam2.TeamName);
+        GalleryEngine.Components.NameSurfaceBinder.BindTeam(
+            PreviewTeam2NameLabel,
+            selectedTeam2.TeamId,
+            FormatTeamName(selectedTeam2.TeamName));
 
         string team1Players =
             string.IsNullOrWhiteSpace(
@@ -1258,6 +1274,10 @@ TextChangedEventArgs e)
                     string.IsNullOrWhiteSpace(currentUser.DisplayName)
                         ? "اللاعب"
                         : currentUser.DisplayName;
+                GalleryEngine.Components.NameSurfaceBinder.BindPlayer(
+                    HeaderPlayerNameLabel,
+                    null,
+                    HeaderPlayerNameLabel.Text);
                 MemberLevelLabel.Text =
                     ResolveHeaderRoleLabel(currentUser.Role);
                 return;
@@ -1296,6 +1316,10 @@ TextChangedEventArgs e)
                     ? "اللاعب"
                     : currentUser.DisplayName
                 : profile.PlayerName;
+            GalleryEngine.Components.NameSurfaceBinder.BindPlayer(
+                HeaderPlayerNameLabel,
+                playerId,
+                HeaderPlayerNameLabel.Text);
             MemberLevelLabel.Text =
                 visualIdentity.Title != null
                     ? $"{ResolveHeaderRoleLabel(currentUser.Role)} • {visualIdentity.Title.DisplayName}"
@@ -1308,6 +1332,10 @@ TextChangedEventArgs e)
             HeaderAvatarEffectOverlay.IsVisible = false;
             HeaderProfileBackgroundImage.IsVisible = false;
             HeaderPlayerNameLabel.Text = "اللاعب";
+            GalleryEngine.Components.NameSurfaceBinder.BindPlayer(
+                HeaderPlayerNameLabel,
+                null,
+                HeaderPlayerNameLabel.Text);
             MemberLevelLabel.Text = "Guest";
         }
     }
