@@ -1,3 +1,4 @@
+using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.Pages;
@@ -9,6 +10,8 @@ public partial class PlayerDetailsPage
     protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
+
+        SuppressAvatarGlowAndCenterNameSurface();
 
         if (Handler == null || _arabicRepairTimerStarted)
             return;
@@ -23,8 +26,43 @@ public partial class PlayerDetailsPage
                 runs++;
                 RepairStaticArabicUiText();
                 RepairAllVisibleText(this);
+                SuppressAvatarGlowAndCenterNameSurface();
                 return Handler != null && runs < 12;
             });
+    }
+
+    void SuppressAvatarGlowAndCenterNameSurface()
+    {
+        try
+        {
+            AvatarFrame.Shadow = null;
+            AvatarEffectOverlay.IsVisible = false;
+            AvatarEffectOverlay.Opacity = 0;
+            AvatarEffectOverlay.Shadow = null;
+
+            PlayerNameLabel.HorizontalOptions = LayoutOptions.Center;
+            PlayerNameLabel.HorizontalTextAlignment = TextAlignment.Center;
+            PlayerNameLabel.Margin = new Thickness(0, -2, 0, 0);
+
+            if (PlayerNameLabel.Parent is Layout layout)
+            {
+                foreach (var child in layout.Children)
+                {
+                    if (child is RuntimePlayerNameSurfaceView surface)
+                    {
+                        surface.HorizontalOptions = LayoutOptions.Center;
+                        surface.VerticalOptions = LayoutOptions.Center;
+                        surface.HeightRequest = 26;
+                        surface.MaximumWidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 118 : 170;
+                        surface.Margin = new Thickness(0, -2, 0, 0);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Visual-only normalization must never block the player details page.
+        }
     }
 
     void RepairStaticArabicUiText()
