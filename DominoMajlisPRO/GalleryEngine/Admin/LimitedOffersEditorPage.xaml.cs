@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Canonical;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -280,10 +280,7 @@ public partial class LimitedOffersEditorPage : ContentPage
             .Select(asset => $"{asset.DisplayName} • {asset.AssetId}")
             .ToList();
         AssetIdPicker.SelectedIndex = _assetChoices.FindIndex(asset =>
-            string.Equals(
-                asset.AssetId,
-                selectedAssetId,
-                StringComparison.OrdinalIgnoreCase));
+            CanonicalAssetIdentityService.SameAssetId(asset.AssetId, selectedAssetId));
     }
 
     private string SelectedAssetId() =>

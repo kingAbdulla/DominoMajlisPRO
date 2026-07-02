@@ -41,6 +41,14 @@ public static class AppEvents
         SafeRaise(StoreProgressChanged, playerId);
     }
 
+    public static void RaiseStoreProgressChanged(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+
+        SafeRaise(StoreProgressChanged, playerId);
+    }
+
     public static void RaisePlayerProfileChanged()
     {
         SafeRaise(PlayerProfileChanged);
@@ -106,4 +114,3 @@ public static class AppEvents
         RaiseRankingsChanged();
     }
 }
-

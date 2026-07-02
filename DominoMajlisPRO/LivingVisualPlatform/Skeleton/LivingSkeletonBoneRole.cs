@@ -1,0 +1,37 @@
+namespace DominoMajlisPRO.LivingVisualPlatform.Skeleton;
+
+public enum LivingSkeletonBoneRole
+{
+    Unknown,
+    Root,
+    Hips,
+    Head,
+    Neck,
+    Spine,
+    Chest,
+    Jaw,
+    Eye,
+    LeftEye,
+    RightEye,
+    Tail,
+    Wing,
+    Arm,
+    ForeArm,
+    Hand,
+    LeftShoulder,
+    RightShoulder,
+    LeftArm,
+    RightArm,
+    LeftForeArm,
+    RightForeArm,
+    LeftHand,
+    RightHand,
+    LeftFinger,
+    RightFinger,
+    LeftUpLeg,
+    RightUpLeg,
+    LeftLeg,
+    RightLeg,
+    LeftFoot,
+    RightFoot
+}

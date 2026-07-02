@@ -1,5 +1,8 @@
-﻿using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.LivingVisualPlatform.Controls;
+using DominoMajlisPRO.LivingVisualPlatform.Models;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
@@ -17,6 +20,8 @@ public class PremiumGalleryCard : ContentView
     private readonly Label _currencyIcon;
     private readonly Grid _contentGrid;
     private IdentityEffectView? _effectView;
+    private LivingVisualHost? _livingVisualHost;
+    private IdentityPlateView? _namePlateView;
 
     public PremiumGalleryCard()
     {
@@ -121,11 +126,7 @@ public class PremiumGalleryCard : ContentView
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(0, 0, 0, 8),
-            Children =
-            {
-                _currencyIcon,
-                _price
-            }
+            Children = { _currencyIcon, _price }
         };
 
         _contentGrid = new Grid
@@ -136,11 +137,7 @@ public class PremiumGalleryCard : ContentView
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto }
             },
-            Children =
-            {
-                _fullBackground,
-                diagonalShade
-            }
+            Children = { _fullBackground, diagonalShade }
         };
 
         _contentGrid.Add(_image, 0, 0);
@@ -173,29 +170,19 @@ public class PremiumGalleryCard : ContentView
         if (item == null)
             return;
 
-        var imageName = string.IsNullOrWhiteSpace(item.Image)
-            ? "gallery_lion.png"
-            : item.Image;
+        var imageName = string.IsNullOrWhiteSpace(item.Image) ? "gallery_lion.png" : item.Image;
 
-        _image.Source =
-            InventoryDisplayResolver.ResolveImageSource(
-                imageName,
-                "gallery_lion.png");
+        _image.Source = InventoryDisplayResolver.ResolveImageSource(imageName, "gallery_lion.png");
+        _image.IsVisible = true;
 
-        _name.Text = string.IsNullOrWhiteSpace(item.Name)
-            ? "عنصر المتجر"
-            : item.Name;
+        _name.Text = string.IsNullOrWhiteSpace(item.Name) ? "عنصر المتجر" : item.Name;
 
         var isFree = string.Equals(item.Currency, "Free", StringComparison.OrdinalIgnoreCase);
         _currencyIcon.IsVisible = !isFree;
         _currencyIcon.Text = string.Equals(item.Currency, "Coins", StringComparison.OrdinalIgnoreCase) ? "🪙" : "💎";
         _price.Text = isFree ? "مجاني" : item.Price.ToString();
 
-        _badge.Text = item.IsLimited
-            ? "محدود"
-            : item.IsNew
-                ? "جديد"
-                : "جديد";
+        _badge.Text = item.IsLimited ? "محدود" : item.IsNew ? "جديد" : "جديد";
 
         _ = ApplyDynamicBackgroundAsync(imageName);
         _ = ApplyEffectPreviewAsync(item.Id);
@@ -206,23 +193,74 @@ public class PremiumGalleryCard : ContentView
     private async Task ApplyEffectPreviewAsync(string assetId)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
+        var owner = asset?.AssetType == StoreProductAssetType.TeamEffect || StoreAssetCatalogService.IsLivingEmblemAsset(asset)
+            ? await ApplicationUserService.GetCurrentStoreOwnerAsync()
+            : null;
+
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (_effectView != null)
-            {
-                _effectView.Clear();
-                _contentGrid.Children.Remove(_effectView);
-                _effectView = null;
-            }
-            if (asset?.AssetType is not (StoreProductAssetType.Effect or
-                StoreProductAssetType.TeamEffect))
+            ClearRuntimePreview();
+            _image.IsVisible = true;
+
+            if (asset == null)
                 return;
 
-            _image.Source = InventoryDisplayResolver.ResolveImageSource(
-                string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
-                "shield_3d.png");
-            _image.WidthRequest = 72;
-            _image.HeightRequest = 72;
+            if (IsNameTypographyAsset(asset.AssetType))
+            {
+                _image.IsVisible = false;
+                _namePlateView = new IdentityPlateView
+                {
+                    WidthRequest = 112,
+                    HeightRequest = 50,
+                    MaximumWidthRequest = 130,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(8, 18, 8, 0)
+                };
+                _namePlateView.Bind(string.IsNullOrWhiteSpace(asset.DisplayName) ? _name.Text : asset.DisplayName, asset.TypographyPreset);
+                _contentGrid.Add(_namePlateView, 0, 0);
+                return;
+            }
+
+            var isLivingEmblem = StoreAssetCatalogService.IsLivingEmblemAsset(asset);
+            if (asset.AssetType is not (StoreProductAssetType.Effect or StoreProductAssetType.TeamEffect) && !isLivingEmblem)
+                return;
+
+            if (asset.AssetType == StoreProductAssetType.TeamEffect || isLivingEmblem)
+            {
+                _image.Source = InventoryDisplayResolver.ResolveImageSource(string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage, "shield_3d.png");
+                _image.WidthRequest = 72;
+                _image.HeightRequest = 72;
+                _image.IsVisible = false;
+                _livingVisualHost = new LivingVisualHost
+                {
+                    AssetId = asset.AssetId,
+                    StaticFallbackImage = string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
+                    ApplicationUserId = owner?.ApplicationUserId ?? string.Empty,
+                    PlayerId = owner?.PlayerId ?? string.Empty,
+                    TeamId = string.Empty,
+                    DisplayLocation = LivingVisualDisplayLocation.StorePreview,
+                    IsStorePreview = true,
+                    WidthRequest = 90,
+                    HeightRequest = 90,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                _contentGrid.Add(_livingVisualHost, 0, 0);
+                return;
+            }
+
+            var providedImage = InventoryDisplayResolver.ResolveOptionalImageSource(asset.PreviewImage);
+            if (providedImage != null)
+            {
+                _image.Source = providedImage;
+                _image.WidthRequest = 90;
+                _image.HeightRequest = 90;
+                _image.IsVisible = true;
+                return;
+            }
+
+            _image.IsVisible = false;
             _effectView = IdentityEffectRenderer.Create(asset, 1.22, lightweight: true);
             _effectView.WidthRequest = 100;
             _effectView.HeightRequest = 100;
@@ -232,6 +270,34 @@ public class PremiumGalleryCard : ContentView
         });
     }
 
+    private void ClearRuntimePreview()
+    {
+        if (_effectView != null)
+        {
+            _effectView.Clear();
+            _contentGrid.Children.Remove(_effectView);
+            _effectView = null;
+        }
+
+        if (_livingVisualHost != null)
+        {
+            _contentGrid.Children.Remove(_livingVisualHost);
+            _livingVisualHost = null;
+        }
+
+        if (_namePlateView != null)
+        {
+            _contentGrid.Children.Remove(_namePlateView);
+            _namePlateView = null;
+        }
+    }
+
+    private static bool IsNameTypographyAsset(StoreProductAssetType assetType) =>
+        assetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect or
+            StoreProductAssetType.PlayerNameFrame or
+            StoreProductAssetType.TeamNameFrame;
+
     public void Bind(GalleryItem item, object? theme)
     {
         Bind(item);
@@ -240,21 +306,15 @@ public class PremiumGalleryCard : ContentView
     private async Task ApplyDynamicBackgroundAsync(string imageName)
     {
         var brush = await ImageColorExtractor.CreateSoftGradientAsync(imageName);
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            _fullBackground.Background = brush;
-        });
+        MainThread.BeginInvokeOnMainThread(() => _fullBackground.Background = brush);
     }
 
     private void ApplyTheme()
     {
         var theme = GalleryThemeEngine.Current;
-
         _root.Background = theme.CardBackground;
         _root.Stroke = theme.Stroke;
         _root.Shadow = CreateShadow(theme);
-
         _name.TextColor = theme.TextPrimary;
         _price.TextColor = theme.Gold;
     }
@@ -280,11 +340,10 @@ public class PremiumGalleryCard : ContentView
     private void OnUnloaded(object? sender, EventArgs e)
     {
         GalleryThemeEngine.ThemeChanged -= OnThemeChanged;
+        ClearRuntimePreview();
     }
 
-    private void OnThemeChanged(
-        object? sender,
-        DominoMajlisPRO.GalleryEngine.Services.GalleryTheme theme)
+    private void OnThemeChanged(object? sender, DominoMajlisPRO.GalleryEngine.Services.GalleryTheme theme)
     {
         ApplyTheme();
     }
@@ -326,4 +385,3 @@ public class PremiumGalleryCard : ContentView
         };
     }
 }
-

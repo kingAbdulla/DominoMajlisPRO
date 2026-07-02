@@ -1,7 +1,10 @@
 using Microsoft.Maui.Controls.Shapes;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
-
+using DominoMajlisPRO.LivingVisualPlatform.Controls;
+using DominoMajlisPRO.LivingVisualPlatform.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Components;
 
 namespace DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 
@@ -184,7 +187,7 @@ internal sealed class StoreProductPreviewOverlay : Grid
     private async Task AnimateOpenAsync(int version, StoreProductPreviewKind kind)
     {
         await Task.WhenAll(this.FadeToAsync(1, 180, Easing.CubicOut), _panel.ScaleToAsync(1, 220, Easing.CubicOut));
-        if (version != _animationVersion || _isClosing || kind != StoreProductPreviewKind.Effect) return;
+        if (version != _animationVersion || _isClosing || !IsEffectPreviewKind(kind)) return;
         await _visualHost.ScaleToAsync(1.04, 220, Easing.SinInOut);
         await _visualHost.ScaleToAsync(1, 220, Easing.SinInOut);
     }
@@ -200,9 +203,7 @@ internal sealed class StoreProductPreviewOverlay : Grid
     {
         var image = new Image
         {
-            Source =
-                InventoryDisplayResolver.ResolveImageSource(
-                    request.ImagePath),
+            Source = InventoryDisplayResolver.ResolveImageSource(request.ImagePath),
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
         };
@@ -213,26 +214,78 @@ internal sealed class StoreProductPreviewOverlay : Grid
             StoreProductPreviewKind.Frame => FrameVisual(image, request.Accent),
             StoreProductPreviewKind.Badge => IdentityVisual(image, request),
             StoreProductPreviewKind.Season => BackgroundVisual(image, request),
-            StoreProductPreviewKind.Effect when request.Effect != null =>
-                EffectVisual(image, request.Effect, request.Accent),
+            StoreProductPreviewKind.Effect when request.Effect != null => EffectVisual(image, request.Effect, request.Accent, request.Name),
+            StoreProductPreviewKind.LivingEmblem when request.Effect != null => EffectVisual(image, request.Effect, request.Accent, request.Name),
             _ => PreviewCard(image, request.Accent)
         };
     }
 
-    private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent)
+    private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent, string visibleName)
     {
-        image.Source = InventoryDisplayResolver.ResolveImageSource(
-            string.IsNullOrWhiteSpace(effect.PreviewImage) ? "shield_3d.png" : effect.PreviewImage,
-            "shield_3d.png");
-        image.WidthRequest = 190;
-        image.HeightRequest = 190;
-        image.HorizontalOptions = LayoutOptions.Center;
-        image.VerticalOptions = LayoutOptions.Center;
+        if (IsNameTypographyAsset(effect.AssetType))
+        {
+            var plate = new IdentityPlateView
+            {
+                WidthRequest = 310,
+                HeightRequest = 82,
+                MaximumWidthRequest = 330,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                Margin = new Thickness(20)
+            };
+            plate.Bind(string.IsNullOrWhiteSpace(visibleName) ? effect.DisplayName : visibleName, effect.TypographyPreset);
+            return new Grid
+            {
+                HeightRequest = 240,
+                Children = { plate }
+            };
+        }
+
+        if (effect.AssetType == StoreProductAssetType.TeamEffect || StoreAssetCatalogService.IsLivingEmblemAsset(effect))
+        {
+            var host = new LivingVisualHost
+            {
+                AssetId = effect.AssetId,
+                StaticFallbackImage = string.IsNullOrWhiteSpace(effect.PreviewImage) ? "shield_3d.png" : effect.PreviewImage,
+                ApplicationUserId = string.Empty,
+                PlayerId = string.Empty,
+                TeamId = string.Empty,
+                DisplayLocation = LivingVisualDisplayLocation.StorePreview,
+                IsStorePreview = true,
+                WidthRequest = 190,
+                HeightRequest = 190,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            };
+            return PreviewCard(host, accent);
+        }
+
         var layers = new Grid();
-        layers.Children.Add(IdentityEffectRenderer.Create(effect, 1.28));
-        layers.Children.Add(image);
+        var providedImage = InventoryDisplayResolver.ResolveOptionalImageSource(effect.PreviewImage);
+        if (providedImage != null)
+        {
+            image.Source = providedImage;
+            image.WidthRequest = 190;
+            image.HeightRequest = 190;
+            image.HorizontalOptions = LayoutOptions.Center;
+            image.VerticalOptions = LayoutOptions.Center;
+            layers.Children.Add(image);
+        }
+        else
+        {
+            layers.Children.Add(IdentityEffectRenderer.Create(effect, 1.28));
+        }
         return PreviewCard(layers, accent);
     }
+
+    private static bool IsNameTypographyAsset(StoreProductAssetType assetType) =>
+        assetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect or
+            StoreProductAssetType.PlayerNameFrame or
+            StoreProductAssetType.TeamNameFrame;
+
+    private static bool IsEffectPreviewKind(StoreProductPreviewKind kind) =>
+        kind is StoreProductPreviewKind.Effect or StoreProductPreviewKind.LivingEmblem;
 
     private static View AvatarVisual(Image image, Color accent)
     {

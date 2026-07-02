@@ -1,0 +1,12 @@
+{
+  "authoringTool": "Temporary placeholder",
+  "exporter": "DominoMajlisPRO package pipeline",
+  "sourceAsset": "Artist package pending",
+  "artStatus": "Temporary import placeholder. Replace the whole package contents with the approved artist-authored GLB package.",
+  "isTemporaryArt": true,
+  "tags": {
+    "packageType": "LivingEmblem",
+    "runtimeBackend": "Filament",
+    "approvalGate": "Developer preview"
+  }
+}

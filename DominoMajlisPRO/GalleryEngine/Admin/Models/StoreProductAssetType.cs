@@ -7,6 +7,11 @@ public enum StoreProductAssetType
     Frame,
     Effect,
     TeamEffect,
+    TeamLivingEmblem,
+    PlayerNameEffect,
+    TeamNameEffect,
+    PlayerNameFrame,
+    TeamNameFrame,
     Title,
     Emblem,
     TeamColor,
@@ -27,8 +32,7 @@ public enum StoreProductOwnerScope
 
 public static class StoreProductAssetTypeCatalog
 {
-    public static IReadOnlyList<string> CanonicalTypeIds { get; } =
-        Enum.GetNames<StoreProductAssetType>();
+    public static IReadOnlyList<string> CanonicalTypeIds { get; } = Enum.GetNames<StoreProductAssetType>();
 
     public static bool TryResolve(string? value, out StoreProductAssetType type) =>
         Enum.TryParse(value?.Trim(), ignoreCase: false, out type) &&
@@ -41,72 +45,74 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.Frame or
         StoreProductAssetType.Effect or
         StoreProductAssetType.TeamEffect or
+        StoreProductAssetType.TeamLivingEmblem or
+        StoreProductAssetType.PlayerNameEffect or
+        StoreProductAssetType.PlayerNameFrame or
         StoreProductAssetType.Title or
         StoreProductAssetType.Badge or
         StoreProductAssetType.SeasonReward => StoreProductOwnerScope.Player,
 
         StoreProductAssetType.Emblem or
         StoreProductAssetType.TeamColor or
-        StoreProductAssetType.EmblemBackground => StoreProductOwnerScope.Team,
+        StoreProductAssetType.EmblemBackground or
+        StoreProductAssetType.TeamNameEffect or
+        StoreProductAssetType.TeamNameFrame => StoreProductOwnerScope.Team,
 
         _ => StoreProductOwnerScope.None
     };
 
-    public static bool IsInventory(StoreProductAssetType type) =>
-        GetOwnerScope(type) != StoreProductOwnerScope.None;
+    public static bool IsInventory(StoreProductAssetType type) => GetOwnerScope(type) != StoreProductOwnerScope.None;
 
     public static bool RequiresImagePayload(StoreProductAssetType type) => type is
         StoreProductAssetType.Avatar or
         StoreProductAssetType.ProfileBackground or
         StoreProductAssetType.Emblem or
+        StoreProductAssetType.TeamLivingEmblem or
         StoreProductAssetType.EmblemBackground or
         StoreProductAssetType.Frame;
 
-    public static bool Validate(
-        string? storeTypeId,
-        string? assetId,
-        string? ownerScope,
-        string? imagePath,
-        string? colorHex,
-        out string message)
+    public static bool IsTypographyAsset(StoreProductAssetType type) => type is
+        StoreProductAssetType.PlayerNameEffect or
+        StoreProductAssetType.TeamNameEffect or
+        StoreProductAssetType.PlayerNameFrame or
+        StoreProductAssetType.TeamNameFrame;
+
+    public static bool Validate(string? storeTypeId, string? assetId, string? ownerScope, string? imagePath, string? colorHex, out string message)
     {
         if (!TryResolve(storeTypeId, out var type))
         {
-            message = "نوع الأصل مطلوب ويجب اختياره من القائمة المعتمدة";
+            message = "Asset type is required.";
             return false;
         }
 
         var expectedOwner = GetOwnerScope(type);
-        if (!Enum.TryParse<StoreProductOwnerScope>(ownerScope?.Trim(), false, out var actualOwner) ||
-            actualOwner != expectedOwner)
+        if (!Enum.TryParse<StoreProductOwnerScope>(ownerScope?.Trim(), false, out var actualOwner) || actualOwner != expectedOwner)
         {
-            message = "نطاق المالك غير صالح لنوع الأصل المحدد";
+            message = "Owner scope does not match asset type.";
             return false;
         }
 
         if (IsInventory(type) && string.IsNullOrWhiteSpace(assetId))
         {
-            message = "معرّف الأصل AssetId مطلوب للأصول القابلة للاقتناء";
+            message = "AssetId is required.";
             return false;
         }
 
         if (type == StoreProductAssetType.TeamColor && !IsValidColorHex(colorHex))
         {
-            message = "لون الفريق يتطلب قيمة ColorHex صحيحة مثل #FFD700";
+            message = "Team color requires a valid hex value.";
             return false;
         }
 
-        if (type is StoreProductAssetType.Effect or StoreProductAssetType.TeamEffect &&
-            !string.IsNullOrWhiteSpace(colorHex) &&
-            !IsValidColorHex(colorHex))
+        if (type is StoreProductAssetType.Effect or StoreProductAssetType.TeamEffect && !string.IsNullOrWhiteSpace(colorHex) && !IsValidColorHex(colorHex))
         {
-            message = "لون المؤثر غير صالح. استخدم قيمة مثل #FFD700";
+            message = "Effect color is invalid.";
             return false;
         }
 
         if (RequiresImagePayload(type) && !IsValidImagePayload(imagePath))
         {
-            message = "نوع الأصل المحدد يتطلب صورة أو حمولة مرئية صالحة";
+            message = "This asset type requires a valid visual payload.";
             return false;
         }
 
@@ -119,10 +125,8 @@ public static class StoreProductAssetTypeCatalog
         var token = value?.Trim();
         if (string.IsNullOrWhiteSpace(token) || token[0] != '#')
             return false;
-
         var hex = token[1..];
-        return (hex.Length == 6 || hex.Length == 8) &&
-               hex.All(Uri.IsHexDigit);
+        return (hex.Length == 6 || hex.Length == 8) && hex.All(Uri.IsHexDigit);
     }
 
     private static bool IsValidImagePayload(string? value)
@@ -132,47 +136,36 @@ public static class StoreProductAssetTypeCatalog
             return false;
         if (File.Exists(token))
             return true;
-
         var extension = Path.GetExtension(token);
-        return extension.Equals(".png", StringComparison.OrdinalIgnoreCase) ||
-               extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
-               extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase) ||
-               extension.Equals(".webp", StringComparison.OrdinalIgnoreCase) ||
-               extension.Equals(".gif", StringComparison.OrdinalIgnoreCase) ||
-               extension.Equals(".svg", StringComparison.OrdinalIgnoreCase);
+        return extension.Equals(".png", StringComparison.OrdinalIgnoreCase) || extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) || extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase) || extension.Equals(".webp", StringComparison.OrdinalIgnoreCase) || extension.Equals(".gif", StringComparison.OrdinalIgnoreCase) || extension.Equals(".svg", StringComparison.OrdinalIgnoreCase);
     }
 }
 
 public static class StoreManagerAssetTypeScopes
 {
-    public static IReadOnlyList<string> AllSupportedProductTypes { get; } =
-        StoreProductAssetTypeCatalog.CanonicalTypeIds;
+    public static IReadOnlyList<string> AllSupportedProductTypes { get; } = StoreProductAssetTypeCatalog.CanonicalTypeIds;
 
     public static IReadOnlyList<string> ForSection(string sectionId) => sectionId switch
     {
         "avatars" => Types(StoreProductAssetType.Avatar),
         "backgrounds" => Types(StoreProductAssetType.ProfileBackground),
-        "emblems" => Types(
-            StoreProductAssetType.Emblem,
-            StoreProductAssetType.EmblemBackground),
+        "emblems" => Types(StoreProductAssetType.Emblem, StoreProductAssetType.TeamLivingEmblem, StoreProductAssetType.EmblemBackground),
         "emblem-backgrounds" => Types(StoreProductAssetType.EmblemBackground),
-        "effects" => Types(StoreProductAssetType.Effect, StoreProductAssetType.TeamEffect),
+        "effects" => Types(StoreProductAssetType.Effect, StoreProductAssetType.TeamEffect, StoreProductAssetType.TeamLivingEmblem),
+        "name-effects" => Types(StoreProductAssetType.PlayerNameEffect, StoreProductAssetType.TeamNameEffect, StoreProductAssetType.PlayerNameFrame, StoreProductAssetType.TeamNameFrame),
         "frames" => Types(StoreProductAssetType.Frame),
         "titles" => Types(StoreProductAssetType.Title),
         "team-colors" => Types(StoreProductAssetType.TeamColor),
         "badges" => Types(StoreProductAssetType.Badge),
         "bundles" => Types(StoreProductAssetType.Bundle),
         "currency-pricing" or "top-up" => Types(StoreProductAssetType.CurrencyPack),
-        "new-arrivals" or "current-season" or "limited-offers" =>
-            AllSupportedProductTypes,
+        "new-arrivals" or "current-season" or "limited-offers" => AllSupportedProductTypes,
         "categories" => Array.Empty<string>(),
         _ => Array.Empty<string>()
     };
 
     public static bool IsAllowed(string sectionId, string? storeTypeId) =>
-        StoreProductAssetTypeCatalog.TryResolve(storeTypeId, out var type) &&
-        ForSection(sectionId).Contains(type.ToString(), StringComparer.Ordinal);
+        StoreProductAssetTypeCatalog.TryResolve(storeTypeId, out var type) && ForSection(sectionId).Contains(type.ToString(), StringComparer.Ordinal);
 
-    private static IReadOnlyList<string> Types(params StoreProductAssetType[] types) =>
-        types.Select(type => type.ToString()).ToArray();
+    private static IReadOnlyList<string> Types(params StoreProductAssetType[] types) => types.Select(type => type.ToString()).ToArray();
 }

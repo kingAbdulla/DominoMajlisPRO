@@ -1,6 +1,8 @@
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
+using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
 namespace DominoMajlisPRO.Pages;
@@ -11,6 +13,16 @@ public partial class MatchDetailsPage : ContentPage
     bool roundsExpanded = false;
 
     const int InitialRoundsCount = 10;
+    
+    // VisualEventBus subscription tokens
+    IDisposable? teamEmblemChangedSubscription;
+    IDisposable? teamColorChangedSubscription;
+    IDisposable? teamEffectChangedSubscription;
+    IDisposable? teamEmblemBackgroundChangedSubscription;
+    IDisposable? playerAvatarChangedSubscription;
+    IDisposable? playerProfileBackgroundChangedSubscription;
+    IDisposable? playerFrameChangedSubscription;
+    IDisposable? playerEffectChangedSubscription;
     public MatchDetailsPage(
         SavedMatch? savedMatch = null)
     {
@@ -37,6 +49,32 @@ public partial class MatchDetailsPage : ContentPage
         AppEvents.TeamsChanged += OnMatchDetailsDataChanged;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
         AppEvents.PlayerProfileChanged += OnMatchDetailsDataChanged;
+        
+        // Subscribe to VisualEventBus identity events
+        teamEmblemChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemChanged);
+        teamColorChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamColorChanged);
+        teamEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEffectChanged);
+        teamEmblemBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemBackgroundChanged);
+        playerAvatarChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerAvatarChanged);
+        playerProfileBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerProfileBackgroundChanged);
+        playerFrameChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerFrameChanged);
+        playerEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerEffectChanged);
 
         await LoadMatchData();
     }
@@ -44,6 +82,16 @@ public partial class MatchDetailsPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        
+        // Dispose VisualEventBus subscriptions
+        teamEmblemChangedSubscription?.Dispose();
+        teamColorChangedSubscription?.Dispose();
+        teamEffectChangedSubscription?.Dispose();
+        teamEmblemBackgroundChangedSubscription?.Dispose();
+        playerAvatarChangedSubscription?.Dispose();
+        playerProfileBackgroundChangedSubscription?.Dispose();
+        playerFrameChangedSubscription?.Dispose();
+        playerEffectChangedSubscription?.Dispose();
 
         AppEvents.DataChanged -= OnMatchDetailsDataChanged;
         AppEvents.MatchesChanged -= OnMatchDetailsDataChanged;
@@ -108,6 +156,7 @@ public partial class MatchDetailsPage : ContentPage
                     team1Identity?.EmblemImagePath ?? team1.Emblem,
                     "shield_3d.png");
             await TeamEffectEngine.ApplyAroundAsync(Team1Emblem, match.Team1Id, 1.16);
+            LivingEmblemBehavior.Attach(Team1Emblem, match.Team1Id);
             Team1Border.Stroke =
                 SafeColor(
                     team1Identity?.TeamColorHex,
@@ -150,6 +199,7 @@ public partial class MatchDetailsPage : ContentPage
                     team2Identity?.EmblemImagePath ?? team2.Emblem,
                     "shield_3d.png");
             await TeamEffectEngine.ApplyAroundAsync(Team2Emblem, match.Team2Id, 1.16);
+            LivingEmblemBehavior.Attach(Team2Emblem, match.Team2Id);
             Team2Border.Stroke =
                 SafeColor(
                     team2Identity?.TeamColorHex,
@@ -215,6 +265,70 @@ public partial class MatchDetailsPage : ContentPage
 
         OnMatchDetailsDataChanged();
     }
+
+    // VisualEventBus identity event handlers - reuse existing refresh path
+    void HandleTeamIdentityEvent(EventEntry eventEntry)
+    {
+        if (eventEntry.EventData == null)
+            return;
+        
+        if (!eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.TeamId))
+            return;
+        
+        eventEntry.EventData.TryGetValue(VisualIdentityPayloadKeys.TeamId, out var teamIdObject);
+        
+        if (teamIdObject is not string teamId || string.IsNullOrWhiteSpace(teamId))
+            return;
+        
+        // Filter: Only refresh if teamId matches Team1Id or Team2Id
+        if (match == null ||
+            (!string.Equals(teamId, match.Team1Id, StringComparison.OrdinalIgnoreCase) &&
+             !string.Equals(teamId, match.Team2Id, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+        
+        OnMatchDetailsDataChanged();
+    }
+
+    void HandlePlayerIdentityEvent(EventEntry eventEntry)
+    {
+        if (eventEntry.EventData == null)
+            return;
+        
+        if (!eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.PlayerId))
+            return;
+        
+        eventEntry.EventData.TryGetValue(VisualIdentityPayloadKeys.PlayerId, out var playerIdObject);
+        
+        if (playerIdObject is not string playerId || string.IsNullOrWhiteSpace(playerId))
+            return;
+        
+        // Filter: Only refresh if playerId matches any of the 4 players in the match
+        if (match == null)
+            return;
+        
+        if (!string.Equals(playerId, match.Team1Player1Id, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(playerId, match.Team1Player2Id, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(playerId, match.Team2Player1Id, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(playerId, match.Team2Player2Id, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        
+        OnMatchDetailsDataChanged();
+    }
+
+    // Individual event handlers
+    void OnTeamEmblemChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamColorChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamEffectChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamEmblemBackgroundChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+
+    void OnPlayerAvatarChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerProfileBackgroundChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerFrameChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerEffectChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
 
     static Color SafeColor(string? preferred, string fallback)
     {

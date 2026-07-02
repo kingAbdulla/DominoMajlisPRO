@@ -1,7 +1,9 @@
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Pages;
+using DominoMajlisPRO.GalleryEngine.Effects;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -21,6 +23,16 @@ public partial class MainPage : ContentPage
     TeamProfileModel? selectedTeam2;
     readonly Dictionary<string, TeamIdentityModel> liveTeamIdentities =
         new(StringComparer.OrdinalIgnoreCase);
+    
+    // VisualEventBus subscription tokens
+    IDisposable? teamEmblemChangedSubscription;
+    IDisposable? teamColorChangedSubscription;
+    IDisposable? teamEffectChangedSubscription;
+    IDisposable? teamEmblemBackgroundChangedSubscription;
+    IDisposable? playerAvatarChangedSubscription;
+    IDisposable? playerProfileBackgroundChangedSubscription;
+    IDisposable? playerFrameChangedSubscription;
+    IDisposable? playerEffectChangedSubscription;
 
     sealed class TeamPickerVisualItem
     {
@@ -96,6 +108,32 @@ public partial class MainPage : ContentPage
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
         AppEvents.StoreEconomyChanged += OnStoreEconomyChanged;
         AppEvents.CurrentUserChanged += OnCurrentUserChanged;
+        
+        // Subscribe to VisualEventBus identity events
+        teamEmblemChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemChanged);
+        teamColorChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamColorChanged);
+        teamEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEffectChanged);
+        teamEmblemBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemBackgroundChanged);
+        playerAvatarChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerAvatarChanged);
+        playerProfileBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerProfileBackgroundChanged);
+        playerFrameChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerFrameChanged);
+        playerEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerEffectChanged);
 
         if (await ApplicationUserService.RequiresIdentityChoiceAsync())
             await ShowIdentityLoginRegisterFlowAsync();
@@ -119,6 +157,16 @@ public partial class MainPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        
+        // Dispose VisualEventBus subscriptions
+        teamEmblemChangedSubscription?.Dispose();
+        teamColorChangedSubscription?.Dispose();
+        teamEffectChangedSubscription?.Dispose();
+        teamEmblemBackgroundChangedSubscription?.Dispose();
+        playerAvatarChangedSubscription?.Dispose();
+        playerProfileBackgroundChangedSubscription?.Dispose();
+        playerFrameChangedSubscription?.Dispose();
+        playerEffectChangedSubscription?.Dispose();
 
         AppEvents.DataChanged -= OnAppDataChanged;
         AppEvents.PlayerProfileChanged -= OnMainProfileChanged;
@@ -174,6 +222,7 @@ public partial class MainPage : ContentPage
             ResolveStoredImage(GetLiveEmblem(selectedTeam1));
         await TeamEffectEngine.ApplyAroundAsync(
             PreviewTeam1Logo, selectedTeam1.TeamId, 1.18);
+        LivingEmblemBehavior.Attach(PreviewTeam1Logo, selectedTeam1.TeamId);
         var color =
             GetTeamColor(GetLiveTeamColor(selectedTeam1));
 
@@ -283,6 +332,7 @@ public partial class MainPage : ContentPage
             ResolveStoredImage(GetLiveEmblem(selectedTeam2));
         await TeamEffectEngine.ApplyAroundAsync(
             PreviewTeam2Logo, selectedTeam2.TeamId, 1.18);
+        LivingEmblemBehavior.Attach(PreviewTeam2Logo, selectedTeam2.TeamId);
 
         UpdateMatchPreview();
     }
@@ -969,6 +1019,86 @@ TextChangedEventArgs e)
             UpdateMatchPreview();
         });
     }
+
+    // VisualEventBus team identity event handler - reuse existing refresh path
+    void HandleTeamIdentityEvent(EventEntry eventEntry)
+    {
+        if (eventEntry.EventData == null)
+            return;
+        
+        if (!eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.TeamId))
+            return;
+        
+        eventEntry.EventData.TryGetValue(VisualIdentityPayloadKeys.TeamId, out var teamIdObject);
+        
+        if (teamIdObject is not string teamId || string.IsNullOrWhiteSpace(teamId))
+            return;
+        
+        // Reuse the same relevance rules as OnTeamAssetsChanged
+        var selectedTeam = new[] { selectedTeam1, selectedTeam2 }
+            .FirstOrDefault(team =>
+                string.Equals(
+                    team?.TeamId,
+                    teamId,
+                    StringComparison.OrdinalIgnoreCase));
+
+        var pickerContainsTeam =
+            TeamPickerOverlay.IsVisible &&
+            filteredTeams.Any(team =>
+                string.Equals(
+                    team.TeamId,
+                    teamId,
+                    StringComparison.OrdinalIgnoreCase));
+
+        if (selectedTeam == null && !pickerContainsTeam)
+            return;
+        
+        // Reuse existing refresh path
+        _ = MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            liveTeamIdentities.Remove(teamId);
+            if (selectedTeam != null)
+                await RefreshLiveTeamIdentityAsync(selectedTeam);
+            if (pickerContainsTeam)
+                await SetTeamPickerItemsAsync(filteredTeams);
+            UpdateMatchPreview();
+        });
+    }
+
+    // VisualEventBus player identity event handler - reuse existing refresh path
+    async void HandlePlayerIdentityEvent(EventEntry eventEntry)
+    {
+        if (eventEntry.EventData == null)
+            return;
+        
+        if (!eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.PlayerId))
+            return;
+        
+        eventEntry.EventData.TryGetValue(VisualIdentityPayloadKeys.PlayerId, out var playerIdObject);
+        
+        if (playerIdObject is not string playerId || string.IsNullOrWhiteSpace(playerId))
+            return;
+        
+        // Get current user's PlayerId
+        var devicePlayerId = await PlayerStoreIdentityService.GetDeviceIdentityPlayerIdAsync();
+        
+        if (!string.Equals(playerId, devicePlayerId, StringComparison.OrdinalIgnoreCase))
+            return;
+        
+        // Reuse existing refresh pipeline - single source of truth
+        OnMainProfileChanged();
+    }
+
+    // Individual event handlers
+    void OnTeamEmblemChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamColorChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamEffectChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamEmblemBackgroundChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+
+    void OnPlayerAvatarChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerProfileBackgroundChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerFrameChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerEffectChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
 
     async Task RefreshLiveTeamVisualsAsync()
     {

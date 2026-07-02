@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Services;
@@ -38,9 +39,13 @@ public static class PlayerInventoryService
     private static async Task<bool> AddOwnedItemCoreAsync(string playerId, string assetId, string storeTypeId, string source, DateTime? expireAt, string? seasonId, string? collectionId, bool raiseEvent)
     {
         ValidateIdentity(playerId, assetId);
+        
+        // Resolve ApplicationUserId from current session for identity isolation
+        var appUserId = (await ApplicationUserService.EnsureCurrentSessionAsync()).ApplicationUserId ?? string.Empty;
+        
         var added = await AddOwnedAsync(new PlayerOwnedStoreItem
         {
-            ApplicationUserId = string.Empty,
+            ApplicationUserId = appUserId,
             PlayerId = playerId,
             AssetId = assetId,
             ItemId = assetId,
@@ -65,6 +70,13 @@ public static class PlayerInventoryService
     {
         Normalize(owned);
         ValidateIdentity(owned.PlayerId, owned.AssetId);
+        
+        // Validate ApplicationUserId for identity isolation
+        if (owned.IsOwned && string.IsNullOrWhiteSpace(owned.ApplicationUserId))
+        {
+            throw new InvalidOperationException("ApplicationUserId is required for owned inventory items.");
+        }
+        
         await Gate.WaitAsync();
         try
         {
@@ -96,6 +108,13 @@ public static class PlayerInventoryService
                 target.StoreTypeId = NormalizeStoreType(requestedStoreType);
                 target.AssetType = target.StoreTypeId;
             }
+            
+            // Capture previous equipped asset for the same StoreTypeId
+            var previousAsset = records.FirstOrDefault(x => Same(x.PlayerId, playerId) && 
+                string.Equals(x.StoreTypeId, target.StoreTypeId, StringComparison.OrdinalIgnoreCase) && 
+                x.IsEquipped && IsActiveOwned(x));
+            var previousAssetId = previousAsset?.AssetId;
+            
             foreach (var x in records.Where(x => Same(x.PlayerId, playerId) && string.Equals(x.StoreTypeId, target.StoreTypeId, StringComparison.OrdinalIgnoreCase)))
             {
                 x.IsEquipped = false;
@@ -104,6 +123,46 @@ public static class PlayerInventoryService
             target.IsEquipped = true;
             target.EquippedAt = DateTime.UtcNow;
             await SaveAsync(records);
+            
+            // Publish VisualEventBus identity events for specific asset types
+            var storeTypeId = target.StoreTypeId.ToLowerInvariant();
+            if (storeTypeId == "profilebackground")
+            {
+                var payload = new Dictionary<string, object>
+                {
+                    { VisualIdentityPayloadKeys.PlayerId, playerId },
+                    { VisualIdentityPayloadKeys.BackgroundAssetId, assetId },
+                    { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+                };
+                if (!string.IsNullOrWhiteSpace(previousAssetId))
+                    payload[VisualIdentityPayloadKeys.PreviousBackgroundAssetId] = previousAssetId;
+                VisualEventBus.Publish(EventCategory.Player, VisualIdentityEventNames.PlayerProfileBackgroundChanged, payload, true, 0);
+            }
+            else if (storeTypeId == "frame")
+            {
+                var payload = new Dictionary<string, object>
+                {
+                    { VisualIdentityPayloadKeys.PlayerId, playerId },
+                    { VisualIdentityPayloadKeys.FrameAssetId, assetId },
+                    { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+                };
+                if (!string.IsNullOrWhiteSpace(previousAssetId))
+                    payload[VisualIdentityPayloadKeys.PreviousFrameAssetId] = previousAssetId;
+                VisualEventBus.Publish(EventCategory.Player, VisualIdentityEventNames.PlayerFrameChanged, payload, true, 0);
+            }
+            else if (storeTypeId == "effect")
+            {
+                var payload = new Dictionary<string, object>
+                {
+                    { VisualIdentityPayloadKeys.PlayerId, playerId },
+                    { VisualIdentityPayloadKeys.EffectAssetId, assetId },
+                    { VisualIdentityPayloadKeys.TimestampUtc, DateTimeOffset.UtcNow }
+                };
+                if (!string.IsNullOrWhiteSpace(previousAssetId))
+                    payload[VisualIdentityPayloadKeys.PreviousEffectAssetId] = previousAssetId;
+                VisualEventBus.Publish(EventCategory.Player, VisualIdentityEventNames.PlayerEffectChanged, payload, true, 0);
+            }
+            
             if (raiseEvent) AppEvents.RaiseStoreEconomyChanged(playerId);
             return true;
         }
@@ -158,7 +217,10 @@ public static class PlayerInventoryService
     {
         var records = group.OrderByDescending(x => x.IsEquipped).ThenByDescending(x => x.PurchasedAt).ToList();
         var merged = records[0];
-        merged.ApplicationUserId = string.Empty;
+        
+        // Preserve ApplicationUserId from source records for identity isolation
+        merged.ApplicationUserId = records.Select(r => r.ApplicationUserId).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+        
         merged.IsOwned = records.Any(x => x.IsOwned);
         merged.IsEquipped = records.Any(x => x.IsEquipped) && !records.All(x => x.IsExpired);
         merged.EquippedAt = records.Where(x => x.IsEquipped).Select(x => x.EquippedAt).OrderByDescending(x => x).FirstOrDefault();
@@ -177,9 +239,12 @@ public static class PlayerInventoryService
     {
         var before = $"{item.InventoryItemId}|{item.ApplicationUserId}|{item.PlayerId}|{item.AssetId}|{item.StoreTypeId}|{item.AssetType}|{item.PurchasedAt:O}|{item.Source}|{item.ItemId}|{item.AcquiredAt:O}|{item.IsExpired}";
         item.InventoryItemId = string.IsNullOrWhiteSpace(item.InventoryItemId) ? Guid.NewGuid().ToString() : item.InventoryItemId.Trim();
-        item.ApplicationUserId = string.Empty;
+        
+        // Preserve ApplicationUserId if present for identity isolation
+        item.ApplicationUserId = item.ApplicationUserId?.Trim() ?? string.Empty;
+        
         item.PlayerId = item.PlayerId?.Trim() ?? string.Empty;
-        item.AssetId = !string.IsNullOrWhiteSpace(item.AssetId) ? item.AssetId.Trim() : !string.IsNullOrWhiteSpace(item.ItemId) ? item.ItemId.Trim() : Guid.NewGuid().ToString();
+        item.AssetId = !string.IsNullOrWhiteSpace(item.AssetId) ? item.AssetId.Trim() : !string.IsNullOrWhiteSpace(item.ItemId) ? item.ItemId.Trim() : string.Empty;
         item.ItemId = item.AssetId;
         item.StoreTypeId = NormalizeStoreType(!string.IsNullOrWhiteSpace(item.StoreTypeId) ? item.StoreTypeId : !string.IsNullOrWhiteSpace(item.AssetType) ? item.AssetType : item.ItemType.ToString());
         item.AssetType = item.StoreTypeId;
@@ -193,7 +258,7 @@ public static class PlayerInventoryService
     }
 
     private static bool IsActiveOwned(PlayerOwnedStoreItem item) => item.IsOwned && !item.IsExpired;
-    private static bool Same(string? left, string? right) => string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+    private static bool Same(string? left, string? right) => CanonicalAssetIdentityService.SameAssetId(left, right);
     private static string OwnershipKey(PlayerOwnedStoreItem item) => $"{item.PlayerId}|{item.AssetId}";
     private static string EquippedTypeKey(PlayerOwnedStoreItem item) => $"{item.PlayerId}|{item.StoreTypeId}";
     private static string NormalizeStoreType(string? value) => string.IsNullOrWhiteSpace(value) ? UnknownStoreType : value.Trim();

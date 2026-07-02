@@ -10,6 +10,7 @@ public partial class CreateTeamPage
 {
     private bool _previewSyncHooked;
     private bool _teamEffectVisualSyncRunning;
+    private int _teamEffectSyncVersion;
 
     protected override void OnHandlerChanged()
     {
@@ -25,28 +26,47 @@ public partial class CreateTeamPage
         Player2Entry.TextChanged += OnPreviewIdentityTextChanged;
         TeamEffectCarousel.SelectionChanged += OnTeamEffectVisualSelectionChanged;
 
-        Dispatcher.Dispatch(RefreshCreateTeamVisualPipeline);
+        Dispatcher.Dispatch(() =>
+        {
+            RepairCreateTeamArabicText(this);
+            UpdatePreviewIdentityLabelsSafely();
+            QueueTeamEffectSliderRefresh();
+            _ = LoadOwnedTeamAssetsAsync();
+        });
 
         var runs = 0;
-        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(250), () =>
+        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(450), () =>
         {
             runs++;
-            RefreshCreateTeamVisualPipeline();
-            return Handler != null && runs < 16;
+            RepairCreateTeamArabicText(this);
+            UpdatePreviewIdentityLabelsSafely();
+            return Handler != null && runs < 4;
         });
     }
 
-    private void OnPreviewIdentityTextChanged(object? sender, TextChangedEventArgs e) =>
-        RefreshCreateTeamVisualPipeline();
+    private void OnPreviewIdentityTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        RepairCreateTeamArabicText(this);
+        UpdatePreviewIdentityLabelsSafely();
+        QueueTeamEffectSliderRefresh();
+    }
 
     private void OnTeamEffectVisualSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
         _ = SyncTeamEffectChoicesAndPreviewAsync();
 
-    private void RefreshCreateTeamVisualPipeline()
+    private void QueueTeamEffectSliderRefresh()
     {
-        RepairCreateTeamArabicText(this);
-        UpdatePreviewIdentityLabelsSafely();
-        _ = SyncTeamEffectChoicesAndPreviewAsync();
+        var version = Interlocked.Increment(ref _teamEffectSyncVersion);
+        _ = SyncTeamEffectChoicesAndPreviewAsync(version);
+        _ = DelayedTeamEffectSliderRefreshAsync(version, 220);
+    }
+
+    private async Task DelayedTeamEffectSliderRefreshAsync(int version, int delayMs)
+    {
+        await Task.Delay(delayMs);
+        if (version != _teamEffectSyncVersion || Handler == null)
+            return;
+        await SyncTeamEffectChoicesAndPreviewAsync(version);
     }
 
     private void UpdatePreviewIdentityLabelsSafely()
@@ -65,7 +85,6 @@ public partial class CreateTeamPage
                 ? "اللاعب الثاني"
                 : Player2Entry.Text.Trim();
 
-            // The preview card is visually RTL. Keep player 1 in the right slot and player 2 in the left slot.
             PreviewPlayer1.Text = isTeamMode ? player2 : player1;
             PreviewPlayer2.Text = isTeamMode ? player1 : string.Empty;
             PreviewPlayer2.IsVisible = isTeamMode;
@@ -75,11 +94,13 @@ public partial class CreateTeamPage
         }
         catch
         {
-            // Preview text sync is visual-only and must never block CreateTeamPage.
         }
     }
 
-    private async Task SyncTeamEffectChoicesAndPreviewAsync()
+    private Task SyncTeamEffectChoicesAndPreviewAsync() =>
+        SyncTeamEffectChoicesAndPreviewAsync(_teamEffectSyncVersion);
+
+    private async Task SyncTeamEffectChoicesAndPreviewAsync(int syncVersion)
     {
         if (_teamEffectVisualSyncRunning)
             return;
@@ -88,43 +109,59 @@ public partial class CreateTeamPage
         try
         {
             var catalog = await StoreAssetCatalogService.LoadAsync();
-            var ownerIds = await ResolveCurrentTeamEffectOwnerIdsAsync();
+            var owners = await ResolveCurrentTeamEffectOwnersAsync();
             var effects = new List<TeamEffectCarouselItem>();
 
-            foreach (var ownerId in ownerIds)
+            foreach (var owner in owners)
             {
-                var owned = await PlayerInventoryService.LoadOwnedAsync(ownerId);
-                foreach (var item in owned)
+                var owned = await PlayerInventoryService.LoadOwnedAsync(owner.PlayerId);
+                foreach (var item in owned.Where(item => item.IsOwned && !item.IsExpired))
                 {
                     var effect = ResolveTeamEffectFromCatalogForCreateTeam(catalog, item.AssetId, item.StoreTypeId);
                     if (effect == null)
                         continue;
 
                     if (effects.Any(existing =>
-                            string.Equals(existing.AssetId, item.AssetId, StringComparison.OrdinalIgnoreCase) &&
-                            string.Equals(existing.OwnerPlayerId, ownerId, StringComparison.OrdinalIgnoreCase)))
+                            CanonicalAssetIdentityService.SameAssetId(existing.AssetId, item.AssetId) &&
+                            string.Equals(existing.OwnerPlayerId, owner.PlayerId, StringComparison.OrdinalIgnoreCase)))
                         continue;
 
+                    var name = string.IsNullOrWhiteSpace(effect.DisplayName) ? item.AssetId : effect.DisplayName;
                     effects.Add(new TeamEffectCarouselItem(
                         item.AssetId,
-                        string.IsNullOrWhiteSpace(effect.DisplayName) ? item.AssetId : effect.DisplayName,
+                        $"{name} · {owner.PlayerName}",
                         effect,
-                        ownerId));
+                        owner.PlayerId,
+                        item.ApplicationUserId));
                 }
             }
+
+            if (syncVersion != _teamEffectSyncVersion || Handler == null)
+                return;
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 var previousSelection = selectedTeamEffectAssetId;
-                teamEffectItems = effects.Count == 0
+                var previousOwner = selectedTeamEffectOwnerPlayerId;
+                var orderedEffects = effects
+                    .GroupBy(item => $"{CanonicalAssetIdentityService.NormalizeForComparison(item.AssetId)}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
+                    .Select(group => group.First())
+                    .OrderBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+                    .ToList();
+
+                teamEffectItems = orderedEffects.Count == 0
                     ? new List<TeamEffectCarouselItem>()
-                    : new[] { new TeamEffectCarouselItem(string.Empty, "بدون تأثير", null) }.Concat(effects).ToList();
+                    : new[] { new TeamEffectCarouselItem(string.Empty, "بدون تأثير", null) }
+                        .Concat(orderedEffects)
+                        .ToList();
 
                 TeamEffectCarousel.ItemsSource = teamEffectItems;
                 TeamEffectSection.IsVisible = teamEffectItems.Count > 1;
 
                 var selected = teamEffectItems.FirstOrDefault(item =>
-                                   string.Equals(item.AssetId, previousSelection, StringComparison.OrdinalIgnoreCase))
+                                   CanonicalAssetIdentityService.SameAssetId(item.AssetId, previousSelection) &&
+                                   (string.IsNullOrWhiteSpace(previousOwner) ||
+                                    string.Equals(item.OwnerPlayerId, previousOwner, StringComparison.OrdinalIgnoreCase)))
                                ?? teamEffectItems.FirstOrDefault(item => item.IsNone)
                                ?? teamEffectItems.FirstOrDefault();
 
@@ -132,23 +169,26 @@ public partial class CreateTeamPage
                 {
                     selectedTeamEffectAssetId = string.Empty;
                     selectedTeamEffectOwnerPlayerId = string.Empty;
-                    IdentityEffectRenderer.ApplyAround(PreviewEmblem, null);
+                    selectedTeamEffectOwnerApplicationUserId = string.Empty;
+                    ClearPreviewLivingTeamEffectHost();
+                    IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
+                    if (selected != null && !ReferenceEquals(TeamEffectCarousel.SelectedItem, selected))
+                        TeamEffectCarousel.SelectedItem = selected;
                     return;
                 }
 
                 selectedTeamEffectAssetId = selected.AssetId;
                 selectedTeamEffectOwnerPlayerId = selected.OwnerPlayerId;
-                TeamEffectCarousel.SelectedItem = selected;
-                IdentityEffectRenderer.ApplyAround(
-                    PreviewEmblem,
-                    selected.Effect,
-                    TeamEffectEngine.DefaultTeamEffectScale,
-                    lightweight: true);
+                selectedTeamEffectOwnerApplicationUserId = selected.OwnerApplicationUserId;
+                if (!ReferenceEquals(TeamEffectCarousel.SelectedItem, selected))
+                    TeamEffectCarousel.SelectedItem = selected;
+
+                IdentityEffectRenderer.Clear(PreviewTeamEffectOverlay);
+                ApplyPreviewLivingTeamEffect(selected);
             });
         }
         catch
         {
-            // Effect choice synchronization is visual-only here; save validation remains in OnSaveClicked.
         }
         finally
         {
@@ -156,23 +196,23 @@ public partial class CreateTeamPage
         }
     }
 
-    private async Task<IReadOnlyList<string>> ResolveCurrentTeamEffectOwnerIdsAsync()
+    private async Task<IReadOnlyList<(string PlayerId, string PlayerName)>> ResolveCurrentTeamEffectOwnersAsync()
     {
-        var result = new List<string>();
-        await AddPlayerIdFromEntryAsync(Player1Entry.Text);
+        var result = new List<(string PlayerId, string PlayerName)>();
+        await AddPlayerFromEntryAsync(Player1Entry.Text);
         if (isTeamMode)
-            await AddPlayerIdFromEntryAsync(Player2Entry.Text);
+            await AddPlayerFromEntryAsync(Player2Entry.Text);
 
         if (CurrentTeam != null)
         {
-            AddId(CurrentTeam.Player1Id);
+            await AddPlayerFromIdAsync(CurrentTeam.Player1Id);
             if (isTeamMode)
-                AddId(CurrentTeam.Player2Id);
+                await AddPlayerFromIdAsync(CurrentTeam.Player2Id);
         }
 
         return result;
 
-        async Task AddPlayerIdFromEntryAsync(string? text)
+        async Task AddPlayerFromEntryAsync(string? text)
         {
             var value = text?.Trim() ?? string.Empty;
             if (string.IsNullOrWhiteSpace(value))
@@ -181,21 +221,31 @@ public partial class CreateTeamPage
             var byId = await PlayerProfileService.GetPlayerByIdAsync(value);
             if (byId != null)
             {
-                AddId(byId.PlayerId);
+                AddOwner(byId.PlayerId, byId.PlayerName);
                 return;
             }
 
             var byName = await PlayerProfileService.GetPlayerByNameAsync(value);
             if (byName != null)
-                AddId(byName.PlayerId);
+                AddOwner(byName.PlayerId, byName.PlayerName);
         }
 
-        void AddId(string? id)
+        async Task AddPlayerFromIdAsync(string? id)
         {
             if (string.IsNullOrWhiteSpace(id))
                 return;
-            if (!result.Contains(id.Trim(), StringComparer.OrdinalIgnoreCase))
-                result.Add(id.Trim());
+            var player = await PlayerProfileService.GetPlayerByIdAsync(id.Trim());
+            AddOwner(id.Trim(), player?.PlayerName ?? id.Trim());
+        }
+
+        void AddOwner(string? id, string? name)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return;
+            var playerId = id.Trim();
+            if (result.Any(item => string.Equals(item.PlayerId, playerId, StringComparison.OrdinalIgnoreCase)))
+                return;
+            result.Add((playerId, string.IsNullOrWhiteSpace(name) ? playerId : name.Trim()));
         }
     }
 
@@ -207,22 +257,26 @@ public partial class CreateTeamPage
         if (string.IsNullOrWhiteSpace(assetId))
             return null;
 
-        var canonicalTypeId = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
-
-        if (string.Equals(canonicalTypeId, StoreProductAssetType.TeamEffect.ToString(), StringComparison.OrdinalIgnoreCase))
+        if (CanonicalAssetIdentityService.SameAssetId(assetId, StoreAssetCatalogService.LivingProductionDefaultEmblemAssetId) ||
+            CanonicalAssetIdentityService.SameAssetId(assetId, "teameffect_living_filament_backend_probe"))
         {
-            var teamTyped = StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.TeamEffect.ToString());
-            if (teamTyped != null)
-                return teamTyped;
+            return null;
         }
+
+        var teamTyped = StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.TeamEffect.ToString());
+        if (teamTyped != null)
+            return teamTyped;
 
         var legacy = StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.Effect.ToString());
         if (legacy == null)
             return null;
 
+        var canonicalTypeId = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
         return legacy.AssetType == StoreProductAssetType.TeamEffect ||
                string.Equals(legacy.EquipTarget, "TeamEffect", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(legacy.EquipTarget, "Team", StringComparison.OrdinalIgnoreCase)
+               string.Equals(legacy.EquipTarget, "Team", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(canonicalTypeId, StoreProductAssetType.Effect.ToString(), StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(canonicalTypeId, StoreProductAssetType.TeamEffect.ToString(), StringComparison.OrdinalIgnoreCase)
             ? legacy
             : null;
     }

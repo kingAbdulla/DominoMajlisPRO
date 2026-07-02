@@ -23,7 +23,11 @@ public enum InventoryEquipTarget
     Emblem,
     TeamColor,
     EmblemBackground,
-    TeamEffect
+    TeamEffect,
+    PlayerNameEffect,
+    TeamNameEffect,
+    PlayerNameFrame,
+    TeamNameFrame
 }
 
 public sealed record InventoryProductContext(
@@ -116,6 +120,8 @@ public static class InventoryRouter
         }
 
         var canonicalTypeId = assetType.ToString();
+        if (assetType == StoreProductAssetType.TeamLivingEmblem)
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Emblem, false);
         if (assetType == StoreProductAssetType.Emblem)
             return TeamRoute(canonicalTypeId, InventoryEquipTarget.Emblem);
         if (assetType == StoreProductAssetType.TeamColor)
@@ -130,6 +136,14 @@ public static class InventoryRouter
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Frame, true);
         if (assetType == StoreProductAssetType.Effect)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Effect, true);
+        if (assetType == StoreProductAssetType.PlayerNameEffect)
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.PlayerNameEffect, true);
+        if (assetType == StoreProductAssetType.PlayerNameFrame)
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.PlayerNameFrame, true);
+        if (assetType == StoreProductAssetType.TeamNameEffect)
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamNameEffect, true);
+        if (assetType == StoreProductAssetType.TeamNameFrame)
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamNameFrame, true);
         if (assetType == StoreProductAssetType.TeamEffect)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamEffect, false);
         if (assetType == StoreProductAssetType.Title)
@@ -279,7 +293,11 @@ public static class InventoryRouter
         if (route.EquipTarget is InventoryEquipTarget.Avatar or
             InventoryEquipTarget.ProfileBackground or
             InventoryEquipTarget.Frame or
-            InventoryEquipTarget.Effect)
+            InventoryEquipTarget.Effect or
+            InventoryEquipTarget.PlayerNameEffect or
+            InventoryEquipTarget.PlayerNameFrame or
+            InventoryEquipTarget.TeamNameEffect or
+            InventoryEquipTarget.TeamNameFrame)
         {
             return await StoreEquipService.EquipAsync(playerId, assetId);
         }
@@ -334,7 +352,7 @@ public static class InventoryRouter
     }
 
     private static bool SameId(string? left, string? right) =>
-        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(left, right);
 
     private static void ValidateProduct(InventoryProductContext product)
     {

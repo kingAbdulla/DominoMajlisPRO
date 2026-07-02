@@ -123,6 +123,9 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
         string description)
     {
         var canonical = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+        if (StoreAssetCatalogService.IsLivingEmblemAsset(assetId, canonical))
+            return StoreProductPreviewKind.LivingEmblem;
+
         if (string.Equals(canonical, "Effect", StringComparison.OrdinalIgnoreCase))
             return StoreProductPreviewKind.Effect;
 

@@ -1,4 +1,10 @@
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.LivingVisualPlatform.Controls;
+using DominoMajlisPRO.LivingVisualPlatform.Models;
+using DominoMajlisPRO.LivingVisualPlatform.Services;
+using DominoMajlisPRO.Models;
 
 namespace DominoMajlisPRO;
 
@@ -6,6 +12,8 @@ public partial class MainPage
 {
     bool _settingsSymbolsTimerStarted;
     bool _mainTeamEffectsTimerStarted;
+    LivingVisualHost? _mainTeam1LivingHost;
+    LivingVisualHost? _mainTeam2LivingHost;
 
     protected override void OnHandlerChanged()
     {
@@ -14,6 +22,7 @@ public partial class MainPage
         ApplyMainHeaderAvatarShape();
         _ = ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
         _ = RefreshMainPreviewTeamEffectsAsync();
+        _ = RefreshMainPreviewLivingEmblemsAsync();
 
         if (Handler == null || _settingsSymbolsTimerStarted)
             return;
@@ -21,27 +30,26 @@ public partial class MainPage
         _settingsSymbolsTimerStarted = true;
         int runs = 0;
 
-        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(300), () =>
+        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(450), () =>
         {
             runs++;
             ApplyMainHeaderAvatarShape();
             _ = ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
-            _ = RefreshMainPreviewTeamEffectsAsync();
             NormalizeSettingsSymbols();
             RepairVisibleMainPageText(this);
-            return Handler != null && runs < 16;
+            return Handler != null && runs < 4;
         });
 
         if (!_mainTeamEffectsTimerStarted)
         {
             _mainTeamEffectsTimerStarted = true;
-            int effectRuns = 0;
-
-            Dispatcher.StartTimer(TimeSpan.FromMilliseconds(500), () =>
+            var delayedRuns = 0;
+            Dispatcher.StartTimer(TimeSpan.FromMilliseconds(350), () =>
             {
-                effectRuns++;
+                delayedRuns++;
                 _ = RefreshMainPreviewTeamEffectsAsync();
-                return Handler != null && effectRuns < 8;
+                _ = RefreshMainPreviewLivingEmblemsAsync();
+                return false;
             });
         }
     }
@@ -68,6 +76,124 @@ public partial class MainPage
         {
             // Main preview effects are visual-only and must never block the home page.
         }
+    }
+
+    async Task RefreshMainPreviewLivingEmblemsAsync()
+    {
+        _mainTeam1LivingHost = await ApplyMainLivingEmblemAsync(
+            selectedTeam1,
+            PreviewTeam1Logo,
+            _mainTeam1LivingHost,
+            LivingVisualDisplayLocation.MainPageTeamSelector);
+
+        _mainTeam2LivingHost = await ApplyMainLivingEmblemAsync(
+            selectedTeam2,
+            PreviewTeam2Logo,
+            _mainTeam2LivingHost,
+            LivingVisualDisplayLocation.MainPageTeamSelector);
+    }
+
+    async Task<LivingVisualHost?> ApplyMainLivingEmblemAsync(
+        TeamProfileModel? team,
+        Image targetImage,
+        LivingVisualHost? existingHost,
+        LivingVisualDisplayLocation displayLocation)
+    {
+        if (team == null ||
+            string.IsNullOrWhiteSpace(team.EmblemAssetId) ||
+            targetImage.Parent is not Grid parent)
+        {
+            RemoveMainLivingHost(existingHost);
+            targetImage.IsVisible = true;
+            return null;
+        }
+
+        var manifest = await new StoreCatalogLivingVisualManifestProvider()
+            .GetManifestAsync(team.EmblemAssetId);
+        if (manifest == null)
+        {
+            RemoveMainLivingHost(existingHost);
+            targetImage.IsVisible = true;
+            return null;
+        }
+
+        var owner = await ResolveTeamLivingOwnerAsync(team, team.EmblemAssetId);
+        if (owner == null)
+        {
+            RemoveMainLivingHost(existingHost);
+            targetImage.IsVisible = true;
+            return null;
+        }
+
+        if (existingHost != null && existingHost.Parent == parent)
+        {
+            existingHost.AssetId = team.EmblemAssetId;
+            existingHost.StaticFallbackImage = manifest.StaticFallbackImage;
+            existingHost.ApplicationUserId = owner.ApplicationUserId;
+            existingHost.PlayerId = owner.PlayerId;
+            existingHost.TeamId = team.TeamId;
+            existingHost.DisplayLocation = displayLocation;
+            targetImage.IsVisible = false;
+            return existingHost;
+        }
+
+        RemoveMainLivingHost(existingHost);
+        var host = new LivingVisualHost
+        {
+            AssetId = team.EmblemAssetId,
+            StaticFallbackImage = manifest.StaticFallbackImage,
+            ApplicationUserId = owner.ApplicationUserId,
+            PlayerId = owner.PlayerId,
+            TeamId = team.TeamId,
+            DisplayLocation = displayLocation,
+            WidthRequest = targetImage.WidthRequest,
+            HeightRequest = targetImage.HeightRequest,
+            HorizontalOptions = targetImage.HorizontalOptions,
+            VerticalOptions = targetImage.VerticalOptions,
+            InputTransparent = true,
+            ZIndex = targetImage.ZIndex + 1
+        };
+
+        Grid.SetRow(host, Grid.GetRow(targetImage));
+        Grid.SetColumn(host, Grid.GetColumn(targetImage));
+        Grid.SetRowSpan(host, Grid.GetRowSpan(targetImage));
+        Grid.SetColumnSpan(host, Grid.GetColumnSpan(targetImage));
+        parent.Children.Add(host);
+        targetImage.IsVisible = false;
+        return host;
+    }
+
+    static void RemoveMainLivingHost(LivingVisualHost? host)
+    {
+        if (host?.Parent is Grid parent)
+            parent.Children.Remove(host);
+    }
+
+    static async Task<PlayerOwnedStoreItem?> ResolveTeamLivingOwnerAsync(TeamProfileModel team, string assetId)
+    {
+        var playerIds = new[] { team.Player1Id, team.Player2Id }
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var playerId in playerIds)
+        {
+            var owned = await PlayerInventoryService.LoadOwnedAsync(playerId);
+            var match = owned.FirstOrDefault(item =>
+                item.IsOwned &&
+                !item.IsExpired &&
+                CanonicalAssetIdentityService.SameAssetId(item.AssetId, assetId) &&
+                string.Equals(
+                    StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId),
+                    StoreProductAssetType.TeamLivingEmblem.ToString(),
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (match != null)
+                return match;
+        }
+
+        return null;
     }
 
     void NormalizeSettingsSymbols()

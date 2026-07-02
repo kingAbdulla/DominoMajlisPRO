@@ -3,6 +3,7 @@ using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
 
 namespace DominoMajlisPRO.Pages;
 
@@ -21,6 +22,16 @@ public partial class PlayerDetailsPage : ContentPage
     int timelineVisibleCount = TimelinePageSize;
     IReadOnlyList<PlayerTimelineItemModel> timelineItems =
         Array.Empty<PlayerTimelineItemModel>();
+    
+    // VisualEventBus subscription tokens
+    IDisposable? teamEmblemChangedSubscription;
+    IDisposable? teamColorChangedSubscription;
+    IDisposable? teamEffectChangedSubscription;
+    IDisposable? teamEmblemBackgroundChangedSubscription;
+    IDisposable? playerAvatarChangedSubscription;
+    IDisposable? playerProfileBackgroundChangedSubscription;
+    IDisposable? playerFrameChangedSubscription;
+    IDisposable? playerEffectChangedSubscription;
 
     public PlayerDetailsPage(string playerId)
     {
@@ -186,6 +197,32 @@ public partial class PlayerDetailsPage : ContentPage
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
         StoreAssetQueryService.PublishedContentChanged -= OnPublishedContentChanged;
         StoreAssetQueryService.PublishedContentChanged += OnPublishedContentChanged;
+        
+        // Subscribe to VisualEventBus identity events
+        teamEmblemChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemChanged);
+        teamColorChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamColorChanged);
+        teamEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEffectChanged);
+        teamEmblemBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemBackgroundChanged);
+        playerAvatarChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerAvatarChanged);
+        playerProfileBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerProfileBackgroundChanged);
+        playerFrameChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerFrameChanged);
+        playerEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerEffectChanged);
 
         await LoadPlayerAsync();
     }
@@ -193,6 +230,17 @@ public partial class PlayerDetailsPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        
+        // Dispose VisualEventBus subscriptions
+        teamEmblemChangedSubscription?.Dispose();
+        teamColorChangedSubscription?.Dispose();
+        teamEffectChangedSubscription?.Dispose();
+        teamEmblemBackgroundChangedSubscription?.Dispose();
+        playerAvatarChangedSubscription?.Dispose();
+        playerProfileBackgroundChangedSubscription?.Dispose();
+        playerFrameChangedSubscription?.Dispose();
+        playerEffectChangedSubscription?.Dispose();
+
         AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
         AppEvents.StoreProgressChanged -= OnStoreProgressChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
@@ -248,6 +296,71 @@ public partial class PlayerDetailsPage : ContentPage
             }
         });
     }
+
+    // VisualEventBus player identity event handler - reuse existing refresh path
+    void HandlePlayerIdentityEvent(EventEntry eventEntry)
+    {
+        if (eventEntry.EventData == null)
+            return;
+        
+        if (!eventEntry.EventData.TryGetValue(
+                VisualIdentityPayloadKeys.PlayerId,
+                out var playerIdObject))
+        {
+            return;
+        }
+        
+        if (playerIdObject is not string playerId || string.IsNullOrWhiteSpace(playerId))
+            return;
+        
+        // Compare with _playerId using existing SameId() helper
+        if (!SameId(playerId, _playerId))
+            return;
+        
+        // Reuse existing refresh path
+        _ = MainThread.InvokeOnMainThreadAsync(LoadPlayerAsync);
+    }
+
+    // VisualEventBus team identity event handler - reuse existing refresh path
+    async void HandleTeamIdentityEvent(EventEntry eventEntry)
+    {
+        if (eventEntry.EventData == null)
+            return;
+        
+        if (!eventEntry.EventData.TryGetValue(
+                VisualIdentityPayloadKeys.TeamId,
+                out var teamIdObject))
+        {
+            return;
+        }
+        
+        if (teamIdObject is not string teamId || string.IsNullOrWhiteSpace(teamId))
+            return;
+        
+        // If currentPlayer is null, return
+        if (currentPlayer == null)
+            return;
+        
+        // Resolve current player's team using the same pattern as OnTeamAssetsChanged
+        var team = await TeamProfileService.GetTeamByPlayerIdAsync(currentPlayer.PlayerId);
+        
+        if (!SameId(team?.TeamId, teamId))
+            return;
+        
+        // Reuse existing refresh path
+        await MainThread.InvokeOnMainThreadAsync(LoadPlayerAsync);
+    }
+
+    // Individual event handlers
+    void OnTeamEmblemChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamColorChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamEffectChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+    void OnTeamEmblemBackgroundChanged(EventEntry eventEntry) => HandleTeamIdentityEvent(eventEntry);
+
+    void OnPlayerAvatarChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerProfileBackgroundChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerFrameChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
+    void OnPlayerEffectChanged(EventEntry eventEntry) => HandlePlayerIdentityEvent(eventEntry);
 
     async Task LoadPlayerAsync()
     {

@@ -1,5 +1,6 @@
 using DominoMajlisPRO.Features.RechargeCenter.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Core;
+using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.Features.RechargeCenter.Services;
 
@@ -11,39 +12,47 @@ public static class RechargePurchaseService
     private static string HistoryPath => Path.Combine(FileSystem.AppDataDirectory, HistoryFileName);
     private static string ClaimsPath => Path.Combine(FileSystem.AppDataDirectory, ClaimsFileName);
 
-    public static async Task<RechargeOperationResult> PurchasePackageAsync(
-        string playerId,
-        RechargePackageModel package,
-        string paymentMethodId)
+    public static async Task<RechargeOperationResult> PurchasePackageAsync(string playerId, RechargePackageModel package, string paymentMethodId)
     {
         if (package == null || !package.IsVisible)
             return new(false, "الباقة غير متاحة.");
+
+        var payment = await RechargePaymentGatewayService.AuthorizeAsync(playerId, package.Title, package.PriceText, paymentMethodId);
+        if (!payment.Approved)
+            return new(false, payment.Message, null, payment);
+
         var wallet = await RechargeWalletService.AddGemsAsync(playerId, package.TotalGems);
-        await SavePurchaseAsync(playerId, package.Title, package.PriceText, package.TotalGems, 0, paymentMethodId);
-        return new(true, $"تمت إضافة {package.TotalGems:N0} جوهرة بنجاح.", wallet);
+        await SavePurchaseAsync(playerId, package.Title, package.PriceText, package.TotalGems, 0, payment);
+        AppEvents.RaiseStoreEconomyChanged(playerId);
+        return new(true, $"{payment.Message}\n\nتمت إضافة {package.TotalGems:N0} جوهرة إلى محفظتك.", wallet, payment);
     }
 
-    public static async Task<RechargeOperationResult> PurchaseOfferAsync(
-        string playerId,
-        RechargeOfferModel offer,
-        string paymentMethodId)
+    public static async Task<RechargeOperationResult> PurchaseOfferAsync(string playerId, RechargeOfferModel offer, string paymentMethodId)
     {
         if (offer == null || !offer.IsVisible || offer.EndsAtUtc <= DateTime.UtcNow)
             return new(false, "انتهى هذا العرض أو لم يعد متاحاً.");
+
+        var payment = await RechargePaymentGatewayService.AuthorizeAsync(playerId, offer.Title, offer.NewPriceText, paymentMethodId);
+        if (!payment.Approved)
+            return new(false, payment.Message, null, payment);
+
         RechargeWalletModel wallet;
         if (offer.GemsAmount > 0)
             wallet = await RechargeWalletService.AddGemsAsync(playerId, offer.GemsAmount);
         else
             wallet = await RechargeWalletService.AddCoinsAsync(playerId, offer.CoinsAmount);
-        await SavePurchaseAsync(playerId, offer.Title, offer.NewPriceText, offer.GemsAmount, offer.CoinsAmount, paymentMethodId);
-        return new(true, $"تم شراء {offer.Title} بنجاح.", wallet);
+
+        await SavePurchaseAsync(playerId, offer.Title, offer.NewPriceText, offer.GemsAmount, offer.CoinsAmount, payment);
+        AppEvents.RaiseStoreEconomyChanged(playerId);
+        return new(true, $"{payment.Message}\n\nتم شراء {offer.Title} وتحديث المحفظة.", wallet, payment);
     }
 
-    public static async Task<RechargeOperationResult> SubscribeVipAsync(
-        string playerId,
-        RechargeVipPlanModel plan,
-        string paymentMethodId)
+    public static async Task<RechargeOperationResult> SubscribeVipAsync(string playerId, RechargeVipPlanModel plan, string paymentMethodId)
     {
+        var payment = await RechargePaymentGatewayService.AuthorizeAsync(playerId, plan.Title, plan.MonthlyPriceText, paymentMethodId);
+        if (!payment.Approved)
+            return new(false, payment.Message, null, payment);
+
         await Gate.WaitAsync();
         try
         {
@@ -58,9 +67,11 @@ public static class RechargePurchaseService
         {
             Gate.Release();
         }
+
         var wallet = await RechargeWalletService.AddGemsAsync(playerId, plan.DailyGems);
-        await SavePurchaseAsync(playerId, plan.Title, plan.MonthlyPriceText, plan.DailyGems, 0, paymentMethodId);
-        return new(true, $"تم تفعيل VIP وإضافة {plan.DailyGems:N0} جوهرة يومية أولى.", wallet);
+        await SavePurchaseAsync(playerId, plan.Title, plan.MonthlyPriceText, plan.DailyGems, 0, payment);
+        AppEvents.RaiseStoreEconomyChanged(playerId);
+        return new(true, $"{payment.Message}\n\nتم تفعيل VIP وإضافة {plan.DailyGems:N0} جوهرة يومية أولى.", wallet, payment);
     }
 
     public static async Task<IReadOnlyList<PurchaseHistoryItemModel>> GetHistoryAsync(string playerId)
@@ -72,9 +83,7 @@ public static class RechargePurchaseService
     public static async Task<int> GetTotalPurchasedGemsAsync(string playerId) =>
         (await GetHistoryAsync(playerId)).Sum(x => Math.Max(0, x.GemsGranted));
 
-    public static async Task<RechargeOperationResult> ClaimFirstRechargeAsync(
-        string playerId,
-        IReadOnlyList<RechargeRewardModel> rewards)
+    public static async Task<RechargeOperationResult> ClaimFirstRechargeAsync(string playerId, IReadOnlyList<RechargeRewardModel> rewards)
     {
         if ((await GetHistoryAsync(playerId)).Count == 0)
             return new(false, "أكمل أول عملية شحن لفتح هذه المكافآت.");
@@ -84,9 +93,7 @@ public static class RechargePurchaseService
         });
     }
 
-    public static async Task<RechargeOperationResult> ClaimProgressRewardAsync(
-        string playerId,
-        RechargeProgressRewardModel reward)
+    public static async Task<RechargeOperationResult> ClaimProgressRewardAsync(string playerId, RechargeProgressRewardModel reward)
     {
         var total = await GetTotalPurchasedGemsAsync(playerId);
         if (total < reward.RequiredGems)
@@ -98,19 +105,34 @@ public static class RechargePurchaseService
         });
     }
 
+    public static async Task<RechargeOperationResult> GrantWheelRewardAsync(string playerId)
+    {
+        var random = Random.Shared.Next(0, 100);
+        if (random < 65)
+        {
+            var coins = Random.Shared.Next(500, 2501);
+            var wallet = await RechargeWalletService.AddCoinsAsync(playerId, coins);
+            await SaveSystemRewardAsync(playerId, "عجلة الحظ", $"+{coins:N0} عملة", 0, coins);
+            AppEvents.RaiseStoreEconomyChanged(playerId);
+            return new(true, $"ربحت {coins:N0} عملة من عجلة الحظ.", wallet);
+        }
+        else
+        {
+            var gems = Random.Shared.Next(5, 31);
+            var wallet = await RechargeWalletService.AddGemsAsync(playerId, gems);
+            await SaveSystemRewardAsync(playerId, "عجلة الحظ", $"+{gems:N0} جوهرة", gems, 0);
+            AppEvents.RaiseStoreEconomyChanged(playerId);
+            return new(true, $"ربحت {gems:N0} جوهرة من عجلة الحظ.", wallet);
+        }
+    }
+
     public static async Task<HashSet<string>> GetClaimedRewardIdsAsync(string playerId)
     {
         var claims = await LoadClaimsAsync();
-        return new HashSet<string>(
-            GetClaimState(claims, playerId).ClaimedRewardIds,
-            StringComparer.Ordinal);
+        return new HashSet<string>(GetClaimState(claims, playerId).ClaimedRewardIds, StringComparer.Ordinal);
     }
 
-    private static async Task<RechargeOperationResult> ClaimAsync(
-        string playerId,
-        string rewardId,
-        string successMessage,
-        Func<Task> grant)
+    private static async Task<RechargeOperationResult> ClaimAsync(string playerId, string rewardId, string successMessage, Func<Task> grant)
     {
         await Gate.WaitAsync();
         try
@@ -122,6 +144,7 @@ public static class RechargePurchaseService
             await grant();
             state.ClaimedRewardIds.Add(rewardId);
             await StoreCmsJsonRepository.SaveListAsync(ClaimsPath, claims);
+            AppEvents.RaiseStoreEconomyChanged(playerId);
             return new(true, successMessage, await RechargeWalletService.GetOrCreateAsync(playerId));
         }
         finally
@@ -130,30 +153,47 @@ public static class RechargePurchaseService
         }
     }
 
-    private static async Task SavePurchaseAsync(
-        string playerId,
-        string itemTitle,
-        string price,
-        int gems,
-        int coins,
-        string paymentMethodId)
+    private static async Task SavePurchaseAsync(string playerId, string itemTitle, string price, int gems, int coins, PaymentTransactionResult payment)
+    {
+        await SaveHistoryAsync(new PurchaseHistoryItemModel
+        {
+            PurchaseId = $"purchase-{Guid.NewGuid():N}",
+            PlayerId = playerId,
+            ItemTitle = itemTitle,
+            PriceText = price,
+            Status = payment.Status,
+            CreatedAtUtc = DateTime.UtcNow,
+            GemsGranted = gems,
+            CoinsGranted = coins,
+            PaymentMethodId = payment.PaymentMethodId,
+            ProviderTransactionId = payment.ProviderTransactionId,
+            IsSandboxPayment = payment.IsSandbox
+        });
+    }
+
+    private static Task SaveSystemRewardAsync(string playerId, string itemTitle, string price, int gems, int coins) =>
+        SaveHistoryAsync(new PurchaseHistoryItemModel
+        {
+            PurchaseId = $"reward-{Guid.NewGuid():N}",
+            PlayerId = playerId,
+            ItemTitle = itemTitle,
+            PriceText = price,
+            Status = "مكافأة",
+            CreatedAtUtc = DateTime.UtcNow,
+            GemsGranted = gems,
+            CoinsGranted = coins,
+            PaymentMethodId = "system-reward",
+            ProviderTransactionId = "system",
+            IsSandboxPayment = false
+        });
+
+    private static async Task SaveHistoryAsync(PurchaseHistoryItemModel item)
     {
         await Gate.WaitAsync();
         try
         {
             var history = await StoreCmsJsonRepository.LoadListAsync<PurchaseHistoryItemModel>(HistoryPath);
-            history.Add(new PurchaseHistoryItemModel
-            {
-                PurchaseId = $"purchase-{Guid.NewGuid():N}",
-                PlayerId = playerId,
-                ItemTitle = itemTitle,
-                PriceText = price,
-                Status = "مكتمل",
-                CreatedAtUtc = DateTime.UtcNow,
-                GemsGranted = gems,
-                CoinsGranted = coins,
-                PaymentMethodId = paymentMethodId
-            });
+            history.Add(item);
             await StoreCmsJsonRepository.SaveListAsync(HistoryPath, history);
         }
         finally

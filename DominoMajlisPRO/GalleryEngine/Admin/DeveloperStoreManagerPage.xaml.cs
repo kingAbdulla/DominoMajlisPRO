@@ -93,12 +93,7 @@ public partial class DeveloperStoreManagerPage : ContentPage
         {
             Spacing = 2,
             VerticalOptions = LayoutOptions.Center,
-            Children =
-            {
-                titleLabel,
-                subtitleLabel,
-                metaLabel
-            }
+            Children = { titleLabel, subtitleLabel, metaLabel }
         };
 
         var grid = new Grid
@@ -141,128 +136,38 @@ public partial class DeveloperStoreManagerPage : ContentPage
 
     private static string BuildMetaText(StoreAdminSection section)
     {
-        var ratio = section.ImageRule.AspectRatio <= 0
-            ? "مرن"
-            : section.ImageRule.AspectRatio.ToString("0.##");
-
-        return $"{section.TemplateType} • صورة {ratio} • نص محدود";
+        var ratio = section.ImageRule.AspectRatio <= 0 ? "مرن" : section.ImageRule.AspectRatio.ToString("0.##");
+        return StoreManagerAssetTypeScopes.ForSection(section.Id).Count > 0
+            ? $"{section.TemplateType} • أنواع محكومة • نص محدود"
+            : $"{section.TemplateType} • صورة {ratio} • نص محدود";
     }
 
     private async Task OpenSectionAsync(StoreAdminSection section)
     {
-        if (section.Id == "inventory-audit")
-        {
-            await Navigation.PushAsync(new InventoryAuditPage());
-            return;
-        }
+        if (section.Id == "inventory-audit") { await Navigation.PushAsync(new InventoryAuditPage()); return; }
+        if (section.Id == "current-season") { await Navigation.PushAsync(new CurrentSeasonEditorPage()); return; }
+        if (section.Id == "new-arrivals") { await Navigation.PushAsync(new NewArrivalsEditorPage()); return; }
+        if (section.Id == "limited-offers") { await Navigation.PushAsync(new LimitedOffersEditorPage()); return; }
+        if (section.Id == "categories") { await Navigation.PushAsync(new StoreCategoriesEditorPage()); return; }
+        if (section.Id == "avatars") { await Navigation.PushAsync(new AvatarsEditorPage()); return; }
+        if (section.Id == "backgrounds") { await Navigation.PushAsync(new BackgroundsEditorPage()); return; }
+        if (section.Id == "emblems") { await Navigation.PushAsync(new EmblemsManagerPage()); return; }
+        if (section.Id == "living-emblems") { await Navigation.PushAsync(new LivingEmblemPublishPreviewPage()); return; }
+        if (section.Id == "emblem-backgrounds") { await Navigation.PushAsync(new EmblemBackgroundsManagerPage()); return; }
+        if (section.Id == "team-colors") { await Navigation.PushAsync(new TeamColorsManagerPage()); return; }
+        if (section.Id == "effects") { await Navigation.PushAsync(new EffectsManagerPage()); return; }
+        if (section.Id == "name-effects") { await Navigation.PushAsync(new TypographyManagerPage()); return; }
+        if (section.Id == "frames") { await Navigation.PushAsync(new FramesManagerPage()); return; }
+        if (section.Id == "titles") { await Navigation.PushAsync(new TitlesManagerPage()); return; }
+        if (section.Id == "bundles") { await Navigation.PushAsync(new BundlesManagerPage()); return; }
+        if (section.Id == "currency-pricing") { await Navigation.PushAsync(new CurrencyPricingManagerPage()); return; }
+        if (section.Id == "product-cards") { await Navigation.PushAsync(new NewArrivalsEditorPage()); return; }
+        if (section.Id == "category-cards") { await Navigation.PushAsync(new StoreCategoriesEditorPage()); return; }
+        if (section.Id == "store-settings") { await Navigation.PushAsync(new StoreSettingsManagerPage()); return; }
 
-        if (section.Id == "current-season")
-        {
-            await Navigation.PushAsync(new CurrentSeasonEditorPage());
-            return;
-        }
-
-        if (section.Id == "new-arrivals")
-        {
-            await Navigation.PushAsync(new NewArrivalsEditorPage());
-            return;
-        }
-
-        if (section.Id == "limited-offers")
-        {
-            await Navigation.PushAsync(new LimitedOffersEditorPage());
-            return;
-        }
-
-        if (section.Id == "categories")
-        {
-            await Navigation.PushAsync(new StoreCategoriesEditorPage());
-            return;
-        }
-
-        if (section.Id == "avatars")
-        {
-            await Navigation.PushAsync(new AvatarsEditorPage());
-            return;
-        }
-
-        if (section.Id == "backgrounds")
-        {
-            await Navigation.PushAsync(new BackgroundsEditorPage());
-            return;
-        }
-
-        if (section.Id == "emblems")
-        {
-            await Navigation.PushAsync(new EmblemsManagerPage());
-            return;
-        }
-
-        if (section.Id == "emblem-backgrounds")
-        {
-            await Navigation.PushAsync(new EmblemBackgroundsManagerPage());
-            return;
-        }
-
-        if (section.Id == "team-colors")
-        {
-            await Navigation.PushAsync(new TeamColorsManagerPage());
-            return;
-        }
-
-        if (section.Id == "effects")
-        {
-            await Navigation.PushAsync(new EffectsManagerPage());
-            return;
-        }
-
-        if (section.Id == "frames")
-        {
-            await Navigation.PushAsync(new FramesManagerPage());
-            return;
-        }
-
-        if (section.Id == "titles")
-        {
-            await Navigation.PushAsync(new TitlesManagerPage());
-            return;
-        }
-
-        if (section.Id == "bundles")
-        {
-            await Navigation.PushAsync(new BundlesManagerPage());
-            return;
-        }
-
-        if (section.Id == "currency-pricing")
-        {
-            await Navigation.PushAsync(new CurrencyPricingManagerPage());
-            return;
-        }
-
-        if (section.Id == "product-cards")
-        {
-            await Navigation.PushAsync(new NewArrivalsEditorPage());
-            return;
-        }
-
-        if (section.Id == "category-cards")
-        {
-            await Navigation.PushAsync(new StoreCategoriesEditorPage());
-            return;
-        }
-
-        if (section.Id == "store-settings")
-        {
-            await Navigation.PushAsync(new StoreSettingsManagerPage());
-            return;
-        }
-
-        await DisplayAlert(
-            section.Title,
-            "سيتم بناء هذا القسم في المرحلة التالية",
-            "حسناً");
+        await DisplayAlert(section.Title, "سيتم بناء هذا القسم في المرحلة التالية", "حسناً");
     }
+
     private async void OnBackTapped(object? sender, TappedEventArgs e)
     {
         if (Navigation.NavigationStack.Count > 1)
@@ -305,19 +210,7 @@ public partial class DeveloperStoreManagerPage : ContentPage
         }
     }
 
-    private void OnThemeChanged(object? sender, GalleryTheme theme)
-    {
-        ApplyTheme();
-    }
+    private void OnThemeChanged(object? sender, GalleryTheme theme) => ApplyTheme();
 
-    private sealed record AdminSectionCardTarget(
-        Border Card,
-        Label IconLabel,
-        Label TitleLabel,
-        Label SubtitleLabel,
-        Label MetaLabel);
+    private sealed record AdminSectionCardTarget(Border Card, Label IconLabel, Label TitleLabel, Label SubtitleLabel, Label MetaLabel);
 }
-
-
-
-

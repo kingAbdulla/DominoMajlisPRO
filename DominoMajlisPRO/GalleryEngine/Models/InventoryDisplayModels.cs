@@ -23,15 +23,29 @@ public sealed record CatalogAssetDisplay(
     float EffectOpacity = 1,
     float EffectScale = 1,
     float EffectSpeed = 1,
-    float EffectIntensity = 1)
+    float EffectIntensity = 1,
+    TypographyIdentityPreset? TypographyPresetValue = null,
+    string LivingVisualScope = "",
+    string LivingVisualKind = "",
+    string LivingPackageId = "",
+    string LivingPackageManifestPath = "",
+    string LivingPackagePath = "",
+    string PreferredBackend = "",
+    string FallbackPolicy = "",
+    string LivingVisualVersion = "",
+    string LivingPackageVersion = "",
+    string Rarity = "")
 {
-    public IReadOnlyList<string> EffectLayerIds =>
-        EffectLayerIdsValue ?? Array.Empty<string>();
+    public IReadOnlyList<string> EffectLayerIds => EffectLayerIdsValue ?? Array.Empty<string>();
 
     public bool HasDisplayMetadata =>
         !string.IsNullOrWhiteSpace(DisplayName) &&
         (!string.IsNullOrWhiteSpace(PreviewImage) ||
-         !string.IsNullOrWhiteSpace(ColorHex));
+         !string.IsNullOrWhiteSpace(ColorHex) ||
+         TypographyPresetValue != null);
+
+    public TypographyIdentityPreset TypographyPreset =>
+        (TypographyPresetValue ?? TypographyIdentityPreset.CreateDefault()).Normalized();
 }
 
 public sealed record ResolvedInventoryDisplay(
@@ -45,7 +59,11 @@ public sealed record ResolvedInventoryDisplay(
     bool IsOwned,
     bool IsEquipped,
     bool IsTeamAsset,
-    bool HasCatalogDisplayMetadata);
+    bool HasCatalogDisplayMetadata,
+    TypographyIdentityPreset? TypographyPresetValue = null)
+{
+    public TypographyIdentityPreset? TypographyPreset => TypographyPresetValue?.Normalized();
+}
 
 public sealed record MissingCatalogDisplayMetadata(
     string ProductId,
@@ -71,6 +89,8 @@ public sealed record PlayerVisualIdentity(
     CatalogAssetDisplay? ProfileBackground,
     CatalogAssetDisplay? Frame,
     CatalogAssetDisplay? Effect,
+    CatalogAssetDisplay? PlayerNameEffect,
+    CatalogAssetDisplay? PlayerNameFrame,
     CatalogAssetDisplay? Title);
 
 public sealed record StoreCheckoutResult(
