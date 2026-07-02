@@ -1,4 +1,5 @@
 using DominoMajlisPRO.GalleryEngine.Components;
+using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.Pages;
@@ -6,12 +7,14 @@ namespace DominoMajlisPRO.Pages;
 public partial class PlayerDetailsPage
 {
     bool _arabicRepairTimerStarted;
+    int _avatarEffectRepairVersion;
 
     protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
 
         CenterNameSurfaceOnly();
+        _ = ApplyEquippedEffectAroundAvatarAsync();
 
         if (Handler == null || _arabicRepairTimerStarted)
             return;
@@ -27,8 +30,33 @@ public partial class PlayerDetailsPage
                 RepairStaticArabicUiText();
                 RepairAllVisibleText(this);
                 CenterNameSurfaceOnly();
+                _ = ApplyEquippedEffectAroundAvatarAsync();
                 return Handler != null && runs < 12;
             });
+    }
+
+    async Task ApplyEquippedEffectAroundAvatarAsync()
+    {
+        var version = Interlocked.Increment(ref _avatarEffectRepairVersion);
+        try
+        {
+            var identity = await PlayerVisualIdentityResolver.ResolveAsync(_playerId);
+            if (version != _avatarEffectRepairVersion || Handler == null)
+                return;
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                PlayerEffectEngine.Stop(AvatarEffectOverlay);
+                AvatarEffectOverlay.IsVisible = false;
+                AvatarEffectOverlay.Opacity = 0;
+                AvatarEffectOverlay.Source = null;
+                AvatarEffectOverlay.Shadow = null;
+                IdentityEffectRenderer.ApplyAround(PlayerAvatarImage, identity.Effect, 1.18);
+            });
+        }
+        catch
+        {
+        }
     }
 
     void CenterNameSurfaceOnly()
