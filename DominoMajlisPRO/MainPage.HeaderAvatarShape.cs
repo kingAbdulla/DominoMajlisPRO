@@ -85,8 +85,10 @@ public partial class MainPage
         HeaderAvatarEffectOverlay.StyleId = MainHeaderEffectOverlayStyleId;
         PlayerEffectEngine.Apply(
             HeaderAvatarEffectOverlay,
-            identity.Effect,
+            null,
             MainHeaderAvatarEffectScale);
+        HeaderAvatarEffectOverlay.IsVisible = false;
+        HeaderAvatarEffectOverlay.Opacity = 0;
 
         RemoveHeaderAvatarDecorativeRings();
     }
@@ -105,6 +107,11 @@ public partial class MainPage
         HeaderAvatarFrameOverlay.Opacity = 0;
         HeaderAvatarFrameOverlay.Shadow = null;
         HeaderAvatarFrameOverlay.BackgroundColor = Colors.Transparent;
+
+        HeaderAvatarEffectOverlay.IsVisible = false;
+        HeaderAvatarEffectOverlay.Opacity = 0;
+        HeaderAvatarEffectOverlay.Shadow = null;
+        HeaderAvatarEffectOverlay.BackgroundColor = Colors.Transparent;
     }
 
     Border EnsureMainHeaderAvatarBorder()
@@ -183,6 +190,8 @@ public partial class MainPage
         image.StyleId = MainHeaderEffectOverlayStyleId;
         image.BackgroundColor = Colors.Transparent;
         image.Shadow = null;
+        image.IsVisible = false;
+        image.Opacity = 0;
     }
 
     void ConfigureProfileStatusBadge(double avatarSize)
