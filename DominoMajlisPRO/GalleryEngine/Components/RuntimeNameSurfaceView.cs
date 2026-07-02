@@ -93,12 +93,13 @@ public abstract class RuntimeNameSurfaceView : ContentView
 
     private void ClampInlineSize()
     {
-        var textLength = Math.Clamp((DisplayText ?? string.Empty).Trim().Length, 2, 18);
-        var max = DeviceInfo.Idiom == DeviceIdiom.Phone ? 176d : 260d;
-        MaximumWidthRequest = MaximumWidthRequest > 0 ? Math.Min(MaximumWidthRequest, max) : Math.Min(max, 36 + textLength * 12);
-        HeightRequest = HeightRequest > 0 ? Math.Min(HeightRequest, 38) : 32;
+        var textLength = Math.Clamp((DisplayText ?? string.Empty).Trim().Length, 1, 14);
+        var max = DeviceInfo.Idiom == DeviceIdiom.Phone ? 112d : 160d;
+        MaximumWidthRequest = MaximumWidthRequest > 0 ? Math.Min(MaximumWidthRequest, max) : Math.Min(max, 22 + textLength * 7.5);
+        HeightRequest = HeightRequest > 0 ? Math.Min(HeightRequest, 28) : 24;
         _plate.MaximumWidthRequest = MaximumWidthRequest;
         _plate.HeightRequest = HeightRequest;
+        _plate.Scale = DeviceInfo.Idiom == DeviceIdiom.Phone ? 0.72 : 0.78;
     }
 
     private static void OnChanged(BindableObject bindable, object oldValue, object newValue) =>
