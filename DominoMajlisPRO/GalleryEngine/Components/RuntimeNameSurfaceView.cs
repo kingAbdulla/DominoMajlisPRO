@@ -22,7 +22,6 @@ public abstract class RuntimeNameSurfaceView : ContentView
         HorizontalOptions = LayoutOptions.Center;
         VerticalOptions = LayoutOptions.Center;
         InputTransparent = true;
-        IsClippedToBounds = true;
         Content = _plate;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
