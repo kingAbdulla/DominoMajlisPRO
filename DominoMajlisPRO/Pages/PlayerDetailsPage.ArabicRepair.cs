@@ -46,12 +46,13 @@ public partial class PlayerDetailsPage
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                PlayerEffectEngine.Stop(AvatarEffectOverlay);
-                AvatarEffectOverlay.IsVisible = false;
-                AvatarEffectOverlay.Opacity = 0;
-                AvatarEffectOverlay.Source = null;
-                AvatarEffectOverlay.Shadow = null;
-                IdentityEffectRenderer.ApplyAround(PlayerAvatarImage, identity.Effect, 1.18);
+                IdentityEffectRenderer.ApplyAround(PlayerAvatarImage, null);
+                AvatarEffectOverlay.ZIndex = Math.Max(PlayerAvatarImage.ZIndex + 2, 5);
+                AvatarEffectOverlay.WidthRequest = AvatarFrame.WidthRequest;
+                AvatarEffectOverlay.HeightRequest = AvatarFrame.HeightRequest;
+                AvatarEffectOverlay.HorizontalOptions = LayoutOptions.Center;
+                AvatarEffectOverlay.VerticalOptions = LayoutOptions.Center;
+                PlayerEffectEngine.Apply(AvatarEffectOverlay, identity.Effect, 1.18);
             });
         }
         catch
