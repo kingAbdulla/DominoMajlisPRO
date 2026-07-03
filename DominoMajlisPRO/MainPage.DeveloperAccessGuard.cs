@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+
 namespace DominoMajlisPRO;
 
 public partial class MainPage
@@ -71,8 +74,8 @@ public partial class MainPage
         }
         finally
         {
-            if (!developerAccessOpening)
-                logoPressed = false;
+            logoPressed = false;
+            developerAccessOpening = false;
         }
     }
 
