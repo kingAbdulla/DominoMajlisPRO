@@ -11,7 +11,40 @@ public static class StoreAssetCatalogService
 
     public const string IncompleteDisplayName = "عنصر غير مكتمل البيانات";
 
+    private static readonly SemaphoreSlim CacheLock = new(1, 1);
+    private static IReadOnlyList<CatalogAssetDisplay>? CachedCatalog;
+
+    static StoreAssetCatalogService()
+    {
+        StoreAssetQueryService.PublishedContentChanged += ClearCache;
+    }
+
+    public static void ClearCache() => CachedCatalog = null;
+
     public static async Task<IReadOnlyList<CatalogAssetDisplay>> LoadAsync()
+    {
+        var cached = CachedCatalog;
+        if (cached != null)
+            return cached;
+
+        await CacheLock.WaitAsync();
+        try
+        {
+            cached = CachedCatalog;
+            if (cached != null)
+                return cached;
+
+            cached = await BuildCatalogAsync();
+            CachedCatalog = cached;
+            return cached;
+        }
+        finally
+        {
+            CacheLock.Release();
+        }
+    }
+
+    private static async Task<IReadOnlyList<CatalogAssetDisplay>> BuildCatalogAsync()
     {
         var avatarsTask = AvatarsAdminService.LoadPublishedAsync();
         var backgroundsTask = BackgroundsAdminService.LoadPublishedAsync();

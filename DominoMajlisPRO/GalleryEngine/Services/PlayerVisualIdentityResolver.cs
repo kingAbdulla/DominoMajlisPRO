@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.Services;
 
@@ -5,10 +6,39 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class PlayerVisualIdentityResolver
 {
+    private static readonly ConcurrentDictionary<string, Task<PlayerVisualIdentity>> Cache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    static PlayerVisualIdentityResolver()
+    {
+        AppEvents.PlayerProfileChanged += ClearCache;
+        AppEvents.StoreEconomyChanged += _ => ClearCache();
+        AppEvents.StoreProgressChanged += _ => ClearCache();
+        AppEvents.TeamAssetsChanged += _ => ClearCache();
+    }
+
     public static async Task<PlayerVisualIdentity> ResolveAsync(string playerId)
     {
         if (string.IsNullOrWhiteSpace(playerId))
             return Empty(string.Empty);
+
+        var cacheKey = playerId.Trim();
+        var resolveTask = Cache.GetOrAdd(cacheKey, ResolveUncachedAsync);
+        try
+        {
+            return await resolveTask;
+        }
+        catch
+        {
+            Cache.TryRemove(cacheKey, out _);
+            throw;
+        }
+    }
+
+    public static void ClearCache() => Cache.Clear();
+
+    private static async Task<PlayerVisualIdentity> ResolveUncachedAsync(string playerId)
+    {
 
         var players = await PlayerProfileService.LoadPlayersAsync();
         string resolvedPlayerId = playerId.Trim();

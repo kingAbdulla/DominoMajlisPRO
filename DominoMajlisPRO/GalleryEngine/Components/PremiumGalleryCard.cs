@@ -1,8 +1,5 @@
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.LivingVisualPlatform.Controls;
-using DominoMajlisPRO.LivingVisualPlatform.Models;
-using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
@@ -19,8 +16,6 @@ public class PremiumGalleryCard : ContentView
     private readonly Label _price;
     private readonly Label _currencyIcon;
     private readonly Grid _contentGrid;
-    private IdentityEffectView? _effectView;
-    private LivingVisualHost? _livingVisualHost;
     private IdentityPlateView? _namePlateView;
 
     public PremiumGalleryCard()
@@ -193,13 +188,11 @@ public class PremiumGalleryCard : ContentView
     private async Task ApplyEffectPreviewAsync(string assetId)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
-        var owner = asset?.AssetType == StoreProductAssetType.TeamEffect || StoreAssetCatalogService.IsLivingEmblemAsset(asset)
-            ? await ApplicationUserService.GetCurrentStoreOwnerAsync()
-            : null;
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
             ClearRuntimePreview();
+            ResetImagePreviewSize();
             _image.IsVisible = true;
 
             if (asset == null)
@@ -226,65 +219,18 @@ public class PremiumGalleryCard : ContentView
             if (asset.AssetType is not (StoreProductAssetType.Effect or StoreProductAssetType.TeamEffect) && !isLivingEmblem)
                 return;
 
-            if (asset.AssetType == StoreProductAssetType.TeamEffect || isLivingEmblem)
-            {
-                _image.Source = InventoryDisplayResolver.ResolveImageSource(string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage, "shield_3d.png");
-                _image.WidthRequest = 72;
-                _image.HeightRequest = 72;
-                _image.IsVisible = false;
-                _livingVisualHost = new LivingVisualHost
-                {
-                    AssetId = asset.AssetId,
-                    StaticFallbackImage = string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
-                    ApplicationUserId = owner?.ApplicationUserId ?? string.Empty,
-                    PlayerId = owner?.PlayerId ?? string.Empty,
-                    TeamId = string.Empty,
-                    DisplayLocation = LivingVisualDisplayLocation.StorePreview,
-                    IsStorePreview = true,
-                    WidthRequest = 90,
-                    HeightRequest = 90,
-                    HorizontalOptions = LayoutOptions.Center,
-                    VerticalOptions = LayoutOptions.Center
-                };
-                _contentGrid.Add(_livingVisualHost, 0, 0);
-                return;
-            }
-
-            var providedImage = InventoryDisplayResolver.ResolveOptionalImageSource(asset.PreviewImage);
-            if (providedImage != null)
-            {
-                _image.Source = providedImage;
-                _image.WidthRequest = 90;
-                _image.HeightRequest = 90;
-                _image.IsVisible = true;
-                return;
-            }
-
-            _image.IsVisible = false;
-            _effectView = IdentityEffectRenderer.Create(asset, 1.22, lightweight: true);
-            _effectView.WidthRequest = 100;
-            _effectView.HeightRequest = 100;
-            _effectView.HorizontalOptions = LayoutOptions.Center;
-            _effectView.VerticalOptions = LayoutOptions.Center;
-            _contentGrid.Add(_effectView, 0, 0);
+            var fallback = asset.AssetType == StoreProductAssetType.TeamEffect || isLivingEmblem
+                ? "shield_3d.png"
+                : "gallery_lion.png";
+            _image.Source = InventoryDisplayResolver.ResolveImageSource(
+                string.IsNullOrWhiteSpace(asset.PreviewImage) ? fallback : asset.PreviewImage,
+                fallback);
+            _image.IsVisible = true;
         });
     }
 
     private void ClearRuntimePreview()
     {
-        if (_effectView != null)
-        {
-            _effectView.Clear();
-            _contentGrid.Children.Remove(_effectView);
-            _effectView = null;
-        }
-
-        if (_livingVisualHost != null)
-        {
-            _contentGrid.Children.Remove(_livingVisualHost);
-            _livingVisualHost = null;
-        }
-
         if (_namePlateView != null)
         {
             _contentGrid.Children.Remove(_namePlateView);
@@ -292,6 +238,20 @@ public class PremiumGalleryCard : ContentView
         }
     }
 
+
+    private void ResetImagePreviewSize()
+    {
+        if (DeviceInfo.Idiom == DeviceIdiom.Phone)
+        {
+            _image.WidthRequest = 92;
+            _image.HeightRequest = 92;
+        }
+        else
+        {
+            _image.WidthRequest = 132;
+            _image.HeightRequest = 132;
+        }
+    }
     private static bool IsNameTypographyAsset(StoreProductAssetType assetType) =>
         assetType is StoreProductAssetType.PlayerNameEffect or
             StoreProductAssetType.TeamNameEffect or

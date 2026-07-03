@@ -55,14 +55,15 @@ public sealed class IdentityEffectView : GraphicsView
     private readonly IdentityEffectDrawable _drawable = new();
     private bool _running;
     private long _started;
+    private int _timerGeneration;
 
     public IdentityEffectView()
     {
         Drawable = _drawable;
         InputTransparent = true;
         BackgroundColor = Colors.Transparent;
-        Loaded += (_, _) => Start();
-        Unloaded += (_, _) => _running = false;
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     public string EffectKey { get; private set; } = string.Empty;
@@ -88,6 +89,7 @@ public sealed class IdentityEffectView : GraphicsView
     public void Clear()
     {
         _running = false;
+        _timerGeneration++;
         EffectKey = string.Empty;
         _drawable.Profile = null;
         _drawable.ElapsedSeconds = 0;
@@ -102,9 +104,10 @@ public sealed class IdentityEffectView : GraphicsView
             return;
 
         _running = true;
+        var generation = ++_timerGeneration;
         Dispatcher.StartTimer(TimeSpan.FromMilliseconds(_drawable.Lightweight ? 66 : 33), () =>
         {
-            if (!_running || _drawable.Profile == null || !IsLoaded)
+            if (!_running || generation != _timerGeneration || _drawable.Profile == null || !IsLoaded)
                 return false;
 
             var elapsed = (Environment.TickCount64 - _started) / 1000f;
@@ -113,6 +116,14 @@ public sealed class IdentityEffectView : GraphicsView
             Invalidate();
             return true;
         });
+    }
+
+    private void OnLoaded(object? sender, EventArgs e) => Start();
+
+    private void OnUnloaded(object? sender, EventArgs e)
+    {
+        _running = false;
+        _timerGeneration++;
     }
 }
 

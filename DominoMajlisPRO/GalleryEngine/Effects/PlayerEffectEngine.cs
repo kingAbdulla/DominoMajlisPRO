@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using DominoMajlisPRO.GalleryEngine.Models;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
@@ -6,14 +7,38 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class PlayerEffectEngine
 {
+    private sealed class AppliedEffectState
+    {
+        public string Key { get; set; } = string.Empty;
+    }
+
+    private static readonly ConditionalWeakTable<Image, AppliedEffectState> AppliedEffects = new();
+
     public static void Apply(
         Image overlay,
         CatalogAssetDisplay? effect,
-        double baseScale = AvatarEffectRenderContract.PremiumAvatarRuntimeBaseScale) =>
-        IdentityEffectRenderer.Apply(overlay, effect, baseScale);
+        double baseScale = AvatarEffectRenderContract.PremiumAvatarRuntimeBaseScale)
+    {
+        if (effect == null)
+        {
+            Stop(overlay);
+            return;
+        }
 
-    public static void Stop(Image overlay) =>
+        var key = $"{effect.AssetId}|{effect.AssetType}|{effect.EffectType}|{effect.AnimationType}|{effect.EffectOpacity}|{effect.EffectScale}|{effect.EffectSpeed}|{effect.EffectIntensity}|{effect.PreviewImage}|{baseScale}";
+        var state = AppliedEffects.GetOrCreateValue(overlay);
+        if (string.Equals(state.Key, key, StringComparison.Ordinal))
+            return;
+
+        IdentityEffectRenderer.Apply(overlay, effect, baseScale);
+        state.Key = key;
+    }
+
+    public static void Stop(Image overlay)
+    {
+        AppliedEffects.Remove(overlay);
         IdentityEffectRenderer.Clear(overlay);
+    }
 
     public static EffectDefinitionModel CreateDefinition(
         CatalogAssetDisplay effect,
