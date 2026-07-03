@@ -103,67 +103,52 @@ LineBreakMode="TailTruncation">
                         </Grid>
                     </Border>
 
-                    <Grid
+                    <Border
                         Grid.Column="3"
-                        WidthRequest="{OnIdiom Phone=64, Tablet=84}"
-                        HeightRequest="{OnIdiom Phone=64, Tablet=84}"
+                        WidthRequest="{OnIdiom Phone=58, Tablet=78}"
+                        HeightRequest="{OnIdiom Phone=58, Tablet=78}"
                         HorizontalOptions="Center"
-                        VerticalOptions="Center">
+                        VerticalOptions="Center"
+                        BackgroundColor="#151515"
+                        Stroke="#D4AF37"
+                        StrokeThickness="2.2"
+                        StrokeShape="RoundRectangle 999">
+                        <Border.Shadow>
+                            <Shadow Brush="#D4AF37" Radius="18" Opacity="0.45"/>
+                        </Border.Shadow>
 
-                        <Border
-                            WidthRequest="{OnIdiom Phone=58, Tablet=78}"
-                            HeightRequest="{OnIdiom Phone=58, Tablet=78}"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center"
-                            BackgroundColor="#151515"
-                            Stroke="#D4AF37"
-                            StrokeThickness="2.2"
-                            StrokeShape="RoundRectangle 999">
-                            <Border.Shadow>
-                                <Shadow Brush="#D4AF37" Radius="18" Opacity="0.45"/>
-                            </Border.Shadow>
+                        <Grid
+    Grid.Column="3"
+    WidthRequest="{OnIdiom Phone=64, Tablet=84}"
+    HeightRequest="{OnIdiom Phone=64, Tablet=84}"
+    HorizontalOptions="Center"
+    VerticalOptions="Center">
 
-                            <Grid>
-                                <Image
-                                    x:Name="HeaderPlayerAvatar"
-                                    Source="normal_avatar_1.png"
-                                    Aspect="AspectFill"/>
+                            <Border
+        WidthRequest="{OnIdiom Phone=58, Tablet=78}"
+        HeightRequest="{OnIdiom Phone=58, Tablet=78}"
+        HorizontalOptions="Center"
+        VerticalOptions="Center"
+        BackgroundColor="#151515"
+        Stroke="#D4AF37"
+        StrokeThickness="2.2"
+        StrokeShape="RoundRectangle 999">
 
-                                <Image
-                                    x:Name="HeaderAvatarFrameOverlay"
-                                    Aspect="AspectFit"
-                                    InputTransparent="True"
-                                    IsVisible="False"/>
+                                <Border.Shadow>
+                                    <Shadow Brush="#D4AF37" Radius="18" Opacity="0.45"/>
+                                </Border.Shadow>
 
-                                <Image
-                                    x:Name="HeaderAvatarEffectOverlay"
-                                    Aspect="AspectFit"
-                                    InputTransparent="True"
-                                    IsVisible="False"/>
-                            </Grid>
-                        </Border>
+                                <Grid>
+                                    <Image
+                x:Name="HeaderPlayerAvatar"
+                Source="normal_avatar_1.png"
+                Aspect="AspectFill"/>
 
-                        <Border
-                            x:Name="HeaderPlayerLevelBadge"
-                            WidthRequest="{OnIdiom Phone=25, Tablet=32}"
-                            HeightRequest="{OnIdiom Phone=25, Tablet=32}"
-                            HorizontalOptions="End"
-                            VerticalOptions="End"
-                            TranslationX="{OnIdiom Phone=2, Tablet=3}"
-                            TranslationY="{OnIdiom Phone=2, Tablet=3}"
-                            BackgroundColor="#0A0A0A"
-                            Stroke="#D4AF37"
-                            StrokeThickness="2"
-                            StrokeShape="RoundRectangle 999">
-                            <Label
-                                x:Name="HeaderPlayerLevelLabel"
-                                Text="1"
-                                FontSize="{OnIdiom Phone=11, Tablet=14}"
-                                FontAttributes="Bold"
-                                TextColor="#FFD700"
-                                HorizontalTextAlignment="Center"
-                                VerticalTextAlignment="Center"/>
-                        </Border>
+                                    <Image
+                x:Name="HeaderAvatarFrameOverlay"
+                Aspect="AspectFit"
+                InputTransparent="True"
+                IsVisible="False"/>
 
                                     <Image
                 x:Name="HeaderAvatarEffectOverlay"
@@ -2844,71 +2829,61 @@ FontSize="14"/>
         Padding="18"
         StrokeShape="RoundRectangle 28,28,0,0">
 
-                <ScrollView>
+                <VerticalStackLayout Spacing="14">
 
-                    <VerticalStackLayout Spacing="14">
+                    <Label
+                Text="تفعيل قاعة الشرف"
+                FontSize="22"
+                FontAttributes="Bold"
+                TextColor="Gold"
+                HorizontalTextAlignment="Center"/>
 
-                        <Label
-                    Text="تفعيل قاعة الشرف"
-                    FontSize="22"
-                    FontAttributes="Bold"
-                    TextColor="Gold"
-                    HorizontalTextAlignment="Center"/>
+                    <Label
+                Text="أدخل الاسم أو ID، ثم مفتاح التفعيل. سيحدد التطبيق نوع الصلاحية تلقائياً."
+                FontSize="14"
+                TextColor="White"
+                HorizontalTextAlignment="End"/>
+                    <Label
+    x:Name="CurrentHonorRoleLabel"
+    Text="الحالة الحالية: مستخدم عادي"
+    FontSize="14"
+    TextColor="#CCCCCC"
+    HorizontalTextAlignment="Center"/>
 
-                        <Label
-                    x:Name="CurrentRoleLabel"
-                    Text="الحالة الحالية: مستخدم عادي"
-                    TextColor="#CCCCCC"
-                    FontSize="14"
-                    HorizontalTextAlignment="Center"/>
+                    <Entry
+                x:Name="HonorDisplayNameEntry"
+                Placeholder="الاسم أو ID"
+                PlaceholderColor="#777777"
+                TextColor="White"
+                BackgroundColor="Transparent"/>
 
-                        <Label
-                    Text="أدخل مفتاح التفعيل الممنوح لك من المطور."
-                    TextColor="White"
-                    FontSize="14"
-                    HorizontalTextAlignment="End"/>
+                    <Entry
+                x:Name="HonorActivationKeyEntry"
+                Placeholder="مفتاح التفعيل"
+                PlaceholderColor="#777777"
+                TextColor="White"
+                BackgroundColor="Transparent"/>
 
-                        <Entry
-                    x:Name="HonorActivationKeyEntry"
-                    Placeholder="مفتاح التفعيل"
-                    PlaceholderColor="#777777"
-                    TextColor="White"
-                    BackgroundColor="Transparent"/>
+                    <Button
+                Text="تفعيل"
+                BackgroundColor="#D4AF37"
+                TextColor="Black"
+                FontAttributes="Bold"
+                Clicked="OnActivateHonorClicked"/>
+                    <Button
+    x:Name="DebugClearHonorIdentityButton"
+    Text="تصفير هوية الشرف فقط"
+    BackgroundColor="#7A1F1F"
+    TextColor="White"
+    FontAttributes="Bold"
+    Clicked="OnDebugClearHonorIdentityClicked"/>
 
-                        <Button
-                    Text="تفعيل الهوية"
-                    BackgroundColor="#D4AF37"
-                    TextColor="Black"
-                    FontAttributes="Bold"
-                    Clicked="OnActivateHonorKeyClicked"/>
-
-                        <Button
-                    Text="إلغاء التفعيل من هذا الجهاز"
-                    BackgroundColor="#7A1F1F"
-                    TextColor="White"
-                    Clicked="OnClearHonorIdentityClicked"/>
-
-                        <Label
-                    x:Name="HonorDisplayNameEntry"
-                    TextColor="#D4AF37"
-                    FontSize="14"
-                    HorizontalTextAlignment="Center"/>
-
-                        <Label
-                    x:Name="HonorActivationKeyEntry1"
-                    TextColor="#D4AF37"
-                    FontSize="13"
-                    HorizontalTextAlignment="Center"/>
-
-                    </VerticalStackLayout>
-
-                </ScrollView>
+                </VerticalStackLayout>
 
             </Border>
-
         </Grid>
-
     </Grid>
 </ContentPage>
+
 
 
