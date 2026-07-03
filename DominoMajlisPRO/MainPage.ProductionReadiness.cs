@@ -14,6 +14,23 @@ public partial class MainPage
             return;
 
         ApplyProductionEmptyStateIfNeeded();
+        _ = ApplyProductionReadinessAfterInitialLoadAsync();
+    }
+
+    protected override void OnNavigatedTo(NavigatedToEventArgs args)
+    {
+        base.OnNavigatedTo(args);
+        _ = ApplyProductionReadinessAfterInitialLoadAsync();
+    }
+
+    async Task ApplyProductionReadinessAfterInitialLoadAsync()
+    {
+        await Task.Delay(350);
+
+        if (Handler == null)
+            return;
+
+        ApplyProductionEmptyStateIfNeeded();
     }
 
     void ApplyProductionEmptyStateIfNeeded()
@@ -84,24 +101,6 @@ public partial class MainPage
         return false;
     }
 
-    bool ContainsBlockedProductionTestText(TeamProfileModel team)
-    {
-        string combined =
-            $"{team.TeamName} {team.Player1} {team.Player2}";
-
-        string[] blockedTerms =
-        {
-            "test",
-            "tester",
-            "pussy"
-        };
-
-        return blockedTerms.Any(term =>
-            combined.Contains(
-                term,
-                StringComparison.OrdinalIgnoreCase));
-    }
-
     async Task<bool> ConfirmProductionMatchReadinessAsync()
     {
         if (isStartingGame)
@@ -114,16 +113,6 @@ public partial class MainPage
             await DisplayAlert(
                 "تنبيه",
                 "يجب اختيار فريقين مكتملين قبل بدء المباراة.",
-                "حسناً");
-            return false;
-        }
-
-        if (ContainsBlockedProductionTestText(selectedTeam1!) ||
-            ContainsBlockedProductionTestText(selectedTeam2!))
-        {
-            await DisplayAlert(
-                "بيانات اختبارية",
-                "توجد أسماء اختبارية أو غير مناسبة في بيانات المباراة. يرجى تعديل الفريق قبل الإطلاق أو قبل بدء مباراة إنتاجية.",
                 "حسناً");
             return false;
         }
