@@ -65,6 +65,7 @@ public partial class MainPage
         ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1);
         ConfigureHeaderAvatarEffectImage(HeaderAvatarEffectOverlay, avatarSize, 2);
 
+        ConfigureHeaderPlayerLevelBadge(avatarSize);
         ConfigureProfileStatusBadge(avatarSize);
         ApplyMainHeaderTextPolish();
         ApplyMainHeaderSecondaryPolish();
@@ -132,8 +133,11 @@ public partial class MainPage
 
         foreach (var child in existingChildren)
         {
-            if (ReferenceEquals(child, ProfileStatusBadge))
+            if (ReferenceEquals(child, ProfileStatusBadge) ||
+                ReferenceEquals(child, HeaderPlayerLevelBadge))
+            {
                 continue;
+            }
 
             newInnerHost.Children.Add(child);
         }
@@ -150,6 +154,8 @@ public partial class MainPage
         };
 
         originalHost.Children.Add(newBorder);
+        if (ReferenceEquals(HeaderPlayerLevelBadge.Parent, originalHost))
+            originalHost.Children.Add(HeaderPlayerLevelBadge);
         if (ReferenceEquals(ProfileStatusBadge.Parent, originalHost))
             originalHost.Children.Add(ProfileStatusBadge);
         return newBorder;
@@ -195,6 +201,21 @@ public partial class MainPage
         ProfileStatusBadge.VerticalOptions = LayoutOptions.End;
         ProfileStatusBadge.ZIndex = 20;
         ProfileStatusBadge.Margin = new Thickness(0, 0, 4, 4);
+    }
+
+    void ConfigureHeaderPlayerLevelBadge(double avatarSize)
+    {
+        double badgeSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 24 : 30;
+        HeaderPlayerLevelBadge.WidthRequest = badgeSize;
+        HeaderPlayerLevelBadge.HeightRequest = badgeSize;
+        HeaderPlayerLevelBadge.HorizontalOptions = LayoutOptions.Start;
+        HeaderPlayerLevelBadge.VerticalOptions = LayoutOptions.End;
+        HeaderPlayerLevelBadge.TranslationX = DeviceInfo.Idiom == DeviceIdiom.Phone ? -7 : -9;
+        HeaderPlayerLevelBadge.TranslationY = DeviceInfo.Idiom == DeviceIdiom.Phone ? 9 : 11;
+        HeaderPlayerLevelBadge.ZIndex = 30;
+        HeaderPlayerLevelBadge.IsVisible = true;
+        HeaderPlayerLevelBadge.Opacity = 1;
+        HeaderPlayerLevelBadge.InputTransparent = true;
     }
 
     void ApplyMainHeaderTextPolish()

@@ -163,12 +163,12 @@ LineBreakMode="TailTruncation">
                             <!-- Level Badge -->
                             <Border
         x:Name="HeaderPlayerLevelBadge"
-        WidthRequest="{OnIdiom Phone=25, Tablet=32}"
-        HeightRequest="{OnIdiom Phone=25, Tablet=32}"
-        HorizontalOptions="End"
+        WidthRequest="{OnIdiom Phone=24, Tablet=30}"
+        HeightRequest="{OnIdiom Phone=24, Tablet=30}"
+        HorizontalOptions="Start"
         VerticalOptions="End"
-        TranslationX="{OnIdiom Phone=2, Tablet=3}"
-        TranslationY="{OnIdiom Phone=2, Tablet=3}"
+        TranslationX="{OnIdiom Phone=-7, Tablet=-9}"
+        TranslationY="{OnIdiom Phone=9, Tablet=11}"
         BackgroundColor="#0A0A0A"
         Stroke="#D4AF37"
         StrokeThickness="2"
@@ -720,7 +720,7 @@ Margin="0,5,0,0">
                         <Border
                             Grid.Column="0"
                             x:Name="RefTeam1CardBorder"
-                            HeightRequest="{OnIdiom Phone=275, Tablet=360}"
+                            HeightRequest="{OnIdiom Phone=305, Tablet=390}"
                             Stroke="#FFD700"
                             StrokeThickness="1.8"
                             BackgroundColor="#080808"
@@ -734,7 +734,7 @@ Margin="0,5,0,0">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="24"/>
                             </Border.StrokeShape>
-                            <Grid RowDefinitions="*,Auto,Auto,Auto" RowSpacing="{OnIdiom Phone=5, Tablet=8}">
+                            <Grid RowDefinitions="*,Auto,Auto,Auto,Auto" RowSpacing="{OnIdiom Phone=5, Tablet=8}">
                                 <Grid
                                     WidthRequest="{OnIdiom Phone=145, Tablet=210}"
                                     HeightRequest="{OnIdiom Phone=145, Tablet=210}"
@@ -780,8 +780,42 @@ Margin="0,5,0,0">
                                     LineBreakMode="TailTruncation"
                                     MaxLines="1"
                                     HorizontalTextAlignment="Center"/>
-                                <Grid
+                                <HorizontalStackLayout
                                     Grid.Row="3"
+                                    x:Name="RefTeam1PlayerAvatarsHost"
+                                    Spacing="-6"
+                                    HorizontalOptions="Center">
+                                    <Border
+                                        x:Name="RefTeam1Player1AvatarFrame"
+                                        IsVisible="False"
+                                        WidthRequest="{OnIdiom Phone=30, Tablet=40}"
+                                        HeightRequest="{OnIdiom Phone=30, Tablet=40}"
+                                        Stroke="#D4AF37"
+                                        StrokeThickness="1.2"
+                                        BackgroundColor="#111111"
+                                        StrokeShape="RoundRectangle 999">
+                                        <Image
+                                            x:Name="RefTeam1Player1AvatarImage"
+                                            Source="normal_avatar_1.png"
+                                            Aspect="AspectFill"/>
+                                    </Border>
+                                    <Border
+                                        x:Name="RefTeam1Player2AvatarFrame"
+                                        IsVisible="False"
+                                        WidthRequest="{OnIdiom Phone=30, Tablet=40}"
+                                        HeightRequest="{OnIdiom Phone=30, Tablet=40}"
+                                        Stroke="#D4AF37"
+                                        StrokeThickness="1.2"
+                                        BackgroundColor="#111111"
+                                        StrokeShape="RoundRectangle 999">
+                                        <Image
+                                            x:Name="RefTeam1Player2AvatarImage"
+                                            Source="normal_avatar_1.png"
+                                            Aspect="AspectFill"/>
+                                    </Border>
+                                </HorizontalStackLayout>
+                                <Grid
+                                    Grid.Row="4"
                                     ColumnDefinitions="*,Auto"
                                     Padding="{OnIdiom Phone='8,8,8,0', Tablet='12,12,12,0'}">
                                     <Label
@@ -829,7 +863,7 @@ Margin="0,5,0,0">
                         <Border
                             Grid.Column="2"
                             x:Name="RefTeam2CardBorder"
-                            HeightRequest="{OnIdiom Phone=275, Tablet=360}"
+                            HeightRequest="{OnIdiom Phone=305, Tablet=390}"
                             Stroke="#A953FF"
                             StrokeThickness="1.8"
                             BackgroundColor="#080808"
@@ -843,7 +877,7 @@ Margin="0,5,0,0">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="24"/>
                             </Border.StrokeShape>
-                            <Grid RowDefinitions="*,Auto,Auto,Auto" RowSpacing="{OnIdiom Phone=5, Tablet=8}">
+                            <Grid RowDefinitions="*,Auto,Auto,Auto,Auto" RowSpacing="{OnIdiom Phone=5, Tablet=8}">
                                 <Grid
                                     WidthRequest="{OnIdiom Phone=145, Tablet=210}"
                                     HeightRequest="{OnIdiom Phone=145, Tablet=210}"
@@ -889,8 +923,42 @@ Margin="0,5,0,0">
                                     LineBreakMode="TailTruncation"
                                     MaxLines="1"
                                     HorizontalTextAlignment="Center"/>
-                                <Grid
+                                <HorizontalStackLayout
                                     Grid.Row="3"
+                                    x:Name="RefTeam2PlayerAvatarsHost"
+                                    Spacing="-6"
+                                    HorizontalOptions="Center">
+                                    <Border
+                                        x:Name="RefTeam2Player1AvatarFrame"
+                                        IsVisible="False"
+                                        WidthRequest="{OnIdiom Phone=30, Tablet=40}"
+                                        HeightRequest="{OnIdiom Phone=30, Tablet=40}"
+                                        Stroke="#A953FF"
+                                        StrokeThickness="1.2"
+                                        BackgroundColor="#111111"
+                                        StrokeShape="RoundRectangle 999">
+                                        <Image
+                                            x:Name="RefTeam2Player1AvatarImage"
+                                            Source="normal_avatar_1.png"
+                                            Aspect="AspectFill"/>
+                                    </Border>
+                                    <Border
+                                        x:Name="RefTeam2Player2AvatarFrame"
+                                        IsVisible="False"
+                                        WidthRequest="{OnIdiom Phone=30, Tablet=40}"
+                                        HeightRequest="{OnIdiom Phone=30, Tablet=40}"
+                                        Stroke="#A953FF"
+                                        StrokeThickness="1.2"
+                                        BackgroundColor="#111111"
+                                        StrokeShape="RoundRectangle 999">
+                                        <Image
+                                            x:Name="RefTeam2Player2AvatarImage"
+                                            Source="normal_avatar_1.png"
+                                            Aspect="AspectFill"/>
+                                    </Border>
+                                </HorizontalStackLayout>
+                                <Grid
+                                    Grid.Row="4"
                                     ColumnDefinitions="*,Auto"
                                     Padding="{OnIdiom Phone='8,8,8,0', Tablet='12,12,12,0'}">
                                     <Label
@@ -2816,5 +2884,6 @@ FontSize="14"/>
         </Grid>
     </Grid>
 </ContentPage>
+
 
 

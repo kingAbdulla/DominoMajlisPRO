@@ -212,6 +212,12 @@ public partial class MainPage : ContentPage
             RefTeam1SelectArrow,
             RefTeam1EmblemBackgroundLayer,
             RefTeam1EmblemBackgroundImage);
+        await ApplyTeamPlayerAvatarsAsync(
+            team,
+            RefTeam1Player1AvatarFrame,
+            RefTeam1Player1AvatarImage,
+            RefTeam1Player2AvatarFrame,
+            RefTeam1Player2AvatarImage);
 
         PreviewTeam1NameLabel.TextColor = Colors.Gold;
         PreviewTeam1PlayersLabel.TextColor = Colors.Gold;
@@ -345,6 +351,12 @@ public partial class MainPage : ContentPage
             RefTeam2SelectArrow,
             RefTeam2EmblemBackgroundLayer,
             RefTeam2EmblemBackgroundImage);
+        await ApplyTeamPlayerAvatarsAsync(
+            team,
+            RefTeam2Player1AvatarFrame,
+            RefTeam2Player1AvatarImage,
+            RefTeam2Player2AvatarFrame,
+            RefTeam2Player2AvatarImage);
 
         UpdateMatchPreview();
     }
@@ -395,6 +407,18 @@ public partial class MainPage : ContentPage
             RefTeam2SelectArrow,
             RefTeam2EmblemBackgroundLayer,
             RefTeam2EmblemBackgroundImage);
+        _ = ApplyTeamPlayerAvatarsAsync(
+            team1,
+            RefTeam1Player1AvatarFrame,
+            RefTeam1Player1AvatarImage,
+            RefTeam1Player2AvatarFrame,
+            RefTeam1Player2AvatarImage);
+        _ = ApplyTeamPlayerAvatarsAsync(
+            team2,
+            RefTeam2Player1AvatarFrame,
+            RefTeam2Player1AvatarImage,
+            RefTeam2Player2AvatarFrame,
+            RefTeam2Player2AvatarImage);
 
         PreviewTeam1NameLabel.Text =
             FormatTeamName(
@@ -853,6 +877,82 @@ TextChangedEventArgs e)
         backgroundLayer.BackgroundColor = Color.FromArgb("#14100A");
         backgroundImage.Source = ResolveStoredImage(source, "");
         backgroundImage.IsVisible = true;
+    }
+
+    async Task ApplyTeamPlayerAvatarsAsync(
+        TeamProfileModel team,
+        Border player1Frame,
+        Image player1Image,
+        Border player2Frame,
+        Image player2Image)
+    {
+        try
+        {
+            var players =
+                await PlayerProfileService.LoadPlayersAsync();
+
+            var player1 =
+                ResolveTeamPlayerProfile(players, team.Player1Id, team.Player1);
+            var player2 =
+                team.IsSinglePlayer
+                    ? null
+                    : ResolveTeamPlayerProfile(players, team.Player2Id, team.Player2);
+
+            ApplyTeamPlayerAvatar(player1Frame, player1Image, player1);
+            ApplyTeamPlayerAvatar(player2Frame, player2Image, player2);
+        }
+        catch
+        {
+            ApplyTeamPlayerAvatar(player1Frame, player1Image, null);
+            ApplyTeamPlayerAvatar(player2Frame, player2Image, null);
+        }
+    }
+
+    static PlayerProfileModel? ResolveTeamPlayerProfile(
+        IReadOnlyList<PlayerProfileModel> players,
+        string playerId,
+        string playerName)
+    {
+        if (!string.IsNullOrWhiteSpace(playerId))
+        {
+            var byId =
+                players.FirstOrDefault(player =>
+                    string.Equals(
+                        player.PlayerId,
+                        playerId,
+                        StringComparison.OrdinalIgnoreCase));
+
+            if (byId != null)
+                return byId;
+        }
+
+        if (string.IsNullOrWhiteSpace(playerName))
+            return null;
+
+        return players.FirstOrDefault(player =>
+            string.Equals(
+                player.PlayerName?.Trim(),
+                playerName.Trim(),
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    void ApplyTeamPlayerAvatar(
+        Border avatarFrame,
+        Image avatarImage,
+        PlayerProfileModel? player)
+    {
+        if (player == null)
+        {
+            avatarFrame.IsVisible = false;
+            avatarImage.Source = null;
+            return;
+        }
+
+        avatarFrame.IsVisible = true;
+        avatarImage.Source =
+            InventoryDisplayResolver.ResolveImageSource(
+                ResolveHeaderAvatarFallback(player),
+                DefaultHeaderAvatar);
     }
     // Recent Teams Management
     void AddToRecentTeams(
