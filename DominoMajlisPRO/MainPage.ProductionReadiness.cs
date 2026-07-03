@@ -14,6 +14,7 @@ public partial class MainPage
             return;
 
         ApplyProductionEmptyStateIfNeeded();
+        ApplyStartMatchProductionGuard();
         _ = ApplyProductionReadinessAfterInitialLoadAsync();
     }
 
@@ -31,6 +32,7 @@ public partial class MainPage
             return;
 
         ApplyProductionEmptyStateIfNeeded();
+        ApplyStartMatchProductionGuard();
     }
 
     void ApplyProductionEmptyStateIfNeeded()
