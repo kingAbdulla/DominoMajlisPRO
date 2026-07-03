@@ -26,10 +26,17 @@ public partial class MainPage
                         return;
 
                     OnStartGame(startBorder, EventArgs.Empty);
+                    _ = ReleaseStartMatchGateAfterAttemptAsync();
                 })
             });
 
         startMatchGuardApplied = true;
+    }
+
+    async Task ReleaseStartMatchGateAfterAttemptAsync()
+    {
+        await Task.Delay(1800);
+        ReleaseProductionMatchStartGate();
     }
 
     static Image? FindStartMatchImage(View? root)
