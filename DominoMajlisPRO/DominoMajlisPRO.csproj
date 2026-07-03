@@ -11,6 +11,7 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<NoWarn>$(NoWarn);CS8622</NoWarn>
 		<MauiXamlInflator>SourceGen</MauiXamlInflator>
 
 		<ApplicationTitle>DominoMajlisPRO</ApplicationTitle>
@@ -179,8 +180,3 @@
 	</ItemGroup>
 
 </Project>
-
-
-
-
-
