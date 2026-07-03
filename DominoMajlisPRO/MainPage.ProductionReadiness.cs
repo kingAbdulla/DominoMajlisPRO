@@ -5,6 +5,7 @@ namespace DominoMajlisPRO;
 public partial class MainPage
 {
     bool isStartingGame;
+    bool initialAutoSelectionReviewed;
 
     protected override void OnHandlerChanged()
     {
@@ -31,8 +32,26 @@ public partial class MainPage
         if (Handler == null)
             return;
 
+        ClearInitialAutomaticTeamSelectionIfNeeded();
         ApplyProductionEmptyStateIfNeeded();
         ApplyStartMatchProductionGuard();
+    }
+
+    void ClearInitialAutomaticTeamSelectionIfNeeded()
+    {
+        if (initialAutoSelectionReviewed)
+            return;
+
+        initialAutoSelectionReviewed = true;
+
+        if (recentTeams.Count > 0)
+            return;
+
+        if (selectedTeam1 == null && selectedTeam2 == null)
+            return;
+
+        selectedTeam1 = null;
+        selectedTeam2 = null;
     }
 
     void ApplyProductionEmptyStateIfNeeded()
