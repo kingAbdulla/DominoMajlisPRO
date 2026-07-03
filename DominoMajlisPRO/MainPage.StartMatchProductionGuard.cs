@@ -9,7 +9,7 @@ public partial class MainPage
         if (startMatchGuardApplied)
             return;
 
-        var startImage = FindStartMatchImage(this);
+        var startImage = FindStartMatchImage(Content);
         if (startImage?.Parent is not Border startBorder)
             return;
 
@@ -29,8 +29,11 @@ public partial class MainPage
         startMatchGuardApplied = true;
     }
 
-    static Image? FindStartMatchImage(Element root)
+    static Image? FindStartMatchImage(View? root)
     {
+        if (root == null)
+            return null;
+
         if (root is Image image &&
             image.Source?.ToString()?.Contains(
                 "startmatch_gold.png",
@@ -39,7 +42,7 @@ public partial class MainPage
             return image;
         }
 
-        foreach (var child in root.LogicalChildren)
+        foreach (var child in EnumerateChildViews(root))
         {
             var result = FindStartMatchImage(child);
             if (result != null)
@@ -47,5 +50,28 @@ public partial class MainPage
         }
 
         return null;
+    }
+
+    static IEnumerable<View> EnumerateChildViews(View root)
+    {
+        switch (root)
+        {
+            case Layout layout:
+                foreach (var child in layout.Children.OfType<View>())
+                    yield return child;
+                break;
+
+            case Border border when border.Content is View borderContent:
+                yield return borderContent;
+                break;
+
+            case ScrollView scrollView when scrollView.Content is View scrollContent:
+                yield return scrollContent;
+                break;
+
+            case ContentView contentView when contentView.Content is View viewContent:
+                yield return viewContent;
+                break;
+        }
     }
 }
