@@ -1,4 +1,6 @@
 using DominoMajlisPRO.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Pages;
 using DominoMajlisPRO.GalleryEngine.Services;
@@ -21,6 +23,9 @@ public partial class MainPage : ContentPage
     TeamProfileModel? selectedTeam2;
     readonly Dictionary<string, TeamIdentityModel> liveTeamIdentities =
         new(StringComparer.OrdinalIgnoreCase);
+    readonly List<CurrentSeasonRecord> mainSeasonHeroRecords = new();
+    int mainSeasonHeroIndex;
+    bool mainSeasonHeroTimerStarted;
 
     sealed class TeamPickerVisualItem
     {
@@ -87,6 +92,7 @@ public partial class MainPage : ContentPage
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.StoreEconomyChanged -= OnStoreEconomyChanged;
         AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
+        CurrentSeasonAdminService.PublishedChanged -= OnPublishedSeasonHeroChanged;
 
         AppEvents.DataChanged += OnAppDataChanged;
         AppEvents.PlayerProfileChanged += OnMainProfileChanged;
@@ -96,6 +102,7 @@ public partial class MainPage : ContentPage
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
         AppEvents.StoreEconomyChanged += OnStoreEconomyChanged;
         AppEvents.CurrentUserChanged += OnCurrentUserChanged;
+        CurrentSeasonAdminService.PublishedChanged += OnPublishedSeasonHeroChanged;
 
         if (await ApplicationUserService.RequiresIdentityChoiceAsync())
             await ShowIdentityLoginRegisterFlowAsync();
@@ -112,6 +119,9 @@ public partial class MainPage : ContentPage
 
         await RefreshProfileStatus();
         await RefreshHeaderPlayerAsync();
+        await RefreshMainPlayerProgressAsync();
+        await RefreshMainSeasonHeroAsync();
+        StartMainSeasonHeroTimer();
     }
     // =========================
     // PAGE LIFECYCLE - DISAPPEARING
@@ -128,6 +138,8 @@ public partial class MainPage : ContentPage
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.StoreEconomyChanged -= OnStoreEconomyChanged;
         AppEvents.CurrentUserChanged -= OnCurrentUserChanged;
+        CurrentSeasonAdminService.PublishedChanged -= OnPublishedSeasonHeroChanged;
+        mainSeasonHeroTimerStarted = false;
     }
     // =========================
     // PAGE LIFECYCLE - PROFILE STATUS
@@ -162,23 +174,48 @@ public partial class MainPage : ContentPage
     //Team Card1
     async Task UpdateTeam1Card()
     {
-        if (selectedTeam1 == null)
+        var team = selectedTeam1;
+        if (team == null)
             return;
-        PreviewTeam1NameLabel.Text =
-        FormatTeamName(selectedTeam1.TeamName);
-        PreviewTeam1PlayersLabel.Text =
-            $"{selectedTeam1.Player1} - {selectedTeam1.Player2}";
 
-        await RefreshLiveTeamIdentityAsync(selectedTeam1);
+        PreviewTeam1NameLabel.Text =
+        FormatTeamName(team.TeamName);
+        PreviewTeam1PlayersLabel.Text =
+            FormatTeamPlayers(team);
+        RefPreviewTeam1NameLabel.Text =
+            PreviewTeam1NameLabel.Text;
+        RefPreviewTeam1PlayersLabel.Text =
+            PreviewTeam1PlayersLabel.Text;
+
+        await RefreshLiveTeamIdentityAsync(team);
+        if (!SameTeam(selectedTeam1, team))
+            return;
+
         PreviewTeam1Logo.Source =
-            ResolveStoredImage(GetLiveEmblem(selectedTeam1));
+            ResolveStoredImage(GetLiveEmblem(team));
+        RefPreviewTeam1Logo.Source =
+            PreviewTeam1Logo.Source;
         await TeamEffectEngine.ApplyAroundAsync(
-            PreviewTeam1Logo, selectedTeam1.TeamId, 1.18);
-        var color =
-            GetTeamColor(GetLiveTeamColor(selectedTeam1));
+            PreviewTeam1Logo, team.TeamId, 1.18);
+        await TeamEffectEngine.ApplyAroundAsync(
+            RefPreviewTeam1Logo, team.TeamId, 1.18);
+        ApplyTeamCardIdentityVisuals(
+            team,
+            Team1CardBorder,
+            Team1SelectArrow,
+            Team1EmblemBackgroundLayer,
+            Team1EmblemBackgroundImage);
+        ApplyTeamCardIdentityVisuals(
+            team,
+            RefTeam1CardBorder,
+            RefTeam1SelectArrow,
+            RefTeam1EmblemBackgroundLayer,
+            RefTeam1EmblemBackgroundImage);
 
         PreviewTeam1NameLabel.TextColor = Colors.Gold;
         PreviewTeam1PlayersLabel.TextColor = Colors.Gold;
+        RefPreviewTeam1NameLabel.TextColor = Colors.Gold;
+        RefPreviewTeam1PlayersLabel.TextColor = Colors.Gold;
 
 
 
@@ -269,20 +306,44 @@ public partial class MainPage : ContentPage
 
     async Task UpdateTeam2Card()
     {
-        if (selectedTeam2 == null)
+        var team = selectedTeam2;
+        if (team == null)
             return;
 
         PreviewTeam2NameLabel.Text =
-            FormatTeamName(selectedTeam2.TeamName);
+            FormatTeamName(team.TeamName);
 
         PreviewTeam2PlayersLabel.Text =
-            $"{selectedTeam2.Player1} - {selectedTeam2.Player2}";
+            FormatTeamPlayers(team);
+        RefPreviewTeam2NameLabel.Text =
+            PreviewTeam2NameLabel.Text;
+        RefPreviewTeam2PlayersLabel.Text =
+            PreviewTeam2PlayersLabel.Text;
 
-        await RefreshLiveTeamIdentityAsync(selectedTeam2);
+        await RefreshLiveTeamIdentityAsync(team);
+        if (!SameTeam(selectedTeam2, team))
+            return;
+
         PreviewTeam2Logo.Source =
-            ResolveStoredImage(GetLiveEmblem(selectedTeam2));
+            ResolveStoredImage(GetLiveEmblem(team));
+        RefPreviewTeam2Logo.Source =
+            PreviewTeam2Logo.Source;
         await TeamEffectEngine.ApplyAroundAsync(
-            PreviewTeam2Logo, selectedTeam2.TeamId, 1.18);
+            PreviewTeam2Logo, team.TeamId, 1.18);
+        await TeamEffectEngine.ApplyAroundAsync(
+            RefPreviewTeam2Logo, team.TeamId, 1.18);
+        ApplyTeamCardIdentityVisuals(
+            team,
+            Team2CardBorder,
+            Team2SelectArrow,
+            Team2EmblemBackgroundLayer,
+            Team2EmblemBackgroundImage);
+        ApplyTeamCardIdentityVisuals(
+            team,
+            RefTeam2CardBorder,
+            RefTeam2SelectArrow,
+            RefTeam2EmblemBackgroundLayer,
+            RefTeam2EmblemBackgroundImage);
 
         UpdateMatchPreview();
     }
@@ -290,47 +351,70 @@ public partial class MainPage : ContentPage
     // Match Preview
     void UpdateMatchPreview()
     {
-        if (selectedTeam1 == null ||
-            selectedTeam2 == null)
+        var team1 = selectedTeam1;
+        var team2 = selectedTeam2;
+
+        if (team1 == null ||
+            team2 == null)
             return;
 
         PreviewTeamsLabel.Text =
-            $"{selectedTeam1.TeamName} VS {selectedTeam2.TeamName}";
+            $"{team1.TeamName} VS {team2.TeamName}";
 
         PreviewTeam1Logo.Source =
-            ResolveStoredImage(GetLiveEmblem(selectedTeam1));
+            ResolveStoredImage(GetLiveEmblem(team1));
+        RefPreviewTeam1Logo.Source =
+            PreviewTeam1Logo.Source;
 
         PreviewTeam2Logo.Source =
-            ResolveStoredImage(GetLiveEmblem(selectedTeam2));
+            ResolveStoredImage(GetLiveEmblem(team2));
+        RefPreviewTeam2Logo.Source =
+            PreviewTeam2Logo.Source;
+        ApplyTeamCardIdentityVisuals(
+            team1,
+            Team1CardBorder,
+            Team1SelectArrow,
+            Team1EmblemBackgroundLayer,
+            Team1EmblemBackgroundImage);
+        ApplyTeamCardIdentityVisuals(
+            team1,
+            RefTeam1CardBorder,
+            RefTeam1SelectArrow,
+            RefTeam1EmblemBackgroundLayer,
+            RefTeam1EmblemBackgroundImage);
+        ApplyTeamCardIdentityVisuals(
+            team2,
+            Team2CardBorder,
+            Team2SelectArrow,
+            Team2EmblemBackgroundLayer,
+            Team2EmblemBackgroundImage);
+        ApplyTeamCardIdentityVisuals(
+            team2,
+            RefTeam2CardBorder,
+            RefTeam2SelectArrow,
+            RefTeam2EmblemBackgroundLayer,
+            RefTeam2EmblemBackgroundImage);
 
         PreviewTeam1NameLabel.Text =
             FormatTeamName(
-                selectedTeam1.TeamName);
+                team1.TeamName);
 
         PreviewTeam2NameLabel.Text =
             FormatTeamName(
-                selectedTeam2.TeamName);
-
-        string team1Players =
-            string.IsNullOrWhiteSpace(
-                selectedTeam1.Player2)
-            ? selectedTeam1.Player1
-            : $"{selectedTeam1.Player1} - {selectedTeam1.Player2}";
-
-        string team2Players =
-            string.IsNullOrWhiteSpace(
-                selectedTeam2.Player2)
-            ? selectedTeam2.Player1
-            : $"{selectedTeam2.Player1} - {selectedTeam2.Player2}";
+                team2.TeamName);
 
         PreviewTeam1PlayersLabel.Text =
-            team1Players;
+            FormatTeamPlayers(team1);
 
         PreviewTeam2PlayersLabel.Text =
-            team2Players;
+            FormatTeamPlayers(team2);
 
         PreviewRulesLabel.Text =
             selectedRules;
+        RefRulesLabel.Text =
+            selectedRules.Contains("ط¹", StringComparison.Ordinal)
+                ? "عالمي"
+                : "محلي";
     }
 
 
@@ -631,8 +715,9 @@ TextChangedEventArgs e)
        object sender,
        TappedEventArgs e)
     {
-        RulesDropdownBorder.IsVisible =
-            !RulesDropdownBorder.IsVisible;
+        RulesDropdownBorder.IsVisible = false;
+        RefRulesDropdownBorder.IsVisible =
+            !RefRulesDropdownBorder.IsVisible;
     }
 
     void OnLocalRuleTapped(
@@ -644,7 +729,9 @@ TextChangedEventArgs e)
         PreviewRulesLabel.Text =
             "محلي";
 
+        RefRulesLabel.Text = "محلي";
         RulesDropdownBorder.IsVisible = false;
+        RefRulesDropdownBorder.IsVisible = false;
 
         UpdateMatchPreview();
     }
@@ -658,7 +745,9 @@ TextChangedEventArgs e)
         PreviewRulesLabel.Text =
             "عالمي";
 
+        RefRulesLabel.Text = "عالمي";
         RulesDropdownBorder.IsVisible = false;
+        RefRulesDropdownBorder.IsVisible = false;
 
         UpdateMatchPreview();
     }
@@ -687,12 +776,82 @@ TextChangedEventArgs e)
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(hex))
+                return Colors.Gold;
+
             return Color.FromArgb(hex);
         }
         catch
         {
             return Colors.Gold;
         }
+    }
+
+    static bool SameTeam(TeamProfileModel? current, TeamProfileModel snapshot) =>
+        !string.IsNullOrWhiteSpace(current?.TeamId) &&
+        string.Equals(
+            current.TeamId,
+            snapshot.TeamId,
+            StringComparison.OrdinalIgnoreCase);
+
+    static string FormatTeamPlayers(TeamProfileModel team)
+    {
+        var player1 = team.Player1?.Trim() ?? "";
+        var player2 = team.Player2?.Trim() ?? "";
+
+        if (string.IsNullOrWhiteSpace(player2))
+            return player1;
+
+        if (string.IsNullOrWhiteSpace(player1))
+            return player2;
+
+        return $"{player1} - {player2}";
+    }
+
+    void ApplyTeamCardIdentityVisuals(
+        TeamProfileModel team,
+        Border cardBorder,
+        Label selectArrow,
+        Border emblemBackgroundLayer,
+        Image emblemBackgroundImage)
+    {
+        var accent = GetTeamColor(GetLiveTeamColor(team));
+        cardBorder.Stroke = accent;
+        selectArrow.TextColor = accent;
+
+        ApplyEmblemBackground(team, emblemBackgroundLayer, emblemBackgroundImage);
+    }
+
+    void ApplyEmblemBackground(
+        TeamProfileModel team,
+        Border backgroundLayer,
+        Image backgroundImage)
+    {
+        var source =
+            liveTeamIdentities.TryGetValue(team.TeamId, out var identity)
+                ? identity.EmblemBackgroundSource
+                : LegacyIdentity(team).EmblemBackgroundSource;
+
+        if (string.IsNullOrWhiteSpace(source) ||
+            string.Equals(source, "Transparent", StringComparison.OrdinalIgnoreCase))
+        {
+            backgroundLayer.BackgroundColor = Colors.Transparent;
+            backgroundImage.Source = null;
+            backgroundImage.IsVisible = false;
+            return;
+        }
+
+        if (source.TrimStart().StartsWith("#", StringComparison.Ordinal))
+        {
+            backgroundLayer.BackgroundColor = GetTeamColor(source);
+            backgroundImage.Source = null;
+            backgroundImage.IsVisible = false;
+            return;
+        }
+
+        backgroundLayer.BackgroundColor = Color.FromArgb("#14100A");
+        backgroundImage.Source = ResolveStoredImage(source, "");
+        backgroundImage.IsVisible = true;
     }
     // Recent Teams Management
     void AddToRecentTeams(
@@ -718,6 +877,9 @@ TextChangedEventArgs e)
     // Main Season Card
     async void UpdateMainSeasonCard()
     {
+        await RefreshMainPlayerProgressAsync();
+        return;
+
         var teams =
             await RankingService.LoadTeamsAsync();
 
@@ -769,6 +931,168 @@ TextChangedEventArgs e)
             progress;
     }
 
+    async Task RefreshMainPlayerProgressAsync()
+    {
+        try
+        {
+            var currentUser =
+                await ApplicationUserService.GetCurrentUserAsync();
+
+            var playerId =
+                currentUser.PlayerId;
+
+            if (string.IsNullOrWhiteSpace(playerId))
+            {
+                ApplyMainPlayerProgressFallback();
+                return;
+            }
+
+            var profile =
+                await PlayerProfileService.GetPlayerByIdAsync(playerId);
+
+            var wallet =
+                await PlayerWalletService.GetOrCreateAsync(playerId);
+
+            HeaderCoinsLabel.Text =
+                wallet.Coins.ToString("N0");
+
+            HeaderGemsLabel.Text =
+                wallet.Gems.ToString("N0");
+
+            var xp =
+                Math.Max(
+                    0,
+                    profile?.PlayerXP
+                    ?? profile?.SeasonXP
+                    ?? profile?.LifetimeXP
+                    ?? 0);
+
+            var rank =
+                PlayerRankService.Calculate(xp);
+
+            MainSeasonTitleLabel.Text =
+                string.IsNullOrWhiteSpace(rank.DisplayName)
+                    ? "XP اللاعب"
+                    : rank.DisplayName;
+            HeroRankLabel.Text =
+                MainSeasonTitleLabel.Text;
+
+            MainSeasonCountdownLabel.Text =
+                rank.NextRankXP > rank.CurrentRankMinXP
+                    ? $"{xp:N0} / {rank.NextRankXP:N0} XP"
+                    : $"{xp:N0} XP";
+            HeroXpLabel.Text =
+                rank.NextRankXP > rank.CurrentRankMinXP
+                    ? $"{xp:N0} / {rank.NextRankXP:N0}"
+                    : $"{xp:N0}";
+
+            MainSeasonProgressPercentLabel.Text =
+                $"{rank.Progress * 100:0}%";
+            HeroXpPercentLabel.Text =
+                MainSeasonProgressPercentLabel.Text;
+
+            MainSeasonProgressBar.Progress =
+                rank.Progress;
+            HeroXpProgressBar.Progress =
+                rank.Progress;
+        }
+        catch
+        {
+            ApplyMainPlayerProgressFallback();
+        }
+    }
+
+    void ApplyMainPlayerProgressFallback()
+    {
+        HeaderCoinsLabel.Text = "0";
+        HeaderGemsLabel.Text = "0";
+        MainSeasonTitleLabel.Text = "XP اللاعب";
+        MainSeasonCountdownLabel.Text = "0 / 100 XP";
+        MainSeasonProgressPercentLabel.Text = "0%";
+        MainSeasonProgressBar.Progress = 0;
+        HeroRankLabel.Text = "Majlis Legend";
+        HeroXpLabel.Text = "0 / 100";
+        HeroXpPercentLabel.Text = "0%";
+        HeroXpProgressBar.Progress = 0;
+    }
+
+    async void OnPublishedSeasonHeroChanged(CurrentSeasonRecord? record)
+    {
+        _ = record;
+        await MainThread.InvokeOnMainThreadAsync(RefreshMainSeasonHeroAsync);
+    }
+
+    async Task RefreshMainSeasonHeroAsync()
+    {
+        try
+        {
+            var published =
+                await CurrentSeasonAdminService.LoadPublishedRecordsAsync();
+
+            mainSeasonHeroRecords.Clear();
+            mainSeasonHeroRecords.AddRange(
+                published
+                    .Where(record =>
+                        record.IsVisible &&
+                        !string.IsNullOrWhiteSpace(record.ImagePath))
+                    .OrderBy(record => record.SortOrder)
+                    .ThenByDescending(record => record.PublishedAt ?? record.UpdatedAt));
+
+            mainSeasonHeroIndex = 0;
+            await ApplyMainSeasonHeroFrameAsync(animated: false);
+        }
+        catch
+        {
+            MainSeasonHeroBackgroundImage.Source =
+                ResolveStoredImage("hall_of_fame_head.png", "domino_gold_icon.png");
+        }
+    }
+
+    void StartMainSeasonHeroTimer()
+    {
+        if (mainSeasonHeroTimerStarted)
+            return;
+
+        mainSeasonHeroTimerStarted = true;
+
+        Dispatcher.StartTimer(TimeSpan.FromSeconds(5), () =>
+        {
+            if (!mainSeasonHeroTimerStarted)
+                return false;
+
+            if (mainSeasonHeroRecords.Count > 1)
+            {
+                mainSeasonHeroIndex =
+                    (mainSeasonHeroIndex + 1) % mainSeasonHeroRecords.Count;
+
+                _ = ApplyMainSeasonHeroFrameAsync(animated: true);
+            }
+
+            return true;
+        });
+    }
+
+    async Task ApplyMainSeasonHeroFrameAsync(bool animated)
+    {
+        var imagePath =
+            mainSeasonHeroRecords.Count == 0
+                ? "hall_of_fame_head.png"
+                : mainSeasonHeroRecords[
+                    Math.Clamp(mainSeasonHeroIndex, 0, mainSeasonHeroRecords.Count - 1)]
+                    .ImagePath;
+
+        if (animated)
+            await MainSeasonHeroBackgroundImage.FadeTo(0.26, 180, Easing.CubicOut);
+
+        MainSeasonHeroBackgroundImage.Source =
+            ResolveStoredImage(imagePath, "domino_gold_icon.png");
+
+        if (animated)
+            await MainSeasonHeroBackgroundImage.FadeTo(0.64, 260, Easing.CubicIn);
+        else
+            MainSeasonHeroBackgroundImage.Opacity = 0.64;
+    }
+
     // Refresh Selected Teams from IDs (in case they were updated in the team picker)
     async Task RefreshSelectedTeamsFromIds()
     {
@@ -798,6 +1122,12 @@ TextChangedEventArgs e)
 
                 PreviewTeam1Logo.Source =
                     "shield_3d.png";
+                RefPreviewTeam1NameLabel.Text =
+                    PreviewTeam1NameLabel.Text;
+                RefPreviewTeam1PlayersLabel.Text =
+                    "";
+                RefPreviewTeam1Logo.Source =
+                    PreviewTeam1Logo.Source;
             }
             else
             {
@@ -810,10 +1140,16 @@ TextChangedEventArgs e)
                     freshTeam1.IsSinglePlayer
                     ? freshTeam1.Player1
                     : $"{freshTeam1.Player1} - {freshTeam1.Player2}";
+                RefPreviewTeam1NameLabel.Text =
+                    PreviewTeam1NameLabel.Text;
+                RefPreviewTeam1PlayersLabel.Text =
+                    PreviewTeam1PlayersLabel.Text;
 
                 await RefreshLiveTeamIdentityAsync(freshTeam1);
                 PreviewTeam1Logo.Source =
                     ResolveStoredImage(GetLiveEmblem(freshTeam1));
+                RefPreviewTeam1Logo.Source =
+                    PreviewTeam1Logo.Source;
             }
         }
 
@@ -840,6 +1176,12 @@ TextChangedEventArgs e)
 
                 PreviewTeam2Logo.Source =
                     "shield_3d.png";
+                RefPreviewTeam2NameLabel.Text =
+                    PreviewTeam2NameLabel.Text;
+                RefPreviewTeam2PlayersLabel.Text =
+                    "";
+                RefPreviewTeam2Logo.Source =
+                    PreviewTeam2Logo.Source;
             }
             else
             {
@@ -852,10 +1194,16 @@ TextChangedEventArgs e)
                     freshTeam2.IsSinglePlayer
                     ? freshTeam2.Player1
                     : $"{freshTeam2.Player1} - {freshTeam2.Player2}";
+                RefPreviewTeam2NameLabel.Text =
+                    PreviewTeam2NameLabel.Text;
+                RefPreviewTeam2PlayersLabel.Text =
+                    PreviewTeam2PlayersLabel.Text;
 
                 await RefreshLiveTeamIdentityAsync(freshTeam2);
                 PreviewTeam2Logo.Source =
                     ResolveStoredImage(GetLiveEmblem(freshTeam2));
+                RefPreviewTeam2Logo.Source =
+                    PreviewTeam2Logo.Source;
             }
         }
 
@@ -932,8 +1280,11 @@ TextChangedEventArgs e)
 
     async void OnCurrentUserChanged()
     {
-        await MainThread.InvokeOnMainThreadAsync(
-            RefreshHeaderPlayerAsync);
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            await RefreshHeaderPlayerAsync();
+            await RefreshMainPlayerProgressAsync();
+        });
     }
 
     async void OnTeamAssetsChanged(string teamId)
