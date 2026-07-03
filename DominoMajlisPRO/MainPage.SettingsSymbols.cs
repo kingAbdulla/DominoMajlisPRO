@@ -14,6 +14,7 @@ public partial class MainPage
         ApplyMainHeaderAvatarShape();
         _ = ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
         _ = RefreshMainPreviewTeamEffectsAsync();
+        ApplyProductionReadinessOnHandlerReady();
 
         if (Handler == null || _settingsSymbolsTimerStarted)
             return;
@@ -27,6 +28,7 @@ public partial class MainPage
             ApplyMainHeaderAvatarShape();
             _ = ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
             _ = RefreshMainPreviewTeamEffectsAsync();
+            ApplyProductionReadinessOnHandlerReady();
             NormalizeSettingsSymbols();
             RepairVisibleMainPageText(this);
             return Handler != null && runs < 16;
