@@ -150,7 +150,8 @@ public partial class MainPage
         };
 
         originalHost.Children.Add(newBorder);
-        originalHost.Children.Add(ProfileStatusBadge);
+        if (ReferenceEquals(ProfileStatusBadge.Parent, originalHost))
+            originalHost.Children.Add(ProfileStatusBadge);
         return newBorder;
     }
 

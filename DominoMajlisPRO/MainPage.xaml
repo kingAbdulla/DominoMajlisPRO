@@ -155,6 +155,8 @@ LineBreakMode="TailTruncation">
                 Aspect="AspectFit"
                 InputTransparent="True"
                 IsVisible="False"/>
+
+
                                 </Grid>
                             </Border>
 
@@ -2814,4 +2816,5 @@ FontSize="14"/>
         </Grid>
     </Grid>
 </ContentPage>
+
 
