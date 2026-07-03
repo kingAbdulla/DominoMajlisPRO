@@ -15,6 +15,7 @@ public partial class MainPage
         _ = ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
         _ = RefreshMainPreviewTeamEffectsAsync();
         ApplyProductionReadinessOnHandlerReady();
+        ApplyDeveloperAccessGuard();
 
         if (Handler == null || _settingsSymbolsTimerStarted)
             return;
@@ -29,6 +30,7 @@ public partial class MainPage
             _ = ReapplyMainHeaderEffectWithPlayerDetailsScaleAsync();
             _ = RefreshMainPreviewTeamEffectsAsync();
             ApplyProductionReadinessOnHandlerReady();
+            ApplyDeveloperAccessGuard();
             NormalizeSettingsSymbols();
             RepairVisibleMainPageText(this);
             return Handler != null && runs < 16;
