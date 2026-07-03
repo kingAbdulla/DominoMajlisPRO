@@ -26,24 +26,7 @@
                     FlowDirection="LeftToRight"
                     VerticalOptions="Center">
 
-                    <Border
-                        IsVisible="False"
-                        WidthRequest="{OnIdiom Phone=54, Tablet=64}"
-                        HeightRequest="{OnIdiom Phone=54, Tablet=64}"
-                        Stroke="#8D6824"
-                        StrokeThickness="1.4"
-                        BackgroundColor="#0A0A0A"
-                        StrokeShape="RoundRectangle 16">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnSettingsImageTapped"/>
-                        </Border.GestureRecognizers>
-                        <Image
-                            Source="menu_dots_gold.png"
-                            WidthRequest="34"
-                            HeightRequest="34"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center"/>
-                    </Border>
+              
 
                     <Border
                         Grid.Column="1"
@@ -53,7 +36,7 @@
                         Padding="8,5"
                         StrokeShape="RoundRectangle 18">
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                            <Image Source="all_gold.png" WidthRequest="28" HeightRequest="28"/>
+                            <Image Source="coins.png" WidthRequest="28" HeightRequest="28"/>
                             <Label
                                 x:Name="HeaderCoinsLabel"
                                 Grid.Column="1"
@@ -63,7 +46,23 @@
                                 FontAttributes="Bold"
                                 VerticalTextAlignment="Center"
                                 LineBreakMode="TailTruncation"/>
-                            <Image Grid.Column="2" Source="gold.png" WidthRequest="22" HeightRequest="22"/>
+                            <Label
+    x:Name="getcoins"
+    Grid.Column="2"
+    Text="+"
+    FontSize="{OnIdiom Phone=20, Tablet=25}"
+    TextColor="#8D6824"
+    FontAttributes="Bold"
+    VerticalTextAlignment="Center"
+    LineBreakMode="TailTruncation">
+
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="GetCoins_Tapped"/>
+                                </Label.GestureRecognizers>
+
+                            </Label>
+
+
                         </Grid>
                     </Border>
 
@@ -75,7 +74,7 @@
                         Padding="8,5"
                         StrokeShape="RoundRectangle 18">
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                            <Image Source="diamond.png" WidthRequest="28" HeightRequest="28"/>
+                            <Image Source="gems.png" WidthRequest="28" HeightRequest="28"/>
                             <Label
                                 x:Name="HeaderGemsLabel"
                                 Grid.Column="1"
@@ -85,7 +84,22 @@
                                 FontAttributes="Bold"
                                 VerticalTextAlignment="Center"
                                 LineBreakMode="TailTruncation"/>
-                            <Image Grid.Column="2" Source="gold.png" WidthRequest="22" HeightRequest="22"/>
+                            <Label
+x:Name="getGems"
+Grid.Column="2"
+Text="+"
+FontSize="{OnIdiom Phone=20, Tablet=25}"
+TextColor="#8D6824"
+FontAttributes="Bold"
+VerticalTextAlignment="Center"
+LineBreakMode="TailTruncation">
+
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="GetGems_Tapped"/>
+                                </Label.GestureRecognizers>
+
+                            </Label>
+
                         </Grid>
                     </Border>
 
@@ -103,37 +117,82 @@
                             <Shadow Brush="#D4AF37" Radius="18" Opacity="0.45"/>
                         </Border.Shadow>
 
-                        <Grid>
-                            <Image
-                                x:Name="HeaderPlayerAvatar"
-                                Source="normal_avatar_1.png"
-                                Aspect="AspectFill"/>
-
-                            <Image
-                                x:Name="HeaderAvatarFrameOverlay"
-                                Aspect="AspectFit"
-                                InputTransparent="True"
-                                IsVisible="False"/>
-
-                            <Image
-                                x:Name="HeaderAvatarEffectOverlay"
-                                Aspect="AspectFit"
-                                InputTransparent="True"
-                                IsVisible="False"/>
+                        <Grid
+    Grid.Column="3"
+    WidthRequest="{OnIdiom Phone=64, Tablet=84}"
+    HeightRequest="{OnIdiom Phone=64, Tablet=84}"
+    HorizontalOptions="Center"
+    VerticalOptions="Center">
 
                             <Border
-                                x:Name="ProfileStatusBadge"
-                                WidthRequest="{OnIdiom Phone=9, Tablet=12}"
-                                HeightRequest="{OnIdiom Phone=9, Tablet=12}"
-                                BackgroundColor="Red"
-                                Stroke="#111111"
-                                StrokeThickness="1"
-                                HorizontalOptions="End"
-                                VerticalOptions="End">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="999"/>
-                                </Border.StrokeShape>
+        WidthRequest="{OnIdiom Phone=58, Tablet=78}"
+        HeightRequest="{OnIdiom Phone=58, Tablet=78}"
+        HorizontalOptions="Center"
+        VerticalOptions="Center"
+        BackgroundColor="#151515"
+        Stroke="#D4AF37"
+        StrokeThickness="2.2"
+        StrokeShape="RoundRectangle 999">
+
+                                <Border.Shadow>
+                                    <Shadow Brush="#D4AF37" Radius="18" Opacity="0.45"/>
+                                </Border.Shadow>
+
+                                <Grid>
+                                    <Image
+                x:Name="HeaderPlayerAvatar"
+                Source="normal_avatar_1.png"
+                Aspect="AspectFill"/>
+
+                                    <Image
+                x:Name="HeaderAvatarFrameOverlay"
+                Aspect="AspectFit"
+                InputTransparent="True"
+                IsVisible="False"/>
+
+                                    <Image
+                x:Name="HeaderAvatarEffectOverlay"
+                Aspect="AspectFit"
+                InputTransparent="True"
+                IsVisible="False"/>
+                                </Grid>
                             </Border>
+
+                            <!-- Level Badge -->
+                            <Border
+        x:Name="HeaderPlayerLevelBadge"
+        WidthRequest="{OnIdiom Phone=25, Tablet=32}"
+        HeightRequest="{OnIdiom Phone=25, Tablet=32}"
+        HorizontalOptions="End"
+        VerticalOptions="End"
+        TranslationX="{OnIdiom Phone=2, Tablet=3}"
+        TranslationY="{OnIdiom Phone=2, Tablet=3}"
+        BackgroundColor="#0A0A0A"
+        Stroke="#D4AF37"
+        StrokeThickness="2"
+        StrokeShape="RoundRectangle 999">
+
+                                <Label
+            x:Name="HeaderPlayerLevelLabel"
+            Text="1"
+            FontSize="{OnIdiom Phone=11, Tablet=14}"
+            FontAttributes="Bold"
+            TextColor="#FFD700"
+            HorizontalTextAlignment="Center"
+            VerticalTextAlignment="Center"/>
+                            </Border>
+
+                            <!-- Status Dot -->
+                            <Border
+        x:Name="ProfileStatusBadge"
+        WidthRequest="{OnIdiom Phone=9, Tablet=12}"
+        HeightRequest="{OnIdiom Phone=9, Tablet=12}"
+        BackgroundColor="Red"
+        Stroke="#111111"
+        StrokeThickness="1"
+        HorizontalOptions="End"
+        VerticalOptions="Start"
+        StrokeShape="RoundRectangle 999"/>
                         </Grid>
                     </Border>
 
@@ -141,7 +200,7 @@
                         Grid.Column="4"
                         WidthRequest="{OnIdiom Phone=54, Tablet=64}"
                         HeightRequest="{OnIdiom Phone=54, Tablet=64}"
-                        Stroke="#8D6824"
+                        Stroke="#0A0A0A"
                         StrokeThickness="1.4"
                         BackgroundColor="#0A0A0A"
                         StrokeShape="RoundRectangle 18">
@@ -254,7 +313,7 @@
                                     <Label
                                         Text="مرحباً بك"
                                         FontFamily="DG-Nemr-V.0"
-                                        FontSize="{OnIdiom Phone=21, Tablet=34}"
+                                        FontSize="{OnIdiom Phone=20, Tablet=40}"
                                         FontAttributes="Bold"
                                         TextColor="#F3F3F3"
                                         MaxLines="1"/>
@@ -1480,51 +1539,28 @@ Aspect="AspectFit"/>
                 <!-- ========================= -->
 
                 <Border
-                    Margin="-18,0,-18,-18"
+                    Margin="-18,5,-18,-18"
                     Stroke="#5F4619"
                     StrokeThickness="1.2"
                     BackgroundColor="#080B0B"
-                    Padding="10,12"
+                    Padding="15,12"
                     StrokeShape="RoundRectangle 30,30,0,0">
                     <Grid
                         ColumnDefinitions="*,*,*,*,*"
                         ColumnSpacing="4"
                         FlowDirection="RightToLeft">
 
-                        <VerticalStackLayout Grid.Column="0" Spacing="5" HorizontalOptions="Center">
-                            <Image Source="menu_dots_gold.png" WidthRequest="30" HeightRequest="30"/>
-                            <Label Text="للمزيد" FontSize="11" TextColor="#B7A06A" HorizontalTextAlignment="Center"/>
-                        </VerticalStackLayout>
 
-                        <VerticalStackLayout Grid.Column="1" Spacing="5" HorizontalOptions="Center">
+
+                        <VerticalStackLayout Grid.Column="2" Spacing="5" HorizontalOptions="Center">
                             <VerticalStackLayout.GestureRecognizers>
-                                <TapGestureRecognizer Tapped="OnStatisticsClicked"/>
+                                <TapGestureRecognizer Tapped="OnhomeTapped"/>
                             </VerticalStackLayout.GestureRecognizers>
-                            <Image Source="analytics_gold.png" WidthRequest="30" HeightRequest="30"/>
-                            <Label Text="الإحصائيات" FontSize="11" TextColor="#B7A06A" HorizontalTextAlignment="Center"/>
+                            <Image Source="home.png" WidthRequest="30" HeightRequest="30"/>
+                            <Label Text="الصفحة الرئيسية" FontSize="11" TextColor="#B7A06A" HorizontalTextAlignment="Center"/>
                         </VerticalStackLayout>
-
-                        <Border
-                            Grid.Column="2"
-                            Margin="0,-26,0,0"
-                            WidthRequest="96"
-                            HeightRequest="82"
-                            Stroke="#D4AF37"
-                            StrokeThickness="1.8"
-                            BackgroundColor="#151106"
-                            StrokeShape="RoundRectangle 42,42,18,18">
-                            <VerticalStackLayout Spacing="2" HorizontalOptions="Center" VerticalOptions="Center">
-                                <Label
-                                    Text="⌂"
-                                    FontSize="36"
-                                    FontAttributes="Bold"
-                                    TextColor="#FFD700"
-                                    HorizontalTextAlignment="Center"/>
-                                <Label Text="الرئيسية" FontSize="12" FontAttributes="Bold" TextColor="#FFD700"/>
-                            </VerticalStackLayout>
-                        </Border>
-
-                        <VerticalStackLayout Grid.Column="3" Spacing="5" HorizontalOptions="Center">
+                        
+                        <VerticalStackLayout Grid.Column="0" Spacing="5" HorizontalOptions="Center">
                             <VerticalStackLayout.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnStoreTapped"/>
                             </VerticalStackLayout.GestureRecognizers>

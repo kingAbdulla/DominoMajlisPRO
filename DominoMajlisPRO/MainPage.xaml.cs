@@ -1,9 +1,10 @@
-using DominoMajlisPRO.Models;
+using DominoMajlisPRO.Features.RechargeCenter.Pages;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Pages;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -1466,6 +1467,25 @@ TextChangedEventArgs e)
             new GalleryPage());
     }
 
+
+    private async void GetCoins_Tapped(object sender, TappedEventArgs e)
+    {
+        await Navigation.PushAsync(new RechargeCenterPage());
+    }
+
+    private async void GetGems_Tapped(object sender, TappedEventArgs e)
+    {
+        await Navigation.PushAsync(new RechargeCenterPage());
+    }
+    async void OnhomeTapped(
+    object? sender,
+    TappedEventArgs e)
+    {
+        await Navigation.PushAsync(
+            new MainPage());
+    }
+
+
     async Task RefreshHeaderPlayerAsync()
     {
         int refreshVersion =
@@ -1503,6 +1523,8 @@ TextChangedEventArgs e)
 
             if (refreshVersion != headerRefreshVersion)
                 return;
+            HeaderPlayerLevelLabel.Text =
+     profile?.PlayerLevel.ToString() ?? "1";
             string avatarPath =
                 visualIdentity.Avatar?.PreviewImage ?? string.Empty;
             HeaderProfileBackgroundImage.Source = null;
