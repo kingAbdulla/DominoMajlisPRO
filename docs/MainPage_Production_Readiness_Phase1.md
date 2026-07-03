@@ -7,25 +7,21 @@ Functional stabilization only. No visual redesign, no layout hierarchy rebuild, 
 - Added `DominoMajlisPRO/MainPage.ProductionReadiness.cs` as a focused partial class.
 - Added safe Empty State helpers for Team 1, Team 2, and Match Preview.
 - Added post-handler and post-navigation readiness pass to repair stale or incomplete UI state after initial load.
-- Added readiness gate helpers for match-start validation and duplicate start protection foundation.
+- Added a guarded start-match tap pipeline in `DominoMajlisPRO/MainPage.StartMatchProductionGuard.cs`.
+- Added initial auto-selection suppression so `LoadTeams()` no longer leaves the first two teams selected on first production render.
 
 ## Current implementation status
 | Area | Status | Notes |
 | --- | --- | --- |
 | MainPage XAML layout | Preserved | No layout redesign was made. |
-| Team empty state | Added | Missing team cards now reset to explicit Arabic selection text and default shield. |
-| Match preview empty state | Added | Preview now has explicit messages for missing team 1, missing team 2, or both missing. |
-| Start-game protection foundation | Added | Helper methods added; next pass should integrate directly into existing `OnStartGame`. |
-| Auto-selection behavior | Not fully changed yet | Existing `LoadTeams()` still auto-selects first two teams in `MainPage.xaml.cs`. This needs a direct edit in the next pass. |
-| Test data filtering | Deferred | Avoided hardcoded content-specific blocking in code. Recommended: production data reset/seed policy instead. |
+| Team empty state | Added | Missing team cards reset to explicit Arabic selection text and default shield. |
+| Match preview empty state | Added | Preview shows explicit messages for missing team 1, missing team 2, or both missing. |
+| Start-game protection | Added | Runtime guard validates readiness before forwarding to the existing `OnStartGame`. |
+| Auto-selection behavior | Suppressed at runtime | Initial first-two-team auto-selection is cleared unless the user has already selected recent teams in the same page session. |
+| Test data filtering | Deferred | Recommended: production data reset/seed policy instead of hardcoded name filtering. |
 
-## Next required code pass
-Directly edit `MainPage.xaml.cs` to:
-1. Stop `LoadTeams()` from auto-selecting the first two teams unless there is a saved last selection.
-2. Call `ApplyProductionEmptyStateIfNeeded()` inside `RefreshSelectedTeamsFromIds()` after selected teams are deleted or missing.
-3. Replace the early return in `UpdateMatchPreview()` with the new empty-state flow.
-4. Integrate `ConfirmProductionMatchReadinessAsync()` and `ReleaseProductionMatchStartGate()` into `OnStartGame()`.
-5. Add a persisted last-selected-team pair if desired.
+## Remaining direct-code improvement
+A cleaner future pass should edit `MainPage.xaml.cs` directly to remove the old auto-selection code from `LoadTeams()` instead of suppressing it after initial load.
 
 ## Manual verification checklist
 - Launch MainPage with zero teams.
@@ -37,4 +33,4 @@ Directly edit `MainPage.xaml.cs` to:
 - Try repeated fast taps on Start Match.
 
 ## Risk
-Low to medium. The added file is isolated, but direct integration into `OnStartGame()` is still pending.
+Medium until local build verification is completed. The implementation is isolated and preserves layout, but Android build/runtime testing is still required.
