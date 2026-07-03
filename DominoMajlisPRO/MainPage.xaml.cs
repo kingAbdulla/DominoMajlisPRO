@@ -998,7 +998,11 @@ TextChangedEventArgs e)
 
     async Task SetTeamPickerItemsAsync(IEnumerable<TeamProfileModel> teams)
     {
-        var teamList = teams.ToList();
+        var teamList = teams
+            .Where(team =>
+                team != null &&
+                !string.IsNullOrWhiteSpace(team.TeamId))
+            .ToList();
         foreach (var team in teamList)
             await RefreshLiveTeamIdentityAsync(team);
 
@@ -1011,12 +1015,16 @@ TextChangedEventArgs e)
             .ToList();
     }
 
-    string GetLiveEmblem(TeamProfileModel team) =>
-        liveTeamIdentities.TryGetValue(team.TeamId, out var identity) &&
-        !string.IsNullOrWhiteSpace(identity.EmblemImagePath)
+    string GetLiveEmblem(TeamProfileModel? team)
+    {
+        if (team == null || string.IsNullOrWhiteSpace(team.TeamId))
+            return "shield_3d.png";
+
+        return liveTeamIdentities.TryGetValue(team.TeamId, out var identity) &&
+               !string.IsNullOrWhiteSpace(identity.EmblemImagePath)
             ? identity.EmblemImagePath
             : LegacyIdentity(team).EmblemImagePath;
-
+    }
     static ImageSource ResolveStoredImage(
         string? imagePath,
         string fallback = "shield_3d.png") =>
@@ -1024,12 +1032,16 @@ TextChangedEventArgs e)
             imagePath,
             fallback);
 
-    string GetLiveTeamColor(TeamProfileModel team) =>
-        liveTeamIdentities.TryGetValue(team.TeamId, out var identity) &&
-        !string.IsNullOrWhiteSpace(identity.TeamColorHex)
+    string GetLiveTeamColor(TeamProfileModel? team)
+    {
+        if (team == null || string.IsNullOrWhiteSpace(team.TeamId))
+            return "#FFD700";
+
+        return liveTeamIdentities.TryGetValue(team.TeamId, out var identity) &&
+               !string.IsNullOrWhiteSpace(identity.TeamColorHex)
             ? identity.TeamColorHex
             : LegacyIdentity(team).TeamColorHex;
-
+    }
     static TeamIdentityModel LegacyIdentity(TeamProfileModel team) =>
         new()
         {
