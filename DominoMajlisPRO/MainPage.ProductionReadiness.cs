@@ -7,21 +7,13 @@ public partial class MainPage
     bool isStartingGame;
     bool initialAutoSelectionReviewed;
 
-    protected override void OnHandlerChanged()
+    void ApplyProductionReadinessOnHandlerReady()
     {
-        base.OnHandlerChanged();
-
         if (Handler == null)
             return;
 
         ApplyProductionEmptyStateIfNeeded();
         ApplyStartMatchProductionGuard();
-        _ = ApplyProductionReadinessAfterInitialLoadAsync();
-    }
-
-    protected override void OnNavigatedTo(NavigatedToEventArgs args)
-    {
-        base.OnNavigatedTo(args);
         _ = ApplyProductionReadinessAfterInitialLoadAsync();
     }
 
