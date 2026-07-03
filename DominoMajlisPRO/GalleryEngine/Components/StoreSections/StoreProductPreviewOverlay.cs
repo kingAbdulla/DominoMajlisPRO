@@ -201,6 +201,11 @@ internal sealed class StoreProductPreviewOverlay : Grid
 
     private static View BuildVisual(StoreProductPreviewRequest request)
     {
+        if (IsEffectPreviewKind(request.Kind))
+            return request.Effect == null
+                ? TransparentPreview()
+                : EffectVisual(request.Effect, request.Name);
+
         var image = new Image
         {
             Source = InventoryDisplayResolver.ResolveImageSource(request.ImagePath),
@@ -214,13 +219,11 @@ internal sealed class StoreProductPreviewOverlay : Grid
             StoreProductPreviewKind.Frame => FrameVisual(image, request.Accent),
             StoreProductPreviewKind.Badge => IdentityVisual(image, request),
             StoreProductPreviewKind.Season => BackgroundVisual(image, request),
-            StoreProductPreviewKind.Effect when request.Effect != null => EffectVisual(image, request.Effect, request.Accent, request.Name),
-            StoreProductPreviewKind.LivingEmblem when request.Effect != null => EffectVisual(image, request.Effect, request.Accent, request.Name),
             _ => PreviewCard(image, request.Accent)
         };
     }
 
-    private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent, string visibleName)
+    private static View EffectVisual(CatalogAssetDisplay effect, string visibleName)
     {
         if (IsNameTypographyAsset(effect.AssetType))
         {
@@ -246,7 +249,7 @@ internal sealed class StoreProductPreviewOverlay : Grid
             var host = new LivingVisualHost
             {
                 AssetId = effect.AssetId,
-                StaticFallbackImage = string.IsNullOrWhiteSpace(effect.PreviewImage) ? "shield_3d.png" : effect.PreviewImage,
+                StaticFallbackImage = effect.PreviewImage?.Trim() ?? string.Empty,
                 ApplicationUserId = string.Empty,
                 PlayerId = string.Empty,
                 TeamId = string.Empty,
@@ -257,25 +260,41 @@ internal sealed class StoreProductPreviewOverlay : Grid
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center
             };
-            return PreviewCard(host, accent);
+            return TransparentPreview(host);
         }
 
         var layers = new Grid();
         var providedImage = InventoryDisplayResolver.ResolveOptionalImageSource(effect.PreviewImage);
         if (providedImage != null)
         {
-            image.Source = providedImage;
-            image.WidthRequest = 190;
-            image.HeightRequest = 190;
-            image.HorizontalOptions = LayoutOptions.Center;
-            image.VerticalOptions = LayoutOptions.Center;
-            layers.Children.Add(image);
+            layers.Children.Add(new Image
+            {
+                Source = providedImage,
+                WidthRequest = 190,
+                HeightRequest = 190,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            });
         }
         else
         {
             layers.Children.Add(IdentityEffectRenderer.Create(effect, 1.28));
         }
-        return PreviewCard(layers, accent);
+        return TransparentPreview(layers);
+    }
+
+    private static Grid TransparentPreview(View? content = null)
+    {
+        var grid = new Grid
+        {
+            HeightRequest = 240,
+            BackgroundColor = Colors.Transparent
+        };
+
+        if (content != null)
+            grid.Children.Add(content);
+
+        return grid;
     }
 
     private static bool IsNameTypographyAsset(StoreProductAssetType assetType) =>
@@ -322,13 +341,7 @@ internal sealed class StoreProductPreviewOverlay : Grid
     private static View FrameVisual(Image frame, Color accent)
     {
         frame.Aspect = Aspect.AspectFit;
-        var portrait = Label(100, Secondary, true, TextAlignment.Center);
-        portrait.Text = "👤";
-        portrait.VerticalTextAlignment = TextAlignment.Center;
-        var layers = new Grid();
-        layers.Children.Add(portrait);
-        layers.Children.Add(frame);
-        return PreviewCard(layers, accent);
+        return TransparentPreview(frame);
     }
 
     private static View IdentityVisual(Image image, StoreProductPreviewRequest request)

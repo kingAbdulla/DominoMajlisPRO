@@ -339,14 +339,21 @@ public sealed class LivingVisualHost : ContentView
 
     private void SetFallback(string? imagePath)
     {
-        var source = InventoryDisplayResolver.ResolveImageSource(
-            string.IsNullOrWhiteSpace(imagePath) ? "shield_3d.png" : imagePath,
-            "shield_3d.png");
+        var isPreview = IsStorePreview || IsInventoryPreview;
+        var hasImage = !string.IsNullOrWhiteSpace(imagePath);
+        var source = hasImage
+            ? InventoryDisplayResolver.ResolveOptionalImageSource(imagePath)
+            : isPreview
+                ? null
+                : InventoryDisplayResolver.ResolveImageSource("shield_3d.png", "shield_3d.png");
 
         void Apply()
         {
             _fallbackImage.Source = source;
-            Content = _fallbackImage;
+            _fallbackImage.IsVisible = source != null;
+            Content = source == null && isPreview
+                ? new Grid { BackgroundColor = Colors.Transparent }
+                : _fallbackImage;
         }
 
         if (MainThread.IsMainThread)

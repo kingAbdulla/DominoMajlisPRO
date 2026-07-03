@@ -287,8 +287,16 @@ internal sealed class StoreProductActionSheet : Grid
         AttachToPage(owner);
         ResetPreviewVisuals();
 
-        _image.Source =
-            InventoryDisplayResolver.ResolveImageSource(imagePath);
+        if (IsEffectPreviewKind(previewKind))
+        {
+            _image.Source = InventoryDisplayResolver.ResolveOptionalImageSource(imagePath);
+            _image.IsVisible = _image.Source != null;
+        }
+        else
+        {
+            _image.Source = InventoryDisplayResolver.ResolveImageSource(imagePath);
+            _image.IsVisible = true;
+        }
         _imagePath = imagePath;
         _name.Text = name;
         _rarity.Text = string.IsNullOrWhiteSpace(rarity) ? "COMMON" : rarity.ToUpperInvariant();
@@ -671,7 +679,17 @@ internal sealed class StoreProductActionSheet : Grid
 
             default:
                 _previewSurface.HeightRequest = 230;
-                _previewSurface.Background = new SolidColorBrush(Color.FromArgb("#241B0C"));
+                if (IsEffectPreviewKind(_previewKind))
+                {
+                    _previewSurface.Padding = 0;
+                    _previewSurface.Background = new SolidColorBrush(Colors.Transparent);
+                    _previewSurface.StrokeThickness = 0;
+                }
+                else
+                {
+                    _previewSurface.Background = new SolidColorBrush(Color.FromArgb("#241B0C"));
+                    _previewSurface.StrokeThickness = 1;
+                }
                 _previewSurface.StrokeShape = new RoundRectangle { CornerRadius = 22 };
                 _image.Aspect = Aspect.AspectFit;
                 break;
@@ -747,9 +765,7 @@ internal sealed class StoreProductActionSheet : Grid
                 var host = new LivingVisualHost
                 {
                     AssetId = assetId,
-                    StaticFallbackImage = string.IsNullOrWhiteSpace(asset.PreviewImage)
-                        ? "shield_3d.png"
-                        : asset.PreviewImage,
+                    StaticFallbackImage = asset.PreviewImage?.Trim() ?? string.Empty,
                     ApplicationUserId = owner.ApplicationUserId,
                     PlayerId = playerId?.Trim() ?? string.Empty,
                     TeamId = string.Empty,
@@ -817,6 +833,7 @@ internal sealed class StoreProductActionSheet : Grid
         _previewSurface.HeightRequest = 188;
         _previewSurface.Padding = 10;
         _previewSurface.Background = new SolidColorBrush(Color.FromArgb("#10000000"));
+        _previewSurface.StrokeThickness = 1;
         _previewSurface.StrokeShape = new RoundRectangle { CornerRadius = 20 };
         _previewSurface.Content = _image;
         _image.Aspect = Aspect.AspectFit;

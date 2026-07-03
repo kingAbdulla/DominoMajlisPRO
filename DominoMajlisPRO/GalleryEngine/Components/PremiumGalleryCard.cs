@@ -51,7 +51,6 @@ public class PremiumGalleryCard : ContentView
 
         _image = new Image
         {
-            Source = "gallery_lion.png",
             Aspect = Aspect.AspectFit,
             WidthRequest = 90,
             HeightRequest = 90,
@@ -165,10 +164,11 @@ public class PremiumGalleryCard : ContentView
         if (item == null)
             return;
 
-        var imageName = string.IsNullOrWhiteSpace(item.Image) ? "gallery_lion.png" : item.Image;
+        var imageName = item.Image?.Trim() ?? string.Empty;
 
-        _image.Source = InventoryDisplayResolver.ResolveImageSource(imageName, "gallery_lion.png");
-        _image.IsVisible = true;
+        var imageSource = InventoryDisplayResolver.ResolveOptionalImageSource(imageName);
+        _image.Source = imageSource;
+        _image.IsVisible = imageSource != null;
 
         _name.Text = string.IsNullOrWhiteSpace(item.Name) ? "عنصر المتجر" : item.Name;
 
@@ -179,7 +179,8 @@ public class PremiumGalleryCard : ContentView
 
         _badge.Text = item.IsLimited ? "محدود" : item.IsNew ? "جديد" : "جديد";
 
-        _ = ApplyDynamicBackgroundAsync(imageName);
+        if (!string.IsNullOrWhiteSpace(imageName))
+            _ = ApplyDynamicBackgroundAsync(imageName);
         _ = ApplyEffectPreviewAsync(item.Id);
 
         ApplyResponsive();
@@ -219,12 +220,15 @@ public class PremiumGalleryCard : ContentView
             if (asset.AssetType is not (StoreProductAssetType.Effect or StoreProductAssetType.TeamEffect) && !isLivingEmblem)
                 return;
 
-            var fallback = asset.AssetType == StoreProductAssetType.TeamEffect || isLivingEmblem
-                ? "shield_3d.png"
-                : "gallery_lion.png";
-            _image.Source = InventoryDisplayResolver.ResolveImageSource(
-                string.IsNullOrWhiteSpace(asset.PreviewImage) ? fallback : asset.PreviewImage,
-                fallback);
+            var providedImage = InventoryDisplayResolver.ResolveOptionalImageSource(asset.PreviewImage);
+            if (providedImage == null)
+            {
+                _image.Source = null;
+                _image.IsVisible = false;
+                return;
+            }
+
+            _image.Source = providedImage;
             _image.IsVisible = true;
         });
     }
