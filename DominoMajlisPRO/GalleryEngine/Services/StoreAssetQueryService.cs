@@ -34,7 +34,7 @@ public static class StoreAssetQueryService
         var configuration = await StoreRuntimeConfigurationService.LoadAsync();
         if (!configuration.IsStoreEnabled || !configuration.ShowNewArrivals)
             return Array.Empty<NewArrivalRecord>();
-        var records = await NewArrivalsAdminService.LoadPublishedAsync();
+        var records = (await NewArrivalsAdminService.LoadPublishedAsync()).ToList();
         return NewestDistinct(records.Where(IsValid), item => item.Id, item => item.PublishedAt ?? item.UpdatedAt);
     }
 
@@ -221,4 +221,5 @@ public static class StoreAssetQueryService
         new(id, type, name, description, category, image, publishedAt);
 
     private static void RaisePublishedContentChanged() => PublishedContentChanged?.Invoke();
+
 }

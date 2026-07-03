@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin.Services;
 
@@ -12,7 +13,7 @@ public static class NewArrivalsAdminService
     public static async Task<NewArrivalRecord> SaveDraftAsync(NewArrivalRecord record)
     {
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
+        EnsureUniqueAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records.FirstOrDefault(item => item.Status == NewArrivalStatus.Draft && SameAssetId(item, assetId));
         var saved = PrepareForSave(record, existing);
@@ -59,7 +60,7 @@ public static class NewArrivalsAdminService
             throw new InvalidOperationException(message);
 
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
+        EnsureUniqueAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records
             .Where(item => SameAssetId(item, assetId))
@@ -85,7 +86,7 @@ public static class NewArrivalsAdminService
             throw new InvalidOperationException(message);
 
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
+        EnsureUniqueAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records.FirstOrDefault(item => item.Status == NewArrivalStatus.Published && SameAssetId(item, assetId))
             ?? throw new InvalidOperationException("تعذر العثور على العنصر المنشور");
@@ -108,7 +109,7 @@ public static class NewArrivalsAdminService
                 StoreCmsOrderingEngine.ByFeaturedAndSortOrder(published, item => item.IsFeatured, item => item.SortOrder),
                 item => item.PublishedAt,
                 item => item.UpdatedAt)
-            .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
             .ToList();
     }
 
@@ -161,6 +162,56 @@ public static class NewArrivalsAdminService
 
     public static Task DeletePublished(string assetId) => DeletePublishedAsync(assetId);
 
+    public static async Task<int> DeletePublishedByTypeAsync(string? storeTypeId)
+    {
+        var records = await LoadRecordsAsync();
+        var before = records.Count;
+        records.RemoveAll(record =>
+            record.Status != NewArrivalStatus.Draft &&
+            MatchesType(record, storeTypeId));
+        var removed = before - records.Count;
+        if (removed > 0)
+        {
+            await SaveRecordsAsync(records);
+            PublishedChanged?.Invoke();
+        }
+        return removed;
+    }
+
+    public static async Task<int> HidePublishedByTypeAsync(string? storeTypeId)
+    {
+        var records = await LoadRecordsAsync();
+        var changed = 0;
+        foreach (var record in records.Where(record =>
+            record.Status == NewArrivalStatus.Published &&
+            MatchesType(record, storeTypeId)))
+        {
+            record.Status = NewArrivalStatus.Hidden;
+            record.UpdatedAt = DateTime.UtcNow;
+            changed++;
+        }
+
+        if (changed > 0)
+        {
+            await SaveRecordsAsync(records);
+            PublishedChanged?.Invoke();
+        }
+        return changed;
+    }
+
+    public static async Task<int> DeleteDraftsByTypeAsync(string? storeTypeId)
+    {
+        var records = await LoadRecordsAsync();
+        var before = records.Count;
+        records.RemoveAll(record =>
+            record.Status == NewArrivalStatus.Draft &&
+            MatchesType(record, storeTypeId));
+        var removed = before - records.Count;
+        if (removed > 0)
+            await SaveRecordsAsync(records);
+        return removed;
+    }
+
     public static async Task<NewArrivalRecord?> CreateDraftFromPublishedAsync(string assetId)
     {
         var records = await LoadRecordsAsync();
@@ -194,6 +245,16 @@ public static class NewArrivalsAdminService
             AnimationType = published.AnimationType,
             DurationMilliseconds = published.DurationMilliseconds,
             EquipTarget = published.EquipTarget,
+            LivingVisualScope = published.LivingVisualScope,
+            LivingVisualKind = published.LivingVisualKind,
+            LivingPackageId = published.LivingPackageId,
+            LivingPackageManifestPath = published.LivingPackageManifestPath,
+            LivingPackagePath = published.LivingPackagePath,
+            PreferredBackend = published.PreferredBackend,
+            FallbackPolicy = published.FallbackPolicy,
+            LivingVisualVersion = published.LivingVisualVersion,
+            LivingPackageVersion = published.LivingPackageVersion,
+            Rarity = published.Rarity,
             BundleAssetIds = published.BundleAssetIds?.ToList() ?? new List<string>(),
             DiscountPercent = published.DiscountPercent,
             Price = published.Price,
@@ -258,19 +319,42 @@ public static class NewArrivalsAdminService
                 : Guid.NewGuid().ToString();
         record.ProductId = productId;
         record.Id = productId;
-        record.AssetId = record.AssetId?.Trim() ?? string.Empty;
+        
+        record.AssetId = string.IsNullOrWhiteSpace(record.AssetId)
+            ? string.Empty
+            : record.AssetId.Trim();
+
         record.StoreTypeId = record.StoreTypeId?.Trim() ?? string.Empty;
         record.OwnerScope = record.OwnerScope?.Trim() ?? string.Empty;
         record.ColorHex = record.ColorHex?.Trim() ?? string.Empty;
         record.IsFree = record.Price == 0 || record.CurrencyType == NewArrivalCurrencyType.Free;
     }
 
+    private static void EnsureUniqueAssetId(NewArrivalRecord record, IReadOnlyList<NewArrivalRecord> allRecords)
+    {
+        EnsureAssetId(record);
+        if (string.IsNullOrWhiteSpace(record.AssetId))
+        {
+            var existingAssetIds = allRecords
+                .Where(r => r.ProductId != record.ProductId)
+                .Select(GetAssetId);
+            record.AssetId = CanonicalAssetIdentityService.GenerateUniqueCanonicalAssetId(
+                record.StoreTypeId,
+                record.Title,
+                existingAssetIds);
+        }
+    }
+
     private static bool SameAssetId(NewArrivalRecord record, string assetId) =>
-        string.Equals(GetAssetId(record), assetId, StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(GetAssetId(record), assetId);
+
+    private static bool MatchesType(NewArrivalRecord record, string? storeTypeId) =>
+        string.IsNullOrWhiteSpace(storeTypeId) ||
+        string.Equals(record.StoreTypeId, storeTypeId, StringComparison.OrdinalIgnoreCase);
 
     private static IReadOnlyList<NewArrivalRecord> DistinctLatest(IEnumerable<NewArrivalRecord> records) => records
         .OrderByDescending(item => item.UpdatedAt)
-        .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+        .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
         .ToList();
 
     private static async Task<List<NewArrivalRecord>> LoadRecordsAsync()

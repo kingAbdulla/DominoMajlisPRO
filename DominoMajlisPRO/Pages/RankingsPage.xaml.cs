@@ -4,6 +4,8 @@ using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.VisualIdentity;
+using DominoMajlisPRO.GalleryEngine.Effects;
 namespace DominoMajlisPRO.Pages;
 
 public partial class RankingsPage : ContentPage
@@ -17,6 +19,16 @@ public partial class RankingsPage : ContentPage
     IReadOnlyDictionary<string, TeamIdentityModel> teamIdentities =
         new Dictionary<string, TeamIdentityModel>(
             StringComparer.OrdinalIgnoreCase);
+    
+    // VisualEventBus subscription tokens
+    IDisposable? teamEmblemChangedSubscription;
+    IDisposable? teamColorChangedSubscription;
+    IDisposable? teamEffectChangedSubscription;
+    IDisposable? teamEmblemBackgroundChangedSubscription;
+    IDisposable? playerAvatarChangedSubscription;
+    IDisposable? playerProfileBackgroundChangedSubscription;
+    IDisposable? playerFrameChangedSubscription;
+    IDisposable? playerEffectChangedSubscription;
 
     public RankingsPage()
     {
@@ -265,6 +277,17 @@ public partial class RankingsPage : ContentPage
         TappedEventArgs e)
     {
         await Navigation.PopAsync();
+    }
+
+    // =========================
+    // PLAYERS RANKING TAB
+    // =========================
+
+    async void OnPlayersRankingClicked(
+        object sender,
+        TappedEventArgs e)
+    {
+        await Navigation.PushAsync(new PlayerRankingsPage());
     }
 
     // =========================
@@ -556,6 +579,29 @@ public partial class RankingsPage : ContentPage
                     LayoutOptions.Center
             };
 
+        var champEmblGrid = new Grid
+        {
+            WidthRequest = 70,
+            HeightRequest = 70,
+            HorizontalOptions = LayoutOptions.Center
+        };
+        var champEmblImage = new Image
+        {
+            Source = InventoryDisplayResolver.ResolveImageSource(
+                teamIdentities.TryGetValue(team.TeamId, out var champIdentity)
+                    ? champIdentity.EmblemImagePath
+                    : (team.Emblem ?? "shield_3d.png"),
+                "shield_3d.png"),
+            WidthRequest = 52,
+            HeightRequest = 52,
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+        LivingEmblemBehavior.Attach(champEmblImage, team.TeamId);
+        champEmblGrid.Children.Add(champEmblImage);
+        rankSection.Children.Add(champEmblGrid);
+
         rankSection.Children.Add(
             new Image
             {
@@ -571,23 +617,10 @@ public partial class RankingsPage : ContentPage
             });
 
         rankSection.Children.Add(
-            new Label
-            {
-                Text = team.TeamName,
-
-                FontSize = 15,
-
-                FontAttributes =
-                    FontAttributes.Bold,
-
-                TextColor =
-                    Colors.White,
-
-                MaxLines = 1,
-
-                HorizontalTextAlignment =
-                    TextAlignment.Center
-            });
+            GalleryEngine.Components.NameSurfaceBinder.TeamSurface(
+                team.TeamId,
+                team.TeamName,
+                32));
 
         Grid.SetColumn(rankSection, 4);
 
@@ -858,6 +891,30 @@ public partial class RankingsPage : ContentPage
     });
 
 
+        var emblSize = position switch { 1 => 56.0, 2 => 44.0, _ => 40.0 };
+        var emblGrid = new Grid
+        {
+            WidthRequest = emblSize * 1.32,
+            HeightRequest = emblSize * 1.32,
+            HorizontalOptions = LayoutOptions.Center
+        };
+        var emblImage = new Image
+        {
+            Source = InventoryDisplayResolver.ResolveImageSource(
+                teamIdentities.TryGetValue(team.TeamId, out var podiumIdentity)
+                    ? podiumIdentity.EmblemImagePath
+                    : (team.Emblem ?? "shield_3d.png"),
+                "shield_3d.png"),
+            WidthRequest = emblSize,
+            HeightRequest = emblSize,
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+        LivingEmblemBehavior.Attach(emblImage, team.TeamId);
+        emblGrid.Children.Add(emblImage);
+        layout.Children.Add(emblGrid);
+
         layout.Children.Add(
 
             new Image
@@ -885,32 +942,10 @@ public partial class RankingsPage : ContentPage
             });
 
         layout.Children.Add(
-
-            new Label
-            {
-                Text =
-                    team.TeamName,
-
-                FontSize =
-                    isChampion ? 18 : 15,
-
-                FontAttributes =
-                    FontAttributes.Bold,
-
-                TextColor =
-                    Colors.White,
-
-                HorizontalTextAlignment =
-                    TextAlignment.Center,
-
-                MaxLines = 1,
-
-                LineBreakMode =
-                    LineBreakMode.TailTruncation
-
-
-
-            });
+            GalleryEngine.Components.NameSurfaceBinder.TeamSurface(
+                team.TeamId,
+                team.TeamName,
+                isChampion ? 38 : 32));
 
         layout.Children.Add(
        CreateBadgeIconsRow(team, position == 1 ? 30 : 24));
@@ -1279,16 +1314,10 @@ public partial class RankingsPage : ContentPage
      };
 
         teamInfo.Children.Add(
-            new Label
-            {
-                Text = team.TeamName,
-                FontSize = 14,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Colors.White,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation,
-                VerticalTextAlignment = TextAlignment.Center
-            });
+            GalleryEngine.Components.NameSurfaceBinder.TeamSurface(
+                team.TeamId,
+                team.TeamName,
+                32));
 
         teamInfo.Children.Add(
             CreateBadgeIconsRow(team, 30));
@@ -1427,8 +1456,11 @@ public partial class RankingsPage : ContentPage
         SheetRankIcon.Source =
             GetRankIcon(team.Rank);
 
-        SheetRankIcon.Source =
-            GetRankIcon(team.Rank);
+        teamIdentities.TryGetValue(team.TeamId, out var sheetIdentity);
+        SheetRankIcon.Source = InventoryDisplayResolver.ResolveImageSource(
+            sheetIdentity?.EmblemImagePath ?? team.Emblem ?? "shield_3d.png",
+            "shield_3d.png");
+        LivingEmblemBehavior.Attach(SheetRankIcon, team.TeamId);
 
         SheetTeamName.Text =
             team.TeamName;
@@ -1679,6 +1711,16 @@ public partial class RankingsPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        
+        // Dispose VisualEventBus subscriptions
+        teamEmblemChangedSubscription?.Dispose();
+        teamColorChangedSubscription?.Dispose();
+        teamEffectChangedSubscription?.Dispose();
+        teamEmblemBackgroundChangedSubscription?.Dispose();
+        playerAvatarChangedSubscription?.Dispose();
+        playerProfileBackgroundChangedSubscription?.Dispose();
+        playerFrameChangedSubscription?.Dispose();
+        playerEffectChangedSubscription?.Dispose();
 
         AppEvents.RankingsChanged -= LoadRankings;
         AppEvents.PlayerProfileChanged -= LoadRankings;
@@ -1705,11 +1747,66 @@ public partial class RankingsPage : ContentPage
         AppEvents.TeamsChanged += LoadRankings;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
         AppEvents.MatchesChanged += LoadRankings;
+        
+        // Subscribe to VisualEventBus identity events
+        teamEmblemChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemChanged);
+        teamColorChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamColorChanged);
+        teamEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEffectChanged);
+        teamEmblemBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Team,
+            OnTeamEmblemBackgroundChanged);
+        playerAvatarChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerAvatarChanged);
+        playerProfileBackgroundChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerProfileBackgroundChanged);
+        playerFrameChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerFrameChanged);
+        playerEffectChangedSubscription = VisualEventBus.Subscribe(
+            EventCategory.Player,
+            OnPlayerEffectChanged);
 
         LoadRankings();
     }
 
     void OnTeamAssetsChanged(string teamId) => LoadRankings();
+
+    // VisualEventBus identity event handler - reuse existing refresh path
+    // Filtering is deferred by architecture to avoid false negatives
+    void HandleVisualIdentityEvent(EventEntry eventEntry)
+    {
+        if (eventEntry.EventData == null)
+            return;
+        
+        // Validate payload contains either TeamId or PlayerId
+        bool hasTeamId = eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.TeamId);
+        bool hasPlayerId = eventEntry.EventData.ContainsKey(VisualIdentityPayloadKeys.PlayerId);
+        
+        if (!hasTeamId && !hasPlayerId)
+            return;
+        
+        // Conservative behavior: always refresh on valid identity events
+        LoadRankings();
+    }
+
+    // Individual event handlers
+    void OnTeamEmblemChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnTeamColorChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnTeamEffectChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnTeamEmblemBackgroundChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+
+    void OnPlayerAvatarChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnPlayerProfileBackgroundChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnPlayerFrameChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
+    void OnPlayerEffectChanged(EventEntry eventEntry) => HandleVisualIdentityEvent(eventEntry);
     // Reset filter styles
     void ResetFilterStyles()
     {

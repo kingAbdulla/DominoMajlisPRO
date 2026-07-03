@@ -8,7 +8,7 @@
     NavigationPage.HasNavigationBar="False"
     FlowDirection="RightToLeft">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
 
         <!-- ========================= -->
         <!-- HEADER -->
@@ -57,11 +57,62 @@
         </Border>
 
         <!-- ========================= -->
+        <!-- SEGMENTED CONTROL (Teams / Players) -->
+        <!-- ========================= -->
+
+        <Border
+            Grid.Row="1"
+            Margin="20,10,20,4"
+            BackgroundColor="#121218"
+            Stroke="#262633"
+            StrokeThickness="1"
+            Padding="4"
+            StrokeShape="RoundRectangle 18">
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+
+                <Border
+                    Grid.Column="0"
+                    BackgroundColor="#2A2008"
+                    Stroke="#D4AF37"
+                    StrokeThickness="1"
+                    Padding="0,10"
+                    StrokeShape="RoundRectangle 14">
+                    <Label
+                        Text="تصنيف الفرق"
+                        TextColor="#FFD700"
+                        FontSize="15"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"/>
+                </Border>
+
+                <Border
+                    Grid.Column="1"
+                    BackgroundColor="Transparent"
+                    StrokeThickness="0"
+                    Padding="0,10"
+                    StrokeShape="RoundRectangle 14">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnPlayersRankingClicked"/>
+                    </Border.GestureRecognizers>
+                    <Label
+                        Text="تصنيف اللاعبين"
+                        TextColor="#A6A6B5"
+                        FontSize="15"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"/>
+                </Border>
+
+            </Grid>
+
+        </Border>
+
+        <!-- ========================= -->
         <!-- FILTERS -->
         <!-- ========================= -->
 
         <ScrollView
-            Grid.Row="1"
+            Grid.Row="2"
             Orientation="Horizontal"
             HorizontalScrollBarVisibility="Never">
 
@@ -198,7 +249,7 @@
         <!-- ========================= -->
 
         <Border
-            Grid.Row="2"
+            Grid.Row="3"
             Margin="20,0,20,10"
             HeightRequest="54"
             Padding="14,0"
@@ -232,7 +283,7 @@
         <!-- CONTENT -->
         <!-- ========================= -->
 
-        <ScrollView Grid.Row="3">
+        <ScrollView Grid.Row="4">
 
             <VerticalStackLayout
                 x:Name="LeaderboardContainer"
@@ -407,7 +458,7 @@
 
         <Grid
     x:Name="BottomSheetOverlay"
-    Grid.RowSpan="4"
+    Grid.RowSpan="5"
     IsVisible="False"
     BackgroundColor="#99000000"
     InputTransparent="False"

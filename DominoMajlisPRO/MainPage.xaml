@@ -105,17 +105,14 @@ LineBreakMode="TailTruncation">
 
                     <Border
                         Grid.Column="3"
-                        WidthRequest="{OnIdiom Phone=58, Tablet=78}"
-                        HeightRequest="{OnIdiom Phone=58, Tablet=78}"
+                        WidthRequest="{OnIdiom Phone=76, Tablet=98}"
+                        HeightRequest="{OnIdiom Phone=76, Tablet=98}"
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
-                        BackgroundColor="#151515"
-                        Stroke="#D4AF37"
-                        StrokeThickness="2.2"
-                        StrokeShape="RoundRectangle 999">
-                        <Border.Shadow>
-                            <Shadow Brush="#D4AF37" Radius="18" Opacity="0.45"/>
-                        </Border.Shadow>
+                        BackgroundColor="Transparent"
+                        Stroke="Transparent"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 0">
 
                         <Grid
     Grid.Column="3"
@@ -167,8 +164,8 @@ LineBreakMode="TailTruncation">
         HeightRequest="{OnIdiom Phone=24, Tablet=30}"
         HorizontalOptions="Start"
         VerticalOptions="End"
-        TranslationX="{OnIdiom Phone=-7, Tablet=-9}"
-        TranslationY="{OnIdiom Phone=9, Tablet=11}"
+        TranslationX="0"
+        TranslationY="0"
         BackgroundColor="#0A0A0A"
         Stroke="#D4AF37"
         StrokeThickness="2"

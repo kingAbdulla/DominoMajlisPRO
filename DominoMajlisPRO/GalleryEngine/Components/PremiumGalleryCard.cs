@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using Microsoft.Maui.Controls.Shapes;
 
@@ -16,7 +16,7 @@ public class PremiumGalleryCard : ContentView
     private readonly Label _price;
     private readonly Label _currencyIcon;
     private readonly Grid _contentGrid;
-    private IdentityEffectView? _effectView;
+    private IdentityPlateView? _namePlateView;
 
     public PremiumGalleryCard()
     {
@@ -51,7 +51,6 @@ public class PremiumGalleryCard : ContentView
 
         _image = new Image
         {
-            Source = "gallery_lion.png",
             Aspect = Aspect.AspectFit,
             WidthRequest = 90,
             HeightRequest = 90,
@@ -121,11 +120,7 @@ public class PremiumGalleryCard : ContentView
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(0, 0, 0, 8),
-            Children =
-            {
-                _currencyIcon,
-                _price
-            }
+            Children = { _currencyIcon, _price }
         };
 
         _contentGrid = new Grid
@@ -136,11 +131,7 @@ public class PremiumGalleryCard : ContentView
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto }
             },
-            Children =
-            {
-                _fullBackground,
-                diagonalShade
-            }
+            Children = { _fullBackground, diagonalShade }
         };
 
         _contentGrid.Add(_image, 0, 0);
@@ -173,31 +164,23 @@ public class PremiumGalleryCard : ContentView
         if (item == null)
             return;
 
-        var imageName = string.IsNullOrWhiteSpace(item.Image)
-            ? "gallery_lion.png"
-            : item.Image;
+        var imageName = item.Image?.Trim() ?? string.Empty;
 
-        _image.Source =
-            InventoryDisplayResolver.ResolveImageSource(
-                imageName,
-                "gallery_lion.png");
+        var imageSource = InventoryDisplayResolver.ResolveOptionalImageSource(imageName);
+        _image.Source = imageSource;
+        _image.IsVisible = imageSource != null;
 
-        _name.Text = string.IsNullOrWhiteSpace(item.Name)
-            ? "عنصر المتجر"
-            : item.Name;
+        _name.Text = string.IsNullOrWhiteSpace(item.Name) ? "عنصر المتجر" : item.Name;
 
         var isFree = string.Equals(item.Currency, "Free", StringComparison.OrdinalIgnoreCase);
         _currencyIcon.IsVisible = !isFree;
         _currencyIcon.Text = string.Equals(item.Currency, "Coins", StringComparison.OrdinalIgnoreCase) ? "🪙" : "💎";
         _price.Text = isFree ? "مجاني" : item.Price.ToString();
 
-        _badge.Text = item.IsLimited
-            ? "محدود"
-            : item.IsNew
-                ? "جديد"
-                : "جديد";
+        _badge.Text = item.IsLimited ? "محدود" : item.IsNew ? "جديد" : "جديد";
 
-        _ = ApplyDynamicBackgroundAsync(imageName);
+        if (!string.IsNullOrWhiteSpace(imageName))
+            _ = ApplyDynamicBackgroundAsync(imageName);
         _ = ApplyEffectPreviewAsync(item.Id);
 
         ApplyResponsive();
@@ -206,31 +189,78 @@ public class PremiumGalleryCard : ContentView
     private async Task ApplyEffectPreviewAsync(string assetId)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
+
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (_effectView != null)
-            {
-                _effectView.Clear();
-                _contentGrid.Children.Remove(_effectView);
-                _effectView = null;
-            }
-            if (asset?.AssetType is not (StoreProductAssetType.Effect or
-                StoreProductAssetType.TeamEffect))
+            ClearRuntimePreview();
+            ResetImagePreviewSize();
+            _image.IsVisible = true;
+
+            if (asset == null)
                 return;
 
-            _image.Source = InventoryDisplayResolver.ResolveImageSource(
-                string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
-                "shield_3d.png");
-            _image.WidthRequest = 72;
-            _image.HeightRequest = 72;
-            _effectView = IdentityEffectRenderer.Create(asset, 1.22, lightweight: true);
-            _effectView.WidthRequest = 100;
-            _effectView.HeightRequest = 100;
-            _effectView.HorizontalOptions = LayoutOptions.Center;
-            _effectView.VerticalOptions = LayoutOptions.Center;
-            _contentGrid.Add(_effectView, 0, 0);
+            if (IsNameTypographyAsset(asset.AssetType))
+            {
+                _image.IsVisible = false;
+                _namePlateView = new IdentityPlateView
+                {
+                    WidthRequest = 112,
+                    HeightRequest = 50,
+                    MaximumWidthRequest = 130,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(8, 18, 8, 0)
+                };
+                _namePlateView.Bind(string.IsNullOrWhiteSpace(asset.DisplayName) ? _name.Text : asset.DisplayName, asset.TypographyPreset);
+                _contentGrid.Add(_namePlateView, 0, 0);
+                return;
+            }
+
+            var isLivingEmblem = StoreAssetCatalogService.IsLivingEmblemAsset(asset);
+            if (asset.AssetType is not (StoreProductAssetType.Effect or StoreProductAssetType.TeamEffect) && !isLivingEmblem)
+                return;
+
+            var providedImage = InventoryDisplayResolver.ResolveOptionalImageSource(asset.PreviewImage);
+            if (providedImage == null)
+            {
+                _image.Source = null;
+                _image.IsVisible = false;
+                return;
+            }
+
+            _image.Source = providedImage;
+            _image.IsVisible = true;
         });
     }
+
+    private void ClearRuntimePreview()
+    {
+        if (_namePlateView != null)
+        {
+            _contentGrid.Children.Remove(_namePlateView);
+            _namePlateView = null;
+        }
+    }
+
+
+    private void ResetImagePreviewSize()
+    {
+        if (DeviceInfo.Idiom == DeviceIdiom.Phone)
+        {
+            _image.WidthRequest = 92;
+            _image.HeightRequest = 92;
+        }
+        else
+        {
+            _image.WidthRequest = 132;
+            _image.HeightRequest = 132;
+        }
+    }
+    private static bool IsNameTypographyAsset(StoreProductAssetType assetType) =>
+        assetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect or
+            StoreProductAssetType.PlayerNameFrame or
+            StoreProductAssetType.TeamNameFrame;
 
     public void Bind(GalleryItem item, object? theme)
     {
@@ -240,21 +270,15 @@ public class PremiumGalleryCard : ContentView
     private async Task ApplyDynamicBackgroundAsync(string imageName)
     {
         var brush = await ImageColorExtractor.CreateSoftGradientAsync(imageName);
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            _fullBackground.Background = brush;
-        });
+        MainThread.BeginInvokeOnMainThread(() => _fullBackground.Background = brush);
     }
 
     private void ApplyTheme()
     {
         var theme = GalleryThemeEngine.Current;
-
         _root.Background = theme.CardBackground;
         _root.Stroke = theme.Stroke;
         _root.Shadow = CreateShadow(theme);
-
         _name.TextColor = theme.TextPrimary;
         _price.TextColor = theme.Gold;
     }
@@ -280,11 +304,10 @@ public class PremiumGalleryCard : ContentView
     private void OnUnloaded(object? sender, EventArgs e)
     {
         GalleryThemeEngine.ThemeChanged -= OnThemeChanged;
+        ClearRuntimePreview();
     }
 
-    private void OnThemeChanged(
-        object? sender,
-        DominoMajlisPRO.GalleryEngine.Services.GalleryTheme theme)
+    private void OnThemeChanged(object? sender, DominoMajlisPRO.GalleryEngine.Services.GalleryTheme theme)
     {
         ApplyTheme();
     }
@@ -326,4 +349,3 @@ public class PremiumGalleryCard : ContentView
         };
     }
 }
-

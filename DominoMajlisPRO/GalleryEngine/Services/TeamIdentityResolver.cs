@@ -43,7 +43,9 @@ public static class TeamIdentityResolver
             legacyProfile?.EmblemBackgroundAssetId,
             TeamAssetTypes.EmblemBackground.TeamAssetTypeId);
         var catalogEmblem = StoreAssetCatalogService.Resolve(
-            catalog, legacyProfile?.EmblemAssetId, "Emblem");
+            catalog, legacyProfile?.EmblemAssetId, "TeamLivingEmblem")
+            ?? StoreAssetCatalogService.Resolve(
+                catalog, legacyProfile?.EmblemAssetId, "Emblem");
         var catalogColor = StoreAssetCatalogService.Resolve(
             catalog, legacyProfile?.TeamColorAssetId, "TeamColor");
         var catalogBackground = StoreAssetCatalogService.Resolve(

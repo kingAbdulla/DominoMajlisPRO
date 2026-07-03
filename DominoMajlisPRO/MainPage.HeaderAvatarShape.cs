@@ -23,15 +23,18 @@ public partial class MainPage
 
         if (border.Parent is Grid outerHost)
         {
-            outerHost.WidthRequest = avatarSize;
-            outerHost.HeightRequest = avatarSize;
-            outerHost.MinimumWidthRequest = avatarSize;
-            outerHost.MinimumHeightRequest = avatarSize;
+            double levelBadgeSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 24 : 30;
+            double hostSize = avatarSize + (levelBadgeSize * 0.65);
+            outerHost.WidthRequest = hostSize;
+            outerHost.HeightRequest = hostSize;
+            outerHost.MinimumWidthRequest = hostSize;
+            outerHost.MinimumHeightRequest = hostSize;
             outerHost.HorizontalOptions = LayoutOptions.Center;
             outerHost.VerticalOptions = LayoutOptions.Center;
             outerHost.Clip = null;
             outerHost.BackgroundColor = Colors.Transparent;
             outerHost.Shadow = null;
+            EnsureHeaderFloatingBadges(outerHost);
         }
 
         border.WidthRequest = avatarSize;
@@ -154,11 +157,27 @@ public partial class MainPage
         };
 
         originalHost.Children.Add(newBorder);
-        if (ReferenceEquals(HeaderPlayerLevelBadge.Parent, originalHost))
-            originalHost.Children.Add(HeaderPlayerLevelBadge);
-        if (ReferenceEquals(ProfileStatusBadge.Parent, originalHost))
-            originalHost.Children.Add(ProfileStatusBadge);
+        MoveHeaderFloatingBadge(HeaderPlayerLevelBadge, originalHost);
+        MoveHeaderFloatingBadge(ProfileStatusBadge, originalHost);
         return newBorder;
+    }
+
+    void EnsureHeaderFloatingBadges(Grid outerHost)
+    {
+        MoveHeaderFloatingBadge(HeaderPlayerLevelBadge, outerHost);
+        MoveHeaderFloatingBadge(ProfileStatusBadge, outerHost);
+    }
+
+    static void MoveHeaderFloatingBadge(View badge, Grid outerHost)
+    {
+        if (badge.Parent is Layout existingLayout &&
+            !ReferenceEquals(existingLayout, outerHost))
+        {
+            existingLayout.Children.Remove(badge);
+        }
+
+        if (!outerHost.Children.Contains(badge))
+            outerHost.Children.Add(badge);
     }
 
     static void ConfigureHeaderAvatarImage(
@@ -210,8 +229,8 @@ public partial class MainPage
         HeaderPlayerLevelBadge.HeightRequest = badgeSize;
         HeaderPlayerLevelBadge.HorizontalOptions = LayoutOptions.Start;
         HeaderPlayerLevelBadge.VerticalOptions = LayoutOptions.End;
-        HeaderPlayerLevelBadge.TranslationX = DeviceInfo.Idiom == DeviceIdiom.Phone ? -7 : -9;
-        HeaderPlayerLevelBadge.TranslationY = DeviceInfo.Idiom == DeviceIdiom.Phone ? 9 : 11;
+        HeaderPlayerLevelBadge.TranslationX = 1;
+        HeaderPlayerLevelBadge.TranslationY = -1;
         HeaderPlayerLevelBadge.ZIndex = 30;
         HeaderPlayerLevelBadge.IsVisible = true;
         HeaderPlayerLevelBadge.Opacity = 1;

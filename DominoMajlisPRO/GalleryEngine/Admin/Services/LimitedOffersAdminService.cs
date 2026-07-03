@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin.Services;
 
@@ -12,7 +13,7 @@ public static class LimitedOffersAdminService
     public static async Task<LimitedOfferRecord> SaveDraftAsync(LimitedOfferRecord record)
     {
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
+        EnsureWritableAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records.FirstOrDefault(item => item.Status == LimitedOfferStatus.Draft && SameAssetId(item, assetId));
         var saved = PrepareForSave(record, existing);
@@ -30,7 +31,7 @@ public static class LimitedOffersAdminService
         (await LoadRecordsAsync())
             .Where(item => item.Status == LimitedOfferStatus.Draft)
             .OrderByDescending(item => item.UpdatedAt)
-            .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
             .ToList();
 
     public static Task<IReadOnlyList<LimitedOfferRecord>> LoadAllDrafts() => LoadAllDraftsAsync();
@@ -59,7 +60,7 @@ public static class LimitedOffersAdminService
         if (!ValidateForPublish(record, out var message))
             throw new InvalidOperationException(message);
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
+        EnsureWritableAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records
             .Where(item => SameAssetId(item, assetId))
@@ -83,7 +84,7 @@ public static class LimitedOffersAdminService
         if (!ValidateForPublish(record, out var message))
             throw new InvalidOperationException(message);
         var records = await LoadRecordsAsync();
-        EnsureAssetId(record);
+        EnsureWritableAssetId(record, records);
         var assetId = GetAssetId(record);
         var existing = records.FirstOrDefault(item => item.Status == LimitedOfferStatus.Published && SameAssetId(item, assetId))
             ?? throw new InvalidOperationException("تعذر العثور على العرض المنشور");
@@ -100,7 +101,7 @@ public static class LimitedOffersAdminService
 
     public static async Task<IReadOnlyList<LimitedOfferRecord>> LoadPublishedAsync() =>
         Order((await LoadRecordsAsync()).Where(item => item.Status == LimitedOfferStatus.Published))
-            .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
             .ToList();
 
     public static Task<IReadOnlyList<LimitedOfferRecord>> LoadPublished() => LoadPublishedAsync();
@@ -110,7 +111,7 @@ public static class LimitedOffersAdminService
         var now = DateTime.Now;
         return Order((await LoadRecordsAsync()).Where(item =>
                 item.Status == LimitedOfferStatus.Published && item.StartsAt <= now && item.EndsAt >= now))
-            .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
             .ToList();
     }
 
@@ -118,7 +119,7 @@ public static class LimitedOffersAdminService
         (await LoadRecordsAsync())
             .Where(item => item.Status != LimitedOfferStatus.Draft)
             .OrderByDescending(item => item.UpdatedAt)
-            .DistinctBy(GetAssetId, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(item => CanonicalAssetIdentityService.NormalizeForComparison(GetAssetId(item)), StringComparer.Ordinal)
             .ToList();
 
     public static async Task HidePublishedAsync(string assetId)
@@ -249,8 +250,28 @@ public static class LimitedOffersAdminService
         record.IsFree = record.DiscountPrice == 0 || record.CurrencyType == LimitedOfferCurrencyType.Free;
     }
 
+    private static void EnsureWritableAssetId(LimitedOfferRecord record)
+    {
+        EnsureAssetId(record);
+    }
+
+    private static void EnsureWritableAssetId(LimitedOfferRecord record, IReadOnlyList<LimitedOfferRecord> allRecords)
+    {
+        EnsureAssetId(record);
+        if (string.IsNullOrWhiteSpace(record.AssetId))
+        {
+            var existingAssetIds = allRecords
+                .Where(r => r.ProductId != record.ProductId)
+                .Select(GetAssetId);
+            record.AssetId = CanonicalAssetIdentityService.GenerateUniqueCanonicalAssetId(
+                record.StoreTypeId,
+                record.Title,
+                existingAssetIds);
+        }
+    }
+
     private static bool SameAssetId(LimitedOfferRecord record, string assetId) =>
-        string.Equals(GetAssetId(record), assetId, StringComparison.OrdinalIgnoreCase);
+        CanonicalAssetIdentityService.SameAssetId(GetAssetId(record), assetId);
 
     private static async Task SetStatusAsync(string assetId, LimitedOfferStatus status)
     {
