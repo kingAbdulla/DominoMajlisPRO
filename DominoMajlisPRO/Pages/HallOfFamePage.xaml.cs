@@ -11,6 +11,7 @@ public partial class HallOfFamePage : ContentPage
     const string Gold = "#D4AE62";
     const string Bronze = "#5B3B18";
     const string Muted = "#C8B58A";
+    bool isDeveloper;
 
     HallOfFameSnapshot snapshot = new(
         "الحالي",
@@ -94,12 +95,17 @@ public partial class HallOfFamePage : ContentPage
 
     async Task LoadHallOfFameAsync(bool forceRefresh = false)
     {
+        isDeveloper = await IsCurrentUserDeveloperAsync();
+        SideMenu.SetDeveloperToolsVisible(isDeveloper);
         snapshot = await HallOfFameService.LoadAsync(forceRefresh);
         HallContainer.Opacity = 0;
         ClearDynamicSections();
         RenderHero();
         await RenderTeamsAsync();
-        RenderCandidateCenterButton();
+        if (isDeveloper)
+            RenderCandidateCenterButton();
+        else
+            CandidatesSection.IsVisible = false;
         await RenderPlayersAsync();
         RenderRecords();
         RenderStatistics();
@@ -252,7 +258,11 @@ public partial class HallOfFamePage : ContentPage
         layout.Children.Add(Label($"دخل القاعة {team.HallEnteredAt:dd/MM/yyyy}", 10, Color.FromArgb(Muted)));
         layout.Children.Add(Label($"{team.FinalScore:0.#}%", 11, Color.FromArgb(Gold), true));
 
-        return Frame(layout, 22, border, rank == 1 ? "#1B1005" : "#0C0C0C", 8, DeviceInfo.Idiom == DeviceIdiom.Phone ? 132 : 176, DeviceInfo.Idiom == DeviceIdiom.Phone ? 218 : 270);
+        var cardContent = new Grid();
+        AddTeamBackground(cardContent, identity);
+        cardContent.Children.Add(new BoxView { BackgroundColor = Color.FromArgb("#B0000000") });
+        cardContent.Children.Add(layout);
+        return Frame(cardContent, 22, border, rank == 1 ? "#1B1005" : "#0C0C0C", 8, DeviceInfo.Idiom == DeviceIdiom.Phone ? 132 : 176, DeviceInfo.Idiom == DeviceIdiom.Phone ? 218 : 270);
     }
 
     View CreatePlayerCard(int rank, HallPlayerEvaluation player, PlayerVisualIdentity? identity)
@@ -281,7 +291,11 @@ public partial class HallOfFamePage : ContentPage
         layout.Children.Add(Label($"دخل القاعة {player.HallEnteredAt:dd/MM/yyyy}", 10, Color.FromArgb(Muted)));
         layout.Children.Add(Label($"{player.FinalScore:0.#}%", 11, Color.FromArgb(Gold), true));
 
-        return Frame(layout, 22, border, rank == 1 ? "#1B1005" : "#0C0C0C", 8, DeviceInfo.Idiom == DeviceIdiom.Phone ? 132 : 166, DeviceInfo.Idiom == DeviceIdiom.Phone ? 214 : 260);
+        var cardContent = new Grid();
+        AddOptionalBackground(cardContent, identity?.ProfileBackground?.PreviewImage);
+        cardContent.Children.Add(new BoxView { BackgroundColor = Color.FromArgb("#B0000000") });
+        cardContent.Children.Add(layout);
+        return Frame(cardContent, 22, border, rank == 1 ? "#1B1005" : "#0C0C0C", 8, DeviceInfo.Idiom == DeviceIdiom.Phone ? 132 : 166, DeviceInfo.Idiom == DeviceIdiom.Phone ? 214 : 260);
     }
 
     View CreateRecordCard(HallRecord record)
@@ -523,7 +537,10 @@ public partial class HallOfFamePage : ContentPage
                 await HallScrollView.ScrollToAsync(PlayersSection, ScrollToPosition.Start, true);
                 break;
             case "ACHIEVEMENTS":
-                await Navigation.PushAsync(new HallCandidateCenterPage());
+                if (isDeveloper)
+                    await Navigation.PushAsync(new HallCandidateCenterPage());
+                else
+                    await DisplayAlert("غير مصرح", "هذه الأدوات متاحة للمطور فقط.", "حسناً");
                 break;
             case "HISTORY":
                 await HallScrollView.ScrollToAsync(RecordsSection, ScrollToPosition.Start, true);
@@ -531,6 +548,19 @@ public partial class HallOfFamePage : ContentPage
             case "STATS":
                 await HallScrollView.ScrollToAsync(StatsSection, ScrollToPosition.Start, true);
                 break;
+        }
+    }
+
+    static async Task<bool> IsCurrentUserDeveloperAsync()
+    {
+        try
+        {
+            var user = await ApplicationUserService.GetCurrentUserAsync();
+            return user.Role == ApplicationUserRole.Developer;
+        }
+        catch
+        {
+            return false;
         }
     }
 }

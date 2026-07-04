@@ -30,9 +30,16 @@ public static class HallOfFameService
         var teamEvaluations = teamStatsTask.Result.Teams.Select(EvaluateTeam).ToList();
         var playerEvaluations = playerStatsTask.Result.Players.Select(EvaluatePlayer).ToList();
         await PersistFirstAdmissionDatesAsync(teamEvaluations, playerEvaluations);
+        var previousAudit = await LoadAuditAsync();
+        teamEvaluations = teamEvaluations.Select(item => item with { Audit = StabilizeAudit(item.Audit, previousAudit) }).ToList();
+        playerEvaluations = playerEvaluations.Select(item => item with { Audit = StabilizeAudit(item.Audit, previousAudit) }).ToList();
         var auditEntries = teamEvaluations.Select(item => item.Audit)
             .Concat(playerEvaluations.Select(item => item.Audit))
+            .Concat(previousAudit)
+            .GroupBy(item => item.AuditId, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
             .OrderByDescending(item => item.CreatedAt)
+            .Take(250)
             .ToList();
 
         await SaveAuditAsync(auditEntries);
@@ -59,7 +66,7 @@ public static class HallOfFameService
             Records: BuildRecords(teamStatsTask.Result.Teams, playerStatsTask.Result.Players, matches),
             Statistics: BuildStatistics(teamEvaluations, playerEvaluations, matches),
             AuditEntries: auditEntries,
-            Verification: Verify(teamEvaluations, playerEvaluations, auditEntries));
+            Verification: Verify(teamEvaluations, playerEvaluations, teams, players, auditEntries));
         cachedAt = DateTime.UtcNow;
         return cachedSnapshot;
     }
@@ -186,23 +193,33 @@ public static class HallOfFameService
     public static HallVerificationResult Verify(
         IReadOnlyList<HallTeamEvaluation> teams,
         IReadOnlyList<HallPlayerEvaluation> players,
+        IReadOnlyList<HallTeamEvaluation> teamMembers,
+        IReadOnlyList<HallPlayerEvaluation> playerMembers,
         IReadOnlyList<HallAuditEntry> audit)
     {
+        var teamMemberIds = teamMembers.Select(item => item.TeamId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var playerMemberIds = playerMembers.Select(item => item.PlayerId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var teamCandidateIds = teams.Where(item => item.Decision != HallDecision.Accepted).Select(item => item.TeamId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var playerCandidateIds = players.Where(item => item.Decision != HallDecision.Accepted).Select(item => item.PlayerId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var allEvaluations = teams.Concat<HallEvaluationBase>(players).ToList();
+        var allHallStrings = BuildHallStrings(teams, players, audit);
+
         var checks = new List<HallVerificationCheck>
         {
             Check("Team Hall articles T1-T10", teams.All(item => item.Requirements.Select(r => r.Article).Distinct().Count(article => article.StartsWith("T", StringComparison.Ordinal)) == 10)),
-            Check("Player Hall articles P1-P10", players.All(item => item.Requirements.Select(r => r.Article).Distinct().Count(article => article.StartsWith("P", StringComparison.Ordinal) == true) == 10)),
-            Check("Presumption of Innocence", teams.Concat<HallEvaluationBase>(players).All(item => item.Decision != HallDecision.BlockedByConfirmedEvidence || item.Requirements.Any(r => r.Article is "T7" or "P9" && !r.Passed))),
-            Check("Audit existence", audit.Count >= teams.Count + players.Count),
-            Check("Anti-cheat separation", teams.Concat<HallEvaluationBase>(players).All(item => item.PublicStatus.Title != "Confirmed Evidence")),
-            Check("Trust threshold", teams.Concat<HallEvaluationBase>(players).All(item => item.Requirements.Any(r => r.Article is "T2" or "P6"))),
+            Check("Player Hall articles P1-P10", players.All(item => item.Requirements.Select(r => r.Article).Distinct().Count(article => article.StartsWith("P", StringComparison.Ordinal)) == 10)),
+            Check("Presumption of Innocence", allEvaluations.All(item => item.Decision is not HallDecision.Watch and not HallDecision.Investigation || !item.Audit.ConfirmedEvidence)),
+            Check("Audit existence", allEvaluations.All(item => audit.Any(auditItem => SameAuditSubject(auditItem, item.Audit) && IsCompleteAudit(auditItem)))),
+            Check("Developer Review", allEvaluations.Where(item => item.Decision == HallDecision.BlockedByConfirmedEvidence).All(item => item.Audit.ConfirmedEvidence && !string.IsNullOrWhiteSpace(item.Audit.DeveloperReview))),
+            Check("Anti-cheat separation", allEvaluations.All(item => !ContainsInternalEvidenceText(item.PublicStatus.Title) && !ContainsInternalEvidenceText(item.PublicStatus.Subtitle))),
+            Check("Trust threshold", allEvaluations.All(item => item.Requirements.Any(r => r.Article is "T2" or "P6"))),
             Check("Legacy threshold", teams.All(item => item.Requirements.Any(r => r.Article == "T4")) && players.All(item => item.Requirements.Any(r => r.Article == "P5"))),
-            Check("Player Hall independence", players.All(item => item.PlayerId.Length >= 0)),
-            Check("Team Hall independence", teams.All(item => item.TeamId.Length >= 0)),
-            Check("Season history", true),
-            Check("Candidate Center separation", true),
-            Check("Hall page confirmed only", true),
-            Check("Arabic strings valid", true)
+            Check("Player Hall independence", players.All(item => item.Requirements.All(r => r.Article.StartsWith("P", StringComparison.Ordinal)) && !string.IsNullOrWhiteSpace(item.PlayerId))),
+            Check("Team Hall independence", teams.All(item => item.Requirements.All(r => r.Article.StartsWith("T", StringComparison.Ordinal)) && !string.IsNullOrWhiteSpace(item.TeamId))),
+            Check("Season history", teamMembers.All(item => item.HallEnteredAt != default) && playerMembers.All(item => item.HallEnteredAt != default)),
+            Check("Candidate Center separation", !teamMemberIds.Overlaps(teamCandidateIds) && !playerMemberIds.Overlaps(playerCandidateIds)),
+            Check("Hall page confirmed only", teamMembers.All(item => item.Decision == HallDecision.Accepted) && playerMembers.All(item => item.Decision == HallDecision.Accepted)),
+            Check("Arabic strings valid", allHallStrings.All(IsSafeText))
         };
 
         return new HallVerificationResult(checks, checks.All(item => item.Passed));
@@ -293,13 +310,63 @@ public static class HallOfFameService
     {
         try
         {
-            string path = Path.Combine(FileSystem.AppDataDirectory, "hall_of_fame_audit.json");
+            string path = AuditPath();
             await File.WriteAllTextAsync(path, JsonSerializer.Serialize(audit.Take(250), JsonOptions));
         }
         catch
         {
         }
     }
+
+    static async Task<IReadOnlyList<HallAuditEntry>> LoadAuditAsync()
+    {
+        try
+        {
+            string path = AuditPath();
+            if (!File.Exists(path))
+                return Array.Empty<HallAuditEntry>();
+
+            var audit = JsonSerializer.Deserialize<List<HallAuditEntry>>(await File.ReadAllTextAsync(path), JsonOptions);
+            return (IReadOnlyList<HallAuditEntry>?)(audit?
+                .Where(IsCompleteAudit)
+                .OrderByDescending(item => item.CreatedAt)
+                .Take(250)
+                .ToList()) ?? Array.Empty<HallAuditEntry>();
+        }
+        catch
+        {
+            return Array.Empty<HallAuditEntry>();
+        }
+    }
+
+    static HallAuditEntry StabilizeAudit(HallAuditEntry current, IReadOnlyList<HallAuditEntry> previous)
+    {
+        var match = previous.FirstOrDefault(item =>
+            string.Equals(item.SubjectType, current.SubjectType, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(item.SubjectId, current.SubjectId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(item.Decision, current.Decision, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(item.Reason, current.Reason, StringComparison.OrdinalIgnoreCase) &&
+            Math.Abs(item.FinalScore - current.FinalScore) < 0.05);
+
+        return match == null
+            ? current
+            : current with
+            {
+                AuditId = match.AuditId,
+                CreatedAt = match.CreatedAt
+            };
+    }
+
+    static string AuditPath() => Path.Combine(FileSystem.AppDataDirectory, "hall_of_fame_audit.json");
+
+    static bool IsCompleteAudit(HallAuditEntry audit) =>
+        !string.IsNullOrWhiteSpace(audit.AuditId) &&
+        !string.IsNullOrWhiteSpace(audit.SubjectType) &&
+        !string.IsNullOrWhiteSpace(audit.SubjectId) &&
+        !string.IsNullOrWhiteSpace(audit.SubjectName) &&
+        !string.IsNullOrWhiteSpace(audit.Decision) &&
+        !string.IsNullOrWhiteSpace(audit.Reason) &&
+        audit.CreatedAt != default;
 
     static async Task PersistFirstAdmissionDatesAsync(
         IReadOnlyList<HallTeamEvaluation> teams,
@@ -391,6 +458,82 @@ public static class HallOfFameService
 
     static HallVerificationCheck Check(string name, bool passed) => new(name, passed, passed ? "Passed" : "Failed");
     static HallRecord Record(string title, string? holder, string? value) => new(title, string.IsNullOrWhiteSpace(holder) ? "لا يوجد" : holder, string.IsNullOrWhiteSpace(value) ? "0" : value);
+    static bool SameAuditSubject(HallAuditEntry left, HallAuditEntry right) =>
+        string.Equals(left.SubjectType, right.SubjectType, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(left.SubjectId, right.SubjectId, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(left.Decision, right.Decision, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(left.Reason, right.Reason, StringComparison.OrdinalIgnoreCase);
+
+    static bool ContainsInternalEvidenceText(string? value)
+    {
+        string text = value ?? "";
+        return text.Contains("Confirmed Evidence", StringComparison.OrdinalIgnoreCase) ||
+               text.Contains("Evidence Collection", StringComparison.OrdinalIgnoreCase) ||
+               text.Contains("anti-cheat", StringComparison.OrdinalIgnoreCase) ||
+               text.Contains("fraud", StringComparison.OrdinalIgnoreCase);
+    }
+
+    static IEnumerable<string> BuildHallStrings(
+        IReadOnlyList<HallTeamEvaluation> teams,
+        IReadOnlyList<HallPlayerEvaluation> players,
+        IReadOnlyList<HallAuditEntry> audit)
+    {
+        foreach (var team in teams)
+        {
+            yield return team.DisplayName;
+            yield return team.Category;
+            yield return team.PublicStatus.Title;
+            yield return team.PublicStatus.Subtitle;
+            yield return team.EstimatedRemaining;
+            foreach (var requirement in team.Requirements)
+                yield return requirement.Reason;
+            foreach (var missing in team.MissingRequirements)
+                yield return missing;
+        }
+
+        foreach (var player in players)
+        {
+            yield return player.DisplayName;
+            yield return player.Category;
+            yield return player.PublicStatus.Title;
+            yield return player.PublicStatus.Subtitle;
+            yield return player.EstimatedRemaining;
+            foreach (var requirement in player.Requirements)
+                yield return requirement.Reason;
+            foreach (var missing in player.MissingRequirements)
+                yield return missing;
+        }
+
+        foreach (var entry in audit)
+        {
+            yield return entry.SubjectName;
+            yield return entry.Decision;
+            yield return entry.Reason;
+            yield return entry.DeveloperReview;
+        }
+    }
+
+    static bool IsSafeText(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return true;
+
+        string[] corrupt =
+        {
+            "\u0623\u06A9",
+            "\u0623\u2122",
+            "\u00EF\u061F\u00BD",
+            "\u00EF",
+            "\u00E2",
+            "\u0637\u00A7",
+            "\u0638\u201E",
+            "\u0638\u0679",
+            "\u0638\u2026",
+            "\u0637\u00BE"
+        };
+        return !corrupt.Any(item => value.Contains(item, StringComparison.Ordinal));
+    }
+
     static double Ratio(double current, double required) => required <= 0 ? 1 : Math.Clamp(current / required, 0, 1);
     static bool HasConfirmedTeamEvidence(TeamStatisticsProfile team) => team.Trust < 30 || team.SourceTeam.SuspiciousScore >= 95;
     static bool HasConfirmedPlayerEvidence(PlayerStatisticsProfile player) => player.Trust < 30;

@@ -586,11 +586,24 @@ public partial class GamePage : ContentPage
         progressTrack.Stroke = teamColor.WithAlpha(0.65f);
         progressFill.Color = teamColor;
         progressFill.ScaleX = progress;
-        currentIcon.Source = rank.RankIcon;
-        nextIcon.Source = next.RankIcon;
+        currentIcon.Source = ResolveGameRankIcon(rank);
+        nextIcon.Source = ResolveGameRankIcon(next);
         currentTier.Text = ToRoman(rank.Tier);
         nextTier.Text = ToRoman(next.Tier);
     }
+
+    static string ResolveGameRankIcon(PlayerRankResult rank) =>
+        rank.RankBase switch
+        {
+            "Bronze" => "bronze.png",
+            "Silver" => "silver.png",
+            "Gold" => "gold.png",
+            "Platinum" => "platinum.png",
+            "Diamond" => "diamond.png",
+            "Majlis Master" => "majlis_master.png",
+            "Majlis Legend" => "majlis_legend.png",
+            _ => "unranked.png"
+        };
 
     async Task ApplyMatchFooterVisualsAsync()
     {

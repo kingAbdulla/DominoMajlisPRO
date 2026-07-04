@@ -1,4 +1,5 @@
 using DominoMajlisPRO.Services;
+using DominoMajlisPRO.Models;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
 
@@ -35,6 +36,20 @@ public sealed class HallCandidateCenterPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        if (!await IsDeveloperAsync())
+        {
+            Content = StatisticsDashboardUi.Frame(
+                StatisticsDashboardUi.Label("غير مصرح", 22, Color.FromArgb(StatisticsDashboardUi.Gold), true),
+                18,
+                "#5B3B18",
+                "#090909",
+                18);
+            await DisplayAlert("غير مصرح", "مركز المرشحين متاح للمطور فقط.", "حسناً");
+            if (Navigation.NavigationStack.Count > 1)
+                await Navigation.PopAsync();
+            return;
+        }
+
         Subscribe();
         await LoadAsync();
     }
@@ -275,5 +290,18 @@ public sealed class HallCandidateCenterPage : ContentPage
         var button = StatisticsDashboardUi.CommandButton(text);
         button.Clicked += async (s, e) => await action();
         return button;
+    }
+
+    static async Task<bool> IsDeveloperAsync()
+    {
+        try
+        {
+            var user = await ApplicationUserService.GetCurrentUserAsync();
+            return user.Role == ApplicationUserRole.Developer;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

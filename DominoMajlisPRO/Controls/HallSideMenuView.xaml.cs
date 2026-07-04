@@ -30,6 +30,9 @@ public partial class HallSideMenuView : ContentView
 
     void OnAchievementsClicked(object sender, EventArgs e)
     {
+        if (!AchievementsItem.IsVisible)
+            return;
+
         SetActive("ACHIEVEMENTS");
         NavigationRequested?.Invoke("ACHIEVEMENTS");
     }
@@ -72,6 +75,13 @@ public partial class HallSideMenuView : ContentView
 
         activeItem.Stroke =
             Color.FromArgb("#D4AE62");
+    }
+
+    public void SetDeveloperToolsVisible(bool isVisible)
+    {
+        AchievementsItem.IsVisible = isVisible;
+        if (!isVisible)
+            SetActive("HOME");
     }
 
     void ResetItem(Border item)
