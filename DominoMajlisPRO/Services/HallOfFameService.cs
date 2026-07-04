@@ -5,6 +5,42 @@ namespace DominoMajlisPRO.Services;
 
 public static class HallOfFameService
 {
+    public static HallOfFameSnapshot BuildSnapshot(
+        IReadOnlyList<SavedMatch> matches,
+        IReadOnlyList<TeamProfileModel> teams)
+    {
+        var allTeams = GetTeamResults(matches, teams);
+        var eligibleTeams = allTeams
+            .Where(result => IsHallEligible(result, teams))
+            .OrderByDescending(result => result.LegacyScore)
+            .ThenByDescending(result => result.WinRate)
+            .ToList();
+
+        var candidates = allTeams
+            .Where(result => !IsHallEligible(result, teams))
+            .OrderByDescending(result => result.LegacyScore)
+            .ToList();
+
+        var records = BuildRecords(matches, teams, allTeams);
+
+        return new HallOfFameSnapshot
+        {
+            AllTeams = allTeams,
+            EligibleTeams = eligibleTeams,
+            Candidates = candidates,
+            Records = records,
+            Statistics = new HallStatistics
+            {
+                CandidateCount = allTeams.Count,
+                EligibleCount = eligibleTeams.Count,
+                TotalMatches = matches.Count,
+                HighestScore = records.HighestScore,
+                TotalLegacy = eligibleTeams.Sum(result => result.LegacyScore),
+                ConstitutionStatus = "Active"
+            }
+        };
+    }
+
     public static List<HallTeamLegendResult> GetTeamResults(IReadOnlyList<SavedMatch> matches, IReadOnlyList<TeamProfileModel> teams)
     {
         var allKeys = matches
@@ -84,17 +120,54 @@ public static class HallOfFameService
         bool suspicious = team?.IsSuspicious ?? false;
 
         if (result.LegacyScore < 300)
-            return "Needs higher Legacy";
+            return "يحتاج Legacy أعلى";
         if (result.TotalMatches < 20)
-            return $"Needs more matches ({result.TotalMatches}/20)";
+            return $"يحتاج مباريات أكثر ({result.TotalMatches}/20)";
         if (trust < 95)
-            return $"Trust Score too low ({trust}/95)";
+            return $"Trust Score غير كاف ({trust}/95)";
         if (result.WinRate < 60)
-            return $"Win Rate below required ({result.WinRate:0}%)";
+            return $"Win Rate أقل من المطلوب ({result.WinRate:0}%)";
         if (suspicious)
-            return "Team under review";
+            return "الفريق تحت المراجعة";
 
-        return "Close to eligibility";
+        return "قريب من التأهل";
+    }
+
+    public static HallLegendaryRecords BuildRecords(
+        IReadOnlyList<SavedMatch> matches,
+        IReadOnlyList<TeamProfileModel> teams,
+        IReadOnlyList<HallTeamLegendResult>? results = null)
+    {
+        var teamResults = results ?? GetTeamResults(matches, teams);
+
+        var mostWins = teamResults
+            .OrderByDescending(result => result.Wins)
+            .FirstOrDefault();
+
+        var fastest = matches
+            .Where(match => match.MatchDurationMinutes > 0)
+            .OrderBy(match => match.MatchDurationMinutes)
+            .FirstOrDefault();
+
+        int highestScore = matches.Count == 0
+            ? 0
+            : matches.Max(match => Math.Max(match.Team1Score, match.Team2Score));
+
+        var melesKing = matches
+            .Where(match => match.HasMeles)
+            .GroupBy(match => GetWinnerDisplayName(match, teams))
+            .OrderByDescending(group => group.Count())
+            .FirstOrDefault();
+
+        return new HallLegendaryRecords
+        {
+            MostWinsTeamName = mostWins?.DisplayName ?? "—",
+            MostWinsCount = mostWins?.Wins ?? 0,
+            MelesKingName = melesKing?.Key ?? "—",
+            MelesKingCount = melesKing?.Count() ?? 0,
+            FastestMatchMinutes = fastest?.MatchDurationMinutes,
+            HighestScore = highestScore
+        };
     }
 
     public static string GetTeam1Key(SavedMatch match)
@@ -114,6 +187,9 @@ public static class HallOfFameService
         string id = GetTextProperty(match, "WinnerTeamId", "WinnerTeamID");
         return string.IsNullOrWhiteSpace(id) ? match.WinnerTeam : id;
     }
+
+    public static string GetWinnerDisplayName(SavedMatch match, IReadOnlyList<TeamProfileModel> teams) =>
+        GetTeamDisplayName(GetWinnerKey(match), teams);
 
     public static string GetTeamDisplayName(string key, IReadOnlyList<TeamProfileModel> teams)
     {
@@ -151,6 +227,15 @@ public static class HallOfFameService
     }
 }
 
+public sealed class HallOfFameSnapshot
+{
+    public IReadOnlyList<HallTeamLegendResult> AllTeams { get; init; } = [];
+    public IReadOnlyList<HallTeamLegendResult> EligibleTeams { get; init; } = [];
+    public IReadOnlyList<HallTeamLegendResult> Candidates { get; init; } = [];
+    public HallLegendaryRecords Records { get; init; } = new();
+    public HallStatistics Statistics { get; init; } = new();
+}
+
 public sealed class HallTeamLegendResult
 {
     public string Key { get; init; } = string.Empty;
@@ -160,4 +245,24 @@ public sealed class HallTeamLegendResult
     public double WinRate { get; init; }
     public int MelesCount { get; init; }
     public int LegacyScore { get; init; }
+}
+
+public sealed class HallLegendaryRecords
+{
+    public string MostWinsTeamName { get; init; } = "—";
+    public int MostWinsCount { get; init; }
+    public string MelesKingName { get; init; } = "—";
+    public int MelesKingCount { get; init; }
+    public int? FastestMatchMinutes { get; init; }
+    public int HighestScore { get; init; }
+}
+
+public sealed class HallStatistics
+{
+    public int CandidateCount { get; init; }
+    public int EligibleCount { get; init; }
+    public int TotalMatches { get; init; }
+    public int HighestScore { get; init; }
+    public int TotalLegacy { get; init; }
+    public string ConstitutionStatus { get; init; } = "Active";
 }
