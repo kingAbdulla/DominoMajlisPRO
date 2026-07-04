@@ -23,15 +23,18 @@ public partial class MainPage
 
         if (border.Parent is Grid outerHost)
         {
-            outerHost.WidthRequest = avatarSize;
-            outerHost.HeightRequest = avatarSize;
-            outerHost.MinimumWidthRequest = avatarSize;
-            outerHost.MinimumHeightRequest = avatarSize;
+            double levelBadgeSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 24 : 30;
+            double hostSize = avatarSize + (levelBadgeSize * 0.65);
+            outerHost.WidthRequest = hostSize;
+            outerHost.HeightRequest = hostSize;
+            outerHost.MinimumWidthRequest = hostSize;
+            outerHost.MinimumHeightRequest = hostSize;
             outerHost.HorizontalOptions = LayoutOptions.Center;
             outerHost.VerticalOptions = LayoutOptions.Center;
             outerHost.Clip = null;
             outerHost.BackgroundColor = Colors.Transparent;
             outerHost.Shadow = null;
+            EnsureHeaderFloatingBadges(outerHost);
         }
 
         border.WidthRequest = avatarSize;
@@ -65,6 +68,7 @@ public partial class MainPage
         ConfigureHeaderAvatarImage(HeaderAvatarFrameOverlay, avatarSize, 1);
         ConfigureHeaderAvatarEffectImage(HeaderAvatarEffectOverlay, avatarSize, 2);
 
+        ConfigureHeaderPlayerLevelBadge(avatarSize);
         ConfigureProfileStatusBadge(avatarSize);
         ApplyMainHeaderTextPolish();
         ApplyMainHeaderSecondaryPolish();
@@ -132,8 +136,11 @@ public partial class MainPage
 
         foreach (var child in existingChildren)
         {
-            if (ReferenceEquals(child, ProfileStatusBadge))
+            if (ReferenceEquals(child, ProfileStatusBadge) ||
+                ReferenceEquals(child, HeaderPlayerLevelBadge))
+            {
                 continue;
+            }
 
             newInnerHost.Children.Add(child);
         }
@@ -150,8 +157,27 @@ public partial class MainPage
         };
 
         originalHost.Children.Add(newBorder);
-        originalHost.Children.Add(ProfileStatusBadge);
+        MoveHeaderFloatingBadge(HeaderPlayerLevelBadge, originalHost);
+        MoveHeaderFloatingBadge(ProfileStatusBadge, originalHost);
         return newBorder;
+    }
+
+    void EnsureHeaderFloatingBadges(Grid outerHost)
+    {
+        MoveHeaderFloatingBadge(HeaderPlayerLevelBadge, outerHost);
+        MoveHeaderFloatingBadge(ProfileStatusBadge, outerHost);
+    }
+
+    static void MoveHeaderFloatingBadge(View badge, Grid outerHost)
+    {
+        if (badge.Parent is Layout existingLayout &&
+            !ReferenceEquals(existingLayout, outerHost))
+        {
+            existingLayout.Children.Remove(badge);
+        }
+
+        if (!outerHost.Children.Contains(badge))
+            outerHost.Children.Add(badge);
     }
 
     static void ConfigureHeaderAvatarImage(
@@ -194,6 +220,31 @@ public partial class MainPage
         ProfileStatusBadge.VerticalOptions = LayoutOptions.End;
         ProfileStatusBadge.ZIndex = 20;
         ProfileStatusBadge.Margin = new Thickness(0, 0, 4, 4);
+    }
+
+    void ConfigureHeaderPlayerLevelBadge(double avatarSize)
+    {
+        double badgeSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 24 : 30;
+        HeaderPlayerLevelBadge.WidthRequest = badgeSize;
+        HeaderPlayerLevelBadge.HeightRequest = badgeSize;
+        HeaderPlayerLevelBadge.MinimumWidthRequest = badgeSize;
+        HeaderPlayerLevelBadge.MinimumHeightRequest = badgeSize;
+        HeaderPlayerLevelBadge.HorizontalOptions = LayoutOptions.Start;
+        HeaderPlayerLevelBadge.VerticalOptions = LayoutOptions.End;
+        HeaderPlayerLevelBadge.Margin = new Thickness(0, 0, 0, 0);
+        HeaderPlayerLevelBadge.TranslationX = -2;
+        HeaderPlayerLevelBadge.TranslationY = 2;
+        HeaderPlayerLevelBadge.ZIndex = 100;
+        HeaderPlayerLevelBadge.IsVisible = true;
+        HeaderPlayerLevelBadge.Opacity = 1;
+        HeaderPlayerLevelBadge.InputTransparent = true;
+        HeaderPlayerLevelBadge.BackgroundColor = Color.FromArgb("#080808");
+        HeaderPlayerLevelBadge.Stroke = Color.FromArgb("#D4AF37");
+        HeaderPlayerLevelBadge.StrokeThickness = 2;
+        HeaderPlayerLevelLabel.TextColor = Color.FromArgb("#FFD700");
+        HeaderPlayerLevelLabel.FontAttributes = FontAttributes.Bold;
+        HeaderPlayerLevelLabel.HorizontalTextAlignment = TextAlignment.Center;
+        HeaderPlayerLevelLabel.VerticalTextAlignment = TextAlignment.Center;
     }
 
     void ApplyMainHeaderTextPolish()

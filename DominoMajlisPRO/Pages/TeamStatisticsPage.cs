@@ -1,4 +1,3 @@
-using DominoMajlisPRO.Controls;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -9,8 +8,11 @@ namespace DominoMajlisPRO.Pages;
 public sealed class TeamStatisticsPage : ContentPage
 {
     TeamStatisticsSnapshot snapshot = new(Array.Empty<TeamStatisticsProfile>(), TeamStatisticsProfile.Empty);
+    IReadOnlyList<TeamStatisticsProfile> visibleTeams = Array.Empty<TeamStatisticsProfile>();
     TeamStatisticsProfile selected = TeamStatisticsProfile.Empty;
     VerticalStackLayout content = new();
+    string filterMode = "الكل";
+    string sortMode = "Legacy";
     bool showAllMatches;
 
     public TeamStatisticsPage()
@@ -75,45 +77,62 @@ public sealed class TeamStatisticsPage : ContentPage
 
     void BuildShell()
     {
-        var root = new Grid
-        {
-            RowDefinitions =
-            {
-                new RowDefinition { Height = GridLength.Star },
-                new RowDefinition { Height = GridLength.Auto }
-            }
-        };
-
         content = new VerticalStackLayout
         {
-            Padding = new Thickness(12, 10, 12, 18),
+            Padding = new Thickness(14, 10, 14, 16),
             Spacing = 10
         };
 
-        var scroll = new ScrollView { Content = content };
-        root.Add(scroll);
-
-        var bottom = new HallBottomNavigationView();
-        Grid.SetRow(bottom, 1);
-        root.Add(bottom);
-
-        Content = root;
+        Content = new ScrollView
+        {
+            Content = content
+        };
     }
 
     async Task LoadAsync(bool force = false)
     {
         snapshot = await HallStatisticsDashboardService.LoadTeamSnapshotAsync(force);
-        if (string.IsNullOrWhiteSpace(selected.TeamId) ||
-            !snapshot.Teams.Any(team => string.Equals(team.TeamId, selected.TeamId, StringComparison.OrdinalIgnoreCase)))
+        ApplyFilterAndSort(keepSelection: true);
+        await RenderAsync();
+    }
+
+    void ApplyFilterAndSort(bool keepSelection)
+    {
+        IEnumerable<TeamStatisticsProfile> query = snapshot.Teams;
+
+        query = filterMode switch
         {
-            selected = snapshot.Selected;
-        }
-        else
+            "Hall" => query.Where(team => team.HallEntries > 0),
+            "قريب من الشروط" => query.Where(team => team.Status.ColorHex == "#69D84F"),
+            "تحت المراقبة" => query.Where(team => team.Status.ColorHex == "#F4B942"),
+            "الأعلى ثقة" => query.Where(team => team.Trust >= 85),
+            "آخر 30 يوم" => query.Where(team => team.Matches.Any(match => ResolveDate(match) >= DateTime.Now.AddDays(-30))),
+            _ => query
+        };
+
+        query = sortMode switch
         {
-            selected = snapshot.Teams.First(team => string.Equals(team.TeamId, selected.TeamId, StringComparison.OrdinalIgnoreCase));
+            "Wins" => query.OrderByDescending(team => team.Wins),
+            "Win Rate" => query.OrderByDescending(team => team.WinRate),
+            "Trust" => query.OrderByDescending(team => team.Trust),
+            "XP" => query.OrderByDescending(team => team.XP),
+            "Matches" => query.OrderByDescending(team => team.TotalMatches),
+            _ => query.OrderByDescending(team => team.Legacy)
+        };
+
+        visibleTeams = query.ToList();
+
+        if (keepSelection && !string.IsNullOrWhiteSpace(selected.TeamId))
+        {
+            var same = visibleTeams.FirstOrDefault(team => string.Equals(team.TeamId, selected.TeamId, StringComparison.OrdinalIgnoreCase));
+            if (same != null)
+            {
+                selected = same;
+                return;
+            }
         }
 
-        await RenderAsync();
+        selected = visibleTeams.FirstOrDefault() ?? snapshot.Selected;
     }
 
     async Task RenderAsync()
@@ -121,6 +140,7 @@ public sealed class TeamStatisticsPage : ContentPage
         content.Children.Clear();
         content.Children.Add(CreateHeader());
         content.Children.Add(CreateToolbar());
+        content.Children.Add(CreateTeamSelector());
         content.Children.Add(await CreateHeroAsync());
         content.Children.Add(CreateTabs());
         content.Children.Add(CreateMetrics());
@@ -137,7 +157,8 @@ public sealed class TeamStatisticsPage : ContentPage
                 new ColumnDefinition { Width = 42 },
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = 42 }
-            }
+            },
+            ColumnSpacing = 8
         };
 
         var help = StatisticsDashboardUi.CommandButton("?");
@@ -168,9 +189,10 @@ public sealed class TeamStatisticsPage : ContentPage
             AlignItems = FlexAlignItems.Center
         };
 
+        row.Children.Add(ToolButton("اختيار فريق", OnChooseTeamClicked));
         row.Children.Add(ToolButton("بحث", OnSearchClicked));
-        row.Children.Add(ToolButton("فلتر", OnFilterClicked));
-        row.Children.Add(ToolButton("ترتيب", OnSortClicked));
+        row.Children.Add(ToolButton($"فلتر: {filterMode}", OnFilterClicked));
+        row.Children.Add(ToolButton($"ترتيب: {sortMode}", OnSortClicked));
         row.Children.Add(ToolButton("تحديث", async () => await LoadAsync(true)));
         row.Children.Add(ToolButton("تصدير", OnExportClicked));
         return row;
@@ -184,6 +206,50 @@ public sealed class TeamStatisticsPage : ContentPage
         return button;
     }
 
+    View CreateTeamSelector()
+    {
+        var strip = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            FlowDirection = FlowDirection.RightToLeft,
+            Padding = new Thickness(2, 0)
+        };
+
+        foreach (var team in visibleTeams.Take(24))
+            strip.Children.Add(CreateTeamChip(team));
+
+        return new ScrollView
+        {
+            Orientation = ScrollOrientation.Horizontal,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Never,
+            Content = strip
+        };
+    }
+
+    View CreateTeamChip(TeamStatisticsProfile team)
+    {
+        bool active = string.Equals(team.TeamId, selected.TeamId, StringComparison.OrdinalIgnoreCase);
+        var stack = new VerticalStackLayout
+        {
+            Spacing = 2,
+            WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 116 : 150
+        };
+        stack.Children.Add(StatisticsDashboardUi.Label(team.TeamName, 12, active ? Colors.White : Color.FromArgb(StatisticsDashboardUi.Muted), true, TextAlignment.Center, 1));
+        stack.Children.Add(StatisticsDashboardUi.Label($"{team.WinRate:0.#}% | {team.Legacy:N0}", 10, Color.FromArgb(StatisticsDashboardUi.Gold), false, TextAlignment.Center, 1));
+
+        var card = StatisticsDashboardUi.Frame(stack, 14, active ? "#D4AE62" : "#5B3B18", active ? "#8F6730" : "#080808", 8);
+        card.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () =>
+            {
+                selected = team;
+                showAllMatches = false;
+                await RenderAsync();
+            })
+        });
+        return card;
+    }
+
     async Task<View> CreateHeroAsync()
     {
         var identity = await TeamIdentityResolver.ResolveAsync(selected.TeamId);
@@ -192,23 +258,62 @@ public sealed class TeamStatisticsPage : ContentPage
 
         var imageHost = new Grid
         {
-            WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 118 : 170,
-            HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 118 : 170,
-            HorizontalOptions = LayoutOptions.Center
+            WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 118 : 168,
+            HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 118 : 168,
+            HorizontalOptions = LayoutOptions.Center,
+            Clip = new RoundRectangleGeometry { CornerRadius = 26, Rect = new Rect(0, 0, DeviceInfo.Idiom == DeviceIdiom.Phone ? 118 : 168, DeviceInfo.Idiom == DeviceIdiom.Phone ? 118 : 168) }
         };
 
         if (background != null)
-        {
-            imageHost.Add(new Image { Source = background, Aspect = Aspect.AspectFill, Opacity = 0.38 });
-        }
+            imageHost.Add(new Image { Source = background, Aspect = Aspect.AspectFill, Opacity = 0.46 });
 
         imageHost.Add(new Image { Source = emblem, Aspect = Aspect.AspectFit });
 
-        var info = new VerticalStackLayout { Spacing = 5, VerticalOptions = LayoutOptions.Center };
-        info.Children.Add(StatisticsDashboardUi.Label(selected.TeamName, 25, Color.FromArgb(StatisticsDashboardUi.Gold), true, TextAlignment.End));
+        var info = new VerticalStackLayout { Spacing = 6, VerticalOptions = LayoutOptions.Center };
+        info.Children.Add(StatisticsDashboardUi.Label(selected.TeamName, DeviceInfo.Idiom == DeviceIdiom.Phone ? 23 : 30, Color.FromArgb(StatisticsDashboardUi.Gold), true, TextAlignment.End));
         info.Children.Add(StatisticsDashboardUi.Label(selected.LevelTitle, 14, Color.FromArgb(StatisticsDashboardUi.Gold), false, TextAlignment.End));
         info.Children.Add(ProgressLine($"Level {selected.Level}", selected.LevelProgress));
+        info.Children.Add(CreateMiniStats());
 
+        var status = new VerticalStackLayout { Spacing = 8, VerticalOptions = LayoutOptions.Center };
+        status.Children.Add(StatisticsDashboardUi.Label("حالة الفريق", 12, Color.FromArgb(StatisticsDashboardUi.Muted), false));
+        status.Children.Add(StatisticsDashboardUi.StatusBadge(selected.Status));
+        status.Children.Add(StatusRing(selected.Status));
+
+        View layout;
+        if (DeviceInfo.Idiom == DeviceIdiom.Phone)
+        {
+            layout = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children = { imageHost, info, status }
+            };
+        }
+        else
+        {
+            var grid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = 170 }
+                },
+                ColumnSpacing = 14
+            };
+            grid.Add(imageHost);
+            Grid.SetColumn(info, 1);
+            grid.Add(info);
+            Grid.SetColumn(status, 2);
+            grid.Add(status);
+            layout = grid;
+        }
+
+        return StatisticsDashboardUi.Frame(layout, 20, "#8A5B27", "#080808", 10);
+    }
+
+    View CreateMiniStats()
+    {
         var mini = new Grid { ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition(), new ColumnDefinition() }, ColumnSpacing = 8 };
         mini.Add(StatisticsDashboardUi.Metric("rankings_gold_icon.png", selected.Rank, "الرتبة الحالية"));
         var legacy = StatisticsDashboardUi.Metric("trophy_3d.png", selected.Legacy.ToString("N0"), "Legacy");
@@ -217,31 +322,7 @@ public sealed class TeamStatisticsPage : ContentPage
         var trust = StatisticsDashboardUi.Metric("trust_gold.png", selected.Trust.ToString(), "Trust Score");
         Grid.SetColumn(trust, 2);
         mini.Add(trust);
-        info.Children.Add(mini);
-
-        var status = new VerticalStackLayout { Spacing = 8, VerticalOptions = LayoutOptions.Center };
-        status.Children.Add(StatisticsDashboardUi.Label("حالة الفريق", 12, Color.FromArgb(StatisticsDashboardUi.Muted), false));
-        status.Children.Add(StatisticsDashboardUi.StatusBadge(selected.Status));
-        status.Children.Add(StatusRing(selected.Status));
-
-        var layout = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = GridLength.Auto },
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = DeviceInfo.Idiom == DeviceIdiom.Phone ? 110 : 160 }
-            },
-            ColumnSpacing = 12
-        };
-
-        layout.Add(imageHost);
-        Grid.SetColumn(info, 1);
-        layout.Add(info);
-        Grid.SetColumn(status, 2);
-        layout.Add(status);
-
-        return StatisticsDashboardUi.Frame(layout, 20, "#8A5B27", "#080808", 10);
+        return mini;
     }
 
     View CreateTabs()
@@ -273,12 +354,12 @@ public sealed class TeamStatisticsPage : ContentPage
             StatisticsDashboardUi.Metric("win_gold.png", selected.Wins.ToString("N0"), "الفوز"),
             StatisticsDashboardUi.Metric("loss_gold.png", selected.Losses.ToString("N0"), "الخسارة"),
             StatisticsDashboardUi.Metric("target_3d.png", $"{selected.WinRate:0.0}%", "معدل الفوز"),
-            StatisticsDashboardUi.Metric("xp_gold.png", selected.XP.ToString("N0"), "إجمالي XP"),
-            StatisticsDashboardUi.Metric("coin_gold.png", selected.Coins.ToString("N0"), "إجمالي Coins"),
-            StatisticsDashboardUi.Metric("trophy_3d.png", selected.MVP.ToString("N0"), "MVP"),
+            StatisticsDashboardUi.Metric("crown_3d.png", selected.HighestWinStreak.ToString("N0"), "أعلى سلسلة فوز"),
+            StatisticsDashboardUi.Metric("trophy_3d.png", selected.Legacy.ToString("N0"), "Legacy"),
             StatisticsDashboardUi.Metric("champion_gold.png", selected.Championships.ToString("N0"), "البطولات"),
             StatisticsDashboardUi.Metric("halloffame_gold.png", selected.HallEntries.ToString("N0"), "Hall Entries"),
-            StatisticsDashboardUi.Metric("crown_3d.png", selected.HighestWinStreak.ToString("N0"), "أعلى سلسلة فوز")
+            StatisticsDashboardUi.Metric("xp_gold.png", selected.XP.ToString("N0"), "إجمالي XP"),
+            StatisticsDashboardUi.Metric("coin_gold.png", selected.Coins.ToString("N0"), "إجمالي Coins")
         });
 
     View CreateCharts()
@@ -292,8 +373,8 @@ public sealed class TeamStatisticsPage : ContentPage
         {
             StatisticsDashboardUi.ChartCard("نسبة الفوز في آخر 20 مباراة", selected.WinRateTrend, ChartKind.Line, Color.FromArgb("#69D84F")),
             StatisticsDashboardUi.ChartCard("تطور Legacy", selected.LegacyTrend, ChartKind.Area, Color.FromArgb("#D4AE62")),
-            StatisticsDashboardUi.ChartCard("XP Progress", selected.XpTrend, ChartKind.Area, Color.FromArgb("#A259FF")),
-            StatisticsDashboardUi.ChartCard("Season Progress", selected.SeasonTrend, ChartKind.Line, Color.FromArgb("#F4B942"))
+            StatisticsDashboardUi.ChartCard("تطور XP", selected.XpTrend, ChartKind.Area, Color.FromArgb("#A259FF")),
+            StatisticsDashboardUi.ChartCard("تقدم الموسم", selected.SeasonTrend, ChartKind.Line, Color.FromArgb("#F4B942"))
         };
 
         for (int i = 0; i < charts.Length; i++)
@@ -313,7 +394,7 @@ public sealed class TeamStatisticsPage : ContentPage
     {
         var rows = (showAllMatches ? selected.RecentMatches : selected.RecentMatches.Take(5)).ToList();
         var stack = new VerticalStackLayout { Spacing = 6 };
-        stack.Children.Add(StatisticsDashboardUi.Label("آخر 5 مباريات", 15, Color.FromArgb(StatisticsDashboardUi.Gold), true));
+        stack.Children.Add(StatisticsDashboardUi.Label(showAllMatches ? "المباريات" : "آخر 5 مباريات", 15, Color.FromArgb(StatisticsDashboardUi.Gold), true));
         foreach (var row in rows)
             stack.Children.Add(MatchRow(row));
 
@@ -341,14 +422,14 @@ public sealed class TeamStatisticsPage : ContentPage
                 new ColumnDefinition { Width = 70 },
                 new ColumnDefinition { Width = 70 },
                 new ColumnDefinition { Width = 96 },
-                new ColumnDefinition { Width = 46 }
+                new ColumnDefinition { Width = 38 }
             },
             ColumnSpacing = 6
         };
 
         grid.Add(StatisticsDashboardUi.Label(row.OpponentOrTeam, 12, Colors.White, false, TextAlignment.End));
         AddCell(grid, row.Score, 1, Colors.White);
-        AddCell(grid, row.Result, 2, row.Result.Contains("خس") ? Color.FromArgb("#FF3B30") : row.Result.Contains("تع") ? Color.FromArgb("#BFC3C7") : Color.FromArgb("#69D84F"));
+        AddCell(grid, row.Result, 2, ResultColor(row.Result));
         AddCell(grid, row.Date.ToString("dd/MM/yyyy"), 3, Color.FromArgb(StatisticsDashboardUi.Muted));
         AddCell(grid, "›", 4, Color.FromArgb(StatisticsDashboardUi.Gold));
         return StatisticsDashboardUi.Frame(grid, 10, "#2D2415", "#101010", 8);
@@ -361,25 +442,47 @@ public sealed class TeamStatisticsPage : ContentPage
         grid.Add(label);
     }
 
+    static Color ResultColor(string result)
+    {
+        if (result.Contains("خسارة", StringComparison.OrdinalIgnoreCase))
+            return Color.FromArgb("#FF3B30");
+        if (result.Contains("تعادل", StringComparison.OrdinalIgnoreCase))
+            return Color.FromArgb("#BFC3C7");
+        return Color.FromArgb("#69D84F");
+    }
+
     View ProgressLine(string title, double progress)
     {
-        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition { Width = 74 }, new ColumnDefinition() }, ColumnSpacing = 8 };
+        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition { Width = 86 }, new ColumnDefinition() }, ColumnSpacing = 8 };
         grid.Add(StatisticsDashboardUi.Label(title, 12, Colors.White, true, TextAlignment.End));
-        var bar = new ProgressBar { Progress = progress, ProgressColor = Color.FromArgb(StatisticsDashboardUi.Gold), BackgroundColor = Color.FromArgb("#252525"), VerticalOptions = LayoutOptions.Center };
+        var bar = new ProgressBar { Progress = Math.Clamp(progress, 0, 1), ProgressColor = Color.FromArgb(StatisticsDashboardUi.Gold), BackgroundColor = Color.FromArgb("#252525"), VerticalOptions = LayoutOptions.Center };
         Grid.SetColumn(bar, 1);
         grid.Add(bar);
         return grid;
     }
 
-    View StatusRing(SafeStatusResult status)
-    {
-        var ring = new GraphicsView
+    View StatusRing(SafeStatusResult status) =>
+        new GraphicsView
         {
-            HeightRequest = 92,
-            WidthRequest = 92,
+            HeightRequest = 96,
+            WidthRequest = 96,
             Drawable = new TrendChartDrawable { Values = new[] { status.Progress, 1 - status.Progress }, Kind = ChartKind.Donut, PrimaryColor = Color.FromArgb(status.ColorHex) }
         };
-        return ring;
+
+    async Task OnChooseTeamClicked()
+    {
+        var names = visibleTeams.Select(team => team.TeamName).Take(80).ToArray();
+        if (names.Length == 0)
+            return;
+
+        string choice = await DisplayActionSheet("اختيار فريق", "إلغاء", null, names) ?? "";
+        var team = visibleTeams.FirstOrDefault(item => item.TeamName == choice);
+        if (team == null)
+            return;
+
+        selected = team;
+        showAllMatches = false;
+        await RenderAsync();
     }
 
     async Task OnSearchClicked()
@@ -387,69 +490,54 @@ public sealed class TeamStatisticsPage : ContentPage
         string result = await DisplayPromptAsync("بحث", "اكتب اسم الفريق", "بحث", "إلغاء") ?? "";
         if (string.IsNullOrWhiteSpace(result))
             return;
-        var found = snapshot.Teams.FirstOrDefault(team => team.TeamName.Contains(result, StringComparison.OrdinalIgnoreCase));
+
+        var found = snapshot.Teams
+            .Where(team => team.TeamName.Contains(result, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(team => team.Legacy)
+            .FirstOrDefault();
+
         if (found != null)
         {
             selected = found;
+            filterMode = "الكل";
+            ApplyFilterAndSort(keepSelection: true);
             await RenderAsync();
         }
     }
 
     async Task OnFilterClicked()
     {
-        string action = await DisplayActionSheet("فلتر", "إلغاء", null, "الكل", "Hall only", "آخر 30 يوم", "قريب من الشروط") ?? "";
-        IEnumerable<TeamStatisticsProfile> query = snapshot.Teams;
-        if (action == "Hall only")
-            query = query.Where(team => team.HallEntries > 0);
-        if (action == "قريب من الشروط")
-            query = query.Where(team => team.Status.ColorHex == "#69D84F");
-        var first = query.FirstOrDefault();
-        if (first != null)
-        {
-            selected = first;
-            await RenderAsync();
-        }
+        string action = await DisplayActionSheet("فلتر", "إلغاء", null, "الكل", "Hall", "قريب من الشروط", "تحت المراقبة", "الأعلى ثقة", "آخر 30 يوم") ?? "";
+        if (string.IsNullOrWhiteSpace(action) || action == "إلغاء")
+            return;
+
+        filterMode = action;
+        ApplyFilterAndSort(keepSelection: false);
+        await RenderAsync();
     }
 
     async Task OnSortClicked()
     {
-        string action = await DisplayActionSheet("ترتيب", "إلغاء", null, "Legacy", "Wins", "Win Rate", "Trust", "Rank") ?? "";
-        selected = action switch
-        {
-            "Wins" => snapshot.Teams.OrderByDescending(team => team.Wins).FirstOrDefault() ?? selected,
-            "Win Rate" => snapshot.Teams.OrderByDescending(team => team.WinRate).FirstOrDefault() ?? selected,
-            "Trust" => snapshot.Teams.OrderByDescending(team => team.Trust).FirstOrDefault() ?? selected,
-            "Rank" => snapshot.Teams.OrderByDescending(team => team.XP).FirstOrDefault() ?? selected,
-            _ => snapshot.Teams.OrderByDescending(team => team.Legacy).FirstOrDefault() ?? selected
-        };
+        string action = await DisplayActionSheet("ترتيب", "إلغاء", null, "Legacy", "Wins", "Win Rate", "Trust", "XP", "Matches") ?? "";
+        if (string.IsNullOrWhiteSpace(action) || action == "إلغاء")
+            return;
+
+        sortMode = action;
+        ApplyFilterAndSort(keepSelection: true);
         await RenderAsync();
     }
 
     async Task OnExportClicked() =>
-        await DisplayAlert("تصدير", "تم تجهيز بيانات إحصائيات الفرق للتصدير المستقبلي.", "حسناً");
+        await DisplayAlert("تصدير", $"تم تجهيز ملف إحصائيات {selected.TeamName} للمرحلة التالية.", "حسناً");
 
     async Task ShowStatusLegendAsync() =>
         await DisplayAlert(
             "دلالات حالة الفريق",
-            "أخضر: قريب من تحقيق الشروط\nأصفر: تحت المراقبة\nأحمر: مشبوه أو أدلة مؤكدة\nرمادي: غير مؤهل بعد",
+            "أخضر: قريب من تحقيق الشروط\nأصفر: تحت المراقبة\nأحمر: مشتبه أو توجد أدلة مؤكدة\nرمادي: غير مؤهل بعد\n\nتظهر الحالة في بطاقة الفريق، القائمة، تفاصيل الفريق، صفحة المباريات، الترتيب، وقائمة المرشحين.",
             "حسناً");
 
-    async void OnBottomNavigation(string destination)
-    {
-        switch (destination)
-        {
-            case "SETTINGS":
-                await Navigation.PushAsync(new MainPage());
-                break;
-            case "PLAYERS":
-                await Navigation.PushAsync(new PlayerStatisticsPage());
-                break;
-            case "GAME":
-                await Navigation.PushAsync(new CreateTeamPage());
-                break;
-            case "STORE":
-                await Navigation.PushAsync(new GalleryEngine.Pages.GalleryPage());
-                break;
-        }
-    }
+    static DateTime ResolveDate(Models.SavedMatch match) =>
+        match.MatchEndDate != default ? match.MatchEndDate :
+        match.MatchDate != default ? match.MatchDate :
+        match.LastPlayedTime;
 }

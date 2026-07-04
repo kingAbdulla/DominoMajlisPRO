@@ -29,32 +29,33 @@ public static class HallStatisticsDashboardService
         var teamsTask = TeamProfileService.LoadTeamsAsync();
         await Task.WhenAll(matchesTask, teamsTask);
 
-        var matches = matchesTask.Result.Where(match => match.IsFinished || match.MatchDate != default).ToList();
+        var matches = matchesTask.Result.Where(match => match.IsFinished || MatchDate(match) != default).ToList();
         var teams = teamsTask.Result
             .Where(team => !string.IsNullOrWhiteSpace(team.TeamId) || !string.IsNullOrWhiteSpace(team.TeamName))
             .ToList();
 
         var rows = new List<TeamStatisticsProfile>();
-
         foreach (var team in teams)
         {
-            var key = string.IsNullOrWhiteSpace(team.TeamId) ? team.TeamName : team.TeamId;
+            string key = string.IsNullOrWhiteSpace(team.TeamId) ? team.TeamName : team.TeamId;
             var teamMatches = matches
-                .Where(match => Same(GetTeam1Key(match), key) || Same(GetTeam2Key(match), key) ||
-                                Same(match.Team1Name, team.TeamName) || Same(match.Team2Name, team.TeamName))
+                .Where(match =>
+                    Same(GetTeam1Key(match), key) ||
+                    Same(GetTeam2Key(match), key) ||
+                    Same(match.Team1Name, team.TeamName) ||
+                    Same(match.Team2Name, team.TeamName))
                 .OrderByDescending(MatchDate)
                 .ToList();
 
             int wins = team.Wins > 0 ? team.Wins : teamMatches.Count(match => IsWinner(match, key, team.TeamName));
             int losses = team.Losses > 0 ? team.Losses : teamMatches.Count(match => !match.IsDraw && !IsWinner(match, key, team.TeamName));
-            int total = Math.Max(team.TotalMatches, team.GamesPlayed);
-            total = Math.Max(total, teamMatches.Count);
-            double winRate = total == 0 ? 0 : Math.Round((double)wins / total * 100, 1);
+            int total = Math.Max(Math.Max(team.TotalMatches, team.GamesPlayed), teamMatches.Count);
+            double winRate = total == 0 ? 0 : Math.Round(wins * 100.0 / total, 1);
+            int xp = Math.Max(team.XP, team.LifetimeXP);
             int legacy = Math.Max(team.LifetimeXP, team.XP + wins * 25 + team.MelesCount * 40 + team.MVPPoints);
-            int progression = team.XP + legacy + wins * 20 + team.MVPPoints * 5 + team.SeasonXP + team.TrustScore * 4;
-            var level = BuildTeamLevel(progression, winRate, team.TrustScore, team.HallOfFameMember);
+            int score = xp + legacy + wins * 20 + team.MVPPoints * 5 + team.SeasonXP + team.TrustScore * 4;
+            var level = BuildTeamLevel(score, winRate, team.TrustScore, team.HallOfFameMember);
             bool closeOrMember = team.HallOfFameMember || team.HasHallOfFameBadge || level.Progress >= 0.82 || team.TrustScore >= 90;
-            var status = BuildStatus(team.TrustScore, team.IsSuspicious, null, closeOrMember);
 
             rows.Add(new TeamStatisticsProfile
             {
@@ -66,34 +67,32 @@ public static class HallStatisticsDashboardService
                 LevelTitle = level.Title,
                 Level = level.Level,
                 LevelProgress = level.Progress,
+                TotalMatches = total,
                 Wins = wins,
                 Losses = losses,
-                TotalMatches = total,
                 WinRate = winRate,
-                XP = Math.Max(team.XP, team.LifetimeXP),
-                Coins = 0,
+                XP = xp,
                 MVP = team.MVPPoints,
                 Championships = team.HasChampionBadge ? Math.Max(1, team.MVPPoints / 100) : 0,
                 HallEntries = team.HallOfFameMember || team.HasHallOfFameBadge ? 1 : 0,
                 Legacy = legacy,
                 Trust = Math.Clamp(team.TrustScore, 0, 100),
                 HighestWinStreak = team.ConsecutiveWins,
-                Status = status,
+                Status = BuildStatus(team.TrustScore, team.IsSuspicious, null, closeOrMember),
                 RecentMatches = BuildTeamRows(teamMatches, key, team.TeamName),
                 WinRateTrend = BuildWinRateTrend(teamMatches, key, team.TeamName),
-                LegacyTrend = BuildTrend(teamMatches, (match, index) => legacy == 0 ? index * 80 : Math.Min(legacy, (index + 1) * Math.Max(80, legacy / Math.Max(1, teamMatches.Count)))),
-                XpTrend = BuildTrend(teamMatches, (match, index) => Math.Min(Math.Max(team.XP, team.LifetimeXP), (index + 1) * Math.Max(60, Math.Max(team.XP, team.LifetimeXP) / Math.Max(1, teamMatches.Count)))),
+                LegacyTrend = BuildTrend(teamMatches, (match, index) => ScaleTrendValue(legacy, index, teamMatches.Count, 80)),
+                XpTrend = BuildTrend(teamMatches, (match, index) => ScaleTrendValue(xp, index, teamMatches.Count, 60)),
                 SeasonTrend = BuildTrend(teamMatches, (match, index) => index + 1)
             });
         }
 
-        var playerIds = rows
+        var wallets = await LoadWalletsAsync(rows
             .SelectMany(row => new[] { row.SourceTeam.Player1Id, row.SourceTeam.Player2Id })
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(120)
-            .ToList();
-        var wallets = await LoadWalletsAsync(playerIds);
+            .Take(140));
+
         foreach (var row in rows)
         {
             row.Coins = new[] { row.SourceTeam.Player1Id, row.SourceTeam.Player2Id }
@@ -107,8 +106,7 @@ public static class HallStatisticsDashboardService
             .ThenByDescending(row => row.WinRate)
             .ToList();
 
-        var selected = rows.FirstOrDefault() ?? TeamStatisticsProfile.Empty;
-        cachedTeams = new TeamStatisticsSnapshot(rows, selected);
+        cachedTeams = new TeamStatisticsSnapshot(rows, rows.FirstOrDefault() ?? TeamStatisticsProfile.Empty);
         teamsCachedAt = DateTime.UtcNow;
         return cachedTeams;
     }
@@ -123,12 +121,16 @@ public static class HallStatisticsDashboardService
         var teamsTask = TeamProfileService.LoadTeamsAsync();
         await Task.WhenAll(matchesTask, playersTask, teamsTask);
 
-        var matches = matchesTask.Result.Where(match => match.IsFinished || match.MatchDate != default).ToList();
-        var teams = teamsTask.Result;
+        var matches = matchesTask.Result.Where(match => match.IsFinished || MatchDate(match) != default).ToList();
         var players = playersTask.Result.Where(player => !string.IsNullOrWhiteSpace(player.PlayerName)).ToList();
-        var wallets = await LoadWalletsAsync(players.Select(player => player.PlayerId).Where(id => !string.IsNullOrWhiteSpace(id)).Take(160));
-        var rows = new List<PlayerStatisticsProfile>();
+        var teams = teamsTask.Result;
+        var wallets = await LoadWalletsAsync(players
+            .Select(player => player.PlayerId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(180));
 
+        var rows = new List<PlayerStatisticsProfile>();
         foreach (var player in players)
         {
             PlayerEngine.Normalize(player);
@@ -140,10 +142,9 @@ public static class HallStatisticsDashboardService
             int total = Math.Max(player.TotalMatches, playerMatches.Count);
             int wins = player.Wins > 0 ? player.Wins : playerMatches.Count(match => PlayerWon(match, player));
             int losses = player.Losses > 0 ? player.Losses : playerMatches.Count(match => !match.IsDraw && !PlayerWon(match, player));
-            double winRate = total == 0 ? 0 : Math.Round((double)wins / total * 100, 1);
+            double winRate = total == 0 ? 0 : Math.Round(wins * 100.0 / total, 1);
             var rank = PlayerRankService.Calculate(player.PlayerXP);
-            var walletCoins = wallets.TryGetValue(player.PlayerId, out var wallet) ? wallet.Coins : 0;
-            var status = BuildStatus(player.TrustScore, false, player.TrustScore < 60 ? "Investigation" : "", player.IsHallOfLegendsMember);
+            int coins = wallets.TryGetValue(player.PlayerId, out var wallet) ? wallet.Coins : 0;
 
             rows.Add(new PlayerStatisticsProfile
             {
@@ -155,7 +156,7 @@ public static class HallStatisticsDashboardService
                 Rank = rank.DisplayName,
                 RankProgress = rank.Progress,
                 XP = player.PlayerXP,
-                Coins = walletCoins,
+                Coins = coins,
                 Trust = Math.Clamp(player.TrustScore, 0, 100),
                 Legacy = player.LegacyScore,
                 TotalMatches = total,
@@ -165,11 +166,11 @@ public static class HallStatisticsDashboardService
                 MVP = player.MVPCount,
                 HallEntries = player.HallOfFameCount + (player.IsHallOfLegendsMember ? 1 : 0),
                 Championships = player.ChampionCount,
-                Status = status,
+                Status = BuildStatus(player.TrustScore, false, player.TrustScore < 60 ? "Investigation" : null, player.IsHallOfLegendsMember),
                 RecentMatches = BuildPlayerRows(playerMatches, player, teams),
-                XpTrend = BuildTrend(playerMatches, (match, index) => Math.Min(player.PlayerXP, (index + 1) * Math.Max(80, player.PlayerXP / Math.Max(1, playerMatches.Count)))),
+                XpTrend = BuildTrend(playerMatches, (match, index) => ScaleTrendValue(player.PlayerXP, index, playerMatches.Count, 80)),
                 LevelTrend = BuildTrend(playerMatches, (match, index) => Math.Min(Math.Max(1, player.PlayerLevel), index + 1)),
-                CoinsTrend = BuildTrend(playerMatches, (match, index) => Math.Min(walletCoins, (index + 1) * Math.Max(50, walletCoins / Math.Max(1, playerMatches.Count)))),
+                CoinsTrend = BuildTrend(playerMatches, (match, index) => ScaleTrendValue(coins, index, playerMatches.Count, 50)),
                 WinRateTrend = BuildPlayerWinRateTrend(playerMatches, player)
             });
         }
@@ -180,8 +181,7 @@ public static class HallStatisticsDashboardService
             .ThenByDescending(row => row.WinRate)
             .ToList();
 
-        var selected = rows.FirstOrDefault() ?? PlayerStatisticsProfile.Empty;
-        cachedPlayers = new PlayerStatisticsSnapshot(rows, selected);
+        cachedPlayers = new PlayerStatisticsSnapshot(rows, rows.FirstOrDefault() ?? PlayerStatisticsProfile.Empty);
         playersCachedAt = DateTime.UtcNow;
         return cachedPlayers;
     }
@@ -229,7 +229,7 @@ public static class HallStatisticsDashboardService
     static SafeStatusResult BuildStatus(int trust, bool suspicious, string? evidence, bool closeOrMember)
     {
         if (string.Equals(evidence, "Confirmed Evidence", StringComparison.OrdinalIgnoreCase) || trust < 30)
-            return new("مشبوه", "يوجد تشبه مخالفة", "#FF3B30", 0.18);
+            return new("مشتبه", "يوجد اشتباه مخالفة", "#FF3B30", 0.18);
 
         if (suspicious || string.Equals(evidence, "Investigation", StringComparison.OrdinalIgnoreCase) || trust < 75)
             return new("تحت المراقبة", "يتم مراقبة النشاط", "#F4B942", 0.72);
@@ -274,7 +274,7 @@ public static class HallStatisticsDashboardService
                 wins++;
             trend.Add(total == 0 ? 0 : wins * 100.0 / total);
         }
-        return trend;
+        return trend.DefaultIfEmpty(0).ToList();
     }
 
     static List<double> BuildPlayerWinRateTrend(IReadOnlyList<SavedMatch> matches, PlayerProfileModel player)
@@ -289,11 +289,14 @@ public static class HallStatisticsDashboardService
                 wins++;
             trend.Add(total == 0 ? 0 : wins * 100.0 / total);
         }
-        return trend;
+        return trend.DefaultIfEmpty(0).ToList();
     }
 
     static List<double> BuildTrend(IReadOnlyList<SavedMatch> matches, Func<SavedMatch, int, double> valueFactory) =>
         matches.OrderBy(MatchDate).TakeLast(20).Select(valueFactory).DefaultIfEmpty(0).ToList();
+
+    static double ScaleTrendValue(int target, int index, int count, int step) =>
+        Math.Min(Math.Max(0, target), (index + 1) * Math.Max(step, Math.Max(1, target) / Math.Max(1, count)));
 
     static bool MatchContainsPlayer(SavedMatch match, PlayerProfileModel player) =>
         Same(match.Team1Player1Id, player.PlayerId) ||

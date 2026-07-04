@@ -1,4 +1,3 @@
-using DominoMajlisPRO.Controls;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Services;
@@ -10,8 +9,11 @@ namespace DominoMajlisPRO.Pages;
 public sealed class PlayerStatisticsPage : ContentPage
 {
     PlayerStatisticsSnapshot snapshot = new(Array.Empty<PlayerStatisticsProfile>(), PlayerStatisticsProfile.Empty);
+    IReadOnlyList<PlayerStatisticsProfile> visiblePlayers = Array.Empty<PlayerStatisticsProfile>();
     PlayerStatisticsProfile selected = PlayerStatisticsProfile.Empty;
     VerticalStackLayout content = new();
+    string filterMode = "الكل";
+    string sortMode = "Legacy";
     bool showAllMatches;
 
     public PlayerStatisticsPage()
@@ -73,37 +75,62 @@ public sealed class PlayerStatisticsPage : ContentPage
 
     void BuildShell()
     {
-        var root = new Grid
+        content = new VerticalStackLayout
         {
-            RowDefinitions =
-            {
-                new RowDefinition { Height = GridLength.Star },
-                new RowDefinition { Height = GridLength.Auto }
-            }
+            Padding = new Thickness(14, 10, 14, 16),
+            Spacing = 10
         };
-        content = new VerticalStackLayout { Padding = new Thickness(12, 10, 12, 18), Spacing = 10 };
-        root.Add(new ScrollView { Content = content });
 
-        var bottom = new HallBottomNavigationView();
-        Grid.SetRow(bottom, 1);
-        root.Add(bottom);
-        Content = root;
+        Content = new ScrollView
+        {
+            Content = content
+        };
     }
 
     async Task LoadAsync(bool force = false)
     {
         snapshot = await HallStatisticsDashboardService.LoadPlayerSnapshotAsync(force);
-        if (string.IsNullOrWhiteSpace(selected.PlayerId) ||
-            !snapshot.Players.Any(player => string.Equals(player.PlayerId, selected.PlayerId, StringComparison.OrdinalIgnoreCase)))
+        ApplyFilterAndSort(keepSelection: true);
+        await RenderAsync();
+    }
+
+    void ApplyFilterAndSort(bool keepSelection)
+    {
+        IEnumerable<PlayerStatisticsProfile> query = snapshot.Players;
+
+        query = filterMode switch
         {
-            selected = snapshot.Selected;
-        }
-        else
+            "Hall" => query.Where(player => player.HallEntries > 0),
+            "الأبطال" => query.Where(player => player.Championships > 0),
+            "MVP" => query.Where(player => player.MVP > 0),
+            "الأعلى ثقة" => query.Where(player => player.Trust >= 85),
+            "آخر 30 يوم" => query.Where(player => player.Matches.Any(match => ResolveDate(match) >= DateTime.Now.AddDays(-30))),
+            _ => query
+        };
+
+        query = sortMode switch
         {
-            selected = snapshot.Players.First(player => string.Equals(player.PlayerId, selected.PlayerId, StringComparison.OrdinalIgnoreCase));
+            "XP" => query.OrderByDescending(player => player.XP),
+            "Win Rate" => query.OrderByDescending(player => player.WinRate),
+            "MVP" => query.OrderByDescending(player => player.MVP),
+            "Coins" => query.OrderByDescending(player => player.Coins),
+            "Matches" => query.OrderByDescending(player => player.TotalMatches),
+            _ => query.OrderByDescending(player => player.Legacy)
+        };
+
+        visiblePlayers = query.ToList();
+
+        if (keepSelection && !string.IsNullOrWhiteSpace(selected.PlayerId))
+        {
+            var same = visiblePlayers.FirstOrDefault(player => string.Equals(player.PlayerId, selected.PlayerId, StringComparison.OrdinalIgnoreCase));
+            if (same != null)
+            {
+                selected = same;
+                return;
+            }
         }
 
-        await RenderAsync();
+        selected = visiblePlayers.FirstOrDefault() ?? snapshot.Selected;
     }
 
     async Task RenderAsync()
@@ -111,6 +138,7 @@ public sealed class PlayerStatisticsPage : ContentPage
         content.Children.Clear();
         content.Children.Add(CreateHeader());
         content.Children.Add(CreateToolbar());
+        content.Children.Add(CreatePlayerSelector());
         content.Children.Add(await CreateHeroAsync());
         content.Children.Add(CreateTabs());
         content.Children.Add(CreateMetrics());
@@ -127,7 +155,8 @@ public sealed class PlayerStatisticsPage : ContentPage
                 new ColumnDefinition { Width = 42 },
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = 42 }
-            }
+            },
+            ColumnSpacing = 8
         };
 
         var help = StatisticsDashboardUi.CommandButton("?");
@@ -149,10 +178,17 @@ public sealed class PlayerStatisticsPage : ContentPage
 
     View CreateToolbar()
     {
-        var row = new FlexLayout { Direction = FlexDirection.Row, Wrap = FlexWrap.Wrap, JustifyContent = FlexJustify.SpaceBetween };
+        var row = new FlexLayout
+        {
+            Direction = FlexDirection.Row,
+            Wrap = FlexWrap.Wrap,
+            JustifyContent = FlexJustify.SpaceBetween,
+            AlignItems = FlexAlignItems.Center
+        };
+        row.Children.Add(ToolButton("اختيار لاعب", OnChoosePlayerClicked));
         row.Children.Add(ToolButton("بحث", OnSearchClicked));
-        row.Children.Add(ToolButton("فلتر", OnFilterClicked));
-        row.Children.Add(ToolButton("ترتيب", OnSortClicked));
+        row.Children.Add(ToolButton($"فلتر: {filterMode}", OnFilterClicked));
+        row.Children.Add(ToolButton($"ترتيب: {sortMode}", OnSortClicked));
         row.Children.Add(ToolButton("تحديث", async () => await LoadAsync(true)));
         row.Children.Add(ToolButton("تصدير", OnExportClicked));
         return row;
@@ -166,6 +202,50 @@ public sealed class PlayerStatisticsPage : ContentPage
         return button;
     }
 
+    View CreatePlayerSelector()
+    {
+        var strip = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            FlowDirection = FlowDirection.RightToLeft,
+            Padding = new Thickness(2, 0)
+        };
+
+        foreach (var player in visiblePlayers.Take(24))
+            strip.Children.Add(CreatePlayerChip(player));
+
+        return new ScrollView
+        {
+            Orientation = ScrollOrientation.Horizontal,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Never,
+            Content = strip
+        };
+    }
+
+    View CreatePlayerChip(PlayerStatisticsProfile player)
+    {
+        bool active = string.Equals(player.PlayerId, selected.PlayerId, StringComparison.OrdinalIgnoreCase);
+        var stack = new VerticalStackLayout
+        {
+            Spacing = 2,
+            WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 116 : 150
+        };
+        stack.Children.Add(StatisticsDashboardUi.Label(player.PlayerName, 12, active ? Colors.White : Color.FromArgb(StatisticsDashboardUi.Muted), true, TextAlignment.Center, 1));
+        stack.Children.Add(StatisticsDashboardUi.Label($"L{player.Level} | {player.XP:N0} XP", 10, Color.FromArgb(StatisticsDashboardUi.Gold), false, TextAlignment.Center, 1));
+
+        var card = StatisticsDashboardUi.Frame(stack, 14, active ? "#D4AE62" : "#5B3B18", active ? "#8F6730" : "#080808", 8);
+        card.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () =>
+            {
+                selected = player;
+                showAllMatches = false;
+                await RenderAsync();
+            })
+        });
+        return card;
+    }
+
     async Task<View> CreateHeroAsync()
     {
         PlayerVisualIdentity identity = await PlayerVisualIdentityResolver.ResolveAsync(selected.PlayerId);
@@ -176,7 +256,8 @@ public sealed class PlayerStatisticsPage : ContentPage
         {
             WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 118 : 160,
             HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 118 : 160,
-            HorizontalOptions = LayoutOptions.Center
+            HorizontalOptions = LayoutOptions.Center,
+            Clip = new Microsoft.Maui.Controls.Shapes.EllipseGeometry { Center = new Point(DeviceInfo.Idiom == DeviceIdiom.Phone ? 59 : 80, DeviceInfo.Idiom == DeviceIdiom.Phone ? 59 : 80), RadiusX = DeviceInfo.Idiom == DeviceIdiom.Phone ? 59 : 80, RadiusY = DeviceInfo.Idiom == DeviceIdiom.Phone ? 59 : 80 }
         };
 
         var background = InventoryDisplayResolver.ResolveOptionalImageSource(identity.ProfileBackground?.PreviewImage);
@@ -187,46 +268,46 @@ public sealed class PlayerStatisticsPage : ContentPage
         AddOverlay(avatarHost, identity.Frame?.PreviewImage);
         AddEffect(avatarHost, identity.Effect);
 
-        var info = new VerticalStackLayout { Spacing = 5, VerticalOptions = LayoutOptions.Center };
-        info.Children.Add(StatisticsDashboardUi.Label(selected.PlayerName, 25, Color.FromArgb(StatisticsDashboardUi.Gold), true, TextAlignment.End));
+        var info = new VerticalStackLayout { Spacing = 6, VerticalOptions = LayoutOptions.Center };
+        info.Children.Add(StatisticsDashboardUi.Label(selected.PlayerName, DeviceInfo.Idiom == DeviceIdiom.Phone ? 23 : 30, Color.FromArgb(StatisticsDashboardUi.Gold), true, TextAlignment.End));
         info.Children.Add(StatisticsDashboardUi.Label(identity.Title?.DisplayName ?? "Hall Of Legends Member", 14, Color.FromArgb(StatisticsDashboardUi.Gold), false, TextAlignment.End));
         info.Children.Add(ProgressLine($"Level {selected.Level}", selected.RankProgress));
-
-        var mini = new Grid { ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition(), new ColumnDefinition() }, ColumnSpacing = 8 };
-        mini.Add(StatisticsDashboardUi.Metric("rankings_gold_icon.png", selected.Rank, "الرتبة الحالية"));
-        var legacy = StatisticsDashboardUi.Metric("trophy_3d.png", selected.Legacy.ToString("N0"), "Legacy");
-        Grid.SetColumn(legacy, 1);
-        mini.Add(legacy);
-        var trust = StatisticsDashboardUi.Metric("trust_gold.png", selected.Trust.ToString(), "Trust Score");
-        Grid.SetColumn(trust, 2);
-        mini.Add(trust);
-        info.Children.Add(mini);
+        info.Children.Add(CreateMiniStats());
 
         var status = new VerticalStackLayout { Spacing = 8, VerticalOptions = LayoutOptions.Center };
         status.Children.Add(StatisticsDashboardUi.Label("حالة اللاعب", 12, Color.FromArgb(StatisticsDashboardUi.Muted), false));
         status.Children.Add(StatisticsDashboardUi.StatusBadge(selected.Status));
-        status.Children.Add(new GraphicsView
-        {
-            HeightRequest = 92,
-            WidthRequest = 92,
-            Drawable = new TrendChartDrawable { Values = new[] { selected.Status.Progress, 1 - selected.Status.Progress }, Kind = ChartKind.Donut, PrimaryColor = Color.FromArgb(selected.Status.ColorHex) }
-        });
+        status.Children.Add(StatusRing(selected.Status));
 
-        var layout = new Grid
+        View layout;
+        if (DeviceInfo.Idiom == DeviceIdiom.Phone)
         {
-            ColumnDefinitions =
+            layout = new VerticalStackLayout
             {
-                new ColumnDefinition { Width = GridLength.Auto },
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = DeviceInfo.Idiom == DeviceIdiom.Phone ? 110 : 160 }
-            },
-            ColumnSpacing = 12
-        };
-        layout.Add(avatarHost);
-        Grid.SetColumn(info, 1);
-        layout.Add(info);
-        Grid.SetColumn(status, 2);
-        layout.Add(status);
+                Spacing = 10,
+                Children = { avatarHost, info, status }
+            };
+        }
+        else
+        {
+            var grid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = 170 }
+                },
+                ColumnSpacing = 14
+            };
+            grid.Add(avatarHost);
+            Grid.SetColumn(info, 1);
+            grid.Add(info);
+            Grid.SetColumn(status, 2);
+            grid.Add(status);
+            layout = grid;
+        }
+
         return StatisticsDashboardUi.Frame(layout, 20, "#8A5B27", "#080808", 10);
     }
 
@@ -244,6 +325,19 @@ public sealed class PlayerStatisticsPage : ContentPage
         var overlay = new Image { Aspect = Aspect.AspectFit, InputTransparent = true };
         PlayerEffectEngine.Apply(overlay, effect, 1.16);
         host.Add(overlay);
+    }
+
+    View CreateMiniStats()
+    {
+        var mini = new Grid { ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition(), new ColumnDefinition() }, ColumnSpacing = 8 };
+        mini.Add(StatisticsDashboardUi.Metric("rankings_gold_icon.png", selected.Rank, "الرتبة الحالية"));
+        var legacy = StatisticsDashboardUi.Metric("trophy_3d.png", selected.Legacy.ToString("N0"), "Legacy");
+        Grid.SetColumn(legacy, 1);
+        mini.Add(legacy);
+        var trust = StatisticsDashboardUi.Metric("trust_gold.png", selected.Trust.ToString(), "Trust Score");
+        Grid.SetColumn(trust, 2);
+        mini.Add(trust);
+        return mini;
     }
 
     View CreateTabs()
@@ -291,8 +385,8 @@ public sealed class PlayerStatisticsPage : ContentPage
         {
             StatisticsDashboardUi.ChartCard("توزيع النتائج", new[] { (double)selected.Wins, selected.Losses, Math.Max(0, selected.TotalMatches - selected.Wins - selected.Losses) }, ChartKind.Donut, Color.FromArgb("#69D84F")),
             StatisticsDashboardUi.ChartCard("تطور الـ XP", selected.XpTrend, ChartKind.Area, Color.FromArgb("#A259FF")),
-            StatisticsDashboardUi.ChartCard("Level Progress", selected.LevelTrend, ChartKind.Line, Color.FromArgb("#D4AE62")),
-            StatisticsDashboardUi.ChartCard("Coins Earned", selected.CoinsTrend, ChartKind.Area, Color.FromArgb("#F4B942"))
+            StatisticsDashboardUi.ChartCard("تقدم المستوى", selected.LevelTrend, ChartKind.Line, Color.FromArgb("#D4AE62")),
+            StatisticsDashboardUi.ChartCard("تطور العملات", selected.CoinsTrend, ChartKind.Area, Color.FromArgb("#F4B942"))
         };
         for (int i = 0; i < charts.Length; i++)
         {
@@ -310,7 +404,7 @@ public sealed class PlayerStatisticsPage : ContentPage
     {
         var rows = (showAllMatches ? selected.RecentMatches : selected.RecentMatches.Take(5)).ToList();
         var stack = new VerticalStackLayout { Spacing = 6 };
-        stack.Children.Add(StatisticsDashboardUi.Label("آخر 5 مباريات", 15, Color.FromArgb(StatisticsDashboardUi.Gold), true));
+        stack.Children.Add(StatisticsDashboardUi.Label(showAllMatches ? "المباريات" : "آخر 5 مباريات", 15, Color.FromArgb(StatisticsDashboardUi.Gold), true));
         foreach (var row in rows)
             stack.Children.Add(MatchRow(row));
 
@@ -343,7 +437,7 @@ public sealed class PlayerStatisticsPage : ContentPage
             ColumnSpacing = 5
         };
         grid.Add(StatisticsDashboardUi.Label(row.OpponentOrTeam, 12, Colors.White, false, TextAlignment.End));
-        AddCell(grid, row.Result, 1, row.Result.Contains("خس") ? Color.FromArgb("#FF3B30") : row.Result.Contains("تع") ? Color.FromArgb("#BFC3C7") : Color.FromArgb("#69D84F"));
+        AddCell(grid, row.Result, 1, ResultColor(row.Result));
         AddCell(grid, row.Score, 2, Colors.White);
         AddCell(grid, row.MvpOrPoints, 3, Color.FromArgb(StatisticsDashboardUi.Gold));
         AddCell(grid, row.Date.ToString("dd/MM/yyyy"), 4, Color.FromArgb(StatisticsDashboardUi.Muted));
@@ -358,14 +452,47 @@ public sealed class PlayerStatisticsPage : ContentPage
         grid.Add(label);
     }
 
+    static Color ResultColor(string result)
+    {
+        if (result.Contains("خسارة", StringComparison.OrdinalIgnoreCase))
+            return Color.FromArgb("#FF3B30");
+        if (result.Contains("تعادل", StringComparison.OrdinalIgnoreCase))
+            return Color.FromArgb("#BFC3C7");
+        return Color.FromArgb("#69D84F");
+    }
+
     View ProgressLine(string title, double progress)
     {
-        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition { Width = 74 }, new ColumnDefinition() }, ColumnSpacing = 8 };
+        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition { Width = 86 }, new ColumnDefinition() }, ColumnSpacing = 8 };
         grid.Add(StatisticsDashboardUi.Label(title, 12, Colors.White, true, TextAlignment.End));
-        var bar = new ProgressBar { Progress = progress, ProgressColor = Color.FromArgb(StatisticsDashboardUi.Gold), BackgroundColor = Color.FromArgb("#252525"), VerticalOptions = LayoutOptions.Center };
+        var bar = new ProgressBar { Progress = Math.Clamp(progress, 0, 1), ProgressColor = Color.FromArgb(StatisticsDashboardUi.Gold), BackgroundColor = Color.FromArgb("#252525"), VerticalOptions = LayoutOptions.Center };
         Grid.SetColumn(bar, 1);
         grid.Add(bar);
         return grid;
+    }
+
+    View StatusRing(SafeStatusResult status) =>
+        new GraphicsView
+        {
+            HeightRequest = 96,
+            WidthRequest = 96,
+            Drawable = new TrendChartDrawable { Values = new[] { status.Progress, 1 - status.Progress }, Kind = ChartKind.Donut, PrimaryColor = Color.FromArgb(status.ColorHex) }
+        };
+
+    async Task OnChoosePlayerClicked()
+    {
+        var names = visiblePlayers.Select(player => player.PlayerName).Take(100).ToArray();
+        if (names.Length == 0)
+            return;
+
+        string choice = await DisplayActionSheet("اختيار لاعب", "إلغاء", null, names) ?? "";
+        var player = visiblePlayers.FirstOrDefault(item => item.PlayerName == choice);
+        if (player == null)
+            return;
+
+        selected = player;
+        showAllMatches = false;
+        await RenderAsync();
     }
 
     async Task OnSearchClicked()
@@ -373,69 +500,54 @@ public sealed class PlayerStatisticsPage : ContentPage
         string result = await DisplayPromptAsync("بحث", "اكتب اسم اللاعب", "بحث", "إلغاء") ?? "";
         if (string.IsNullOrWhiteSpace(result))
             return;
-        var found = snapshot.Players.FirstOrDefault(player => player.PlayerName.Contains(result, StringComparison.OrdinalIgnoreCase));
+
+        var found = snapshot.Players
+            .Where(player => player.PlayerName.Contains(result, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(player => player.Legacy)
+            .FirstOrDefault();
+
         if (found != null)
         {
             selected = found;
+            filterMode = "الكل";
+            ApplyFilterAndSort(keepSelection: true);
             await RenderAsync();
         }
     }
 
     async Task OnFilterClicked()
     {
-        string action = await DisplayActionSheet("فلتر", "إلغاء", null, "الكل", "Hall", "Rank", "Date range", "الفريق") ?? "";
-        IEnumerable<PlayerStatisticsProfile> query = snapshot.Players;
-        if (action == "Hall")
-            query = query.Where(player => player.HallEntries > 0);
-        if (action == "Rank")
-            query = query.Where(player => !string.Equals(player.Rank, "Unranked", StringComparison.OrdinalIgnoreCase));
-        var first = query.FirstOrDefault();
-        if (first != null)
-        {
-            selected = first;
-            await RenderAsync();
-        }
+        string action = await DisplayActionSheet("فلتر", "إلغاء", null, "الكل", "Hall", "الأبطال", "MVP", "الأعلى ثقة", "آخر 30 يوم") ?? "";
+        if (string.IsNullOrWhiteSpace(action) || action == "إلغاء")
+            return;
+
+        filterMode = action;
+        ApplyFilterAndSort(keepSelection: false);
+        await RenderAsync();
     }
 
     async Task OnSortClicked()
     {
-        string action = await DisplayActionSheet("ترتيب", "إلغاء", null, "Legacy", "XP", "Win Rate", "MVP", "Coins") ?? "";
-        selected = action switch
-        {
-            "XP" => snapshot.Players.OrderByDescending(player => player.XP).FirstOrDefault() ?? selected,
-            "Win Rate" => snapshot.Players.OrderByDescending(player => player.WinRate).FirstOrDefault() ?? selected,
-            "MVP" => snapshot.Players.OrderByDescending(player => player.MVP).FirstOrDefault() ?? selected,
-            "Coins" => snapshot.Players.OrderByDescending(player => player.Coins).FirstOrDefault() ?? selected,
-            _ => snapshot.Players.OrderByDescending(player => player.Legacy).FirstOrDefault() ?? selected
-        };
+        string action = await DisplayActionSheet("ترتيب", "إلغاء", null, "Legacy", "XP", "Win Rate", "MVP", "Coins", "Matches") ?? "";
+        if (string.IsNullOrWhiteSpace(action) || action == "إلغاء")
+            return;
+
+        sortMode = action;
+        ApplyFilterAndSort(keepSelection: true);
         await RenderAsync();
     }
 
     async Task OnExportClicked() =>
-        await DisplayAlert("تصدير", "تم تجهيز بيانات إحصائيات اللاعبين للتصدير المستقبلي.", "حسناً");
+        await DisplayAlert("تصدير", $"تم تجهيز ملف إحصائيات {selected.PlayerName} للمرحلة التالية.", "حسناً");
 
     async Task ShowStatusLegendAsync() =>
         await DisplayAlert(
             "دلالات حالة اللاعب",
-            "أخضر: قريب من تحقيق الشروط\nأصفر: تحت المراقبة\nأحمر: مشبوه أو أدلة مؤكدة\nرمادي: غير مؤهل بعد",
+            "أخضر: قريب من تحقيق الشروط\nأصفر: تحت المراقبة\nأحمر: مشتبه أو توجد أدلة مؤكدة\nرمادي: غير مؤهل بعد\n\nتظهر الحالة في بطاقة اللاعب، القائمة، تفاصيل اللاعب، صفحة المباريات، والترتيب.",
             "حسناً");
 
-    async void OnBottomNavigation(string destination)
-    {
-        switch (destination)
-        {
-            case "SETTINGS":
-                await Navigation.PushAsync(new MainPage());
-                break;
-            case "PLAYERS":
-                await Navigation.PushAsync(new PlayerStatisticsPage());
-                break;
-            case "GAME":
-                await Navigation.PushAsync(new CreateTeamPage());
-                break;
-            case "STORE":
-                await Navigation.PushAsync(new GalleryEngine.Pages.GalleryPage());
-                break;
-        }
-    }
+    static DateTime ResolveDate(Models.SavedMatch match) =>
+        match.MatchEndDate != default ? match.MatchEndDate :
+        match.MatchDate != default ? match.MatchDate :
+        match.LastPlayedTime;
 }
