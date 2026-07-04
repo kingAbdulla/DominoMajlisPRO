@@ -120,7 +120,7 @@
                     StrokeShape="RoundRectangle 26">
 
                     <Grid
-                        HeightRequest="{OnIdiom Phone=300, Tablet=420, Desktop=440}"
+                        HeightRequest="{OnIdiom Phone=360, Tablet=420, Desktop=440}"
                         FlowDirection="LeftToRight">
 
                         <Image

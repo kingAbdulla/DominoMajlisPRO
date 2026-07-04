@@ -1,4 +1,4 @@
-using DominoMajlisPRO.GalleryEngine.Models;
+﻿using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Models;
 
@@ -55,7 +55,8 @@ public static class HallStatisticsDashboardService
             int legacy = Math.Max(team.LifetimeXP, team.XP + wins * 25 + team.MelesCount * 40 + team.MVPPoints);
             int score = xp + legacy + wins * 20 + team.MVPPoints * 5 + team.SeasonXP + team.TrustScore * 4;
             var level = BuildTeamLevel(score, winRate, team.TrustScore, team.HallOfFameMember);
-            bool closeOrMember = team.HallOfFameMember || team.HasHallOfFameBadge || level.Progress >= 0.82 || team.TrustScore >= 90;
+            double readiness = CalculateTeamReadiness(total, wins, winRate, legacy, team.TrustScore, team.IsSuspicious);
+            bool closeOrMember = team.HallOfFameMember || team.HasHallOfFameBadge || readiness >= 0.82;
 
             rows.Add(new TeamStatisticsProfile
             {
@@ -78,7 +79,7 @@ public static class HallStatisticsDashboardService
                 Legacy = legacy,
                 Trust = Math.Clamp(team.TrustScore, 0, 100),
                 HighestWinStreak = team.ConsecutiveWins,
-                Status = BuildStatus(team.TrustScore, team.IsSuspicious, null, closeOrMember),
+                Status = BuildStatus(team.TrustScore, team.IsSuspicious, null, closeOrMember, readiness),
                 RecentMatches = BuildTeamRows(teamMatches, key, team.TeamName),
                 WinRateTrend = BuildWinRateTrend(teamMatches, key, team.TeamName),
                 LegacyTrend = BuildTrend(teamMatches, (match, index) => ScaleTrendValue(legacy, index, teamMatches.Count, 80)),
@@ -145,6 +146,7 @@ public static class HallStatisticsDashboardService
             double winRate = total == 0 ? 0 : Math.Round(wins * 100.0 / total, 1);
             var rank = PlayerRankService.Calculate(player.PlayerXP);
             int coins = wallets.TryGetValue(player.PlayerId, out var wallet) ? wallet.Coins : 0;
+            double readiness = CalculatePlayerReadiness(total, wins, winRate, player.PlayerXP, player.LegacyScore, player.TrustScore, player.IsHallOfLegendsMember);
 
             rows.Add(new PlayerStatisticsProfile
             {
@@ -166,7 +168,7 @@ public static class HallStatisticsDashboardService
                 MVP = player.MVPCount,
                 HallEntries = player.HallOfFameCount + (player.IsHallOfLegendsMember ? 1 : 0),
                 Championships = player.ChampionCount,
-                Status = BuildStatus(player.TrustScore, false, player.TrustScore < 60 ? "Investigation" : null, player.IsHallOfLegendsMember),
+                Status = BuildStatus(player.TrustScore, false, player.TrustScore < 60 ? "Investigation" : null, player.IsHallOfLegendsMember || readiness >= 0.82, readiness),
                 RecentMatches = BuildPlayerRows(playerMatches, player, teams),
                 XpTrend = BuildTrend(playerMatches, (match, index) => ScaleTrendValue(player.PlayerXP, index, playerMatches.Count, 80)),
                 LevelTrend = BuildTrend(playerMatches, (match, index) => Math.Min(Math.Max(1, player.PlayerLevel), index + 1)),
@@ -226,20 +228,43 @@ public static class HallStatisticsDashboardService
         return new TeamLevelResult(title, level, progress);
     }
 
-    static SafeStatusResult BuildStatus(int trust, bool suspicious, string? evidence, bool closeOrMember)
+    static SafeStatusResult BuildStatus(int trust, bool suspicious, string? evidence, bool closeOrMember, double readiness)
     {
+        readiness = Math.Clamp(readiness, 0, 1);
         if (string.Equals(evidence, "Confirmed Evidence", StringComparison.OrdinalIgnoreCase) || trust < 30)
-            return new("مشتبه", "يوجد اشتباه مخالفة", "#FF3B30", 0.18);
+            return new("مشتبه", "يوجد اشتباه مخالفة", "#FF3B30", readiness);
 
         if (suspicious || string.Equals(evidence, "Investigation", StringComparison.OrdinalIgnoreCase) || trust < 75)
-            return new("تحت المراقبة", "يتم مراقبة النشاط", "#F4B942", 0.72);
+            return new("تحت المراقبة", "يتم مراقبة النشاط", "#F4B942", readiness);
 
         if (closeOrMember || trust >= 90)
-            return new("قريب من تحقيق الشروط", "يمتلك نسبة عالية من الشروط", "#69D84F", 0.85);
+            return new("قريب من تحقيق الشروط", "يمتلك نسبة عالية من الشروط", "#69D84F", readiness);
 
-        return new("غير مؤهل", "لا يستوفي الشروط", "#777777", Math.Clamp(trust / 100.0, 0, 1));
+        return new("غير مؤهل", "لا يستوفي الشروط", "#777777", readiness);
     }
 
+    static double CalculateTeamReadiness(int total, int wins, double winRate, int legacy, int trust, bool suspicious)
+    {
+        double matches = Math.Clamp(total / 20.0, 0, 1);
+        double winRatio = Math.Clamp(winRate / 70.0, 0, 1);
+        double legacyRatio = Math.Clamp(legacy / 2500.0, 0, 1);
+        double trustRatio = Math.Clamp(trust / 100.0, 0, 1);
+        double winsRatio = Math.Clamp(wins / 12.0, 0, 1);
+        double value = matches * 0.20 + winRatio * 0.22 + legacyRatio * 0.24 + trustRatio * 0.24 + winsRatio * 0.10;
+        return suspicious ? Math.Min(value, 0.74) : value;
+    }
+
+    static double CalculatePlayerReadiness(int total, int wins, double winRate, int xp, int legacy, int trust, bool hallMember)
+    {
+        double matches = Math.Clamp(total / 30.0, 0, 1);
+        double winRatio = Math.Clamp(winRate / 70.0, 0, 1);
+        double xpRatio = Math.Clamp(xp / 15000.0, 0, 1);
+        double legacyRatio = Math.Clamp(legacy / 2500.0, 0, 1);
+        double trustRatio = Math.Clamp(trust / 100.0, 0, 1);
+        double winsRatio = Math.Clamp(wins / 20.0, 0, 1);
+        double value = matches * 0.18 + winRatio * 0.18 + xpRatio * 0.20 + legacyRatio * 0.20 + trustRatio * 0.18 + winsRatio * 0.06;
+        return hallMember ? Math.Max(value, 0.92) : value;
+    }
     static List<StatisticsMatchRow> BuildTeamRows(IReadOnlyList<SavedMatch> matches, string teamId, string teamName) =>
         matches.Take(20).Select(match =>
         {
@@ -247,7 +272,7 @@ public static class HallStatisticsDashboardService
             string opponent = isTeam1 ? match.Team2Name : match.Team1Name;
             int scoreFor = isTeam1 ? match.Team1Score : match.Team2Score;
             int scoreAgainst = isTeam1 ? match.Team2Score : match.Team1Score;
-            string result = match.IsDraw ? "تعادل" : IsWinner(match, teamId, teamName) ? "فوز" : "خسارة";
+            string result = match.IsDraw ? "طھط¹ط§ط¯ظ„" : IsWinner(match, teamId, teamName) ? "ظپظˆط²" : "ط®ط³ط§ط±ط©";
             return new StatisticsMatchRow(opponent, result, $"{scoreFor} - {scoreAgainst}", MatchDate(match), match.HasMeles ? "Meles" : "MVP");
         }).ToList();
 
@@ -257,7 +282,7 @@ public static class HallStatisticsDashboardService
             bool team1 = PlayerOnTeam1(match, player);
             string teamName = team1 ? match.Team1Name : match.Team2Name;
             bool won = PlayerWon(match, player);
-            string result = match.IsDraw ? "تعادل" : won ? "الفوز" : "الخسارة";
+            string result = match.IsDraw ? "طھط¹ط§ط¯ظ„" : won ? "ط§ظ„ظپظˆط²" : "ط§ظ„ط®ط³ط§ط±ط©";
             int points = team1 ? match.Team1Score : match.Team2Score;
             return new StatisticsMatchRow(teamName, result, $"{match.Team1Score} - {match.Team2Score}", MatchDate(match), points.ToString());
         }).ToList();
@@ -349,7 +374,7 @@ public sealed record StatisticsMatchRow(string OpponentOrTeam, string Result, st
 
 public sealed class TeamStatisticsProfile
 {
-    public static TeamStatisticsProfile Empty { get; } = new() { TeamName = "لا توجد فرق", TeamId = string.Empty, Status = new("غير مؤهل", "لا توجد بيانات", "#777777", 0) };
+    public static TeamStatisticsProfile Empty { get; } = new() { TeamName = "ظ„ط§ طھظˆط¬ط¯ ظپط±ظ‚", TeamId = string.Empty, Status = new("ط؛ظٹط± ظ…ط¤ظ‡ظ„", "ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ", "#777777", 0) };
     public string TeamId { get; set; } = string.Empty;
     public string TeamName { get; set; } = string.Empty;
     public TeamProfileModel SourceTeam { get; set; } = new();
@@ -370,7 +395,7 @@ public sealed class TeamStatisticsProfile
     public int Legacy { get; set; }
     public int Trust { get; set; }
     public int HighestWinStreak { get; set; }
-    public SafeStatusResult Status { get; set; } = new("غير مؤهل", "لا يستوفي الشروط", "#777777", 0);
+    public SafeStatusResult Status { get; set; } = new("ط؛ظٹط± ظ…ط¤ظ‡ظ„", "ظ„ط§ ظٹط³طھظˆظپظٹ ط§ظ„ط´ط±ظˆط·", "#777777", 0);
     public IReadOnlyList<StatisticsMatchRow> RecentMatches { get; set; } = Array.Empty<StatisticsMatchRow>();
     public IReadOnlyList<double> WinRateTrend { get; set; } = Array.Empty<double>();
     public IReadOnlyList<double> LegacyTrend { get; set; } = Array.Empty<double>();
@@ -380,7 +405,7 @@ public sealed class TeamStatisticsProfile
 
 public sealed class PlayerStatisticsProfile
 {
-    public static PlayerStatisticsProfile Empty { get; } = new() { PlayerName = "لا يوجد لاعب", PlayerId = string.Empty, Status = new("غير مؤهل", "لا توجد بيانات", "#777777", 0) };
+    public static PlayerStatisticsProfile Empty { get; } = new() { PlayerName = "ظ„ط§ ظٹظˆط¬ط¯ ظ„ط§ط¹ط¨", PlayerId = string.Empty, Status = new("ط؛ظٹط± ظ…ط¤ظ‡ظ„", "ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ", "#777777", 0) };
     public string PlayerId { get; set; } = string.Empty;
     public string PlayerName { get; set; } = string.Empty;
     public PlayerProfileModel SourcePlayer { get; set; } = new();
@@ -399,7 +424,7 @@ public sealed class PlayerStatisticsProfile
     public int MVP { get; set; }
     public int HallEntries { get; set; }
     public int Championships { get; set; }
-    public SafeStatusResult Status { get; set; } = new("غير مؤهل", "لا يستوفي الشروط", "#777777", 0);
+    public SafeStatusResult Status { get; set; } = new("ط؛ظٹط± ظ…ط¤ظ‡ظ„", "ظ„ط§ ظٹط³طھظˆظپظٹ ط§ظ„ط´ط±ظˆط·", "#777777", 0);
     public IReadOnlyList<StatisticsMatchRow> RecentMatches { get; set; } = Array.Empty<StatisticsMatchRow>();
     public IReadOnlyList<double> XpTrend { get; set; } = Array.Empty<double>();
     public IReadOnlyList<double> LevelTrend { get; set; } = Array.Empty<double>();

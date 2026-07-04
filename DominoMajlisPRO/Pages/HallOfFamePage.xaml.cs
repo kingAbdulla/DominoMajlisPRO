@@ -26,6 +26,9 @@ public partial class HallOfFamePage : ContentPage
 
         SideMenu.NavigationRequested -= OnSideMenuNavigation;
         SideMenu.NavigationRequested += OnSideMenuNavigation;
+
+        BottomNavigation.NavigationRequested -= OnBottomNavigation;
+        BottomNavigation.NavigationRequested += OnBottomNavigation;
     }
 
     protected override async void OnAppearing()
@@ -79,6 +82,7 @@ public partial class HallOfFamePage : ContentPage
         teamIdentities = await TeamIdentityResolver.ResolveManyAsync(
             teams.Select(team => team.TeamId));
         players = await PlayerProfileService.LoadPlayersAsync();
+        await PersistEligibleHallTeamsAsync();
 
         HallContainer.Opacity = 0;
 
@@ -200,7 +204,9 @@ public partial class HallOfFamePage : ContentPage
 
         var topPlayers =
             players
-            .Where(x => !string.IsNullOrWhiteSpace(x.PlayerName))
+            .Where(x =>
+                !string.IsNullOrWhiteSpace(x.PlayerName) &&
+                (x.IsHallOfLegendsMember || x.HallOfFameCount > 0))
             .OrderByDescending(x => x.LegacyScore)
             .ThenByDescending(x => x.PlayerXP)
             .ThenByDescending(x => x.Wins)
@@ -209,7 +215,8 @@ public partial class HallOfFamePage : ContentPage
 
         if (topPlayers.Count == 0)
         {
-            LoadFallbackPlayersFromTeams();
+            TopPlayersContainer.Children.Add(
+                CreateEmptyCard("لا يوجد لاعب دخل قاعة الأساطير وفق الشروط بعد"));
             return;
         }
 
@@ -1580,7 +1587,7 @@ public partial class HallOfFamePage : ContentPage
     {
         switch (destination)
         {
-            case "SETTINGS":
+            case "HOME":
                 await Navigation.PushAsync(new MainPage());
                 break;
 
@@ -1589,13 +1596,81 @@ public partial class HallOfFamePage : ContentPage
                 break;
 
             case "GAME":
-                await Navigation.PushAsync(new CreateTeamPage());
+                await OpenGameFromHallAsync();
                 break;
 
             case "STORE":
                 await Navigation.PushAsync(new GalleryEngine.Pages.GalleryPage());
                 break;
         }
+    }
+
+    async Task PersistEligibleHallTeamsAsync()
+    {
+        bool modified = false;
+
+        foreach (var result in GetTeamResults().Where(IsHallEligible))
+        {
+            var team =
+                teams.FirstOrDefault(x =>
+                    x.TeamId == result.Key ||
+                    x.TeamName == result.DisplayName);
+
+            if (team == null)
+                continue;
+
+            if (!team.HallOfFameMember)
+            {
+                team.HallOfFameMember = true;
+                modified = true;
+            }
+
+            if (team.HallOfFameDate == default)
+            {
+                team.HallOfFameDate = DateTime.Now;
+                modified = true;
+            }
+
+            if (!team.HasHallOfFameBadge)
+            {
+                team.HasHallOfFameBadge = true;
+                modified = true;
+            }
+        }
+
+        if (modified)
+            await TeamProfileService.SaveTeamsAsync(teams);
+    }
+
+    async Task OpenGameFromHallAsync()
+    {
+        var readyTeams =
+            teams
+            .Where(team => !string.IsNullOrWhiteSpace(team.TeamName))
+            .Take(2)
+            .ToList();
+
+        if (readyTeams.Count < 2)
+        {
+            await Navigation.PushAsync(new CreateTeamPage());
+            return;
+        }
+
+        var team1 = readyTeams[0];
+        var team2 = readyTeams[1];
+        await Navigation.PushAsync(
+            new GamePage(
+                team1.TeamName,
+                team2.TeamName,
+                $"{team1.Player1} + {team1.Player2}",
+                $"{team2.Player1} + {team2.Player2}",
+                team1.TeamId,
+                team2.TeamId,
+                team1.Player1Id,
+                team1.Player2Id,
+                team2.Player1Id,
+                team2.Player2Id,
+                "محلي"));
     }
 
     async void OnSideMenuNavigation(

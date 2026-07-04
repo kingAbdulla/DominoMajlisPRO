@@ -16,6 +16,7 @@ public sealed class TrendChartDrawable : IDrawable
     public ChartKind Kind { get; set; } = ChartKind.Line;
     public Color PrimaryColor { get; set; } = Color.FromArgb("#D4AE62");
     public Color SecondaryColor { get; set; } = Color.FromArgb("#69D84F");
+    public string CenterText { get; set; } = "";
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
@@ -30,6 +31,7 @@ public sealed class TrendChartDrawable : IDrawable
         if (Kind == ChartKind.Donut)
         {
             DrawDonut(canvas, dirtyRect);
+            DrawCenterText(canvas, dirtyRect);
             canvas.RestoreState();
             return;
         }
@@ -70,6 +72,8 @@ public sealed class TrendChartDrawable : IDrawable
             foreach (var point in points)
                 canvas.FillCircle(point, 3);
         }
+
+        DrawCenterText(canvas, dirtyRect);
 
         canvas.RestoreState();
     }
@@ -113,6 +117,24 @@ public sealed class TrendChartDrawable : IDrawable
         canvas.StrokeColor = color;
         canvas.StrokeSize = Math.Max(12, rect.Width * 0.16f);
         canvas.DrawArc(rect, start, sweep, false, false);
+    }
+
+    void DrawCenterText(ICanvas canvas, RectF rect)
+    {
+        if (string.IsNullOrWhiteSpace(CenterText))
+            return;
+
+        canvas.FontColor = Colors.White;
+        canvas.FontSize = Kind == ChartKind.Donut ? 22 : 16;
+        canvas.Font = Microsoft.Maui.Graphics.Font.DefaultBold;
+        canvas.DrawString(
+            CenterText,
+            rect.X,
+            rect.Center.Y - 14,
+            rect.Width,
+            28,
+            HorizontalAlignment.Center,
+            VerticalAlignment.Center);
     }
 }
 
@@ -214,15 +236,17 @@ public static class StatisticsDashboardUi
         return grid;
     }
 
-    public static View ChartCard(string title, IReadOnlyList<double> values, ChartKind kind, Color color)
+    public static View ChartCard(string title, IReadOnlyList<double> values, ChartKind kind, Color color, string centerText = "")
     {
         var chart = new GraphicsView
         {
             HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 150 : 190,
-            Drawable = new TrendChartDrawable { Values = values, Kind = kind, PrimaryColor = color }
+            Drawable = new TrendChartDrawable { Values = values, Kind = kind, PrimaryColor = color, CenterText = centerText }
         };
         var stack = new VerticalStackLayout { Spacing = 8 };
         stack.Children.Add(Label(title, 14, Color.FromArgb(Gold), true));
+        if (!string.IsNullOrWhiteSpace(centerText) && kind != ChartKind.Donut)
+            stack.Children.Add(Label(centerText, 13, Colors.White, true));
         stack.Children.Add(chart);
         return Frame(stack, 14, "#5B3B18", Card, 8);
     }
