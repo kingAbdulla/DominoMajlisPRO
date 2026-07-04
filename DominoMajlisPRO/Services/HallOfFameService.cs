@@ -156,6 +156,7 @@ public static class HallOfFameService
             result.IsHallEligible = result.Rules.All(x => x.Passed);
             result.RejectionReason = BuildRejectReason(result);
             result.DecisionWorkflow = BuildDecisionWorkflow(result);
+            result.AuditData = BuildAuditData(result);
             results.Add(result);
         }
 
@@ -254,25 +255,34 @@ public static class HallOfFameService
             ? 0
             : matches.Max(x => Math.Max(x.Team1Score, x.Team2Score));
 
-        var melesKing = teams
-            .OrderByDescending(x => x.MelesCount)
-            .FirstOrDefault();
+        var mostWins = teams.OrderByDescending(x => x.Wins).FirstOrDefault();
+        var melesKing = teams.OrderByDescending(x => x.MelesCount).FirstOrDefault();
+        var highestChampion = teams.OrderByDescending(x => x.ChampionStatus).FirstOrDefault();
+        var highestTrust = teams.OrderByDescending(x => x.TrustScore).FirstOrDefault();
+        var highestLegacy = teams.OrderByDescending(x => x.LegacyScore).FirstOrDefault();
+        var bestSeason = teams.OrderByDescending(x => x.SeasonActivity).FirstOrDefault();
+        var lowestLosses = teams.OrderBy(x => x.Losses).FirstOrDefault();
+        var mostXp = players.OrderByDescending(x => x.PlayerXP).FirstOrDefault();
+        var longestStreak = players.OrderByDescending(x => x.BestWinStreak).FirstOrDefault();
+        var mostMvp = players.OrderByDescending(x => x.MVPCount).FirstOrDefault();
+        var mostChampionPlayer = players.OrderByDescending(x => x.ChampionCount).FirstOrDefault();
 
         return new()
         {
-            BuildRecord("wins_gold.png", "اكثر فريق فاز", teams.OrderByDescending(x => x.Wins).FirstOrDefault()?.DisplayName ?? "-”", teams.OrderByDescending(x => x.Wins).FirstOrDefault()?.Wins.ToString() ?? "0"),
-            BuildRecord("meles_badge_gold.png", "اكثر فريق حقق ملص", melesKing?.DisplayName ?? "-", melesKing?.MelesCount.ToString() ?? "0"),
-            BuildRecord("fast_round_gold.png", "اسرع جولة", "الزمن", fastest == null ? "-”" : $"{fastest.MatchDurationMinutes} د"),
-            BuildRecord("highest_score_gold.png", "اكثر نقاط", "Score", highestScore.ToString()),
-            BuildRecord("trophy_3d.png", "اكثر البطولات", teams.OrderByDescending(x => x.ChampionStatus).FirstOrDefault()?.DisplayName ?? "-”", teams.Max(x => x.ChampionStatus).ToString()),
-            BuildRecord("halloffame_gold.png", "اكثر مداخلات", players.OrderByDescending(x => x.HallOfFameCount).FirstOrDefault()?.PlayerName ?? "-”", players.Select(x => x.HallOfFameCount).DefaultIfEmpty(0).Max().ToString()),
-            BuildRecord("trust_gold.png", "اعلى ثقة", teams.OrderByDescending(x => x.TrustScore).FirstOrDefault()?.DisplayName ?? "-”", teams.Select(x => x.TrustScore).DefaultIfEmpty(0).Max().ToString()),
-            BuildRecord("xp_gold.png", "اعلى تراث", teams.OrderByDescending(x => x.LegacyScore).FirstOrDefault()?.DisplayName ?? "-”", teams.Select(x => x.LegacyScore).DefaultIfEmpty(0).Max().ToString()),
-            BuildRecord("joystick_gold.png", "اكثر مواسم", teams.OrderByDescending(x => x.SeasonActivity).FirstOrDefault()?.DisplayName ?? "-”", teams.Select(x => x.SeasonActivity).DefaultIfEmpty(0).Max().ToString()),
-            BuildRecord("rankings_gold_icon.png", "اقل خسائر", teams.OrderBy(x => x.Losses).FirstOrDefault()?.DisplayName ?? "-”", teams.Select(x => x.Losses).DefaultIfEmpty(0).Min().ToString())
+            BuildRecord("wins_gold.png", "Most Wins", mostWins?.DisplayName ?? "-", mostWins?.Wins.ToString() ?? "0"),
+            BuildRecord("meles_badge_gold.png", "Most Meles", melesKing?.DisplayName ?? "-", melesKing?.MelesCount.ToString() ?? "0"),
+            BuildRecord("fast_round_gold.png", "Fastest Match", "Time", fastest == null ? "-" : $"{fastest.MatchDurationMinutes} m"),
+            BuildRecord("highest_score_gold.png", "Highest Score", "Score", highestScore.ToString()),
+            BuildRecord("trust_gold.png", "Highest Trust", highestTrust?.DisplayName ?? "-", highestTrust?.TrustScore.ToString() ?? "0"),
+            BuildRecord("xp_gold.png", "Highest Legacy", highestLegacy?.DisplayName ?? "-", highestLegacy?.LegacyScore.ToString() ?? "0"),
+            BuildRecord("diamond.png", "Most XP", mostXp?.PlayerName ?? "-", mostXp?.PlayerXP.ToString() ?? "0"),
+            BuildRecord("champion_gold.png", "Longest Winning Streak", longestStreak?.PlayerName ?? "-", longestStreak?.BestWinStreak.ToString() ?? "0"),
+            BuildRecord("rankings_gold_icon.png", "Lowest Losses", lowestLosses?.DisplayName ?? "-", lowestLosses?.Losses.ToString() ?? "0"),
+            BuildRecord("developer_gold.png", "Most MVP", mostMvp?.PlayerName ?? "-", mostMvp?.MVPCount.ToString() ?? "0"),
+            BuildRecord("trophy_3d.png", "Most Champion", mostChampionPlayer?.PlayerName ?? highestChampion?.DisplayName ?? "-", mostChampionPlayer?.ChampionCount.ToString() ?? highestChampion?.ChampionStatus.ToString() ?? "0"),
+            BuildRecord("joystick_gold.png", "Best Season", bestSeason?.DisplayName ?? "-", bestSeason?.SeasonActivity.ToString() ?? "0")
         };
     }
-
     public static List<HallStatisticResult> BuildStatistics(
         IReadOnlyList<SavedMatch> matches,
         IReadOnlyList<TeamLegendResult> teamResults,
@@ -367,7 +377,7 @@ public static class HallOfFameService
         var checks = new List<HallConstitutionCheck>
         {
             new("Presumption Of Innocence", teams.All(x => x.EvidenceStatus != "Watch" || x.Rules.All(r => r.Article != "Article 14" || r.Passed)), "Suspicion alone never rejects Hall admission."),
-            new("Audit", teams.All(x => x.DecisionWorkflow.Any(step => step.Stage == "Audit Log")), "Every team decision exposes an audit step."),
+            new("Audit", teams.All(x => x.DecisionWorkflow.Any(step => step.Stage == "Audit Log") && !string.IsNullOrWhiteSpace(x.AuditData)), "Every team decision exposes audit data."),
             new("Integrity", teams.All(x => x.Rules.Any(r => r.Article == "Article 2")), "Integrity is evaluated independently."),
             new("Trust", teams.All(x => x.Rules.Any(r => r.Article == "Article 3")), "Trust score is explicit."),
             new("Hall Constitution", HallOfLegendsConstitutionService.GetArticles().Count >= 17, "Constitution articles are loaded."),
@@ -486,6 +496,27 @@ public static class HallOfFameService
             new("Audit Log", true, $"FinalHallScore={result.FinalHallScore}; Trust={result.TrustScore}; Legacy={result.LegacyScore}"),
             new("Notification", true, result.IsHallEligible ? "Hall member visible in snapshot." : "Candidate receives missing requirements.")
         };
+
+    static string BuildAuditData(TeamLegendResult result)
+    {
+        string failedArticles =
+            string.Join(
+                ",",
+                result.Rules
+                    .Where(rule => !rule.Passed)
+                    .Select(rule => rule.Article));
+
+        return string.Join(
+            " | ",
+            $"Team={result.Key}",
+            $"Decision={(result.IsHallEligible ? "Accepted" : "Candidate")}",
+            $"Evidence={result.EvidenceStatus}",
+            $"AntiCheat={result.AntiCheatStatus}",
+            $"Trust={result.TrustScore}",
+            $"Legacy={result.LegacyScore}",
+            $"Final={result.FinalHallScore}",
+            $"Failed={failedArticles}");
+    }
 
     static string BuildTeamHistory(TeamProfileModel? team)
     {
@@ -705,6 +736,7 @@ public sealed class TeamLegendResult
     public int FinalHallScore { get; set; }
     public bool IsHallEligible { get; set; }
     public string RejectionReason { get; set; } = "";
+    public string AuditData { get; set; } = "";
     public DateTime? EntryDate { get; set; }
     public List<HallConstitutionRuleResult> Rules { get; set; } = new();
     public List<HallDecisionStep> DecisionWorkflow { get; set; } = new();

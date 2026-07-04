@@ -1,7 +1,6 @@
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
-using System.Reflection;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Components;
@@ -12,8 +11,6 @@ namespace DominoMajlisPRO.Pages;
 public partial class HallOfFamePage : ContentPage
 {
     HallOfFameSnapshot snapshot = new();
-    IReadOnlyList<SavedMatch> matches => snapshot.Matches;
-    IReadOnlyList<TeamProfileModel> teams => snapshot.Teams;
     IReadOnlyDictionary<string, TeamIdentityModel> teamIdentities =
         new Dictionary<string, TeamIdentityModel>(
             StringComparer.OrdinalIgnoreCase);
@@ -45,6 +42,9 @@ public partial class HallOfFamePage : ContentPage
         AppEvents.TeamsChanged -= OnHallDataChanged;
         AppEvents.RankingsChanged -= OnHallDataChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.TeamEffectChanged -= OnTeamAssetsChanged;
+        AppEvents.StoreEconomyChanged -= OnStoreIdentityChanged;
+        AppEvents.StoreProgressChanged -= OnStoreIdentityChanged;
 
         AppEvents.DataChanged += OnHallDataChanged;
         AppEvents.PlayerProfileChanged += OnHallDataChanged;
@@ -52,6 +52,9 @@ public partial class HallOfFamePage : ContentPage
         AppEvents.TeamsChanged += OnHallDataChanged;
         AppEvents.RankingsChanged += OnHallDataChanged;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
+        AppEvents.TeamEffectChanged += OnTeamAssetsChanged;
+        AppEvents.StoreEconomyChanged += OnStoreIdentityChanged;
+        AppEvents.StoreProgressChanged += OnStoreIdentityChanged;
 
         await LoadHallOfFameAsync();
     }
@@ -66,23 +69,27 @@ public partial class HallOfFamePage : ContentPage
         AppEvents.TeamsChanged -= OnHallDataChanged;
         AppEvents.RankingsChanged -= OnHallDataChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.TeamEffectChanged -= OnTeamAssetsChanged;
+        AppEvents.StoreEconomyChanged -= OnStoreIdentityChanged;
+        AppEvents.StoreProgressChanged -= OnStoreIdentityChanged;
     }
 
     async void OnHallDataChanged()
     {
+        HallOfFameService.InvalidateCache();
         await MainThread.InvokeOnMainThreadAsync(
             async () =>
             {
-                await LoadHallOfFameAsync();
+                await LoadHallOfFameAsync(forceRefresh: true);
             });
     }
 
     void OnTeamAssetsChanged(string teamId) => OnHallDataChanged();
+    void OnStoreIdentityChanged(string playerId) => OnHallDataChanged();
 
-    async Task LoadHallOfFameAsync()
+    async Task LoadHallOfFameAsync(bool forceRefresh = false)
     {
-        HallOfFameService.InvalidateCache();
-        snapshot = await HallOfFameService.LoadAsync(forceRefresh: true);
+        snapshot = await HallOfFameService.LoadAsync(forceRefresh);
         teamIdentities = await TeamIdentityResolver.ResolveManyAsync(
             snapshot.Teams.Select(team => team.TeamId));
         teamNameTypographies = await ResolveTeamNameTypographiesAsync(
@@ -273,8 +280,9 @@ public partial class HallOfFamePage : ContentPage
     {
         var candidates =
             snapshot.Candidates
-            .Take(4)
             .ToList();
+
+        CandidatesSection.IsVisible = candidates.Count > 0;
 
         foreach (var candidate in candidates)
         {
@@ -286,108 +294,11 @@ public partial class HallOfFamePage : ContentPage
     void LoadLegendaryRecords()
     {
         RenderLegendaryRecordsFromSnapshot();
-        return;
-
-        var teamResults =
-            GetTeamResults()
-            .OrderByDescending(x => x.Wins)
-            .FirstOrDefault();
-
-        var fastest =
-            matches
-            .Where(x => x.MatchDurationMinutes > 0)
-            .OrderBy(x => x.MatchDurationMinutes)
-            .FirstOrDefault();
-
-        int highestScore =
-            matches.Count == 0
-                ? 0
-                : matches.Max(x => Math.Max(x.Team1Score, x.Team2Score));
-
-        var melesKing =
-            matches
-            .Where(x => x.HasMeles)
-            .GroupBy(x => GetWinnerDisplayName(x))
-            .OrderByDescending(x => x.Count())
-            .FirstOrDefault();
-
-        Grid recordsGrid =
-            new()
-            {
-                ColumnDefinitions =
-                {
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Star }
-                },
-                RowDefinitions =
-                {
-                    new RowDefinition { Height = GridLength.Auto },
-                    new RowDefinition { Height = GridLength.Auto }
-                },
-                ColumnSpacing = 8,
-                RowSpacing = 8
-            };
-
-        AddRecordCard(
-            recordsGrid,
-            "wins_gold.png",
-            "أكثر فريق فاز",
-            teamResults?.DisplayName ?? "—",
-            teamResults?.Wins.ToString() ?? "0",
-            0,
-            0);
-
-        AddRecordCard(
-            recordsGrid,
-            "meles_badge_gold.png",
-            "ملك الملص",
-            melesKing?.Key ?? "—",
-            melesKing?.Count().ToString() ?? "0",
-            1,
-            0);
-
-        AddRecordCard(
-            recordsGrid,
-            "fast_round_gold.png",
-            "أسرع مباراة",
-            "الزمن",
-            fastest == null ? "—" : $"{fastest.MatchDurationMinutes} د",
-            0,
-            1);
-
-        AddRecordCard(
-            recordsGrid,
-            "highest_score_gold.png",
-            "أعلى نتيجة",
-            "Score",
-            highestScore.ToString(),
-            1,
-            1);
-
-        RecordsContainer.Children.Add(recordsGrid);
     }
 
     void LoadStatistics()
     {
         RenderStatisticsFromSnapshot();
-        return;
-
-        var allResults = GetTeamResults();
-        var eligible = GetEligibleHallTeams();
-
-        int totalMatches = matches.Count;
-
-        int highestScore =
-            matches.Count == 0
-                ? 0
-                : matches.Max(x => Math.Max(x.Team1Score, x.Team2Score));
-
-        AddStat("all_gold.png", "المرشحون", allResults.Count.ToString(), 0, 0);
-        AddStat("trophy_3d.png", "المؤهلون", eligible.Count.ToString(), 1, 0);
-        AddStat("joystick_gold.png", "المباريات", totalMatches.ToString(), 2, 0);
-        AddStat("target_3d.png", "أعلى نتيجة", highestScore.ToString(), 0, 1);
-        AddStat("xp_gold.png", "Legacy", eligible.Sum(x => x.LegacyScore).ToString(), 1, 1);
-        AddStat("halloffame_gold.png", "الدستور", "Active", 2, 1);
     }
 
     void RenderLegendaryRecordsFromSnapshot()
@@ -488,6 +399,28 @@ public partial class HallOfFamePage : ContentPage
                 HorizontalTextAlignment = TextAlignment.Center
             });
 
+        teamIdentities.TryGetValue(team.Key, out var identity);
+
+        var emblemHost = new Grid
+        {
+            HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 72 : 98
+        };
+
+        var backgroundSource =
+            InventoryDisplayResolver.ResolveOptionalImageSource(
+                identity?.EmblemBackgroundSource);
+        if (backgroundSource != null)
+        {
+            emblemHost.Add(
+                new Image
+                {
+                    Source = backgroundSource,
+                    Aspect = Aspect.AspectFill,
+                    Opacity = 0.48,
+                    InputTransparent = true
+                });
+        }
+
         var teamEmblem = new Image
         {
             Source = shield,
@@ -496,11 +429,8 @@ public partial class HallOfFamePage : ContentPage
             HorizontalOptions = LayoutOptions.Center
         };
         TeamEffectBehavior.SetTeamId(teamEmblem, team.Key);
-        layout.Children.Add(new Grid
-        {
-            HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 72 : 98,
-            Children = { teamEmblem }
-        });
+        emblemHost.Add(teamEmblem);
+        layout.Children.Add(emblemHost);
 
         layout.Children.Add(
             CreateTeamNameView(
@@ -543,6 +473,12 @@ public partial class HallOfFamePage : ContentPage
 
     string GetTeamRankIcon(TeamLegendResult result)
     {
+        if (teamIdentities.TryGetValue(result.Key, out var identity) &&
+            !string.IsNullOrWhiteSpace(identity.EmblemImagePath))
+        {
+            return identity.EmblemImagePath;
+        }
+
         var team = snapshot.Teams.FirstOrDefault(item =>
             string.Equals(item.TeamId, result.Key, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(item.TeamName, result.DisplayName, StringComparison.OrdinalIgnoreCase));
@@ -1033,6 +969,49 @@ public partial class HallOfFamePage : ContentPage
                 HeightRequest = 6
             });
 
+        middle.Children.Add(CreateCandidateProgressRow("Trust", candidate.TrustProgress));
+        middle.Children.Add(CreateCandidateProgressRow("Legacy", candidate.LegacyProgress));
+        middle.Children.Add(CreateCandidateProgressRow("Matches", candidate.MatchesProgress));
+        middle.Children.Add(CreateCandidateProgressRow("WinRate", candidate.WinRateProgress));
+        middle.Children.Add(CreateCandidateProgressRow("Achievement", candidate.AchievementProgress));
+        middle.Children.Add(CreateCandidateProgressRow("Integrity", candidate.IntegrityProgress));
+
+        middle.Children.Add(
+            new Label
+            {
+                Text = $"Missing: {string.Join(", ", candidate.MissingRequirements)}",
+                FontFamily = "timesbi",
+                TextColor = Color.FromArgb("#9E8A66"),
+                FontSize = 9,
+                HorizontalTextAlignment = TextAlignment.End,
+                MaxLines = 2,
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+
+        middle.Children.Add(
+            new Label
+            {
+                Text = $"Remaining: {candidate.EstimatedRemaining}",
+                FontFamily = "timesbi",
+                TextColor = Color.FromArgb("#D4AE62"),
+                FontSize = 9,
+                HorizontalTextAlignment = TextAlignment.End,
+                MaxLines = 2,
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+
+        middle.Children.Add(
+            new Label
+            {
+                Text = $"Audit: {team.AuditData}",
+                FontFamily = "timesbi",
+                TextColor = Color.FromArgb("#8F6730"),
+                FontSize = 8,
+                HorizontalTextAlignment = TextAlignment.End,
+                MaxLines = 2,
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+
         Grid.SetColumn(middle, 1);
         root.Children.Add(middle);
 
@@ -1081,6 +1060,60 @@ public partial class HallOfFamePage : ContentPage
         card.Content = root;
 
         return card;
+    }
+
+    View CreateCandidateProgressRow(
+        string title,
+        double progress)
+    {
+        Grid row =
+            new()
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = 82 },
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = 42 }
+                },
+                ColumnSpacing = 6
+            };
+
+        row.Add(
+            new Label
+            {
+                Text = title,
+                TextColor = Color.FromArgb("#C8B58A"),
+                FontFamily = "timesbi",
+                FontSize = 9,
+                MaxLines = 1,
+                LineBreakMode = LineBreakMode.TailTruncation
+            });
+
+        var bar =
+            new ProgressBar
+            {
+                Progress = progress,
+                ProgressColor = Color.FromArgb("#D4AE62"),
+                BackgroundColor = Color.FromArgb("#252525"),
+                HeightRequest = 5,
+                VerticalOptions = LayoutOptions.Center
+            };
+        Grid.SetColumn(bar, 1);
+        row.Add(bar);
+
+        var value =
+            new Label
+            {
+                Text = $"{progress * 100:0}%",
+                TextColor = Color.FromArgb("#888888"),
+                FontFamily = "timesbi",
+                FontSize = 9,
+                HorizontalTextAlignment = TextAlignment.End
+            };
+        Grid.SetColumn(value, 2);
+        row.Add(value);
+
+        return row;
     }
 
     View CreateRecordEmptyGrid()
@@ -1398,253 +1431,6 @@ public partial class HallOfFamePage : ContentPage
             };
 
         return card;
-    }
-
-    List<TeamLegendResult> GetTeamResults()
-    {
-        var allKeys =
-            matches
-            .SelectMany(x =>
-                new[]
-                {
-                    GetTeam1Key(x),
-                    GetTeam2Key(x)
-                })
-            .Where(x =>
-                !string.IsNullOrWhiteSpace(x))
-            .Distinct()
-            .ToList();
-
-        List<TeamLegendResult> results =
-            new();
-
-        foreach (string key in allKeys)
-        {
-            int total =
-                matches.Count(x =>
-                    GetTeam1Key(x) == key ||
-                    GetTeam2Key(x) == key);
-
-            int wins =
-                matches.Count(x =>
-                    GetWinnerKey(x) == key);
-
-            if (total == 0)
-                continue;
-
-            double winRate =
-                (double)wins / total * 100;
-
-            int meles =
-                matches.Count(x =>
-                    GetWinnerKey(x) == key &&
-                    x.HasMeles);
-
-            int legacy =
-                wins * 100 +
-                meles * 50 +
-                (int)winRate;
-
-            results.Add(
-                new TeamLegendResult
-                {
-                    Key = key,
-                    DisplayName = GetTeamDisplayName(key),
-                    Wins = wins,
-                    TotalMatches = total,
-                    WinRate = winRate,
-                    MelesCount = meles,
-                    LegacyScore = legacy
-                });
-        }
-
-        return results;
-    }
-
-    List<TeamLegendResult> GetEligibleHallTeams()
-    {
-        return GetTeamResults()
-            .Where(IsHallEligible)
-            .OrderByDescending(x => x.LegacyScore)
-            .ThenByDescending(x => x.WinRate)
-            .ToList();
-    }
-
-    bool IsHallEligible(
-        TeamLegendResult result)
-    {
-        var team =
-            teams.FirstOrDefault(x =>
-                x.TeamId == result.Key ||
-                x.TeamName == result.DisplayName);
-
-        int trust =
-            team?.TrustScore ?? 100;
-
-        bool suspicious =
-            team?.IsSuspicious ?? false;
-
-        if (result.LegacyScore < 300)
-            return false;
-
-        if (result.TotalMatches < 20)
-            return false;
-
-        if (trust < 95)
-            return false;
-
-        if (result.WinRate < 60)
-            return false;
-
-        if (suspicious)
-            return false;
-
-        return true;
-    }
-
-    string GetCandidateRejectReason(
-        TeamLegendResult result)
-    {
-        var team =
-            teams.FirstOrDefault(x =>
-                x.TeamId == result.Key ||
-                x.TeamName == result.DisplayName);
-
-        int trust =
-            team?.TrustScore ?? 100;
-
-        bool suspicious =
-            team?.IsSuspicious ?? false;
-
-        if (result.LegacyScore < 300)
-            return "يحتاج Legacy أعلى";
-
-        if (result.TotalMatches < 20)
-            return $"يحتاج مباريات أكثر ({result.TotalMatches}/20)";
-
-        if (trust < 95)
-            return $"Trust Score غير كاف ({trust}/95)";
-
-        if (result.WinRate < 60)
-            return $"Win Rate أقل من المطلوب ({result.WinRate:0}%)";
-
-        if (suspicious)
-            return "الفريق تحت المراجعة";
-
-        return "قريب من التأهل";
-    }
-
-    string GetTeam1Key(
-        SavedMatch match)
-    {
-        string id =
-            GetTextProperty(
-                match,
-                "Team1Id",
-                "Team1ID");
-
-        return string.IsNullOrWhiteSpace(id)
-            ? match.Team1Name
-            : id;
-    }
-
-    string GetTeam2Key(
-        SavedMatch match)
-    {
-        string id =
-            GetTextProperty(
-                match,
-                "Team2Id",
-                "Team2ID");
-
-        return string.IsNullOrWhiteSpace(id)
-            ? match.Team2Name
-            : id;
-    }
-
-    string GetWinnerKey(
-        SavedMatch match)
-    {
-        string id =
-            GetTextProperty(
-                match,
-                "WinnerTeamId",
-                "WinnerTeamID");
-
-        return string.IsNullOrWhiteSpace(id)
-            ? match.WinnerTeam
-            : id;
-    }
-
-    string GetWinnerDisplayName(
-        SavedMatch match)
-    {
-        return GetTeamDisplayName(
-            GetWinnerKey(match));
-    }
-
-    string GetTeamDisplayName(
-        string key)
-    {
-        var team =
-            teams.FirstOrDefault(x =>
-                x.TeamId == key);
-
-        if (team != null &&
-            !string.IsNullOrWhiteSpace(team.TeamName))
-        {
-            return team.TeamName;
-        }
-
-        return key;
-    }
-
-    string GetCurrentSeasonText()
-    {
-        try
-        {
-            int season =
-                SeasonManager
-                    .GetCurrentSeasonNumber(teams.ToList());
-
-            return season <= 0
-                ? "—"
-                : season.ToString();
-        }
-        catch
-        {
-            return "—";
-        }
-    }
-
-    string GetTextProperty(
-        object source,
-        params string[] names)
-    {
-        foreach (string name in names)
-        {
-            PropertyInfo? prop =
-                source
-                .GetType()
-                .GetProperty(name);
-
-            if (prop == null)
-                continue;
-
-            object? value =
-                prop.GetValue(source);
-
-            if (value == null)
-                continue;
-
-            string text =
-                value.ToString() ?? "";
-
-            if (!string.IsNullOrWhiteSpace(text))
-                return text;
-        }
-
-        return "";
     }
 
     async Task AnimatePageAsync()
