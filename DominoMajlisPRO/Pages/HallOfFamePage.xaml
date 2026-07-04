@@ -132,14 +132,15 @@
                         <BoxView BackgroundColor="#3D000000"/>
 
                         <Border
-                            WidthRequest="{OnIdiom Phone=100, Tablet=200, Desktop=255}"
+                            WidthRequest="{OnIdiom Phone=160, Tablet=200, Desktop=255}"
                             Margin="{OnIdiom Phone='14,14,0,14', Tablet='30,28,0,28', Desktop='34,30,0,30'}"
                             Padding="{OnIdiom Phone=5, Tablet=9, Desktop=13}"
                             HorizontalOptions="Start"
                             VerticalOptions="Center"
-                            BackgroundColor="#E0050505"
+                            BackgroundColor="#20000000"
                             Stroke="#C8943A"
                             StrokeThickness="0.85"
+                            
                             StrokeShape="RoundRectangle 26"
                             FlowDirection="RightToLeft">
 

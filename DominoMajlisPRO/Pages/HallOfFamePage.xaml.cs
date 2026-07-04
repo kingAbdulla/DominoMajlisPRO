@@ -4,16 +4,21 @@ using Microsoft.Maui.Controls.Shapes;
 using System.Reflection;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Components;
+using DominoMajlisPRO.GalleryEngine.Pages;
 
 namespace DominoMajlisPRO.Pages;
 
 public partial class HallOfFamePage : ContentPage
 {
-    List<SavedMatch> matches = new();
-    List<TeamProfileModel> teams = new();
-    List<PlayerProfileModel> players = new();
+    HallOfFameSnapshot snapshot = new();
+    IReadOnlyList<SavedMatch> matches => snapshot.Matches;
+    IReadOnlyList<TeamProfileModel> teams => snapshot.Teams;
     IReadOnlyDictionary<string, TeamIdentityModel> teamIdentities =
         new Dictionary<string, TeamIdentityModel>(
+            StringComparer.OrdinalIgnoreCase);
+    IReadOnlyDictionary<string, NameTypographyIdentity> teamNameTypographies =
+        new Dictionary<string, NameTypographyIdentity>(
             StringComparer.OrdinalIgnoreCase);
 
     const string CardGlass = "#151515";
@@ -26,6 +31,8 @@ public partial class HallOfFamePage : ContentPage
 
         SideMenu.NavigationRequested -= OnSideMenuNavigation;
         SideMenu.NavigationRequested += OnSideMenuNavigation;
+        BottomNavigation.NavigationRequested -= OnBottomNavigation;
+        BottomNavigation.NavigationRequested += OnBottomNavigation;
     }
 
     protected override async void OnAppearing()
@@ -74,17 +81,18 @@ public partial class HallOfFamePage : ContentPage
 
     async Task LoadHallOfFameAsync()
     {
-        matches = await GameService.LoadMatchesAsync();
-        teams = await TeamProfileService.LoadTeamsAsync();
+        HallOfFameService.InvalidateCache();
+        snapshot = await HallOfFameService.LoadAsync(forceRefresh: true);
         teamIdentities = await TeamIdentityResolver.ResolveManyAsync(
-            teams.Select(team => team.TeamId));
-        players = await PlayerProfileService.LoadPlayersAsync();
+            snapshot.Teams.Select(team => team.TeamId));
+        teamNameTypographies = await ResolveTeamNameTypographiesAsync(
+            snapshot.Teams.Select(team => team.TeamId));
 
         HallContainer.Opacity = 0;
 
         ClearDynamicSections();
 
-        if (matches.Count == 0)
+        if (snapshot.Matches.Count == 0)
         {
             LoadEmptyState();
             await AnimatePageAsync();
@@ -138,11 +146,9 @@ public partial class HallOfFamePage : ContentPage
 
     void LoadHeroChampion()
     {
-        var champion =
-            GetEligibleHallTeams()
-            .FirstOrDefault();
+        var champion = snapshot.Hero;
 
-        SeasonNumberLabel.Text = GetCurrentSeasonText();
+        SeasonNumberLabel.Text = snapshot.SeasonText;
 
         if (champion == null)
         {
@@ -154,7 +160,7 @@ public partial class HallOfFamePage : ContentPage
             return;
         }
 
-        HeroTeamNameLabel.Text = champion.DisplayName;
+        HeroTeamNameLabel.Text = champion.TeamName;
         HeroSubtitleLabel.Text = "دخل قاعة الأساطير وفق الدستور";
         HeroWinsLabel.Text = champion.Wins.ToString();
         HeroWinRateLabel.Text = $"{champion.WinRate:0}%";
@@ -164,7 +170,7 @@ public partial class HallOfFamePage : ContentPage
     void LoadTopTeams()
     {
         var topTeams =
-            GetEligibleHallTeams()
+            snapshot.TeamHall
             .Take(6)
             .ToList();
 
@@ -196,14 +202,8 @@ public partial class HallOfFamePage : ContentPage
 
     async Task LoadTopPlayersAsync()
     {
-        players = await PlayerProfileService.LoadPlayersAsync();
-
         var topPlayers =
-            players
-            .Where(x => !string.IsNullOrWhiteSpace(x.PlayerName))
-            .OrderByDescending(x => x.LegacyScore)
-            .ThenByDescending(x => x.PlayerXP)
-            .ThenByDescending(x => x.Wins)
+            snapshot.PlayerHall
             .Take(6)
             .ToList();
 
@@ -238,7 +238,7 @@ public partial class HallOfFamePage : ContentPage
     void LoadFallbackPlayersFromTeams()
     {
         var playerNames =
-            teams
+            snapshot.Teams
             .SelectMany(x => new[] { x.Player1, x.Player2 })
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Distinct()
@@ -272,9 +272,7 @@ public partial class HallOfFamePage : ContentPage
     void LoadCandidates()
     {
         var candidates =
-            GetTeamResults()
-            .Where(x => !IsHallEligible(x))
-            .OrderByDescending(x => x.LegacyScore)
+            snapshot.Candidates
             .Take(4)
             .ToList();
 
@@ -287,6 +285,9 @@ public partial class HallOfFamePage : ContentPage
 
     void LoadLegendaryRecords()
     {
+        RenderLegendaryRecordsFromSnapshot();
+        return;
+
         var teamResults =
             GetTeamResults()
             .OrderByDescending(x => x.Wins)
@@ -368,6 +369,9 @@ public partial class HallOfFamePage : ContentPage
 
     void LoadStatistics()
     {
+        RenderStatisticsFromSnapshot();
+        return;
+
         var allResults = GetTeamResults();
         var eligible = GetEligibleHallTeams();
 
@@ -384,6 +388,54 @@ public partial class HallOfFamePage : ContentPage
         AddStat("target_3d.png", "أعلى نتيجة", highestScore.ToString(), 0, 1);
         AddStat("xp_gold.png", "Legacy", eligible.Sum(x => x.LegacyScore).ToString(), 1, 1);
         AddStat("halloffame_gold.png", "الدستور", "Active", 2, 1);
+    }
+
+    void RenderLegendaryRecordsFromSnapshot()
+    {
+        Grid recordsGrid =
+            new()
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Star }
+                },
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition { Height = GridLength.Auto }
+                },
+                ColumnSpacing = 8,
+                RowSpacing = 8
+            };
+
+        var records = snapshot.Records.Take(4).ToList();
+        for (int index = 0; index < records.Count; index++)
+        {
+            AddRecordCard(
+                recordsGrid,
+                records[index].Icon,
+                records[index].Title,
+                records[index].Subtitle,
+                records[index].Value,
+                index % 2,
+                index / 2);
+        }
+
+        RecordsContainer.Children.Add(recordsGrid);
+    }
+
+    void RenderStatisticsFromSnapshot()
+    {
+        for (int index = 0; index < snapshot.Statistics.Count; index++)
+        {
+            AddStat(
+                snapshot.Statistics[index].Icon,
+                snapshot.Statistics[index].Title,
+                snapshot.Statistics[index].Value,
+                index % 3,
+                index / 3);
+        }
     }
 
     View CreateTeamLegendCard(
@@ -451,16 +503,10 @@ public partial class HallOfFamePage : ContentPage
         });
 
         layout.Children.Add(
-            new Label
-            {
-                Text = team.DisplayName,
-                TextColor = Colors.White,
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 15 : 19,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
+            CreateTeamNameView(
+                team,
+                DeviceInfo.Idiom == DeviceIdiom.Phone ? 15 : 19,
+                260));
 
         layout.Children.Add(
             new Label
@@ -497,7 +543,7 @@ public partial class HallOfFamePage : ContentPage
 
     string GetTeamRankIcon(TeamLegendResult result)
     {
-        var team = teams.FirstOrDefault(item =>
+        var team = snapshot.Teams.FirstOrDefault(item =>
             string.Equals(item.TeamId, result.Key, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(item.TeamName, result.DisplayName, StringComparison.OrdinalIgnoreCase));
         var rank = team?.Rank ?? "Unranked";
@@ -542,8 +588,32 @@ public partial class HallOfFamePage : ContentPage
 
     View CreatePlayerLegendCard(
         int rank,
-        PlayerProfileModel player,
+        PlayerHallResult hallPlayer,
         PlayerVisualIdentity? identity)
+    {
+        if (hallPlayer.Player == null)
+        {
+            return CreatePlayerLegendCard(
+                rank,
+                hallPlayer.PlayerName,
+                hallPlayer.FinalHallScore,
+                hallPlayer.Category);
+        }
+
+        return CreatePlayerLegendCard(
+            rank,
+            hallPlayer.Player,
+            identity,
+            hallPlayer.Category,
+            hallPlayer.FinalHallScore);
+    }
+
+    View CreatePlayerLegendCard(
+        int rank,
+        PlayerProfileModel player,
+        PlayerVisualIdentity? identity,
+        string? hallCategory = null,
+        int hallScore = 0)
     {
         PlayerEngine.Normalize(player);
 
@@ -568,9 +638,11 @@ public partial class HallOfFamePage : ContentPage
                 PlayerProfileService.GetPlayerImageSource(player),
                 player.PlayerName,
                 identity?.Title == null
-                    ? rankResult.DisplayName
+                    ? string.IsNullOrWhiteSpace(hallCategory)
+                        ? rankResult.DisplayName
+                        : $"{rankResult.DisplayName} â€¢ {hallCategory}"
                     : $"{rankResult.DisplayName} • {identity.Title.DisplayName}",
-                player.LegacyScore.ToString(),
+                (hallScore > 0 ? hallScore : player.LegacyScore).ToString(),
                 identity);
 
         var surface = new Grid();
@@ -652,6 +724,30 @@ public partial class HallOfFamePage : ContentPage
             });
     }
 
+    View CreateTeamNameView(
+        TeamLegendResult result,
+        double fontSize,
+        double maxWidth)
+    {
+        var team = snapshot.Teams.FirstOrDefault(item =>
+            string.Equals(item.TeamId, result.Key, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.TeamName, result.DisplayName, StringComparison.OrdinalIgnoreCase));
+        NameTypographyIdentity? typography = null;
+        if (!string.IsNullOrWhiteSpace(team?.TeamId))
+        {
+            teamNameTypographies.TryGetValue(
+                team.TeamId,
+                out typography);
+        }
+
+        return CreateNamePlate(
+            result.DisplayName,
+            typography,
+            fontSize,
+            Colors.White,
+            maxWidth);
+    }
+
     static void AddPlayerEffect(
         Grid container,
         CatalogAssetDisplay? effect,
@@ -667,6 +763,54 @@ public partial class HallOfFamePage : ContentPage
         };
         PlayerEffectEngine.Apply(overlay, effect, baseScale);
         container.Add(overlay);
+    }
+
+    static async Task<IReadOnlyDictionary<string, NameTypographyIdentity>> ResolveTeamNameTypographiesAsync(
+        IEnumerable<string> teamIds)
+    {
+        Dictionary<string, NameTypographyIdentity> resolved =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string teamId in teamIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var identity = await NameTypographyResolver.ResolveTeamAsync(teamId);
+            if (identity != null)
+                resolved[teamId] = identity;
+        }
+
+        return resolved;
+    }
+
+    static View CreateNamePlate(
+        string text,
+        NameTypographyIdentity? typography,
+        double fontSize,
+        Color textColor,
+        double maxWidth)
+    {
+        Grid plate = new()
+        {
+            WidthRequest = maxWidth,
+            HorizontalOptions = LayoutOptions.Center
+        };
+
+        AddPlayerOverlay(plate, typography?.NameFrame?.PreviewImage);
+        AddPlayerEffect(plate, typography?.NameEffect, 1.04);
+
+        plate.Add(
+            new Label
+            {
+                Text = text,
+                TextColor = textColor,
+                FontSize = fontSize,
+                FontFamily = "timesbi",
+                FontAttributes = FontAttributes.Bold,
+                HorizontalTextAlignment = TextAlignment.Center,
+                MaxLines = 1,
+                LineBreakMode = LineBreakMode.TailTruncation
+            });
+
+        return plate;
     }
 
     VerticalStackLayout CreatePlayerCardLayout(
@@ -732,17 +876,15 @@ public partial class HallOfFamePage : ContentPage
             });
 
         layout.Children.Add(
-            new Label
-            {
-                Text = playerName,
-                TextColor = Colors.White,
-                FontFamily = "timesbi",
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 13 : 17,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
+            CreateNamePlate(
+                playerName,
+                new NameTypographyIdentity(
+                    string.Empty,
+                    identity?.PlayerNameEffect,
+                    identity?.PlayerNameFrame),
+                DeviceInfo.Idiom == DeviceIdiom.Phone ? 13 : 17,
+                Colors.White,
+                240));
 
         layout.Children.Add(
             new Label
@@ -780,13 +922,22 @@ public partial class HallOfFamePage : ContentPage
         return layout;
     }
 
-    View CreateCandidateRow(TeamLegendResult team)
+    View CreateCandidateRow(HallCandidateResult candidate)
     {
-        string reason =
-            GetCandidateRejectReason(team);
+        var team = candidate.Team;
 
         double progress =
-            Math.Min(1.0, team.LegacyScore / 300.0);
+            Math.Min(
+                1.0,
+                new[]
+                {
+                    candidate.TrustProgress,
+                    candidate.LegacyProgress,
+                    candidate.MatchesProgress,
+                    candidate.WinRateProgress,
+                    candidate.AchievementProgress,
+                    candidate.IntegrityProgress
+                }.Average());
 
         Border card =
             new()
@@ -864,7 +1015,7 @@ public partial class HallOfFamePage : ContentPage
         middle.Children.Add(
             new Label
             {
-                Text = reason,
+                Text = $"{candidate.RejectionReason} | {candidate.BlockingArticle}",
                 FontFamily = "timesbi",
                 TextColor = Color.FromArgb("#C8B58A"),
                 FontSize = 10,
@@ -1454,7 +1605,7 @@ public partial class HallOfFamePage : ContentPage
         {
             int season =
                 SeasonManager
-                    .GetCurrentSeasonNumber(teams);
+                    .GetCurrentSeasonNumber(teams.ToList());
 
             return season <= 0
                 ? "—"
@@ -1526,7 +1677,7 @@ public partial class HallOfFamePage : ContentPage
         EventArgs e)
     {
         var eligible =
-            GetEligibleHallTeams();
+            snapshot.TeamHall;
 
         if (eligible.Count == 0)
         {
@@ -1557,6 +1708,29 @@ public partial class HallOfFamePage : ContentPage
     {
         await Navigation.PushAsync(
             new PlayerProfilesPage());
+    }
+
+    async void OnBottomNavigation(
+        string destination)
+    {
+        switch (destination)
+        {
+            case "SETTINGS":
+                await Navigation.PushAsync(new MainPage());
+                break;
+
+            case "PLAYERS":
+                await Navigation.PushAsync(new PlayerProfilesPage());
+                break;
+
+            case "GAME":
+                await Navigation.PushAsync(new CreateTeamPage());
+                break;
+
+            case "STORE":
+                await Navigation.PushAsync(new GalleryPage());
+                break;
+        }
     }
 
     async void OnSideMenuNavigation(
@@ -1614,7 +1788,7 @@ public partial class HallOfFamePage : ContentPage
         }
     }
 
-    class TeamLegendResult
+    class LegacyTeamLegendResult
     {
         public string Key { get; set; } = "";
 

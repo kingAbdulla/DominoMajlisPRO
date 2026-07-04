@@ -23,25 +23,27 @@
                 ColumnSpacing="{OnIdiom Phone=4, Tablet=14, Desktop=18}">
 
                 <VerticalStackLayout
+                    x:Name="SettingsItem"
                     Grid.Column="0"
                     Spacing="2"
                     HorizontalOptions="Center"
                     VerticalOptions="Center">
 
                     <Image
-                        Source="settings_gold.png"
+                        Source="home.png"
                         WidthRequest="{OnIdiom Phone=26, Tablet=34, Desktop=36}"
                         HeightRequest="{OnIdiom Phone=26, Tablet=34, Desktop=36}"
                         Aspect="AspectFit"/>
 
                     <Label
-                        Text="الإعدادات"
+                        Text="الصفحة الرئيسية"
                         TextColor="#C8B58A"
                         FontSize="{OnIdiom Phone=10, Tablet=13, Desktop=13}"
                         HorizontalTextAlignment="Center"/>
                 </VerticalStackLayout>
 
                 <VerticalStackLayout
+                    x:Name="FriendsItem"
                     Grid.Column="1"
                     Spacing="2"
                     HorizontalOptions="Center"
@@ -61,25 +63,27 @@
                 </VerticalStackLayout>
 
                 <VerticalStackLayout
+                    x:Name="GameItem"
                     Grid.Column="3"
                     Spacing="2"
                     HorizontalOptions="Center"
                     VerticalOptions="Center">
 
                     <Image
-                        Source="joystick_gold.png"
+                        Source="addteam_logo.png"
                         WidthRequest="{OnIdiom Phone=28, Tablet=36, Desktop=38}"
                         HeightRequest="{OnIdiom Phone=28, Tablet=36, Desktop=38}"
                         Aspect="AspectFit"/>
 
                     <Label
-                        Text="اللعب"
+                        Text="انشاء فريق"
                         TextColor="#C8B58A"
                         FontSize="{OnIdiom Phone=10, Tablet=13, Desktop=13}"
                         HorizontalTextAlignment="Center"/>
                 </VerticalStackLayout>
 
                 <VerticalStackLayout
+                    x:Name="StoreItem"
                     Grid.Column="4"
                     Spacing="2"
                     HorizontalOptions="Center"
