@@ -272,7 +272,7 @@ public static class HallStatisticsDashboardService
             string opponent = isTeam1 ? match.Team2Name : match.Team1Name;
             int scoreFor = isTeam1 ? match.Team1Score : match.Team2Score;
             int scoreAgainst = isTeam1 ? match.Team2Score : match.Team1Score;
-            string result = match.IsDraw ? "طھط¹ط§ط¯ظ„" : IsWinner(match, teamId, teamName) ? "ظپظˆط²" : "ط®ط³ط§ط±ط©";
+            string result = match.IsDraw ? "تعادل" : IsWinner(match, teamId, teamName) ? "فوز" : "خسارة";
             return new StatisticsMatchRow(opponent, result, $"{scoreFor} - {scoreAgainst}", MatchDate(match), match.HasMeles ? "Meles" : "MVP");
         }).ToList();
 
@@ -282,7 +282,7 @@ public static class HallStatisticsDashboardService
             bool team1 = PlayerOnTeam1(match, player);
             string teamName = team1 ? match.Team1Name : match.Team2Name;
             bool won = PlayerWon(match, player);
-            string result = match.IsDraw ? "طھط¹ط§ط¯ظ„" : won ? "ط§ظ„ظپظˆط²" : "ط§ظ„ط®ط³ط§ط±ط©";
+            string result = match.IsDraw ? "تعادل" : won ? "الفوز" : "الخسارة";
             int points = team1 ? match.Team1Score : match.Team2Score;
             return new StatisticsMatchRow(teamName, result, $"{match.Team1Score} - {match.Team2Score}", MatchDate(match), points.ToString());
         }).ToList();
@@ -374,7 +374,7 @@ public sealed record StatisticsMatchRow(string OpponentOrTeam, string Result, st
 
 public sealed class TeamStatisticsProfile
 {
-    public static TeamStatisticsProfile Empty { get; } = new() { TeamName = "ظ„ط§ طھظˆط¬ط¯ ظپط±ظ‚", TeamId = string.Empty, Status = new("ط؛ظٹط± ظ…ط¤ظ‡ظ„", "ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ", "#777777", 0) };
+    public static TeamStatisticsProfile Empty { get; } = new() { TeamName = "لا توجد فرق", TeamId = string.Empty, Status = new("غير مؤهل", "لا توجد بيانات", "#777777", 0) };
     public string TeamId { get; set; } = string.Empty;
     public string TeamName { get; set; } = string.Empty;
     public TeamProfileModel SourceTeam { get; set; } = new();
@@ -395,7 +395,7 @@ public sealed class TeamStatisticsProfile
     public int Legacy { get; set; }
     public int Trust { get; set; }
     public int HighestWinStreak { get; set; }
-    public SafeStatusResult Status { get; set; } = new("ط؛ظٹط± ظ…ط¤ظ‡ظ„", "ظ„ط§ ظٹط³طھظˆظپظٹ ط§ظ„ط´ط±ظˆط·", "#777777", 0);
+    public SafeStatusResult Status { get; set; } = new("غير مؤهل", "لا يستوفي الشروط", "#777777", 0);
     public IReadOnlyList<StatisticsMatchRow> RecentMatches { get; set; } = Array.Empty<StatisticsMatchRow>();
     public IReadOnlyList<double> WinRateTrend { get; set; } = Array.Empty<double>();
     public IReadOnlyList<double> LegacyTrend { get; set; } = Array.Empty<double>();
@@ -405,7 +405,7 @@ public sealed class TeamStatisticsProfile
 
 public sealed class PlayerStatisticsProfile
 {
-    public static PlayerStatisticsProfile Empty { get; } = new() { PlayerName = "ظ„ط§ ظٹظˆط¬ط¯ ظ„ط§ط¹ط¨", PlayerId = string.Empty, Status = new("ط؛ظٹط± ظ…ط¤ظ‡ظ„", "ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ", "#777777", 0) };
+    public static PlayerStatisticsProfile Empty { get; } = new() { PlayerName = "لا يوجد لاعب", PlayerId = string.Empty, Status = new("غير مؤهل", "لا توجد بيانات", "#777777", 0) };
     public string PlayerId { get; set; } = string.Empty;
     public string PlayerName { get; set; } = string.Empty;
     public PlayerProfileModel SourcePlayer { get; set; } = new();
@@ -424,7 +424,7 @@ public sealed class PlayerStatisticsProfile
     public int MVP { get; set; }
     public int HallEntries { get; set; }
     public int Championships { get; set; }
-    public SafeStatusResult Status { get; set; } = new("ط؛ظٹط± ظ…ط¤ظ‡ظ„", "ظ„ط§ ظٹط³طھظˆظپظٹ ط§ظ„ط´ط±ظˆط·", "#777777", 0);
+    public SafeStatusResult Status { get; set; } = new("غير مؤهل", "لا يستوفي الشروط", "#777777", 0);
     public IReadOnlyList<StatisticsMatchRow> RecentMatches { get; set; } = Array.Empty<StatisticsMatchRow>();
     public IReadOnlyList<double> XpTrend { get; set; } = Array.Empty<double>();
     public IReadOnlyList<double> LevelTrend { get; set; } = Array.Empty<double>();

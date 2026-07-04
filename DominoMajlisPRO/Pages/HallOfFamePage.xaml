@@ -132,12 +132,13 @@
                         <BoxView BackgroundColor="#3D000000"/>
 
                         <Border
-                            WidthRequest="{OnIdiom Phone=100, Tablet=200, Desktop=255}"
+                            WidthRequest="{OnIdiom Phone=160, Tablet=200, Desktop=255}"
                             Margin="{OnIdiom Phone='14,14,0,14', Tablet='30,28,0,28', Desktop='34,30,0,30'}"
                             Padding="{OnIdiom Phone=5, Tablet=9, Desktop=13}"
                             HorizontalOptions="Start"
                             VerticalOptions="Center"
-                            BackgroundColor="#E0050505"
+                            Background="#10000000"
+                            
                             Stroke="#C8943A"
                             StrokeThickness="0.85"
                             StrokeShape="RoundRectangle 26"
@@ -192,7 +193,7 @@
                                     Text="بانتظار فريق يحقق شروط الدستور"
                                     FontFamily="Tajawal-Regular"
                                     TextColor="#D8D8D8"
-                                    FontSize="{OnIdiom Phone=9, Tablet=13, Desktop=14}"
+                                    FontSize="{OnIdiom Phone=10, Tablet=13, Desktop=14}"
                                     HorizontalTextAlignment="Center"
                                     MaxLines="2"
                                     LineBreakMode="TailTruncation"/>
@@ -201,23 +202,24 @@
                                     BackgroundColor="#15100A"
                                     Stroke="#5B3B18"
                                     StrokeThickness="0.65"
-                                    Padding="{OnIdiom Phone='5,4', Tablet='9,6', Desktop='9,7'}"
+                                    
+                                    Padding="{OnIdiom Phone='3,4', Tablet='9,6', Desktop='9,7'}"
                                     StrokeShape="RoundRectangle 14">
 
                                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="4">
 
                                         <VerticalStackLayout Spacing="0">
-                                            <Label Text="الانتصارات" TextColor="#B8873C" FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12}" HorizontalTextAlignment="Center" FontFamily="Tajawal-Regular"/>
+                                            <Label Text="الانتصارات" TextColor="White" FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12}" HorizontalTextAlignment="Center" FontFamily="Tajawal-Regular"/>
                                             <Label x:Name="HeroWinsLabel" Text="0" TextColor="#E0B04A" FontSize="{OnIdiom Phone=14, Tablet=18, Desktop=18}" FontAttributes="Bold" HorizontalTextAlignment="Center" FontFamily="CinzelDecorative-Bold"/>
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout Grid.Column="1" Spacing="0">
-                                            <Label Text="الفوز" TextColor="#B8873C" FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12}" HorizontalTextAlignment="Center" FontFamily="Tajawal-Regular"/>
+                                            <Label Text="الفوز" TextColor="White" FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12}" HorizontalTextAlignment="Center" FontFamily="Tajawal-Regular"/>
                                             <Label x:Name="HeroWinRateLabel" Text="0%" TextColor="#E0B04A" FontSize="{OnIdiom Phone=14, Tablet=18, Desktop=18}" FontAttributes="Bold" HorizontalTextAlignment="Center" FontFamily="CinzelDecorative-Bold"/>
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout Grid.Column="2" Spacing="0">
-                                            <Label Text="Legacy" TextColor="#B8873C" FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12}" HorizontalTextAlignment="Center" FontFamily="timesbi"/>
+                                            <Label Text="Legacy" TextColor="white" FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12}" HorizontalTextAlignment="Center" FontFamily="timesbi"/>
                                             <Label x:Name="HeroLegacyLabel" Text="0" TextColor="#E0B04A" FontSize="{OnIdiom Phone=14, Tablet=18, Desktop=18}" FontAttributes="Bold" HorizontalTextAlignment="Center" FontFamily="CinzelDecorative-Bold"/>
                                         </VerticalStackLayout>
 
@@ -342,11 +344,11 @@
                                 FontFamily="Tajawal-Regular"
                                 BackgroundColor="#15100A"
                                 BorderColor="#8A5B27"
-                                BorderWidth="0.8"
+                                BorderWidth="1"
                                 TextColor="#D4AE62"
                                 CornerRadius="14"
-                                HeightRequest="40"
-                                WidthRequest="{OnIdiom Phone=86, Tablet=100, Desktop=106}"
+                                HeightRequest="38"
+                                WidthRequest="{OnIdiom Phone=88, Tablet=104, Desktop=106}"
                                 HorizontalOptions="Start"
                                 VerticalOptions="Center"
                                 Clicked="OnShowAllPlayersClicked"/>
