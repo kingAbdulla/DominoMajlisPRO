@@ -301,7 +301,7 @@ public partial class CreateTeamPage : ContentPage
                 var newBackgrounds = backgroundItems.ToList();
                 var newTeamEffects = ownedTeamEffects.Count == 0
                     ? new List<TeamEffectCarouselItem>()
-                    : new[] { new TeamEffectCarouselItem("", "ط¨ط¯ظˆظ† طھط£ط«ظٹط±", null) }
+                    : new[] { new TeamEffectCarouselItem("", "تم انشاء الفريق", null) }
                         .Concat(ownedTeamEffects
                             .GroupBy(item => $"{item.AssetId}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
                             .Select(group => group.First()))

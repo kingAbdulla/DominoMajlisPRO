@@ -14,7 +14,7 @@
 
             <VerticalStackLayout
             Padding="18"
-            Spacing="24">
+            Spacing="20">
 
                 <!-- ========================= -->
                 <!-- AAA COMPACT TOP BAR -->
@@ -22,7 +22,7 @@
 
                 <Grid
                     ColumnDefinitions="Auto,*,*,Auto,Auto"
-                    ColumnSpacing="{OnIdiom Phone=8, Tablet=14}"
+                    ColumnSpacing="{OnIdiom Phone=4, Tablet=10}"
                     FlowDirection="LeftToRight"
                     VerticalOptions="Center">
 
@@ -33,15 +33,17 @@
                         Stroke="#8D6824"
                         StrokeThickness="1.2"
                         BackgroundColor="#080808"
-                        Padding="8,5"
+                        Padding="2"
+                        MaximumHeightRequest="{OnIdiom Phone=50, Tablet=55}"
+                        MaximumWidthRequest="{OnIdiom Phone=200, Tablet=250}"
                         StrokeShape="RoundRectangle 18">
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                            <Image Source="coins.png" WidthRequest="28" HeightRequest="28"/>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="4">
+                            <Image Source="coins.png" WidthRequest="25" HeightRequest="25"/>
                             <Label
                                 x:Name="HeaderCoinsLabel"
                                 Grid.Column="1"
                                 Text="0"
-                                FontSize="{OnIdiom Phone=15, Tablet=19}"
+                                FontSize="{OnIdiom Phone=12, Tablet=15}"
                                 TextColor="White"
                                 FontAttributes="Bold"
                                 VerticalTextAlignment="Center"
@@ -71,15 +73,17 @@
                         Stroke="#8D6824"
                         StrokeThickness="1.2"
                         BackgroundColor="#080808"
-                        Padding="8,5"
+                        MaximumHeightRequest="{OnIdiom Phone=50, Tablet=55}"
+                        MaximumWidthRequest="{OnIdiom Phone=200, Tablet=250}"
+                        Padding="2"
                         StrokeShape="RoundRectangle 18">
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                            <Image Source="gems.png" WidthRequest="28" HeightRequest="28"/>
+                            <Image Source="gems.png" WidthRequest="25" HeightRequest="25"/>
                             <Label
                                 x:Name="HeaderGemsLabel"
                                 Grid.Column="1"
                                 Text="0"
-                                FontSize="{OnIdiom Phone=15, Tablet=19}"
+                                FontSize="{OnIdiom Phone=12, Tablet=15}"
                                 TextColor="White"
                                 FontAttributes="Bold"
                                 VerticalTextAlignment="Center"
@@ -121,19 +125,42 @@ LineBreakMode="TailTruncation">
     HorizontalOptions="Center"
     VerticalOptions="Center">
 
+                            <!-- Level Badge -->
                             <Border
-        WidthRequest="{OnIdiom Phone=58, Tablet=78}"
-        HeightRequest="{OnIdiom Phone=58, Tablet=78}"
-        HorizontalOptions="Center"
-        VerticalOptions="Center"
-        BackgroundColor="#151515"
+        x:Name="HeaderPlayerLevelBadge"
+        WidthRequest="{OnIdiom Phone=20, Tablet=25}"
+        HeightRequest="{OnIdiom Phone=20, Tablet=25}"
+        HorizontalOptions="End"
+        VerticalOptions="End"
+                                Margin="-1,0"
+        TranslationX="0"
+        TranslationY="0"
+        BackgroundColor="#080808"
         Stroke="#D4AF37"
-        StrokeThickness="2.2"
+        StrokeThickness="2"
         StrokeShape="RoundRectangle 999">
 
-                                <Border.Shadow>
-                                    <Shadow Brush="#D4AF37" Radius="18" Opacity="0.45"/>
-                                </Border.Shadow>
+                                <Label
+            x:Name="HeaderPlayerLevelLabel"
+            Text="1"
+            FontSize="{OnIdiom Phone=11, Tablet=14}"
+            FontAttributes="Bold"
+            TextColor="#FFD700"
+            HorizontalTextAlignment="Center"
+            VerticalTextAlignment="Center"/>
+                            </Border>
+
+                            <Border
+        WidthRequest="{OnIdiom Phone=50, Tablet=70}"
+        HeightRequest="{OnIdiom Phone=50, Tablet=70}"
+        HorizontalOptions="Center"
+        VerticalOptions="Center"
+        BackgroundColor="#080808"
+        Stroke="#D4AF37"
+        StrokeThickness="1.2"
+        StrokeShape="RoundRectangle 999">
+
+                              
 
                                 <Grid>
                                     <Image
@@ -157,66 +184,36 @@ LineBreakMode="TailTruncation">
                                 </Grid>
                             </Border>
 
-                            <!-- Level Badge -->
-                            <Border
-        x:Name="HeaderPlayerLevelBadge"
-        WidthRequest="{OnIdiom Phone=24, Tablet=30}"
-        HeightRequest="{OnIdiom Phone=24, Tablet=30}"
-        HorizontalOptions="Start"
-        VerticalOptions="End"
-        TranslationX="0"
-        TranslationY="0"
-        BackgroundColor="#0A0A0A"
-        Stroke="#D4AF37"
-        StrokeThickness="2"
-        StrokeShape="RoundRectangle 999">
-
-                                <Label
-            x:Name="HeaderPlayerLevelLabel"
-            Text="1"
-            FontSize="{OnIdiom Phone=11, Tablet=14}"
-            FontAttributes="Bold"
-            TextColor="#FFD700"
-            HorizontalTextAlignment="Center"
-            VerticalTextAlignment="Center"/>
-                            </Border>
-
                             <!-- Status Dot -->
                             <Border
         x:Name="ProfileStatusBadge"
         WidthRequest="{OnIdiom Phone=9, Tablet=12}"
         HeightRequest="{OnIdiom Phone=9, Tablet=12}"
         BackgroundColor="Red"
-        Stroke="#111111"
+        Stroke="#080808"
         StrokeThickness="1"
         HorizontalOptions="End"
         VerticalOptions="Start"
         StrokeShape="RoundRectangle 999"/>
                         </Grid>
+                        
+                        
                     </Border>
 
                     <Border
                         Grid.Column="4"
-                        WidthRequest="{OnIdiom Phone=54, Tablet=64}"
-                        HeightRequest="{OnIdiom Phone=54, Tablet=64}"
-                        Stroke="#0A0A0A"
+                        WidthRequest="{OnIdiom Phone=50, Tablet=50}"
+                        HeightRequest="{OnIdiom Phone=50, Tablet=50}"
+                        Stroke="#080808"
                         StrokeThickness="1.4"
-                        BackgroundColor="#0A0A0A"
+                        BackgroundColor="#080808"
                         StrokeShape="RoundRectangle 18">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnSettingsImageTapped"/>
                         </Border.GestureRecognizers>
                         <Grid>
                             <Image Source="settings_gold.png" WidthRequest="32" HeightRequest="32"/>
-                            <Border
-                                WidthRequest="10"
-                                HeightRequest="10"
-                                BackgroundColor="#F2483A"
-                                StrokeThickness="0"
-                                HorizontalOptions="End"
-                                VerticalOptions="Start"
-                                Margin="0,8,8,0"
-                                StrokeShape="RoundRectangle 999"/>
+                         
                         </Grid>
                     </Border>
                 </Grid>
@@ -276,8 +273,8 @@ LineBreakMode="TailTruncation">
                             VerticalOptions="Center">
                             <Image
                                 Source="domino_gold_icon.png"
-                                WidthRequest="{OnIdiom Phone=132, Tablet=180}"
-                                HeightRequest="{OnIdiom Phone=132, Tablet=180}"
+                                WidthRequest="{OnIdiom Phone=128, Tablet=170}"
+                                HeightRequest="{OnIdiom Phone=128, Tablet=170}"
                                 Aspect="AspectFit">
                                 <Image.GestureRecognizers>
                                     <PointerGestureRecognizer
@@ -688,8 +685,8 @@ Margin="0,5,0,0">
                 <!-- REFERENCE MATCH PREVIEW -->
                 <!-- ========================= -->
 
-                <VerticalStackLayout Spacing="{OnIdiom Phone=10, Tablet=16}" Margin="0,-8,0,0">
-                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                <VerticalStackLayout Spacing="{OnIdiom Phone=8, Tablet=12}" Margin="0,-8,0,0">
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
                         <BoxView
                             WidthRequest="{OnIdiom Phone=76, Tablet=130}"
                             HeightRequest="1"
@@ -709,6 +706,8 @@ Margin="0,5,0,0">
                             VerticalOptions="Center"/>
                     </HorizontalStackLayout>
 
+                    
+                    
                     <Grid
                         ColumnDefinitions="*,Auto,*"
                         ColumnSpacing="{OnIdiom Phone=-12, Tablet=-6}"
@@ -723,7 +722,7 @@ Margin="0,5,0,0">
                             BackgroundColor="#080808"
                             Padding="{OnIdiom Phone=10, Tablet=16}">
                             <Border.Shadow>
-                                <Shadow Brush="#D4AF37" Radius="18" Opacity="0.50"/>
+                                <Shadow Brush="#D4AF37" Radius="10" Opacity="0.40"/>
                             </Border.Shadow>
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnTeam1CardTapped"/>
@@ -754,8 +753,8 @@ Margin="0,5,0,0">
                                         InputTransparent="True"/>
                                     <Image
                                         x:Name="RefPreviewTeam1Logo"
-                                        WidthRequest="{OnIdiom Phone=145, Tablet=210}"
-                                        HeightRequest="{OnIdiom Phone=145, Tablet=210}"
+                                        WidthRequest="{OnIdiom Phone=140, Tablet=200}"
+                                        HeightRequest="{OnIdiom Phone=140, Tablet=200}"
                                         Aspect="AspectFit"/>
                                 </Grid>
                                 <Label
@@ -845,9 +844,7 @@ Margin="0,5,0,0">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="999"/>
                             </Border.StrokeShape>
-                            <Border.Shadow>
-                                <Shadow Brush="#D4AF37" Radius="28" Opacity="0.95"/>
-                            </Border.Shadow>
+                       
                             <Image
                                 Source="vs_gold_icon.png"
                                 WidthRequest="{OnIdiom Phone=72, Tablet=98}"
@@ -866,7 +863,7 @@ Margin="0,5,0,0">
                             BackgroundColor="#080808"
                             Padding="{OnIdiom Phone=10, Tablet=16}">
                             <Border.Shadow>
-                                <Shadow Brush="#A953FF" Radius="18" Opacity="0.42"/>
+                                <Shadow Brush="#A953FF" Radius="10" Opacity="0.40"/>
                             </Border.Shadow>
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnTeam2CardTapped"/>
@@ -897,8 +894,8 @@ Margin="0,5,0,0">
                                         InputTransparent="True"/>
                                     <Image
                                         x:Name="RefPreviewTeam2Logo"
-                                        WidthRequest="{OnIdiom Phone=145, Tablet=210}"
-                                        HeightRequest="{OnIdiom Phone=145, Tablet=210}"
+                                        WidthRequest="{OnIdiom Phone=140, Tablet=200}"
+                                        HeightRequest="{OnIdiom Phone=140, Tablet=200}"
                                         Aspect="AspectFit"/>
                                 </Grid>
                                 <Label
@@ -932,7 +929,7 @@ Margin="0,5,0,0">
                                         HeightRequest="{OnIdiom Phone=30, Tablet=40}"
                                         Stroke="#A953FF"
                                         StrokeThickness="1.2"
-                                        BackgroundColor="#111111"
+                                        BackgroundColor="#080808"
                                         StrokeShape="RoundRectangle 999">
                                         <Image
                                             x:Name="RefTeam2Player1AvatarImage"
@@ -946,7 +943,7 @@ Margin="0,5,0,0">
                                         HeightRequest="{OnIdiom Phone=30, Tablet=40}"
                                         Stroke="#A953FF"
                                         StrokeThickness="1.2"
-                                        BackgroundColor="#111111"
+                                        BackgroundColor="#080808"
                                         StrokeShape="RoundRectangle 999">
                                         <Image
                                             x:Name="RefTeam2Player2AvatarImage"
@@ -1748,8 +1745,8 @@ Aspect="AspectFit"/>
 
                                         <Image
                                     Source="{Binding Emblem}"
-                                    WidthRequest="45"
-                                    HeightRequest="45"/>
+                                    WidthRequest="40"
+                                    HeightRequest="40"/>
 
                                         <VerticalStackLayout
                                     Grid.Column="1"
