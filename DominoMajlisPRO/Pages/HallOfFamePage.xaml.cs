@@ -1,32 +1,34 @@
+using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
-using System.Reflection;
-using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.GalleryEngine.Models;
 
 namespace DominoMajlisPRO.Pages;
 
 public partial class HallOfFamePage : ContentPage
 {
-    List<SavedMatch> matches = new();
-    List<TeamProfileModel> teams = new();
-    List<PlayerProfileModel> players = new();
-    IReadOnlyDictionary<string, TeamIdentityModel> teamIdentities =
-        new Dictionary<string, TeamIdentityModel>(
-            StringComparer.OrdinalIgnoreCase);
+    const string Gold = "#D4AE62";
+    const string Bronze = "#5B3B18";
+    const string Muted = "#C8B58A";
 
-    const string CardGlass = "#151515";
-    const string BronzeStroke = "#5B3B18";
-    const string MutedText = "#C8B58A";
+    HallOfFameSnapshot snapshot = new(
+        "الحالي",
+        null,
+        Array.Empty<HallTeamEvaluation>(),
+        Array.Empty<HallPlayerEvaluation>(),
+        Array.Empty<HallTeamEvaluation>(),
+        Array.Empty<HallPlayerEvaluation>(),
+        Array.Empty<HallRecord>(),
+        Array.Empty<HallStatistic>(),
+        Array.Empty<HallAuditEntry>(),
+        new HallVerificationResult(Array.Empty<HallVerificationCheck>(), false));
 
     public HallOfFamePage()
     {
         InitializeComponent();
-
         SideMenu.NavigationRequested -= OnSideMenuNavigation;
         SideMenu.NavigationRequested += OnSideMenuNavigation;
-
         BottomNavigation.NavigationRequested -= OnBottomNavigation;
         BottomNavigation.NavigationRequested += OnBottomNavigation;
     }
@@ -34,13 +36,27 @@ public partial class HallOfFamePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        Subscribe();
+        await LoadHallOfFameAsync();
+    }
 
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        Unsubscribe();
+    }
+
+    void Subscribe()
+    {
         AppEvents.DataChanged -= OnHallDataChanged;
         AppEvents.PlayerProfileChanged -= OnHallDataChanged;
         AppEvents.MatchesChanged -= OnHallDataChanged;
         AppEvents.TeamsChanged -= OnHallDataChanged;
         AppEvents.RankingsChanged -= OnHallDataChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.TeamEffectChanged -= OnTeamAssetsChanged;
+        AppEvents.StoreEconomyChanged -= OnStoreChanged;
+        AppEvents.StoreProgressChanged -= OnStoreChanged;
 
         AppEvents.DataChanged += OnHallDataChanged;
         AppEvents.PlayerProfileChanged += OnHallDataChanged;
@@ -48,60 +64,45 @@ public partial class HallOfFamePage : ContentPage
         AppEvents.TeamsChanged += OnHallDataChanged;
         AppEvents.RankingsChanged += OnHallDataChanged;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
-
-        await LoadHallOfFameAsync();
+        AppEvents.TeamEffectChanged += OnTeamAssetsChanged;
+        AppEvents.StoreEconomyChanged += OnStoreChanged;
+        AppEvents.StoreProgressChanged += OnStoreChanged;
     }
 
-    protected override void OnDisappearing()
+    void Unsubscribe()
     {
-        base.OnDisappearing();
-
         AppEvents.DataChanged -= OnHallDataChanged;
         AppEvents.PlayerProfileChanged -= OnHallDataChanged;
         AppEvents.MatchesChanged -= OnHallDataChanged;
         AppEvents.TeamsChanged -= OnHallDataChanged;
         AppEvents.RankingsChanged -= OnHallDataChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
+        AppEvents.TeamEffectChanged -= OnTeamAssetsChanged;
+        AppEvents.StoreEconomyChanged -= OnStoreChanged;
+        AppEvents.StoreProgressChanged -= OnStoreChanged;
     }
 
     async void OnHallDataChanged()
     {
-        await MainThread.InvokeOnMainThreadAsync(
-            async () =>
-            {
-                await LoadHallOfFameAsync();
-            });
+        HallOfFameService.InvalidateCache();
+        HallStatisticsDashboardService.Invalidate();
+        await MainThread.InvokeOnMainThreadAsync(async () => await LoadHallOfFameAsync(true));
     }
 
     void OnTeamAssetsChanged(string teamId) => OnHallDataChanged();
+    void OnStoreChanged(string playerId) => OnHallDataChanged();
 
-    async Task LoadHallOfFameAsync()
+    async Task LoadHallOfFameAsync(bool forceRefresh = false)
     {
-        matches = await GameService.LoadMatchesAsync();
-        teams = await TeamProfileService.LoadTeamsAsync();
-        teamIdentities = await TeamIdentityResolver.ResolveManyAsync(
-            teams.Select(team => team.TeamId));
-        players = await PlayerProfileService.LoadPlayersAsync();
-        await PersistEligibleHallTeamsAsync();
-
+        snapshot = await HallOfFameService.LoadAsync(forceRefresh);
         HallContainer.Opacity = 0;
-
         ClearDynamicSections();
-
-        if (matches.Count == 0)
-        {
-            LoadEmptyState();
-            await AnimatePageAsync();
-            return;
-        }
-
-        LoadHeroChampion();
-        LoadTopTeams();
-        LoadCandidates();
-        await LoadTopPlayersAsync();
-        LoadLegendaryRecords();
-        LoadStatistics();
-
+        RenderHero();
+        await RenderTeamsAsync();
+        RenderCandidateCenterButton();
+        await RenderPlayersAsync();
+        RenderRecords();
+        RenderStatistics();
         await AnimatePageAsync();
     }
 
@@ -109,1642 +110,381 @@ public partial class HallOfFamePage : ContentPage
     {
         TopTeamsContainer.Children.Clear();
         TopPlayersContainer.Children.Clear();
+        CandidatesContainer.Children.Clear();
         RecordsContainer.Children.Clear();
         StatsContainer.Children.Clear();
-        CandidatesContainer.Children.Clear();
     }
 
-    void LoadEmptyState()
+    void RenderHero()
     {
-        SeasonNumberLabel.Text = "—";
-
-        HeroTeamNameLabel.Text = "لا توجد أسطورة";
-        HeroSubtitleLabel.Text = "ابدأ أول مباراة ليظهر أبطال القاعة";
-        HeroWinsLabel.Text = "0";
-        HeroWinRateLabel.Text = "0%";
-        HeroLegacyLabel.Text = "0";
-
-        TopTeamsContainer.Children.Add(
-            CreateEmptyCard("لا توجد فرق مؤهلة حالياً"));
-
-        TopPlayersContainer.Children.Add(
-            CreateEmptyCard("لا توجد بيانات للاعبين بعد"));
-
-        RecordsContainer.Children.Add(CreateRecordEmptyGrid());
-
-        AddStat("all_gold.png", "المرشحون", "0", 0, 0);
-        AddStat("trophy_3d.png", "المؤهلون", "0", 1, 0);
-        AddStat("joystick_gold.png", "المباريات", "0", 2, 0);
-        AddStat("target_3d.png", "أعلى نتيجة", "0", 0, 1);
-        AddStat("xp_gold.png", "Legacy", "0", 1, 1);
-        AddStat("halloffame_gold.png", "الدستور", "Active", 2, 1);
-    }
-
-    void LoadHeroChampion()
-    {
-        var champion =
-            GetEligibleHallTeams()
-            .FirstOrDefault();
-
-        SeasonNumberLabel.Text = GetCurrentSeasonText();
-
-        if (champion == null)
+        SeasonNumberLabel.Text = snapshot.SeasonText;
+        var hero = snapshot.HeroTeam;
+        if (hero == null)
         {
             HeroTeamNameLabel.Text = "لا توجد أسطورة";
-            HeroSubtitleLabel.Text = "بانتظار فريق يحقق شروط الدستور";
+            HeroSubtitleLabel.Text = "بانتظار عضو مؤكد وفق دستور قاعة الأساطير";
             HeroWinsLabel.Text = "0";
             HeroWinRateLabel.Text = "0%";
             HeroLegacyLabel.Text = "0";
             return;
         }
 
-        HeroTeamNameLabel.Text = champion.DisplayName;
-        HeroSubtitleLabel.Text = "دخل قاعة الأساطير وفق الدستور";
-        HeroWinsLabel.Text = champion.Wins.ToString();
-        HeroWinRateLabel.Text = $"{champion.WinRate:0}%";
-        HeroLegacyLabel.Text = champion.LegacyScore.ToString();
+        HeroTeamNameLabel.Text = hero.DisplayName;
+        HeroSubtitleLabel.Text = "عضو مؤكد في قاعة الأساطير";
+        HeroWinsLabel.Text = hero.Wins.ToString("N0");
+        HeroWinRateLabel.Text = $"{hero.WinRate:0.#}%";
+        HeroLegacyLabel.Text = hero.Legacy.ToString("N0");
     }
 
-    void LoadTopTeams()
+    async Task RenderTeamsAsync()
     {
-        var topTeams =
-            GetEligibleHallTeams()
-            .Take(6)
-            .ToList();
-
-        if (topTeams.Count == 0)
+        var teams = snapshot.TeamMembers.Take(6).ToList();
+        if (teams.Count == 0)
         {
-            TopTeamsContainer.Children.Add(
-                CreateEmptyCard("لا توجد فرق مؤهلة حالياً"));
-
+            TopTeamsContainer.Children.Add(CreateEmptyCard("لا توجد فرق دخلت قاعة الأساطير وفق الشروط بعد"));
             return;
         }
 
-        int rank = 1;
-
-        foreach (var team in topTeams)
+        var identities = await TeamIdentityResolver.ResolveManyAsync(teams.Select(team => team.TeamId));
+        for (int i = 0; i < teams.Count; i++)
         {
-            TopTeamsContainer.Children.Add(
-                CreateTeamLegendCard(
-                    rank,
-                    team));
-
-            rank++;
+            identities.TryGetValue(teams[i].TeamId, out var identity);
+            TopTeamsContainer.Children.Add(CreateTeamCard(i + 1, teams[i], identity));
         }
 
-        TopTeamsContainer.HorizontalOptions =
-            topTeams.Count <= 2
-                ? LayoutOptions.Center
-                : LayoutOptions.End;
+        TopTeamsContainer.HorizontalOptions = teams.Count <= 2 ? LayoutOptions.Center : LayoutOptions.End;
     }
 
-    async Task LoadTopPlayersAsync()
+    async Task RenderPlayersAsync()
     {
-        players = await PlayerProfileService.LoadPlayersAsync();
-
-        var topPlayers =
-            players
-            .Where(x =>
-                !string.IsNullOrWhiteSpace(x.PlayerName) &&
-                (x.IsHallOfLegendsMember || x.HallOfFameCount > 0))
-            .OrderByDescending(x => x.LegacyScore)
-            .ThenByDescending(x => x.PlayerXP)
-            .ThenByDescending(x => x.Wins)
-            .Take(6)
-            .ToList();
-
-        if (topPlayers.Count == 0)
+        var players = snapshot.PlayerMembers.Take(6).ToList();
+        if (players.Count == 0)
         {
-            TopPlayersContainer.Children.Add(
-                CreateEmptyCard("لا يوجد لاعب دخل قاعة الأساطير وفق الشروط بعد"));
+            TopPlayersContainer.Children.Add(CreateEmptyCard("لا يوجد لاعب دخل قاعة الأساطير وفق الشروط بعد"));
             return;
         }
 
-        var identities =
-            await PlayerVisualIdentityResolver.ResolveManyAsync(
-                topPlayers.Select(player => player.PlayerId));
-        int rank = 1;
-
-        foreach (var player in topPlayers)
+        var identities = await PlayerVisualIdentityResolver.ResolveManyAsync(players.Select(player => player.PlayerId));
+        for (int i = 0; i < players.Count; i++)
         {
-            identities.TryGetValue(
-                player.PlayerId,
-                out var identity);
-            TopPlayersContainer.Children.Add(
-                CreatePlayerLegendCard(rank, player, identity));
-
-            rank++;
+            identities.TryGetValue(players[i].PlayerId, out var identity);
+            TopPlayersContainer.Children.Add(CreatePlayerCard(i + 1, players[i], identity));
         }
 
-        TopPlayersContainer.HorizontalOptions =
-            topPlayers.Count <= 3
-                ? LayoutOptions.Center
-                : LayoutOptions.End;
+        TopPlayersContainer.HorizontalOptions = players.Count <= 3 ? LayoutOptions.Center : LayoutOptions.End;
     }
 
-    void LoadFallbackPlayersFromTeams()
+    void RenderCandidateCenterButton()
     {
-        var playerNames =
-            teams
-            .SelectMany(x => new[] { x.Player1, x.Player2 })
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Distinct()
-            .Take(6)
-            .ToList();
-
-        if (playerNames.Count == 0)
-        {
-            TopPlayersContainer.Children.Add(
-                CreateEmptyCard("لا توجد بيانات للاعبين بعد"));
-
-            return;
-        }
-
-        int rank = 1;
-
-        foreach (string name in playerNames)
-        {
-            TopPlayersContainer.Children.Add(
-                CreatePlayerLegendCard(rank, name, 0, "Player"));
-
-            rank++;
-        }
-
-        TopPlayersContainer.HorizontalOptions =
-            playerNames.Count <= 3
-                ? LayoutOptions.Center
-                : LayoutOptions.End;
-    }
-
-    void LoadCandidates()
-    {
-        var candidates =
-            GetTeamResults()
-            .Where(x => !IsHallEligible(x))
-            .OrderByDescending(x => x.LegacyScore)
-            .Take(4)
-            .ToList();
-
-        foreach (var candidate in candidates)
-        {
-            CandidatesContainer.Children.Add(
-                CreateCandidateRow(candidate));
-        }
-    }
-
-    void LoadLegendaryRecords()
-    {
-        var teamResults =
-            GetTeamResults()
-            .OrderByDescending(x => x.Wins)
-            .FirstOrDefault();
-
-        var fastest =
-            matches
-            .Where(x => x.MatchDurationMinutes > 0)
-            .OrderBy(x => x.MatchDurationMinutes)
-            .FirstOrDefault();
-
-        int highestScore =
-            matches.Count == 0
-                ? 0
-                : matches.Max(x => Math.Max(x.Team1Score, x.Team2Score));
-
-        var melesKing =
-            matches
-            .Where(x => x.HasMeles)
-            .GroupBy(x => GetWinnerDisplayName(x))
-            .OrderByDescending(x => x.Count())
-            .FirstOrDefault();
-
-        Grid recordsGrid =
-            new()
+        CandidatesSection.IsVisible = true;
+        CandidatesContainer.Children.Add(Frame(
+            new VerticalStackLayout
             {
-                ColumnDefinitions =
+                Spacing = 8,
+                Children =
                 {
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Star }
-                },
-                RowDefinitions =
-                {
-                    new RowDefinition { Height = GridLength.Auto },
-                    new RowDefinition { Height = GridLength.Auto }
-                },
-                ColumnSpacing = 8,
-                RowSpacing = 8
-            };
-
-        AddRecordCard(
-            recordsGrid,
-            "wins_gold.png",
-            "أكثر فريق فاز",
-            teamResults?.DisplayName ?? "—",
-            teamResults?.Wins.ToString() ?? "0",
-            0,
-            0);
-
-        AddRecordCard(
-            recordsGrid,
-            "meles_badge_gold.png",
-            "ملك الملص",
-            melesKing?.Key ?? "—",
-            melesKing?.Count().ToString() ?? "0",
-            1,
-            0);
-
-        AddRecordCard(
-            recordsGrid,
-            "fast_round_gold.png",
-            "أسرع مباراة",
-            "الزمن",
-            fastest == null ? "—" : $"{fastest.MatchDurationMinutes} د",
-            0,
-            1);
-
-        AddRecordCard(
-            recordsGrid,
-            "highest_score_gold.png",
-            "أعلى نتيجة",
-            "Score",
-            highestScore.ToString(),
-            1,
-            1);
-
-        RecordsContainer.Children.Add(recordsGrid);
+                    Label("مركز المرشحين", 18, Color.FromArgb(Gold), true),
+                    Label("التقييم والتدقيق منفصلان عن قائمة أعضاء قاعة الأساطير.", 12, Color.FromArgb(Muted), false, TextAlignment.Center, 2),
+                    CommandButton("فتح مركز المرشحين", async () => await Navigation.PushAsync(new HallCandidateCenterPage()))
+                }
+            },
+            22,
+            Bronze,
+            "#070707",
+            12));
     }
 
-    void LoadStatistics()
+    void RenderRecords()
     {
-        var allResults = GetTeamResults();
-        var eligible = GetEligibleHallTeams();
+        var grid = new Grid { ColumnSpacing = 8, RowSpacing = 8 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
 
-        int totalMatches = matches.Count;
-
-        int highestScore =
-            matches.Count == 0
-                ? 0
-                : matches.Max(x => Math.Max(x.Team1Score, x.Team2Score));
-
-        AddStat("all_gold.png", "المرشحون", allResults.Count.ToString(), 0, 0);
-        AddStat("trophy_3d.png", "المؤهلون", eligible.Count.ToString(), 1, 0);
-        AddStat("joystick_gold.png", "المباريات", totalMatches.ToString(), 2, 0);
-        AddStat("target_3d.png", "أعلى نتيجة", highestScore.ToString(), 0, 1);
-        AddStat("xp_gold.png", "Legacy", eligible.Sum(x => x.LegacyScore).ToString(), 1, 1);
-        AddStat("halloffame_gold.png", "الدستور", "Active", 2, 1);
-    }
-
-    View CreateTeamLegendCard(
-        int rank,
-        TeamLegendResult team)
-    {
-        string borderColor =
-            rank == 1 ? "#D4AE62" :
-            rank == 2 ? "#BFC3C7" :
-            rank == 3 ? "#B87333" :
-            "#765021";
-
-        string shield = GetTeamRankIcon(team);
-
-        Border card =
-            new()
-            {
-                WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 120 : 165,
-                HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 180 : 235,
-                BackgroundColor = Color.FromArgb(rank == 1 ? "#1B1005" : "#0C0C0C"),
-                Stroke = Color.FromArgb(borderColor),
-                StrokeThickness = rank == 1 ? 1.2 : 0.75,
-                Padding = 8,
-                StrokeShape = new RoundRectangle { CornerRadius = 22 },
-                Shadow =
-                    new Shadow
-                    {
-                        Brush = new SolidColorBrush(Color.FromArgb(rank == 1 ? "#B8873C" : "#5B3B18")),
-                        Radius = rank == 1 ? 8 : 4,
-                        Opacity = rank == 1 ? 0.20f : 0.10f,
-                        Offset = new Point(0, 2)
-                    }
-            };
-
-        VerticalStackLayout layout =
-            new()
-            {
-                Spacing = 4,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center
-            };
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = rank <= 3 ? $"♛ {rank}" : rank.ToString(),
-                TextColor = Color.FromArgb("#D4AE62"),
-                FontSize = 13,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-        var teamEmblem = new Image
+        for (int i = 0; i < snapshot.Records.Count; i++)
         {
-            Source = shield,
+            var record = snapshot.Records[i];
+            int row = i / 2;
+            while (grid.RowDefinitions.Count <= row)
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var card = CreateRecordCard(record);
+            Grid.SetColumn(card, i % 2);
+            Grid.SetRow(card, row);
+            grid.Add(card);
+        }
+
+        RecordsContainer.Children.Add(grid);
+    }
+
+    void RenderStatistics()
+    {
+        for (int i = 0; i < snapshot.Statistics.Count; i++)
+        {
+            var stat = snapshot.Statistics[i];
+            AddStat(stat.Icon, stat.Title, stat.Value, i % 3, i / 3);
+        }
+    }
+
+    View CreateTeamCard(int rank, HallTeamEvaluation team, TeamIdentityModel? identity)
+    {
+        string border = RankBorder(rank);
+        var emblem = new Image
+        {
+            Source = ToImageSource(identity?.EmblemImagePath) ?? "shield_3d.png",
             HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 62 : 88,
             Aspect = Aspect.AspectFit,
             HorizontalOptions = LayoutOptions.Center
         };
-        TeamEffectBehavior.SetTeamId(teamEmblem, team.Key);
-        layout.Children.Add(new Grid
+        TeamEffectBehavior.SetTeamId(emblem, team.TeamId);
+
+        var layout = new VerticalStackLayout { Spacing = 4, HorizontalOptions = LayoutOptions.Center };
+        layout.Children.Add(Label(rank <= 3 ? $"#{rank}" : rank.ToString(), 13, Color.FromArgb(Gold), true));
+        layout.Children.Add(new Grid { HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 74 : 98, Children = { emblem } });
+        layout.Children.Add(Label(team.DisplayName, DeviceInfo.Idiom == DeviceIdiom.Phone ? 15 : 19, Colors.White, true));
+        layout.Children.Add(Label($"{team.Wins:N0} انتصار", 11, Color.FromArgb(Muted)));
+        layout.Children.Add(Label($"Legacy {team.Legacy:N0}", 12, Color.FromArgb(Gold), true));
+        layout.Children.Add(Label($"{team.FinalScore:0.#}%", 11, Color.FromArgb(Gold), true));
+
+        return Frame(layout, 22, border, rank == 1 ? "#1B1005" : "#0C0C0C", 8, DeviceInfo.Idiom == DeviceIdiom.Phone ? 120 : 165, DeviceInfo.Idiom == DeviceIdiom.Phone ? 180 : 235);
+    }
+
+    View CreatePlayerCard(int rank, HallPlayerEvaluation player, PlayerVisualIdentity? identity)
+    {
+        string border = RankBorder(rank);
+        var avatar = new Grid { HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 70 : 92, WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 70 : 92 };
+        AddOptionalBackground(avatar, identity?.ProfileBackground?.PreviewImage);
+        avatar.Children.Add(new Image
         {
-            HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 72 : 98,
-            Children = { teamEmblem }
+            Source = ToImageSource(identity?.Avatar?.PreviewImage) ?? "player_card.png",
+            Aspect = Aspect.AspectFill,
+            HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 66 : 88,
+            WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 66 : 88,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
         });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = team.DisplayName,
-                TextColor = Colors.White,
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 15 : 19,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = $"{team.Wins} انتصار",
-                TextColor = Color.FromArgb("#C8B58A"),
-                FontSize = 11,
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = $"Legacy {team.LegacyScore}",
-                TextColor = Color.FromArgb("#D4AE62"),
-                FontSize = 12,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = "★★★★★",
-                TextColor = Color.FromArgb("#D4AE62"),
-                FontSize = 11,
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-        card.Content = layout;
-
-        return card;
-    }
-
-    string GetTeamRankIcon(TeamLegendResult result)
-    {
-        var team = teams.FirstOrDefault(item =>
-            string.Equals(item.TeamId, result.Key, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(item.TeamName, result.DisplayName, StringComparison.OrdinalIgnoreCase));
-        var rank = team?.Rank ?? "Unranked";
-        if (rank.StartsWith("Bronze", StringComparison.OrdinalIgnoreCase)) return "bronze.png";
-        if (rank.StartsWith("Silver", StringComparison.OrdinalIgnoreCase)) return "silver.png";
-        if (rank.StartsWith("Gold", StringComparison.OrdinalIgnoreCase)) return "gold.png";
-        if (rank.StartsWith("Platinum", StringComparison.OrdinalIgnoreCase)) return "platinum.png";
-        if (rank.StartsWith("Diamond", StringComparison.OrdinalIgnoreCase)) return "diamond.png";
-        if (string.Equals(rank, "Majlis Master", StringComparison.OrdinalIgnoreCase)) return "majlis_master.png";
-        if (string.Equals(rank, "Majlis Legend", StringComparison.OrdinalIgnoreCase)) return "majlis_legend.png";
-        return "unranked.png";
-    }
-
-    View CreatePlayerLegendCard(
-        int rank,
-        string playerName,
-        int score,
-        string rankText)
-    {
-        string borderColor =
-            rank == 1 ? "#D4AE62" :
-            rank == 2 ? "#BFC3C7" :
-            rank == 3 ? "#B87333" :
-            "#765021";
-
-        Border card =
-            CreatePlayerBaseCard(rank, borderColor);
-
-        VerticalStackLayout layout =
-            CreatePlayerCardLayout(
-                rank,
-                borderColor,
-                "player_card.png",
-                playerName,
-                rankText,
-                score > 0 ? score.ToString() : "—");
-
-        card.Content = layout;
-
-        return card;
-    }
-
-    View CreatePlayerLegendCard(
-        int rank,
-        PlayerProfileModel player,
-        PlayerVisualIdentity? identity)
-    {
-        PlayerEngine.Normalize(player);
-
-        var rankResult =
-            PlayerRankService.Calculate(player.PlayerXP);
-
-        string borderColor =
-            rank == 1 ? "#D4AE62" :
-            rank == 2 ? "#BFC3C7" :
-            rank == 3 ? "#B87333" :
-            "#765021";
-
-        Border card =
-            CreatePlayerBaseCard(rank, borderColor);
-
-        VerticalStackLayout layout =
-            CreatePlayerCardLayout(
-                rank,
-                borderColor,
-                ToOptionalImageSource(
-                    identity?.Avatar?.PreviewImage) ??
-                PlayerProfileService.GetPlayerImageSource(player),
-                player.PlayerName,
-                identity?.Title == null
-                    ? rankResult.DisplayName
-                    : $"{rankResult.DisplayName} • {identity.Title.DisplayName}",
-                player.LegacyScore.ToString(),
-                identity);
-
-        var surface = new Grid();
-        var background =
-            CreatePlayerBackgroundImage(
-                identity?.ProfileBackground?.PreviewImage);
-        if (background != null)
-            surface.Add(background);
-        surface.Add(layout);
-        card.Content = surface;
-
-        var tap = new TapGestureRecognizer();
-
-        tap.Tapped += async (s, e) =>
-        {
-            await Navigation.PushAsync(
-                new PlayerDetailsPage(player.PlayerId));
-        };
-
-        card.GestureRecognizers.Add(tap);
-
-        return card;
-    }
-
-    Border CreatePlayerBaseCard(
-        int rank,
-        string borderColor)
-    {
-        return new Border
-        {
-            WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 128 : 175,
-            HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 205 : 270,
-            BackgroundColor = Color.FromArgb(rank == 1 ? "#1B1005" : "#0C0C0C"),
-            Stroke = Color.FromArgb(borderColor),
-            StrokeThickness = rank == 1 ? 1.2 : 0.75,
-            Padding = 7,
-            StrokeShape = new RoundRectangle { CornerRadius = 20 },
-            Shadow =
-                new Shadow
-                {
-                    Brush = new SolidColorBrush(Color.FromArgb(rank == 1 ? "#B8873C" : "#5B3B18")),
-                    Radius = rank == 1 ? 8 : 4,
-                    Opacity = rank == 1 ? 0.20f : 0.10f,
-                    Offset = new Point(0, 2)
-                }
-        };
-    }
-
-    static Image? CreatePlayerBackgroundImage(string? imagePath)
-    {
-        var source = ToOptionalImageSource(imagePath);
-        return source == null
-            ? null
-            : new Image
-            {
-                Source = source,
-                Aspect = Aspect.AspectFill,
-                Opacity = 0.34,
-                InputTransparent = true
-            };
-    }
-
-    static ImageSource? ToOptionalImageSource(string? imagePath) =>
-        InventoryDisplayResolver.ResolveOptionalImageSource(
-            imagePath);
-
-    static void AddPlayerOverlay(Grid container, string? imagePath)
-    {
-        var source = ToOptionalImageSource(imagePath);
-        if (source == null)
-            return;
-
-        container.Add(
-            new Image
-            {
-                Source = source,
-                Aspect = Aspect.AspectFit,
-                InputTransparent = true
-            });
-    }
-
-    static void AddPlayerEffect(
-        Grid container,
-        CatalogAssetDisplay? effect,
-        double baseScale = 1.16)
-    {
-        if (effect == null)
-            return;
-
-        var overlay = new Image
-        {
-            Aspect = Aspect.AspectFit,
-            InputTransparent = true
-        };
-        PlayerEffectEngine.Apply(overlay, effect, baseScale);
-        container.Add(overlay);
-    }
-
-    VerticalStackLayout CreatePlayerCardLayout(
-        int rank,
-        string borderColor,
-        ImageSource avatarSource,
-        string playerName,
-        string rankText,
-        string score,
-        PlayerVisualIdentity? identity = null)
-    {
-        VerticalStackLayout layout =
-            new()
-            {
-                Spacing = 3,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center
-            };
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = rank <= 3 ? $"#{rank} 🏅" : $"#{rank}",
-                TextColor = Color.FromArgb("#D4AE62"),
-                FontSize = 12,
-                FontFamily= "timesbi",
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-        var avatar = new Grid();
-        avatar.Add(
-            new Image
-            {
-                Source = avatarSource,
-                Aspect = Aspect.AspectFill
-            });
-        AddPlayerOverlay(avatar, identity?.Frame?.PreviewImage);
         AddPlayerEffect(avatar, identity?.Effect);
 
-        layout.Children.Add(
-            new Border
-            {
-                WidthRequest =
-                    DeviceInfo.Idiom == DeviceIdiom.Phone ? 70 : 96,
-                HeightRequest =
-                    DeviceInfo.Idiom == DeviceIdiom.Phone ? 70 : 96,
-                BackgroundColor = Color.FromArgb("#151515"),
-                Stroke = identity?.Frame == null
-                    ? Color.FromArgb(borderColor)
-                    : Colors.Transparent,
-                StrokeThickness = 1.2,
-                StrokeShape =
-                    new RoundRectangle { CornerRadius = 999 },
-                Shadow = new Shadow
-                    {
-                        Brush = new SolidColorBrush(
-                            Color.FromArgb("#F2C14E")),
-                        Radius = 16,
-                        Opacity = 0.5f
-                    },
-                Content = avatar
-            });
+        var layout = new VerticalStackLayout { Spacing = 4, HorizontalOptions = LayoutOptions.Center };
+        layout.Children.Add(Label(rank <= 3 ? $"#{rank}" : rank.ToString(), 13, Color.FromArgb(Gold), true));
+        layout.Children.Add(avatar);
+        layout.Children.Add(Label(player.DisplayName, DeviceInfo.Idiom == DeviceIdiom.Phone ? 14 : 18, Colors.White, true));
+        layout.Children.Add(Label(player.Category, 10, Color.FromArgb(Muted)));
+        layout.Children.Add(Label($"Legacy {player.Legacy:N0}", 12, Color.FromArgb(Gold), true));
+        layout.Children.Add(Label($"{player.FinalScore:0.#}%", 11, Color.FromArgb(Gold), true));
 
-        layout.Children.Add(
-            new Label
-            {
-                Text = playerName,
-                TextColor = Colors.White,
-                FontFamily = "timesbi",
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 13 : 17,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = string.IsNullOrWhiteSpace(rankText) ? "Legend" : rankText,
-                TextColor = Color.FromArgb("#C8B58A"),
-                FontSize = 12,
-                FontFamily = "timesbi",
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = score,
-                FontFamily = "timesbi",
-                TextColor = Color.FromArgb("#D4AE62"),
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 21 : 28,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = "LEGACY SCORE",
-                FontFamily = "timesbi",
-                TextColor = Color.FromArgb("#B8873C"),
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 12 : 13,
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-        return layout;
+        return Frame(layout, 22, border, rank == 1 ? "#1B1005" : "#0C0C0C", 8, DeviceInfo.Idiom == DeviceIdiom.Phone ? 118 : 155, DeviceInfo.Idiom == DeviceIdiom.Phone ? 176 : 228);
     }
 
-    View CreateCandidateRow(TeamLegendResult team)
+    View CreateRecordCard(HallRecord record)
     {
-        string reason =
-            GetCandidateRejectReason(team);
-
-        double progress =
-            Math.Min(1.0, team.LegacyScore / 300.0);
-
-        Border card =
-            new()
+        return Frame(new VerticalStackLayout
+        {
+            Spacing = 2,
+            Children =
             {
-                BackgroundColor = Color.FromArgb("#101010"),
-                Stroke = Color.FromArgb("#5B3B18"),
-                StrokeThickness = 0.75,
-                Padding = 10,
-                StrokeShape = new RoundRectangle
+                Label(record.Title, 12, Color.FromArgb(Muted), false),
+                Label(record.Holder, 13, Colors.White, true),
+                Label(record.Value, 15, Color.FromArgb(Gold), true)
+            }
+        }, 14, Bronze, "#101010", 8);
+    }
+
+    View CreateEmptyCard(string text) =>
+        Frame(Label(text, 13, Color.FromArgb(Muted), false, TextAlignment.Center, 2), 18, Bronze, "#0C0C0C", 14);
+
+    void AddStat(string icon, string title, string value, int column, int row)
+    {
+        while (StatsContainer.RowDefinitions.Count <= row)
+            StatsContainer.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var card = Frame(new HorizontalStackLayout
+        {
+            FlowDirection = FlowDirection.RightToLeft,
+            Spacing = 8,
+            Children =
+            {
+                new Image { Source = icon, WidthRequest = 30, HeightRequest = 30, Aspect = Aspect.AspectFit },
+                new VerticalStackLayout
                 {
-                    CornerRadius = 18
+                    Spacing = 0,
+                    Children =
+                    {
+                        Label(value, 16, Colors.White, true, TextAlignment.End),
+                        Label(title, 10, Color.FromArgb(Muted), false, TextAlignment.End)
+                    }
                 }
-            };
-
-        Grid root =
-            new()
-            {
-                ColumnDefinitions =
-                {
-                    new ColumnDefinition { Width = 46 },
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = 68 }
-                },
-                ColumnSpacing = 8,
-                FlowDirection = FlowDirection.RightToLeft
-            };
-
-        Border iconFrame =
-            new()
-            {
-                WidthRequest = 42,
-                HeightRequest = 42,
-                BackgroundColor = Color.FromArgb("#18120A"),
-                Stroke = Color.FromArgb("#765021"),
-                StrokeThickness = 0.75,
-                StrokeShape = new RoundRectangle
-                {
-                    CornerRadius = 14
-                },
-                Content =
-                    new Image
-                    {
-                        Source = "shield_3d.png",
-                        WidthRequest = 32,
-                        HeightRequest = 32,
-                        Aspect = Aspect.AspectFit,
-                        HorizontalOptions = LayoutOptions.Center,
-                        VerticalOptions = LayoutOptions.Center
-                    }
-            };
-
-        Grid.SetColumn(iconFrame, 0);
-        root.Children.Add(iconFrame);
-
-        VerticalStackLayout middle =
-            new()
-            {
-                Spacing = 4,
-                VerticalOptions = LayoutOptions.Center
-            };
-
-        middle.Children.Add(
-            new Label
-            {
-                Text = team.DisplayName,
-                TextColor = Colors.White,
-                FontFamily = "timesbi",
-                FontSize = 14,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.End,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
-
-        middle.Children.Add(
-            new Label
-            {
-                Text = reason,
-                FontFamily = "timesbi",
-                TextColor = Color.FromArgb("#C8B58A"),
-                FontSize = 10,
-                HorizontalTextAlignment = TextAlignment.End,
-                MaxLines = 2,
-                LineBreakMode = LineBreakMode.WordWrap
-            });
-
-        middle.Children.Add(
-            new ProgressBar
-            {
-                Progress = progress,
-                ProgressColor = Color.FromArgb("#D4AE62"),
-                BackgroundColor = Color.FromArgb("#252525"),
-                HeightRequest = 6
-            });
-
-        Grid.SetColumn(middle, 1);
-        root.Children.Add(middle);
-
-        VerticalStackLayout status =
-            new()
-            {
-                Spacing = 0,
-                VerticalOptions = LayoutOptions.Center,
-                HorizontalOptions = LayoutOptions.Center
-            };
-
-        status.Children.Add(
-            new Label
-            {
-                Text = team.LegacyScore.ToString(),
-                FontFamily = "timesbi",
-                TextColor = Color.FromArgb("#D4AE62"),
-                FontSize = 15,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-        status.Children.Add(
-            new Label
-            {
-                Text = "Legacy",
-                FontFamily = "timesbi",
-                TextColor = Color.FromArgb("#888888"),
-                FontSize = 10,
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-        status.Children.Add(
-            new Label
-            {
-                Text = $"{team.WinRate:0}%",
-                FontFamily = "timesbi",
-                TextColor = Color.FromArgb("#C8B58A"),
-                FontSize = 9,
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-        Grid.SetColumn(status, 2);
-        root.Children.Add(status);
-
-        card.Content = root;
-
-        return card;
-    }
-
-    View CreateRecordEmptyGrid()
-    {
-        Grid grid =
-            new()
-            {
-                ColumnDefinitions =
-                {
-                    new ColumnDefinition
-                    {
-                        Width = GridLength.Star
-                    },
-                    new ColumnDefinition
-                    {
-                        Width = GridLength.Star
-                    }
-                },
-                RowDefinitions =
-                {
-                    new RowDefinition
-                    {
-                        Height = GridLength.Auto
-                    },
-                    new RowDefinition
-                    {
-                        Height = GridLength.Auto
-                    }
-                },
-                ColumnSpacing = 8,
-                RowSpacing = 8
-            };
-
-        AddRecordCard(
-            grid,
-            "wins_gold.png",
-            "أكثر فريق فاز",
-            "—",
-            "0",
-            0,
-            0);
-
-        AddRecordCard(
-            grid,
-            "meles_badge_gold.png",
-            "ملك الملص",
-            "—",
-            "0",
-            1,
-            0);
-
-        AddRecordCard(
-            grid,
-            "fast_round_gold.png",
-            "أسرع مباراة",
-            "الزمن",
-            "—",
-            0,
-            1);
-
-        AddRecordCard(
-            grid,
-            "highest_score_gold.png",
-            "أعلى نتيجة",
-            "Score",
-            "0",
-            1,
-            1);
-
-        return grid;
-    }
-
-    void AddRecordCard(
-        Grid grid,
-        string icon,
-        string title,
-        string subtitle,
-        string value,
-        int column,
-        int row)
-    {
-        Border card =
-            new()
-            {
-                BackgroundColor = Color.FromArgb("#101010"),
-                Stroke = Color.FromArgb("#5B3B18"),
-                StrokeThickness = 0.75,
-                Padding = DeviceInfo.Idiom == DeviceIdiom.Phone
-                    ? 10
-                    : 13,
-                StrokeShape = new RoundRectangle
-                {
-                    CornerRadius = 18
-                }
-            };
-
-        VerticalStackLayout layout =
-            new()
-            {
-                Spacing = 4,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center
-            };
-
-        layout.Children.Add(
-            new Image
-            {
-                Source = icon,
-                WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone
-                    ? 48
-                    : 60,
-                HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone
-                    ? 48
-                    : 60,
-                Aspect = Aspect.AspectFit,
-                HorizontalOptions = LayoutOptions.Center
-            });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = value,
-                TextColor = Color.FromArgb("#D4AE62"),
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone
-                    ? 24
-                    : 32,
-                FontFamily = "timesbi",
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = title,
-                TextColor = Colors.White,
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone
-                    ? 14
-                    : 17,
-                FontFamily = "timesbi",
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = subtitle,
-                TextColor = Color.FromArgb("#C8B58A"),
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone
-                    ? 10
-                    : 12,
-                FontFamily = "timesbi",
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
-
-        card.Content = layout;
-
+            }
+        }, 14, Bronze, "#101010", 8);
         Grid.SetColumn(card, column);
         Grid.SetRow(card, row);
-
-        grid.Children.Add(card);
+        StatsContainer.Add(card);
     }
 
-    void AddStat(
-        string iconSource,
-        string title,
-        string value,
-        int column,
-        int row)
+    static Border Frame(View content, double radius, string stroke, string background, double padding, double width = -1, double height = -1)
     {
-        Border stat =
-            new()
-            {
-                BackgroundColor = Color.FromArgb("#101010"),
-                Stroke = Color.FromArgb("#5B3B18"),
-                StrokeThickness = 0.75,
-                Padding = DeviceInfo.Idiom == DeviceIdiom.Phone
-                    ? 10
-                    : 13,
-                StrokeShape = new RoundRectangle
-                {
-                    CornerRadius = 18
-                }
-            };
-
-        VerticalStackLayout layout =
-            new()
-            {
-                Spacing = 4,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center
-            };
-
-        layout.Children.Add(
-            new Image
-            {
-                Source = iconSource,
-                WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone
-                    ? 46
-                    : 58,
-                HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone
-                    ? 46
-                    : 58,
-                Aspect = Aspect.AspectFit,
-                HorizontalOptions = LayoutOptions.Center
-            });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = value,
-                TextColor = Color.FromArgb("#D4AE62"),
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone
-                    ? 22
-                    : 30,
-                FontFamily = "timesbi",
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
-
-        layout.Children.Add(
-            new Label
-            {
-                Text = title,
-                TextColor = Color.FromArgb("#C8B58A"),
-                FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone
-                    ? 11
-                    : 14,
-                FontFamily = "timesbi",
-                HorizontalTextAlignment = TextAlignment.Center,
-                MaxLines = 1,
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
-
-        stat.Content = layout;
-
-        Grid.SetColumn(stat, column);
-        Grid.SetRow(stat, row);
-
-        StatsContainer.Children.Add(stat);
-    }
-
-    View CreateRecordRow(
-        string iconSource,
-        string title,
-        string value)
-    {
-        return new Border
+        var frame = new Border
         {
-            BackgroundColor = Color.FromArgb("#101010"),
-            Stroke = Color.FromArgb("#5B3B18"),
-            StrokeThickness = 0.75,
-            Padding = 10,
-            StrokeShape = new RoundRectangle
-            {
-                CornerRadius = 18
-            },
-            Content =
-                new Label
-                {
-                    Text = $"{title}: {value}",
-                    TextColor = Color.FromArgb("#D4AE62"),
-                    FontSize = 14,
-                    FontFamily = "timesbi",
-                    FontAttributes = FontAttributes.Bold,
-                    HorizontalTextAlignment = TextAlignment.Center
-                }
+            BackgroundColor = Color.FromArgb(background),
+            Stroke = Color.FromArgb(stroke),
+            StrokeThickness = 0.85,
+            Padding = padding,
+            StrokeShape = new RoundRectangle { CornerRadius = radius },
+            Content = content
         };
+        if (width > 0) frame.WidthRequest = width;
+        if (height > 0) frame.HeightRequest = height;
+        return frame;
     }
 
-    Border CreatePremiumCard(
-        string strokeColor)
-    {
-        return new Border
+    static Label Label(string text, double size, Color color, bool bold = false, TextAlignment align = TextAlignment.Center, int maxLines = 1) =>
+        new()
         {
-            BackgroundColor = Color.FromArgb(CardGlass),
-            Stroke = Color.FromArgb(strokeColor),
-            StrokeThickness = 0.75,
-            Padding = 10,
-            StrokeShape = new RoundRectangle
-            {
-                CornerRadius = 20
-            }
+            Text = text,
+            FontFamily = "Tajawal-Regular",
+            FontSize = size,
+            TextColor = color,
+            FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None,
+            HorizontalTextAlignment = align,
+            MaxLines = maxLines,
+            LineBreakMode = maxLines == 1 ? LineBreakMode.TailTruncation : LineBreakMode.WordWrap
         };
-    }
 
-    View CreateEmptyCard(
-        string text)
+    static Button CommandButton(string text, Func<Task> action)
     {
-        Border card =
-            CreatePremiumCard(BronzeStroke);
-
-        card.WidthRequest = 220;
-        card.Padding = 12;
-
-        card.Content =
-            new Label
-            {
-                Text = text,
-                FontSize = 13,
-                FontFamily = "timesbi",
-                TextColor = Color.FromArgb(MutedText),
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                VerticalTextAlignment = TextAlignment.Center
-            };
-
-        return card;
-    }
-
-    List<TeamLegendResult> GetTeamResults()
-    {
-        var allKeys =
-            matches
-            .SelectMany(x =>
-                new[]
-                {
-                    GetTeam1Key(x),
-                    GetTeam2Key(x)
-                })
-            .Where(x =>
-                !string.IsNullOrWhiteSpace(x))
-            .Distinct()
-            .ToList();
-
-        List<TeamLegendResult> results =
-            new();
-
-        foreach (string key in allKeys)
+        var button = new Button
         {
-            int total =
-                matches.Count(x =>
-                    GetTeam1Key(x) == key ||
-                    GetTeam2Key(x) == key);
-
-            int wins =
-                matches.Count(x =>
-                    GetWinnerKey(x) == key);
-
-            if (total == 0)
-                continue;
-
-            double winRate =
-                (double)wins / total * 100;
-
-            int meles =
-                matches.Count(x =>
-                    GetWinnerKey(x) == key &&
-                    x.HasMeles);
-
-            int legacy =
-                wins * 100 +
-                meles * 50 +
-                (int)winRate;
-
-            results.Add(
-                new TeamLegendResult
-                {
-                    Key = key,
-                    DisplayName = GetTeamDisplayName(key),
-                    Wins = wins,
-                    TotalMatches = total,
-                    WinRate = winRate,
-                    MelesCount = meles,
-                    LegacyScore = legacy
-                });
-        }
-
-        return results;
+            Text = text,
+            FontFamily = "Tajawal-Regular",
+            TextColor = Color.FromArgb(Gold),
+            BackgroundColor = Color.FromArgb("#15100A"),
+            BorderColor = Color.FromArgb("#8A5B27"),
+            BorderWidth = 1,
+            CornerRadius = 16,
+            HeightRequest = 42
+        };
+        button.Clicked += async (s, e) => await action();
+        return button;
     }
 
-    List<TeamLegendResult> GetEligibleHallTeams()
+    static ImageSource? ToImageSource(string? imagePath) =>
+        string.IsNullOrWhiteSpace(imagePath) ? null : InventoryDisplayResolver.ResolveImageSource(imagePath, "");
+
+    static void AddOptionalBackground(Grid host, string? imagePath)
     {
-        return GetTeamResults()
-            .Where(IsHallEligible)
-            .OrderByDescending(x => x.LegacyScore)
-            .ThenByDescending(x => x.WinRate)
-            .ToList();
+        var source = ToImageSource(imagePath);
+        if (source == null)
+            return;
+        host.Children.Add(new Image { Source = source, Aspect = Aspect.AspectFill, Opacity = 0.45 });
     }
 
-    bool IsHallEligible(
-        TeamLegendResult result)
+    static void AddPlayerEffect(Grid host, CatalogAssetDisplay? effect)
     {
-        var team =
-            teams.FirstOrDefault(x =>
-                x.TeamId == result.Key ||
-                x.TeamName == result.DisplayName);
-
-        int trust =
-            team?.TrustScore ?? 100;
-
-        bool suspicious =
-            team?.IsSuspicious ?? false;
-
-        if (result.LegacyScore < 300)
-            return false;
-
-        if (result.TotalMatches < 20)
-            return false;
-
-        if (trust < 95)
-            return false;
-
-        if (result.WinRate < 60)
-            return false;
-
-        if (suspicious)
-            return false;
-
-        return true;
+        var overlay = new Image { InputTransparent = true, Aspect = Aspect.AspectFit };
+        PlayerEffectEngine.Apply(overlay, effect, 1.08);
+        host.Children.Add(overlay);
     }
 
-    string GetCandidateRejectReason(
-        TeamLegendResult result)
+    static string RankBorder(int rank) => rank switch
     {
-        var team =
-            teams.FirstOrDefault(x =>
-                x.TeamId == result.Key ||
-                x.TeamName == result.DisplayName);
-
-        int trust =
-            team?.TrustScore ?? 100;
-
-        bool suspicious =
-            team?.IsSuspicious ?? false;
-
-        if (result.LegacyScore < 300)
-            return "يحتاج Legacy أعلى";
-
-        if (result.TotalMatches < 20)
-            return $"يحتاج مباريات أكثر ({result.TotalMatches}/20)";
-
-        if (trust < 95)
-            return $"Trust Score غير كاف ({trust}/95)";
-
-        if (result.WinRate < 60)
-            return $"Win Rate أقل من المطلوب ({result.WinRate:0}%)";
-
-        if (suspicious)
-            return "الفريق تحت المراجعة";
-
-        return "قريب من التأهل";
-    }
-
-    string GetTeam1Key(
-        SavedMatch match)
-    {
-        string id =
-            GetTextProperty(
-                match,
-                "Team1Id",
-                "Team1ID");
-
-        return string.IsNullOrWhiteSpace(id)
-            ? match.Team1Name
-            : id;
-    }
-
-    string GetTeam2Key(
-        SavedMatch match)
-    {
-        string id =
-            GetTextProperty(
-                match,
-                "Team2Id",
-                "Team2ID");
-
-        return string.IsNullOrWhiteSpace(id)
-            ? match.Team2Name
-            : id;
-    }
-
-    string GetWinnerKey(
-        SavedMatch match)
-    {
-        string id =
-            GetTextProperty(
-                match,
-                "WinnerTeamId",
-                "WinnerTeamID");
-
-        return string.IsNullOrWhiteSpace(id)
-            ? match.WinnerTeam
-            : id;
-    }
-
-    string GetWinnerDisplayName(
-        SavedMatch match)
-    {
-        return GetTeamDisplayName(
-            GetWinnerKey(match));
-    }
-
-    string GetTeamDisplayName(
-        string key)
-    {
-        var team =
-            teams.FirstOrDefault(x =>
-                x.TeamId == key);
-
-        if (team != null &&
-            !string.IsNullOrWhiteSpace(team.TeamName))
-        {
-            return team.TeamName;
-        }
-
-        return key;
-    }
-
-    string GetCurrentSeasonText()
-    {
-        try
-        {
-            int season =
-                SeasonManager
-                    .GetCurrentSeasonNumber(teams);
-
-            return season <= 0
-                ? "—"
-                : season.ToString();
-        }
-        catch
-        {
-            return "—";
-        }
-    }
-
-    string GetTextProperty(
-        object source,
-        params string[] names)
-    {
-        foreach (string name in names)
-        {
-            PropertyInfo? prop =
-                source
-                .GetType()
-                .GetProperty(name);
-
-            if (prop == null)
-                continue;
-
-            object? value =
-                prop.GetValue(source);
-
-            if (value == null)
-                continue;
-
-            string text =
-                value.ToString() ?? "";
-
-            if (!string.IsNullOrWhiteSpace(text))
-                return text;
-        }
-
-        return "";
-    }
+        1 => "#D4AE62",
+        2 => "#BFC3C7",
+        3 => "#B87333",
+        _ => "#765021"
+    };
 
     async Task AnimatePageAsync()
     {
-        HallContainer.TranslationY = 18;
-        HallContainer.Opacity = 0;
-
+        HallContainer.TranslationY = 12;
         await Task.WhenAll(
-            HallContainer.FadeTo(
-                1,
-                320,
-                Easing.CubicOut),
-
-            HallContainer.TranslateToAsync(
-                0,
-                0,
-                320,
-                Easing.CubicOut));
+            HallContainer.FadeTo(1, 240, Easing.CubicOut),
+            HallContainer.TranslateTo(0, 0, 240, Easing.CubicOut));
     }
 
-    async void OnBackTapped(
-        object sender,
-        TappedEventArgs e)
+    async void OnBackTapped(object sender, EventArgs e)
     {
-        await Navigation.PopAsync();
+        if (Navigation.NavigationStack.Count > 1)
+            await Navigation.PopAsync();
+        else
+            await Navigation.PushAsync(new MainPage());
     }
 
-    async void OnShowAllTeamsClicked(
-        object sender,
-        EventArgs e)
-    {
-        var eligible =
-            GetEligibleHallTeams();
+    async void OnShowAllTeamsClicked(object sender, EventArgs e) =>
+        await DisplayAlert("أعضاء قاعة الأساطير", snapshot.TeamMembers.Count == 0 ? "لا توجد فرق مؤكدة حالياً." : string.Join("\n", snapshot.TeamMembers.Select((team, index) => $"#{index + 1} {team.DisplayName} | {team.FinalScore:0.#}%")), "حسناً");
 
-        if (eligible.Count == 0)
-        {
-            await DisplayAlert(
-                "أعضاء قاعة الأساطير",
-                "لا توجد فرق مؤهلة حالياً.",
-                "حسناً");
+    async void OnShowAllPlayersClicked(object sender, EventArgs e) =>
+        await DisplayAlert("لاعبو قاعة الأساطير", snapshot.PlayerMembers.Count == 0 ? "لا يوجد لاعب مؤكد حالياً." : string.Join("\n", snapshot.PlayerMembers.Select((player, index) => $"#{index + 1} {player.DisplayName} | {player.Category} | {player.FinalScore:0.#}%")), "حسناً");
 
-            return;
-        }
+    async void OnTeamStatisticsClicked(object sender, EventArgs e) => await Navigation.PushAsync(new TeamStatisticsPage());
+    async void OnPlayerStatisticsClicked(object sender, EventArgs e) => await Navigation.PushAsync(new PlayerStatisticsPage());
 
-        string text =
-            string.Join(
-                "\n",
-                eligible.Select(
-                    (x, index) =>
-                        $"#{index + 1} {x.DisplayName} | Wins {x.Wins} | Legacy {x.LegacyScore} | WR {x.WinRate:0}%"));
-
-        await DisplayAlert(
-            "أعضاء قاعة الأساطير",
-            text,
-            "حسناً");
-    }
-
-    async void OnShowAllPlayersClicked(
-        object sender,
-        EventArgs e)
-    {
-        await Navigation.PushAsync(
-            new PlayerProfilesPage());
-    }
-
-    async void OnTeamStatisticsClicked(
-        object sender,
-        EventArgs e)
-    {
-        await Navigation.PushAsync(
-            new TeamStatisticsPage());
-    }
-
-    async void OnPlayerStatisticsClicked(
-        object sender,
-        EventArgs e)
-    {
-        await Navigation.PushAsync(
-            new PlayerStatisticsPage());
-    }
-
-    async void OnBottomNavigation(
-        string destination)
+    async void OnBottomNavigation(string destination)
     {
         switch (destination)
         {
             case "HOME":
                 await Navigation.PushAsync(new MainPage());
                 break;
-
             case "PLAYERS":
                 await Navigation.PushAsync(new PlayerProfilesPage());
                 break;
-
             case "GAME":
-                await OpenGameFromHallAsync();
+                await OpenGameAsync();
                 break;
-
             case "STORE":
                 await Navigation.PushAsync(new GalleryEngine.Pages.GalleryPage());
                 break;
         }
     }
 
-    async Task PersistEligibleHallTeamsAsync()
+    async Task OpenGameAsync()
     {
-        bool modified = false;
-
-        foreach (var result in GetTeamResults().Where(IsHallEligible))
-        {
-            var team =
-                teams.FirstOrDefault(x =>
-                    x.TeamId == result.Key ||
-                    x.TeamName == result.DisplayName);
-
-            if (team == null)
-                continue;
-
-            if (!team.HallOfFameMember)
-            {
-                team.HallOfFameMember = true;
-                modified = true;
-            }
-
-            if (team.HallOfFameDate == default)
-            {
-                team.HallOfFameDate = DateTime.Now;
-                modified = true;
-            }
-
-            if (!team.HasHallOfFameBadge)
-            {
-                team.HasHallOfFameBadge = true;
-                modified = true;
-            }
-        }
-
-        if (modified)
-            await TeamProfileService.SaveTeamsAsync(teams);
-    }
-
-    async Task OpenGameFromHallAsync()
-    {
-        var readyTeams =
-            teams
+        var teams = (await TeamProfileService.LoadTeamsAsync())
             .Where(team => !string.IsNullOrWhiteSpace(team.TeamName))
             .Take(2)
             .ToList();
-
-        if (readyTeams.Count < 2)
+        if (teams.Count < 2)
         {
             await Navigation.PushAsync(new CreateTeamPage());
             return;
         }
 
-        var team1 = readyTeams[0];
-        var team2 = readyTeams[1];
-        await Navigation.PushAsync(
-            new GamePage(
-                team1.TeamName,
-                team2.TeamName,
-                $"{team1.Player1} + {team1.Player2}",
-                $"{team2.Player1} + {team2.Player2}",
-                team1.TeamId,
-                team2.TeamId,
-                team1.Player1Id,
-                team1.Player2Id,
-                team2.Player1Id,
-                team2.Player2Id,
-                "محلي"));
+        var team1 = teams[0];
+        var team2 = teams[1];
+        await Navigation.PushAsync(new GamePage(
+            team1.TeamName,
+            team2.TeamName,
+            $"{team1.Player1} + {team1.Player2}",
+            $"{team2.Player1} + {team2.Player2}",
+            team1.TeamId,
+            team2.TeamId,
+            team1.Player1Id,
+            team1.Player2Id,
+            team2.Player1Id,
+            team2.Player2Id,
+            "محلي"));
     }
 
-    async void OnSideMenuNavigation(
-        string section)
+    async void OnSideMenuNavigation(string section)
     {
         switch (section)
         {
             case "HOME":
-                await HallScrollView
-                    .ScrollToAsync(
-                        0,
-                        0,
-                        true);
+                await HallScrollView.ScrollToAsync(0, 0, true);
                 break;
-
             case "TEAMS":
-                await HallScrollView
-                    .ScrollToAsync(
-                        TeamsSection,
-                        ScrollToPosition.Start,
-                        true);
+                await HallScrollView.ScrollToAsync(TeamsSection, ScrollToPosition.Start, true);
                 break;
-
             case "PLAYERS":
-                await HallScrollView
-                    .ScrollToAsync(
-                        PlayersSection,
-                        ScrollToPosition.Start,
-                        true);
+                await HallScrollView.ScrollToAsync(PlayersSection, ScrollToPosition.Start, true);
                 break;
-
             case "ACHIEVEMENTS":
-                await HallScrollView
-                    .ScrollToAsync(
-                        CandidatesSection,
-                        ScrollToPosition.Start,
-                        true);
+                await Navigation.PushAsync(new HallCandidateCenterPage());
                 break;
-
             case "HISTORY":
-                await HallScrollView
-                    .ScrollToAsync(
-                        RecordsSection,
-                        ScrollToPosition.Start,
-                        true);
+                await HallScrollView.ScrollToAsync(RecordsSection, ScrollToPosition.Start, true);
                 break;
-
             case "STATS":
-                await HallScrollView
-                    .ScrollToAsync(
-                        StatsSection,
-                        ScrollToPosition.Start,
-                        true);
+                await HallScrollView.ScrollToAsync(StatsSection, ScrollToPosition.Start, true);
                 break;
         }
     }
-
-    class TeamLegendResult
-    {
-        public string Key { get; set; } = "";
-
-        public string DisplayName { get; set; } = "";
-
-        public int Wins { get; set; }
-
-        public int TotalMatches { get; set; }
-
-        public double WinRate { get; set; }
-
-        public int MelesCount { get; set; }
-
-        public int LegacyScore { get; set; }
-    }
 }
-
-
-

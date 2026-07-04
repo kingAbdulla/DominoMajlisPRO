@@ -91,6 +91,12 @@ public sealed class TrendChartDrawable : IDrawable
 
     void DrawDonut(ICanvas canvas, RectF rect)
     {
+        if (Values.Count <= 2 && !string.IsNullOrWhiteSpace(CenterText))
+        {
+            DrawSingleValueRing(canvas, rect);
+            return;
+        }
+
         double win = Values.ElementAtOrDefault(0);
         double loss = Values.ElementAtOrDefault(1);
         double draw = Values.ElementAtOrDefault(2);
@@ -104,6 +110,23 @@ public sealed class TrendChartDrawable : IDrawable
         DrawArc(canvas, donut, start, (float)(loss / total * 360), Color.FromArgb("#FF3B30"));
         start += (float)(loss / total * 360);
         DrawArc(canvas, donut, start, (float)(draw / total * 360), Color.FromArgb("#BFC3C7"));
+
+        canvas.FillColor = Color.FromArgb("#101010");
+        canvas.FillCircle(center, size * 0.28f);
+    }
+
+    void DrawSingleValueRing(ICanvas canvas, RectF rect)
+    {
+        double progress = Math.Clamp(Values.ElementAtOrDefault(0), 0, 1);
+        float size = Math.Min(rect.Width, rect.Height) * 0.58f;
+        var center = rect.Center;
+        var donut = new RectF(center.X - size / 2, center.Y - size / 2, size, size);
+
+        canvas.StrokeColor = Color.FromArgb("#2A2A2A");
+        canvas.StrokeSize = Math.Max(12, donut.Width * 0.16f);
+        canvas.DrawArc(donut, -90, 360, false, false);
+
+        DrawArc(canvas, donut, -90, (float)(progress * 360), PrimaryColor);
 
         canvas.FillColor = Color.FromArgb("#101010");
         canvas.FillCircle(center, size * 0.28f);
