@@ -283,6 +283,18 @@
                                 Padding="2"/>
                         </ScrollView>
 
+                        <Button
+                            Text="إحصائيات الفرق"
+                            FontFamily="Tajawal-Regular"
+                            BackgroundColor="#15100A"
+                            BorderColor="#8A5B27"
+                            BorderWidth="1"
+                            TextColor="#D4AE62"
+                            CornerRadius="16"
+                            HeightRequest="{OnIdiom Phone=42, Tablet=46, Desktop=48}"
+                            HorizontalOptions="Fill"
+                            Clicked="OnTeamStatisticsClicked"/>
+
                     </VerticalStackLayout>
                 </Border>
 
@@ -347,6 +359,18 @@
                                 Spacing="{OnIdiom Phone=8, Tablet=10, Desktop=12}"
                                 Padding="1"/>
                         </ScrollView>
+
+                        <Button
+                            Text="إحصائيات اللاعبين"
+                            FontFamily="Tajawal-Regular"
+                            BackgroundColor="#15100A"
+                            BorderColor="#8A5B27"
+                            BorderWidth="0.8"
+                            TextColor="#D4AE62"
+                            CornerRadius="16"
+                            HeightRequest="{OnIdiom Phone=42, Tablet=46, Desktop=48}"
+                            HorizontalOptions="Fill"
+                            Clicked="OnPlayerStatisticsClicked"/>
 
                     </VerticalStackLayout>
                 </Border>

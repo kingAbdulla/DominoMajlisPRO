@@ -1559,6 +1559,45 @@ public partial class HallOfFamePage : ContentPage
             new PlayerProfilesPage());
     }
 
+    async void OnTeamStatisticsClicked(
+        object sender,
+        EventArgs e)
+    {
+        await Navigation.PushAsync(
+            new TeamStatisticsPage());
+    }
+
+    async void OnPlayerStatisticsClicked(
+        object sender,
+        EventArgs e)
+    {
+        await Navigation.PushAsync(
+            new PlayerStatisticsPage());
+    }
+
+    async void OnBottomNavigation(
+        string destination)
+    {
+        switch (destination)
+        {
+            case "SETTINGS":
+                await Navigation.PushAsync(new MainPage());
+                break;
+
+            case "PLAYERS":
+                await Navigation.PushAsync(new PlayerProfilesPage());
+                break;
+
+            case "GAME":
+                await Navigation.PushAsync(new CreateTeamPage());
+                break;
+
+            case "STORE":
+                await Navigation.PushAsync(new GalleryEngine.Pages.GalleryPage());
+                break;
+        }
+    }
+
     async void OnSideMenuNavigation(
         string section)
     {
