@@ -21,21 +21,21 @@
                 <!-- ========================= -->
 
                 <Grid
-                    ColumnDefinitions="Auto,*,*,Auto,Auto"
-                    ColumnSpacing="{OnIdiom Phone=4, Tablet=10}"
+                    ColumnDefinitions="*,*,Auto,Auto"
+                    ColumnSpacing="{OnIdiom Phone=6, Tablet=10}"
                     FlowDirection="LeftToRight"
                     VerticalOptions="Center">
 
               
 
                     <Border
-                        Grid.Column="1"
+                        Grid.Column="0"
                         Stroke="#8D6824"
                         StrokeThickness="1.2"
                         BackgroundColor="#080808"
                         Padding="2"
-                        MaximumHeightRequest="{OnIdiom Phone=50, Tablet=55}"
-                        MaximumWidthRequest="{OnIdiom Phone=200, Tablet=250}"
+                        MinimumWidthRequest="{OnIdiom Phone=106, Tablet=150}"
+                        HeightRequest="{OnIdiom Phone=50, Tablet=55}"
                         StrokeShape="RoundRectangle 18">
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="4">
                             <Image Source="coins.png" WidthRequest="25" HeightRequest="25"/>
@@ -43,7 +43,7 @@
                                 x:Name="HeaderCoinsLabel"
                                 Grid.Column="1"
                                 Text="0"
-                                FontSize="{OnIdiom Phone=12, Tablet=15}"
+                                FontSize="{OnIdiom Phone=10, Tablet=15}"
                                 TextColor="White"
                                 FontAttributes="Bold"
                                 VerticalTextAlignment="Center"
@@ -52,7 +52,7 @@
     x:Name="getcoins"
     Grid.Column="2"
     Text="+"
-    FontSize="{OnIdiom Phone=20, Tablet=25}"
+    FontSize="{OnIdiom Phone=18, Tablet=25}"
     TextColor="#8D6824"
     FontAttributes="Bold"
     VerticalTextAlignment="Center"
@@ -69,12 +69,12 @@
                     </Border>
 
                     <Border
-                        Grid.Column="2"
+                        Grid.Column="1"
                         Stroke="#8D6824"
                         StrokeThickness="1.2"
                         BackgroundColor="#080808"
-                        MaximumHeightRequest="{OnIdiom Phone=50, Tablet=55}"
-                        MaximumWidthRequest="{OnIdiom Phone=200, Tablet=250}"
+                        MinimumWidthRequest="{OnIdiom Phone=106, Tablet=150}"
+                        HeightRequest="{OnIdiom Phone=50, Tablet=55}"
                         Padding="2"
                         StrokeShape="RoundRectangle 18">
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
@@ -83,7 +83,7 @@
                                 x:Name="HeaderGemsLabel"
                                 Grid.Column="1"
                                 Text="0"
-                                FontSize="{OnIdiom Phone=12, Tablet=15}"
+                                FontSize="{OnIdiom Phone=10, Tablet=15}"
                                 TextColor="White"
                                 FontAttributes="Bold"
                                 VerticalTextAlignment="Center"
@@ -92,7 +92,7 @@
 x:Name="getGems"
 Grid.Column="2"
 Text="+"
-FontSize="{OnIdiom Phone=20, Tablet=25}"
+FontSize="{OnIdiom Phone=18, Tablet=25}"
 TextColor="#8D6824"
 FontAttributes="Bold"
 VerticalTextAlignment="Center"
@@ -108,7 +108,7 @@ LineBreakMode="TailTruncation">
                     </Border>
 
                     <Border
-                        Grid.Column="3"
+                        Grid.Column="2"
                         WidthRequest="{OnIdiom Phone=76, Tablet=98}"
                         HeightRequest="{OnIdiom Phone=76, Tablet=98}"
                         HorizontalOptions="Center"
@@ -119,36 +119,11 @@ LineBreakMode="TailTruncation">
                         StrokeShape="RoundRectangle 0">
 
                         <Grid
-    Grid.Column="3"
+    Grid.Column="2"
     WidthRequest="{OnIdiom Phone=64, Tablet=84}"
     HeightRequest="{OnIdiom Phone=64, Tablet=84}"
     HorizontalOptions="Center"
     VerticalOptions="Center">
-
-                            <!-- Level Badge -->
-                            <Border
-        x:Name="HeaderPlayerLevelBadge"
-        WidthRequest="{OnIdiom Phone=20, Tablet=25}"
-        HeightRequest="{OnIdiom Phone=20, Tablet=25}"
-        HorizontalOptions="End"
-        VerticalOptions="End"
-                                Margin="-1,0"
-        TranslationX="0"
-        TranslationY="0"
-        BackgroundColor="#080808"
-        Stroke="#D4AF37"
-        StrokeThickness="2"
-        StrokeShape="RoundRectangle 999">
-
-                                <Label
-            x:Name="HeaderPlayerLevelLabel"
-            Text="1"
-            FontSize="{OnIdiom Phone=11, Tablet=14}"
-            FontAttributes="Bold"
-            TextColor="#FFD700"
-            HorizontalTextAlignment="Center"
-            VerticalTextAlignment="Center"/>
-                            </Border>
 
                             <Border
         WidthRequest="{OnIdiom Phone=50, Tablet=70}"
@@ -184,6 +159,31 @@ LineBreakMode="TailTruncation">
                                 </Grid>
                             </Border>
 
+                            <!-- Level Badge -->
+                            <Border
+        x:Name="HeaderPlayerLevelBadge"
+        WidthRequest="{OnIdiom Phone=24, Tablet=30}"
+        HeightRequest="{OnIdiom Phone=24, Tablet=30}"
+        HorizontalOptions="Start"
+        VerticalOptions="End"
+        Margin="{OnIdiom Phone='3,0,0,3', Tablet='3,0,0,3'}"
+        BackgroundColor="#080808"
+        Stroke="#D4AF37"
+        StrokeThickness="2"
+        StrokeShape="RoundRectangle 999"
+        ZIndex="99"
+        InputTransparent="True">
+
+                                <Label
+            x:Name="HeaderPlayerLevelLabel"
+            Text="1"
+            FontSize="{OnIdiom Phone=11, Tablet=14}"
+            FontAttributes="Bold"
+            TextColor="#FFD700"
+            HorizontalTextAlignment="Center"
+            VerticalTextAlignment="Center"/>
+                            </Border>
+
                             <!-- Status Dot -->
                             <Border
         x:Name="ProfileStatusBadge"
@@ -201,7 +201,7 @@ LineBreakMode="TailTruncation">
                     </Border>
 
                     <Border
-                        Grid.Column="4"
+                        Grid.Column="3"
                         WidthRequest="{OnIdiom Phone=50, Tablet=50}"
                         HeightRequest="{OnIdiom Phone=50, Tablet=50}"
                         Stroke="#080808"
@@ -1034,7 +1034,7 @@ Margin="0,5,0,0">
                             <Label
                                 Grid.Column="1"
                                 x:Name="RefRulesLabel"
-                                Text="عالمي"
+                                Text="محلي"
                                 FontFamily="DG-Nemr-V.0"
                                 FontSize="{OnIdiom Phone=16, Tablet=22}"
                                 FontAttributes="Bold"

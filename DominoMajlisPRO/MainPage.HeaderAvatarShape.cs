@@ -227,14 +227,24 @@ public partial class MainPage
         double badgeSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 24 : 30;
         HeaderPlayerLevelBadge.WidthRequest = badgeSize;
         HeaderPlayerLevelBadge.HeightRequest = badgeSize;
+        HeaderPlayerLevelBadge.MinimumWidthRequest = badgeSize;
+        HeaderPlayerLevelBadge.MinimumHeightRequest = badgeSize;
         HeaderPlayerLevelBadge.HorizontalOptions = LayoutOptions.Start;
         HeaderPlayerLevelBadge.VerticalOptions = LayoutOptions.End;
-        HeaderPlayerLevelBadge.TranslationX = 1;
-        HeaderPlayerLevelBadge.TranslationY = -1;
-        HeaderPlayerLevelBadge.ZIndex = 30;
+        HeaderPlayerLevelBadge.Margin = new Thickness(0, 0, 0, 0);
+        HeaderPlayerLevelBadge.TranslationX = -2;
+        HeaderPlayerLevelBadge.TranslationY = 2;
+        HeaderPlayerLevelBadge.ZIndex = 100;
         HeaderPlayerLevelBadge.IsVisible = true;
         HeaderPlayerLevelBadge.Opacity = 1;
         HeaderPlayerLevelBadge.InputTransparent = true;
+        HeaderPlayerLevelBadge.BackgroundColor = Color.FromArgb("#080808");
+        HeaderPlayerLevelBadge.Stroke = Color.FromArgb("#D4AF37");
+        HeaderPlayerLevelBadge.StrokeThickness = 2;
+        HeaderPlayerLevelLabel.TextColor = Color.FromArgb("#FFD700");
+        HeaderPlayerLevelLabel.FontAttributes = FontAttributes.Bold;
+        HeaderPlayerLevelLabel.HorizontalTextAlignment = TextAlignment.Center;
+        HeaderPlayerLevelLabel.VerticalTextAlignment = TextAlignment.Center;
     }
 
     void ApplyMainHeaderTextPolish()

@@ -1,4 +1,4 @@
-using DominoMajlisPRO.Features.RechargeCenter.Pages;
+﻿using DominoMajlisPRO.Features.RechargeCenter.Pages;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
@@ -54,7 +54,9 @@ public partial class MainPage : ContentPage
 
 
 
-    string selectedRules = "عالمي";
+    const string LocalRulesLabel = "محلي";
+    const string InternationalRulesLabel = "عالمي";
+    string selectedRules = LocalRulesLabel;
 
 
     // =========================
@@ -69,6 +71,7 @@ public partial class MainPage : ContentPage
     public MainPage()
     {
         InitializeComponent();
+        ApplyRulesSelection(LocalRulesLabel, closeDropdown: true);
         UpdateMainSeasonCard();
 
         TeamPickerCollection.ItemsSource =
@@ -434,12 +437,7 @@ public partial class MainPage : ContentPage
         PreviewTeam2PlayersLabel.Text =
             FormatTeamPlayers(team2);
 
-        PreviewRulesLabel.Text =
-            selectedRules;
-        RefRulesLabel.Text =
-            selectedRules.Contains("ط¹", StringComparison.Ordinal)
-                ? "عالمي"
-                : "محلي";
+        ApplyRulesSelection(selectedRules, closeDropdown: false);
     }
 
 
@@ -749,32 +747,35 @@ TextChangedEventArgs e)
     object sender,
     TappedEventArgs e)
     {
-        selectedRules = "محلي";
-
-        PreviewRulesLabel.Text =
-            "محلي";
-
-        RefRulesLabel.Text = "محلي";
-        RulesDropdownBorder.IsVisible = false;
-        RefRulesDropdownBorder.IsVisible = false;
-
+        ApplyRulesSelection(LocalRulesLabel, closeDropdown: true);
         UpdateMatchPreview();
+        ApplyRulesSelection(LocalRulesLabel, closeDropdown: true);
     }
 
     void OnInternationalRuleTapped(
     object sender,
     TappedEventArgs e)
     {
-        selectedRules = "عالمي";
-
-        PreviewRulesLabel.Text =
-            "عالمي";
-
-        RefRulesLabel.Text = "عالمي";
-        RulesDropdownBorder.IsVisible = false;
-        RefRulesDropdownBorder.IsVisible = false;
-
+        ApplyRulesSelection(InternationalRulesLabel, closeDropdown: true);
         UpdateMatchPreview();
+        ApplyRulesSelection(InternationalRulesLabel, closeDropdown: true);
+    }
+
+    void ApplyRulesSelection(string rules, bool closeDropdown)
+    {
+        selectedRules =
+            string.Equals(rules, InternationalRulesLabel, StringComparison.Ordinal)
+                ? InternationalRulesLabel
+                : LocalRulesLabel;
+
+        PreviewRulesLabel.Text = selectedRules;
+        RefRulesLabel.Text = selectedRules;
+
+        if (closeDropdown)
+        {
+            RulesDropdownBorder.IsVisible = false;
+            RefRulesDropdownBorder.IsVisible = false;
+        }
     }
 
     // Game Mode Changes
@@ -1059,6 +1060,7 @@ TextChangedEventArgs e)
 
             HeaderGemsLabel.Text =
                 wallet.Gems.ToString("N0");
+            ApplyHeaderWalletTextSizing();
 
             var xp =
                 Math.Max(
@@ -1107,6 +1109,7 @@ TextChangedEventArgs e)
     {
         HeaderCoinsLabel.Text = "0";
         HeaderGemsLabel.Text = "0";
+        ApplyHeaderWalletTextSizing();
         MainSeasonTitleLabel.Text = "XP اللاعب";
         MainSeasonCountdownLabel.Text = "0 / 100 XP";
         MainSeasonProgressPercentLabel.Text = "0%";
@@ -1115,6 +1118,31 @@ TextChangedEventArgs e)
         HeroXpLabel.Text = "0 / 100";
         HeroXpPercentLabel.Text = "0%";
         HeroXpProgressBar.Progress = 0;
+    }
+
+    void ApplyHeaderWalletTextSizing()
+    {
+        var longest = Math.Max(
+            HeaderCoinsLabel.Text?.Length ?? 1,
+            HeaderGemsLabel.Text?.Length ?? 1);
+
+        double phoneSize = longest switch
+        {
+            >= 11 => 8,
+            >= 9 => 9,
+            _ => 10
+        };
+
+        double size = DeviceInfo.Idiom == DeviceIdiom.Phone
+            ? phoneSize
+            : 15;
+
+        HeaderCoinsLabel.FontSize = size;
+        HeaderGemsLabel.FontSize = size;
+        HeaderCoinsLabel.MaxLines = 1;
+        HeaderGemsLabel.MaxLines = 1;
+        HeaderCoinsLabel.LineBreakMode = LineBreakMode.NoWrap;
+        HeaderGemsLabel.LineBreakMode = LineBreakMode.NoWrap;
     }
 
     async void OnPublishedSeasonHeroChanged(CurrentSeasonRecord? record)
@@ -1613,6 +1641,8 @@ TextChangedEventArgs e)
                         : currentUser.DisplayName;
                 MemberLevelLabel.Text =
                     ResolveHeaderRoleLabel(currentUser.Role);
+                HeaderPlayerLevelLabel.Text = "1";
+                HeaderPlayerLevelBadge.IsVisible = true;
                 return;
             }
 
@@ -1624,7 +1654,7 @@ TextChangedEventArgs e)
             if (refreshVersion != headerRefreshVersion)
                 return;
             HeaderPlayerLevelLabel.Text =
-     profile?.PlayerLevel.ToString() ?? "1";
+                profile?.PlayerLevel.ToString() ?? "1";
             string avatarPath =
                 visualIdentity.Avatar?.PreviewImage ?? string.Empty;
             HeaderProfileBackgroundImage.Source = null;
