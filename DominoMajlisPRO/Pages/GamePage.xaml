@@ -1,807 +1,328 @@
 <?xml version="1.0" encoding="utf-8" ?>
-
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     x:Class="DominoMajlisPRO.Pages.GamePage"
-    BackgroundColor="#080808"
+    BackgroundColor="#050706"
     FlowDirection="RightToLeft"
     Title="المباراة">
+
+    <ContentPage.Resources>
+        <Style x:Key="HeaderShell" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="#080B0A" />
+            <Setter Property="Stroke" Value="#D4A62C" />
+            <Setter Property="StrokeThickness" Value="1.2" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 30" />
+        </Style>
+        <Style x:Key="KeyButton" TargetType="Button">
+            <Setter Property="HeightRequest" Value="64" />
+            <Setter Property="BackgroundColor" Value="#0A0D0C" />
+            <Setter Property="BorderColor" Value="#A36F16" />
+            <Setter Property="BorderWidth" Value="1" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="TextColor" Value="#F4DFC2" />
+            <Setter Property="FontSize" Value="34" />
+            <Setter Property="FontAttributes" Value="Bold" />
+        </Style>
+    </ContentPage.Resources>
+
     <Grid>
-    <ScrollView>
+        <ScrollView>
+            <VerticalStackLayout Padding="{OnIdiom Phone='5', Tablet='10'}" Spacing="15">
 
-        <VerticalStackLayout
-            Padding="8"
-            Spacing="20">
+                <Grid ColumnDefinitions="48,*,48" ColumnSpacing="4" FlowDirection="LeftToRight" HeightRequest="64">
+                    <Border WidthRequest="48" HeightRequest="54" BackgroundColor="Transparent" Stroke="Transparent" StrokeThickness="0" Padding="0" VerticalOptions="Center">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnBackClicked" />
+                        </Border.GestureRecognizers>
+                        <Image Source="back_gold.png" WidthRequest="32" HeightRequest="32" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
 
-            <!-- العودة -->
-            <Grid ColumnDefinitions="Auto,*">
-                
-
-                <Button
-                    
-        x:Name="MenuButton"
-        Text="☰"
-        Clicked="OnMenuClicked"
-        WidthRequest="50"
-        HeightRequest="50"
-        FontSize="22"
-        BackgroundColor="#080808"
-        BorderColor="Gold"
-        BorderWidth="2"
-        TextColor="Gold"
-        CornerRadius="28" />
-
-            </Grid>
-
-            <!-- العنوان -->
-
-            <VerticalStackLayout
-                IsVisible="False"
-                Margin="0,-20"
-                HorizontalOptions="Center">
-
-                <Label
-                    
-                  
-                    Text="🎲 المباراة"
-                  FontSize="18"
-                    FontAttributes="Bold"
-                    TextColor="Gold"
-                    HorizontalOptions="Center"/>
-
-                <Label
-                    x:Name="RulesLabel"
-                   FontSize="15"
-                    TextColor="White"
-                    HorizontalOptions="Center"/>
-            </VerticalStackLayout>
-            <!-- WIN RATE -->
-
-            <!-- بطاقة المباراة -->
-
-                <Frame
-    Margin="0,-10,0,0"
-    BorderColor="#D4AF37"
-    BackgroundColor="#080808"
-    CornerRadius="24"
-    Padding="12">
-
-                    <Grid ColumnDefinitions="*,*,*">
-
-                        <!-- الجولات -->
-
-                        <VerticalStackLayout
-            Spacing="2"
-            HorizontalOptions="Center">
-
-                            <Image
-                Source="target_3d.png"
-                HeightRequest="42"
-                WidthRequest="42"/>
-
-                            <Label
-                Text="الجولات"
-                FontSize="12"
-                TextColor="#BBBBBB"
-                HorizontalOptions="Center"/>
-
-                            <Label
-                x:Name="RoundsCountLabel"
-                Text="0"
-                FontSize="18"
-                FontAttributes="Bold"
-                TextColor="#FFD700"
-                HorizontalOptions="Center"/>
-
-                        </VerticalStackLayout>
-
-                        <!-- المتصدر -->
-
-                        <VerticalStackLayout
-            Grid.Column="1"
-            Spacing="2"
-            HorizontalOptions="Center">
-
-                            <Image
-                Source="trophy_3d.png"
-                HeightRequest="42"
-                WidthRequest="42"/>
-
-                            <Label
-                Text="المتصدر"
-                FontSize="12"
-                TextColor="#BBBBBB"
-                HorizontalOptions="Center"/>
-
-                            <Label
-                x:Name="LeaderLabel"
-                Text="-"
-                FontSize="18"
-                FontAttributes="Bold"
-                TextColor="#76FF03"
-                HorizontalOptions="Center"
-                LineBreakMode="TailTruncation"
-                MaxLines="1"/>
-
-                        </VerticalStackLayout>
-
-                        <!-- الوقت -->
-
-                        <VerticalStackLayout
-            Grid.Column="2"
-            Spacing="2"
-            HorizontalOptions="Center">
-
-                            <Image
-                Source="clock_3d.png"
-                HeightRequest="42"
-                WidthRequest="42"/>
-
-                            <Label
-                Text="الوقت"
-                FontSize="12"
-                TextColor="#BBBBBB"
-                HorizontalOptions="Center"/>
-
-                            <Label
-                x:Name="MatchTimeLabel"
-                Text="00:00:00"
-                FontSize="15"
-                FontAttributes="Bold"
-                TextColor="#00D9FF"
-                HorizontalOptions="Center"/>
-
-                        </VerticalStackLayout>
-
+                    <Grid Grid.Column="1" ColumnDefinitions="*,1.05*,*" ColumnSpacing="0" HorizontalOptions="Fill" VerticalOptions="Center" FlowDirection="RightToLeft">
+                        <Border Grid.Column="0" Style="{StaticResource HeaderShell}" StrokeShape="RoundRectangle 0,30,30,0">
+                            <VerticalStackLayout Spacing="0" HorizontalOptions="Center">
+                                <Label Text="حالة المباراة" TextColor="#F5DEB3" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                                    <Label x:Name="MatchStatusLabel" Text="جارية" TextColor="#76FF03" FontSize="13" FontAttributes="Bold" />
+                                    <BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4" Color="#76FF03" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Column="1" Margin="-4,0" Padding="8,6" BackgroundColor="#10100B" Stroke="#E1B33A" StrokeThickness="1.4" StrokeShape="RoundRectangle 0,0,24,24" ZIndex="2">
+                            <VerticalStackLayout Spacing="0" HorizontalOptions="Center">
+                                <Label Text="الجولة" TextColor="#F5DEB3" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                <Label x:Name="RoundsCountLabel" Text="0" TextColor="#FFF1D0" FontSize="{OnIdiom Phone=19, Tablet=24}" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource HeaderShell}" StrokeShape="RoundRectangle 30,0,0,30">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="1" FlowDirection="LeftToRight">
+                                <Image Source="clock_3d.png" WidthRequest="{OnIdiom Phone=24, Tablet=32}" HeightRequest="{OnIdiom Phone=24, Tablet=32}" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="0">
+                                    <Label Text="الوقت" TextColor="#F5DEB3" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                    <Label x:Name="MatchTimeLabel" Text="00:00" TextColor="#FFD447" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
                     </Grid>
 
-                </Frame>
+                    <Button
+                        x:Name="MenuButton"
+                        Grid.Column="2"
+                        Text="☰"
+                        Clicked="OnMenuClicked"
+                        WidthRequest="48"
+                        HeightRequest="54"
+                        FontSize="24"
+                        BackgroundColor="#080B0A"
+                        BorderColor="#D4A62C"
+                        BorderWidth="1.2"
+                        TextColor="#FFD447"
+                        CornerRadius="16" />
+                </Grid>
 
-                <!-- WIN RATE -->
+                <Label x:Name="RulesLabel" IsVisible="False" />
 
-            <Frame
-                IsVisible="False"
-    BorderColor="Gold"
-    BackgroundColor="#080808"
-    CornerRadius="20"
-    Padding="15">
+                <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="0" HeightRequest="{OnIdiom Phone=360, Tablet=430}" FlowDirection="LeftToRight">
+                    <Border
+                        x:Name="Team1Card"
+                        Grid.Column="0"
+                        Padding="8"
+                        BackgroundColor="#100815"
+                        Stroke="#C95DFF"
+                        StrokeThickness="1.4"
+                        StrokeShape="RoundRectangle 18"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill">
+                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*" RowSpacing="2">
+                            <Image x:Name="Team1BackgroundImage" Grid.RowSpan="7" Aspect="AspectFill" Opacity="0.20" />
+                            <BoxView Grid.RowSpan="7" Opacity="0.70">
+                                <BoxView.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#18101D" Offset="0" />
+                                        <GradientStop Color="#050506" Offset="1" />
+                                    </LinearGradientBrush>
+                                </BoxView.Background>
+                            </BoxView>
 
-                <VerticalStackLayout
-        Spacing="10">
-
-                    <Label
-            Text="📊 نسبة الفوز الحالية"
-           FontSize="{OnIdiom Phone=14, Tablet=18}"
-            FontAttributes="Bold"
-            TextColor="Gold"
-            HorizontalOptions="Center"/>
-
-                    <Label
-            x:Name="WinRateLabel"
-            Text="50% - 50%"
-           FontSize="{OnIdiom Phone=14, Tablet=18}"
-            TextColor="White"
-            HorizontalOptions="Center"/>
-
-                    <ProgressBar
-            x:Name="WinRateBar"
-            Progress="0.5"
-            HeightRequest="12"/>
-
-                </VerticalStackLayout>
-
-            </Frame>
-            <!-- الفريق الأول -->
-                <Frame
-    Margin="0,-10"
-    x:Name="ScoreBoardFrame"
-    BorderColor="#D4AF37"
-    BackgroundColor="#080808"
-    CornerRadius="30"
-    Padding="0"
-    HasShadow="True">
-                    <Grid
-                    
-        ColumnDefinitions="*,50,*"
-        HeightRequest="320">
-
-                    <!-- الفريق الأول -->
-
-                        <VerticalStackLayout
-                            
-    x:Name="Team1Card"
-                            Scale="1"
-    Grid.Column="0"
-    VerticalOptions="Center"
-    HorizontalOptions="Center">
-
-
-                            <Grid
-    WidthRequest="90"
-    HeightRequest="90">
-
-                                <Image
-        x:Name="Team1Emblem"
-        WidthRequest="80"
-        HeightRequest="80"
-        HorizontalOptions="Center"
-        VerticalOptions="Center"/>
-
-                                <Image
-                                                                        Margin="0,-5,-45,0"
-
-        x:Name="Team1SpecialHonorIcon"
-        Source="developer_gold.png"
-        WidthRequest="45"
-        HeightRequest="45"
-        HorizontalOptions="End"
-        VerticalOptions="Start"
-        IsVisible="False"/>
-
+                            <Image x:Name="Team1Emblem" Grid.Row="0" WidthRequest="{OnIdiom Phone=100, Tablet=150}" HeightRequest="{OnIdiom Phone=100, Tablet=150}" Aspect="AspectFit" HorizontalOptions="Center" VerticalOptions="Center" ZIndex="1" />
+                            <Label x:Name="Team1Name" Grid.Row="1" FontSize="{OnIdiom Phone=22, Tablet=38}" FontAttributes="Bold" TextColor="#F3E8DD" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" ZIndex="1" />
+                            <Label x:Name="Team1Players" Grid.Row="2" FontSize="{OnIdiom Phone=11, Tablet=17}" TextColor="#D66BFF" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" ZIndex="1" />
+                            <Border Grid.Row="3" Padding="10,2" Margin="0,2" HorizontalOptions="Center" BackgroundColor="#221128" Stroke="#8E36B9" StrokeThickness="1" StrokeShape="RoundRectangle 8" ZIndex="1">
+                                <Label x:Name="Team1RankNameLabel" Text="مقدم" TextColor="#F8EAFB" FontSize="10" FontAttributes="Bold" />
+                            </Border>
+                            <Label x:Name="Team1Score" Grid.Row="4" Text="0" FontSize="{OnIdiom Phone=46, Tablet=78}" FontAttributes="Bold" TextColor="#C95DFF" HorizontalTextAlignment="Center" ZIndex="1" />
+                            <VerticalStackLayout Grid.Row="5" Spacing="1" ZIndex="1">
+                                <Label x:Name="Team1TargetLabel" Text="الهدف: 151" TextColor="#FFD447" FontSize="12" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                <Label x:Name="Team1XpLabel" Text="0 / 100 XP" TextColor="#FFD447" FontSize="10" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Row="6" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="4" Padding="0,4,0,0" ZIndex="1">
+                                <VerticalStackLayout Spacing="0" WidthRequest="34">
+                                    <Image x:Name="Team1CurrentRankIcon" Source="unranked.png" WidthRequest="30" HeightRequest="30" />
+                                    <Label x:Name="Team1CurrentRankLabel" Text="I" FontSize="9" TextColor="#EDE0C2" HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                                <Grid Grid.Column="1" HeightRequest="22" VerticalOptions="Center">
+                                    <Border x:Name="Team1RankProgressTrack" HeightRequest="14" BackgroundColor="#211327" Stroke="#6E3A82" StrokeThickness="1" StrokeShape="RoundRectangle 8" VerticalOptions="Center">
+                                        <Grid>
+                                            <BoxView x:Name="Team1RankProgressFill" BackgroundColor="#C95DFF" HorizontalOptions="Fill" VerticalOptions="Fill" ScaleX="0" AnchorX="0" />
+                                            <BoxView Opacity="0.28" HeightRequest="4" VerticalOptions="Start" BackgroundColor="#FFFFFFFF" />
+                                        </Grid>
+                                    </Border>
+                                    <Label x:Name="Team1RankPercentLabel" Text="0%" TextColor="White" FontSize="11" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Grid>
+                                <VerticalStackLayout Grid.Column="2" Spacing="0" WidthRequest="34">
+                                    <Image x:Name="Team1NextRankIcon" Source="unranked.png" WidthRequest="30" HeightRequest="30" />
+                                    <Label x:Name="Team1NextRankLabel" Text="II" FontSize="9" TextColor="#EDE0C2" HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
                             </Grid>
-
-                            <Label
-                                
-    x:Name="Team1Name"
-    FontSize="22"
-    FontAttributes="Bold"
-
-    TextColor="Gold"
-    HorizontalOptions="Center"
-    HorizontalTextAlignment="Center"
-    LineBreakMode="TailTruncation"
-                                
-    MaxLines="1"/>
-
-                            <Label
-                                
-                                
-    x:Name="Team1Players"
-  FontSize="12"
-    TextColor="#D0D0D0"
-    HorizontalOptions="Center"
-    HorizontalTextAlignment="Center"
-    LineBreakMode="WordWrap"
-    MaxLines="2"/>
-                            <Label
-                         
-    x:Name="Team1FloatingScore"
-    Text=""
-    FontSize="25"
-    FontAttributes="Bold"
-    TextColor="#76FF03"
-    Opacity="0"
-    HorizontalOptions="Center"/>
-
-                            <HorizontalStackLayout
-    HorizontalOptions="Center"
-    Spacing="5">
-
-                          
-
-                                <Label
-        x:Name="Team1Score"
-        Text="0"
-        FontSize="75"
-        FontAttributes="Bold"
-        TextColor="Gold"
-        HorizontalOptions="Center"/>
-
-                            </HorizontalStackLayout>
-
-                            <Label
-                Text="الهدف 151"
-              FontSize="12"
-                           FontAttributes="Bold"   
-                TextColor="#E8E8E8"
-                HorizontalOptions="Center"/>
-                      
-
-
-                    </VerticalStackLayout>
-
-                    <!-- VS -->
-
-                        <Grid
-    Grid.Column="1"
-    VerticalOptions="FillAndExpand">
-
-                            <!-- الخط العمودي -->
-                            <BoxView
-        WidthRequest="2.5"
-        Color="Gold"
-        Opacity="0.5"
-        HorizontalOptions="Center"
-        VerticalOptions="FillAndExpand"/>
-
-                            <!-- دائرة VS -->
-                            <Frame
-        BorderColor="Gold"
-        BackgroundColor="#080808"
-        CornerRadius="50"
-        WidthRequest="75"
-        HeightRequest="75"
-        Padding="0"
-        HasShadow="True"
-        HorizontalOptions="Center"
-        VerticalOptions="Center">
-
-                                <Image
-    Grid.Column="1"
-    Source="vs_gold_icon.png"
-    WidthRequest="75"
-    HeightRequest="75"
-    VerticalOptions="Center"
-    HorizontalOptions="Center"
-    Aspect="AspectFit"/>
-
-
-                            </Frame>
-
+                            <Label x:Name="Team1FloatingScore" Grid.RowSpan="7" Text="" FontSize="24" FontAttributes="Bold" TextColor="#C95DFF" Opacity="0" HorizontalOptions="Center" VerticalOptions="Center" ZIndex="5" />
+                            <Image x:Name="Team1SpecialHonorIcon" IsVisible="False" Opacity="0" />
                         </Grid>
-                        <!-- الفريق الثاني -->
+                    </Border>
 
-                        <VerticalStackLayout
-    x:Name="Team2Card"
-                            Scale="1"
-    Grid.Column="2"
-    VerticalOptions="Center"
-    HorizontalOptions="Center">
-
-
-                            <Grid
-    WidthRequest="90"
-    HeightRequest="90">
-
-                                <Image
-        x:Name="Team2Emblem"
-        WidthRequest="80"
-        HeightRequest="80"
-        HorizontalOptions="Center"
-        VerticalOptions="Center"/>
-
-                                <Image
-                                                                        Margin="0,-5,-30,0"
-        x:Name="Team2SpecialHonorIcon"
-        Source="developer_gold.png"
-        WidthRequest="28"
-        HeightRequest="28"
-        HorizontalOptions="End"
-        VerticalOptions="Start"
-        IsVisible="False"/>
-
-                            </Grid>
-
-                            <Label
-                              
-    x:Name="Team2Name"
-    FontSize="22"
-    FontAttributes="Bold"
-    TextColor="Gold"
-    HorizontalOptions="Center"
-    HorizontalTextAlignment="Center"
-    LineBreakMode="TailTruncation"
-    MaxLines="1"/>
-
-                            <Label
-    x:Name="Team2Players"
-   FontSize="12"
-    TextColor="#D0D0D0"
-    HorizontalOptions="Center"
-    HorizontalTextAlignment="Center"
-    LineBreakMode="WordWrap"
-    MaxLines="2"/>
-                            <Label
-    x:Name="Team2FloatingScore"
-    Text=""
-    FontSize="25"
-    FontAttributes="Bold"
-    TextColor="#3D5AFE"
-    Opacity="0"
-    HorizontalOptions="Center"/>
-
-                            <HorizontalStackLayout
-    HorizontalOptions="Center"
-    Spacing="5">
-
-                            
-
-                                <Label
-        x:Name="Team2Score"
-        Text="0"
-        FontSize="75"
-        FontAttributes="Bold"
-        TextColor="Gold"
-        HorizontalOptions="Center"/>
-
-                            </HorizontalStackLayout>
-
-                            <Label
-                Text="الهدف 151"
-            FontSize="12"
-                            FontAttributes="Bold"    
-                TextColor="#E8E8E8"
-                HorizontalOptions="Center"/>
-                   
-
-                    </VerticalStackLayout>
-
-                </Grid>
-
-            </Frame>
-
-
-            <!-- ACTIVE TEAM -->
-
-
-
-            <!-- KEYPAD -->
-
-            <Frame
-    BorderColor="#D4AF37"
-    BackgroundColor="#080808"
-    CornerRadius="18"
-    Padding="10">
-
-                <VerticalStackLayout Spacing="6">
-
-                    <Label
-            x:Name="KeypadDisplay"
-            Text="0"
-            FontSize="36"
-            TextColor="Gold"
-            HorizontalOptions="Center"/>
-
-                    <Grid
-                        FlowDirection="LeftToRight"
-    ColumnDefinitions="*,*,*"
-    RowDefinitions="Auto,Auto,Auto,Auto"
-    ColumnSpacing="5"
-    RowSpacing="5">
-
-                        <!-- الصف الأول -->
-
-                        <Button
-    Text="1"
-    Grid.Row="0"
-    Grid.Column="0"
-    Clicked="OnKeypadClicked"
-    BackgroundColor="#101010"
-    TextColor="White"
-    BorderColor="#2A2A2A"
-    BorderWidth="1"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="28"
-    FontAttributes="Bold"/>
-
-                        <Button
-    Text="2"
-    Grid.Row="0"
-    Grid.Column="1"
-    Clicked="OnKeypadClicked"
-    BackgroundColor="#101010"
-    TextColor="White"
-    BorderColor="#2A2A2A"
-    BorderWidth="1"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="28"
-    FontAttributes="Bold"/>
-                        <Button
-    Text="3"
-    Grid.Row="0"
-    Grid.Column="2"
-    Clicked="OnKeypadClicked"
-    BackgroundColor="#101010"
-    TextColor="White"
-    BorderColor="#2A2A2A"
-    BorderWidth="1"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="28"
-    FontAttributes="Bold"/>
-                     
-                        <!-- الصف الثاني -->
-                        <Button
-    Text="4"
-    Grid.Row="1"
-    Grid.Column="0"
-    Clicked="OnKeypadClicked"
-    BackgroundColor="#101010"
-    TextColor="White"
-    BorderColor="#2A2A2A"
-    BorderWidth="1"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="28"
-    FontAttributes="Bold"/>
-                        <Button
-    Text="5"
-    Grid.Row="1"
-    Grid.Column="1"
-    Clicked="OnKeypadClicked"
-    BackgroundColor="#101010"
-    TextColor="White"
-    BorderColor="#2A2A2A"
-    BorderWidth="1"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="28"
-    FontAttributes="Bold"/>
-                        <Button
-    Text="6"
-    Grid.Row="1"
-    Grid.Column="2"
-    Clicked="OnKeypadClicked"
-    BackgroundColor="#101010"
-    TextColor="White"
-    BorderColor="#2A2A2A"
-    BorderWidth="1"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="28"
-    FontAttributes="Bold"/>
-                        
-
-                        <!-- الصف الثالث -->
-                        <Button
-    Text="7"
-    Grid.Row="2"
-    Grid.Column="0"
-    Clicked="OnKeypadClicked"
-    BackgroundColor="#101010"
-    TextColor="White"
-    BorderColor="#2A2A2A"
-    BorderWidth="1"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="28"
-    FontAttributes="Bold"/>
-                        <Button
-    Text="8"
-    Grid.Row="2"
-    Grid.Column="1"
-    Clicked="OnKeypadClicked"
-    BackgroundColor="#101010"
-    TextColor="White"
-    BorderColor="#2A2A2A"
-    BorderWidth="1"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="28"
-    FontAttributes="Bold"/>
-                        <Button
-    Text="9"
-    Grid.Row="2"
-    Grid.Column="2"
-    Clicked="OnKeypadClicked"
-    BackgroundColor="#101010"
-    TextColor="White"
-    BorderColor="#2A2A2A"
-    BorderWidth="1"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="28"
-    FontAttributes="Bold"/>
-              
-
-                        <!-- الصف الرابع -->
-                        <Button
-    Text="0"
-    Grid.Row="3"
-    Grid.Column="0"
-    Clicked="OnKeypadClicked"
-    BackgroundColor="#101010"
-    TextColor="White"
-    BorderColor="#2A2A2A"
-    BorderWidth="1"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="28"
-    FontAttributes="Bold"/>
-                        <Button
-    Text="حذف"
-    Grid.Row="3"
-    Grid.Column="1"
-    Clicked="OnDeleteDigitClicked"
-    BackgroundColor="#080808"
-    TextColor="#D4AF37"
-    BorderColor="#D4AF37"
-    BorderWidth="1"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="24"
-    FontAttributes="Bold"/>
-                        <Button
-    Text="مسح"
-    Grid.Row="3"
-    Grid.Column="2"
-    Clicked="OnClearKeypadClicked"
-    BackgroundColor="#D4AF37"
-    TextColor="Black"
-    CornerRadius="15"
-    HeightRequest="50"
-    FontSize="24"
-    FontAttributes="Bold"/>
-
-
+                    <Grid Grid.Column="1" WidthRequest="{OnIdiom Phone=64, Tablet=90}" VerticalOptions="Fill" ZIndex="3">
+                        <BoxView WidthRequest="2" Color="#D4A62C" Opacity="0.55" HorizontalOptions="Center" VerticalOptions="Fill" />
+                        <Image Source="vs_gold_icon.png" WidthRequest="{OnIdiom Phone=72, Tablet=96}" HeightRequest="{OnIdiom Phone=72, Tablet=96}" Aspect="AspectFit" HorizontalOptions="Center" VerticalOptions="Center" />
                     </Grid>
 
-                </VerticalStackLayout>
+                    <Border
+                        x:Name="Team2Card"
+                        Grid.Column="2"
+                        Padding="8"
+                        BackgroundColor="#081708"
+                        Stroke="#A4FF45"
+                        StrokeThickness="1.4"
+                        StrokeShape="RoundRectangle 18"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill">
+                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*" RowSpacing="2">
+                            <Image x:Name="Team2BackgroundImage" Grid.RowSpan="7" Aspect="AspectFill" Opacity="0.20" />
+                            <BoxView Grid.RowSpan="7" Opacity="0.70">
+                                <BoxView.Background>
+                                    <LinearGradientBrush StartPoint="1,0" EndPoint="0,1">
+                                        <GradientStop Color="#101B10" Offset="0" />
+                                        <GradientStop Color="#050506" Offset="1" />
+                                    </LinearGradientBrush>
+                                </BoxView.Background>
+                            </BoxView>
 
-            </Frame>
-           
+                            <Image x:Name="Team2Emblem" Grid.Row="0" WidthRequest="{OnIdiom Phone=100, Tablet=150}" HeightRequest="{OnIdiom Phone=100, Tablet=150}" Aspect="AspectFit" HorizontalOptions="Center" VerticalOptions="Center" ZIndex="1" />
+                            <Label x:Name="Team2Name" Grid.Row="1" FontSize="{OnIdiom Phone=22, Tablet=38}" FontAttributes="Bold" TextColor="#F3E8DD" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" ZIndex="1" />
+                            <Label x:Name="Team2Players" Grid.Row="2" FontSize="{OnIdiom Phone=11, Tablet=17}" TextColor="#9BFF45" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" ZIndex="1" />
+                            <Border Grid.Row="3" Padding="10,2" Margin="0,2" HorizontalOptions="Center" BackgroundColor="#122510" Stroke="#63AB32" StrokeThickness="1" StrokeShape="RoundRectangle 8" ZIndex="1">
+                                <Label x:Name="Team2RankNameLabel" Text="مقدم" TextColor="#F8FFF0" FontSize="10" FontAttributes="Bold" />
+                            </Border>
+                            <Label x:Name="Team2Score" Grid.Row="4" Text="0" FontSize="{OnIdiom Phone=46, Tablet=78}" FontAttributes="Bold" TextColor="#A4FF45" HorizontalTextAlignment="Center" ZIndex="1" />
+                            <VerticalStackLayout Grid.Row="5" Spacing="1" ZIndex="1">
+                                <Label x:Name="Team2TargetLabel" Text="الهدف: 151" TextColor="#FFD447" FontSize="12" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                <Label x:Name="Team2XpLabel" Text="0 / 100 XP" TextColor="#FFD447" FontSize="10" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Row="6" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="4" Padding="0,4,0,0" ZIndex="1">
+                                <VerticalStackLayout Spacing="0" WidthRequest="34">
+                                    <Image x:Name="Team2CurrentRankIcon" Source="unranked.png" WidthRequest="30" HeightRequest="30" />
+                                    <Label x:Name="Team2CurrentRankLabel" Text="I" FontSize="9" TextColor="#EDE0C2" HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                                <Grid Grid.Column="1" HeightRequest="22" VerticalOptions="Center">
+                                    <Border x:Name="Team2RankProgressTrack" HeightRequest="14" BackgroundColor="#14210F" Stroke="#5D8D2E" StrokeThickness="1" StrokeShape="RoundRectangle 8" VerticalOptions="Center">
+                                        <Grid>
+                                            <BoxView x:Name="Team2RankProgressFill" BackgroundColor="#A4FF45" HorizontalOptions="Fill" VerticalOptions="Fill" ScaleX="0" AnchorX="0" />
+                                            <BoxView Opacity="0.28" HeightRequest="4" VerticalOptions="Start" BackgroundColor="#FFFFFFFF" />
+                                        </Grid>
+                                    </Border>
+                                    <Label x:Name="Team2RankPercentLabel" Text="0%" TextColor="White" FontSize="11" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Grid>
+                                <VerticalStackLayout Grid.Column="2" Spacing="0" WidthRequest="34">
+                                    <Image x:Name="Team2NextRankIcon" Source="unranked.png" WidthRequest="30" HeightRequest="30" />
+                                    <Label x:Name="Team2NextRankLabel" Text="II" FontSize="9" TextColor="#EDE0C2" HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Grid>
+                            <Label x:Name="Team2FloatingScore" Grid.RowSpan="7" Text="" FontSize="24" FontAttributes="Bold" TextColor="#A4FF45" Opacity="0" HorizontalOptions="Center" VerticalOptions="Center" ZIndex="5" />
+                            <Image x:Name="Team2SpecialHonorIcon" IsVisible="False" Opacity="0" />
+                        </Grid>
+                    </Border>
+                </Grid>
+                <Border Padding="14" BackgroundColor="#090B0A" Stroke="#D4A62C" StrokeThickness="1.2" StrokeShape="RoundRectangle 18">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="اختر عدد النقاط" FontSize="22" FontAttributes="Bold" TextColor="#FFD447" HorizontalTextAlignment="Center" />
+                        <Border Padding="16,6" HorizontalOptions="Center" MinimumWidthRequest="120" BackgroundColor="#11120E" Stroke="#D4A62C" StrokeThickness="1" StrokeShape="RoundRectangle 14">
+                            <Label x:Name="KeypadDisplay" Text="0" FontSize="26" FontAttributes="Bold" TextColor="#FFF1D0" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                        <Grid FlowDirection="LeftToRight" ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                            <Button Text="1" Grid.Row="0" Grid.Column="0" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
+                            <Button Text="2" Grid.Row="0" Grid.Column="1" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
+                            <Button Text="3" Grid.Row="0" Grid.Column="2" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
+                            <Button Text="4" Grid.Row="1" Grid.Column="0" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
+                            <Button Text="5" Grid.Row="1" Grid.Column="1" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
+                            <Button Text="6" Grid.Row="1" Grid.Column="2" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
+                            <Button Text="7" Grid.Row="2" Grid.Column="0" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
+                            <Button Text="8" Grid.Row="2" Grid.Column="1" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
+                            <Button Text="9" Grid.Row="2" Grid.Column="2" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
+                            <Button Text="✖" Grid.Row="3" Grid.Column="0" Clicked="OnClearKeypadClicked" BackgroundColor="#210E0B" BorderColor="#B84325" BorderWidth="1" CornerRadius="9" TextColor="#FF6B56" HeightRequest="64" FontSize="28" FontAttributes="Bold" />
+                            <Button Text="0" Grid.Row="3" Grid.Column="1" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
+                            <Button Text="مسح" Grid.Row="3" Grid.Column="2" Clicked="OnDeleteDigitClicked" BackgroundColor="#D8A51F" TextColor="#221400" CornerRadius="9" HeightRequest="64" FontSize="{OnIdiom Phone=22, Tablet=26}" FontAttributes="Bold" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
 
-            <!-- الأزرار -->
+                <Border BackgroundColor="#080B0A" Stroke="#A36F16" StrokeThickness="1.1" StrokeShape="RoundRectangle 18" Padding="10">
+                    <VerticalStackLayout Spacing="8">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" FlowDirection="LeftToRight">
+                            <Button Text="⌃" WidthRequest="58" HeightRequest="42" BackgroundColor="#111" BorderColor="#A36F16" BorderWidth="1" TextColor="#FFD447" CornerRadius="8" Clicked="OnToggleRoundsClicked" />
+                            <Label Grid.Column="1" Text="سجل الجولات" TextColor="#FFD447" FontSize="22" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                            <Button Grid.Column="2" Text="⌄" WidthRequest="58" HeightRequest="42" BackgroundColor="#111" BorderColor="#A36F16" BorderWidth="1" TextColor="#FFD447" CornerRadius="8" Clicked="OnToggleRoundsClicked" />
+                        </Grid>
+                        <Grid ColumnDefinitions="1.1*,1.1*,1.7*,1.1*,1.6*,1.35*" Padding="6,8" BackgroundColor="#101210" ColumnSpacing="2">
+                            <Label Text="الجولة" TextColor="#FFD447" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="1" Text="الوقت" TextColor="#FFD447" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="2" Text="الفائز" TextColor="#FFD447" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="3" Text="النقاط" TextColor="#FFD447" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="4" Text="النتيجة" TextColor="#FFD447" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="5" Text="الإجراءات" TextColor="#FFD447" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                        </Grid>
+                        <VerticalStackLayout x:Name="RoundsContainer" Spacing="0" />
+                        <Button x:Name="ToggleRoundsButton" Text="إظهار المزيد ⌄" Clicked="OnToggleRoundsClicked" BackgroundColor="#101010" BorderColor="#A36F16" BorderWidth="1" TextColor="#FFD447" CornerRadius="10" IsVisible="False" />
+                    </VerticalStackLayout>
+                </Border>
 
-            <Frame
-                IsVisible="False"
-    BackgroundColor="#080808"
-    BorderColor="Gold"
-    CornerRadius="18"
-    Padding="15">
-
-                <Grid
-        ColumnDefinitions="80,*,120"
-        RowDefinitions="Auto,Auto">
-
-                    <!-- العنوان -->
-
-                    <Label
-            Grid.Row="0"
-            Grid.ColumnSpan="3"
-            Text="آخر جولة"
-           FontSize="{OnIdiom Phone=14, Tablet=18}"
-            FontAttributes="Bold"
-            TextColor="Gold"
-            HorizontalOptions="Center"/>
-
-                    <!-- النقاط -->
-
-                 
-                        
-           <Label
-    x:Name="LastRoundPointsLabel"
-    Grid.Row="1"
-    Grid.Column="0"
-    FontSize="25"
-    FontAttributes="Bold"
-    TextColor="Lime"
-    HorizontalTextAlignment="Center"
-    LineBreakMode="NoWrap"
-    MaxLines="1"/>
-
-
-                        <Label
-    x:Name="LastRoundTeamLabel"
-    Grid.Row="1"
-    Grid.Column="1"
-   FontSize="{OnIdiom Phone=14, Tablet=18}"
-    FontAttributes="Bold"
-    TextColor="White"
-    HorizontalTextAlignment="Center"
-    LineBreakMode="NoWrap"
-    MaxLines="1"/>
-                        <!-- اسم الفريق -->
-
-                    
-
-                    <!-- الوقت -->
-
-                    <Label
-            x:Name="LastRoundTimeLabel"
-            Grid.Row="1"
-            Grid.Column="2"
-           FontSize="{OnIdiom Phone=14, Tablet=18}"
-            TextColor="Gray"
-            HorizontalTextAlignment="Center"/>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,0,0,12">
+                    <Border Padding="12,8" BackgroundColor="#0A0D0C" Stroke="#8A641F" StrokeThickness="1" StrokeShape="RoundRectangle 18">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" FlowDirection="LeftToRight">
+                            <Image Source="coins.png" WidthRequest="46" HeightRequest="46" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+                                <Label Text="العملات" TextColor="#F4DFC2" FontSize="13" />
+                                <Label x:Name="MatchCoinsLabel" Text="0" TextColor="#FFD447" FontSize="22" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="1" Padding="12,8" BackgroundColor="#0A0D0C" Stroke="#8A641F" StrokeThickness="1" StrokeShape="RoundRectangle 18">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" FlowDirection="LeftToRight">
+                            <Image Source="trust_gold.png" WidthRequest="46" HeightRequest="46" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+                                <Label Text="ثقة الفريق" TextColor="#F4DFC2" FontSize="13" />
+                                <Label x:Name="TeamTrustLabel" Text="96 %" TextColor="#F4DFC2" FontSize="22" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
                 </Grid>
 
-            </Frame>
-
-
-            <!-- سجل الجولات -->
-
-            <Label
-                Text="سجل الجولات"
-               FontSize="{OnIdiom Phone=14, Tablet=18}"
-                FontAttributes="Bold"
-                TextColor="Gold"
-                HorizontalOptions="Center"/>
-                <Button
-    x:Name="ToggleRoundsButton"
-    Text="عرض المزيد ▼"
-    Clicked="OnToggleRoundsClicked"
-    BackgroundColor="#151515"
-    BorderColor="Gold"
-    BorderWidth="1"
-    TextColor="Gold"
-    CornerRadius="15"
-    IsVisible="False"/>
-
-                <VerticalStackLayout
-                x:Name="RoundsContainer"
-                Spacing="10"/>
-
-        </VerticalStackLayout>
-
-    </ScrollView>
-    <!-- SIDE MENU OVERLAY -->
-
-    <Grid
-    x:Name="SideMenuOverlay"
-    IsVisible="False"
-    BackgroundColor="#80000000"
-    ZIndex="999">
-
-        <Grid.GestureRecognizers>
-            <TapGestureRecognizer Tapped="CloseMenuClicked"/>
-        </Grid.GestureRecognizers>
-            <Border
-    x:Name="SideMenuPanel"
-    WidthRequest="280"
-    HorizontalOptions="Start"
-    VerticalOptions="Fill"
-    TranslationX="-280"
-    FlowDirection="LeftToRight"
-    BackgroundColor="#151515"
-    Stroke="Gold"
-    StrokeThickness="2"
-    Padding="20">
-
-                <VerticalStackLayout Spacing="20">
-
-                <Label
-    Text="⚙ إدارة المباراة"
-    FontSize="28"
-    FontAttributes="Bold"
-    TextColor="Gold"
-    HorizontalOptions="Center"/>
-
-                <BoxView HeightRequest="1" Color="#D4AF37"/>
-
-                <Button
-    Text="↩ تراجع آخر جولة"
-    Clicked="OnUndoClicked"
-    BackgroundColor="#111111"
-    TextColor="White"
-    BorderColor="#D4AF37"
-    BorderWidth="1"
-    CornerRadius="15"/>
-
-                <Button
-    Text="🔄 مباراة جديدة"
-    Clicked="OnResetClicked"
-    BackgroundColor="#111111"
-    TextColor="White"
-    BorderColor="#D4AF37"
-    BorderWidth="1"
-    CornerRadius="15"/>
-
-                <Button
-    Text="🏆 إنهاء المباراة"
-    Clicked="OnFinishClicked"
-    BackgroundColor="#111111"
-    TextColor="#76FF03"
-    BorderColor="#76FF03"
-    BorderWidth="1"
-    CornerRadius="15"/>
-
-                <Button
-    Text="⬅ العودة"
-    Clicked="OnBackClicked"
-    BackgroundColor="#111111"
-    TextColor="#FF6B6B"
-    BorderColor="#FF6B6B"
-    BorderWidth="1"
-    CornerRadius="15"/>
-
+                <Grid IsVisible="False">
+                    <Label x:Name="WinRateLabel" />
+                    <ProgressBar x:Name="WinRateBar" />
+                    <Label x:Name="LeaderLabel" />
+                    <Label x:Name="LastRoundPointsLabel" />
+                    <Label x:Name="LastRoundTeamLabel" />
+                    <Label x:Name="LastRoundTimeLabel" />
+                    <Frame x:Name="ScoreBoardFrame" />
+                </Grid>
             </VerticalStackLayout>
+        </ScrollView>
 
-        </Border>
+        <Grid x:Name="SideMenuOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="999">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="CloseMenuClicked" />
+            </Grid.GestureRecognizers>
+            <Border x:Name="SideMenuPanel" WidthRequest="280" HorizontalOptions="Start" VerticalOptions="Fill" TranslationX="-280" FlowDirection="LeftToRight" BackgroundColor="#151515" Stroke="Gold" StrokeThickness="2" Padding="20">
+                <VerticalStackLayout Spacing="20">
+                    <Label Text="إدارة المباراة" FontSize="28" FontAttributes="Bold" TextColor="Gold" HorizontalOptions="Center" />
+                    <BoxView HeightRequest="1" Color="#D4AF37" />
+                    <Button Text="↩ تراجع آخر جولة" Clicked="OnUndoClicked" BackgroundColor="#111111" TextColor="White" BorderColor="#D4AF37" BorderWidth="1" CornerRadius="15" />
+                    <Button Text="مباراة جديدة" Clicked="OnResetClicked" BackgroundColor="#111111" TextColor="White" BorderColor="#D4AF37" BorderWidth="1" CornerRadius="15" />
+                    <Button Text="إنهاء المباراة" Clicked="OnFinishClicked" BackgroundColor="#111111" TextColor="#76FF03" BorderColor="#76FF03" BorderWidth="1" CornerRadius="15" />
+                    <Button Text="العودة" Clicked="OnBackClicked" BackgroundColor="#111111" TextColor="#FF6B6B" BorderColor="#FF6B6B" BorderWidth="1" CornerRadius="15" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
 
+        <Grid x:Name="MatchDialogOverlay" IsVisible="False" BackgroundColor="#CC000000" ZIndex="1000" Padding="18">
+            <Border
+                x:Name="MatchDialogCard"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                MaximumWidthRequest="420"
+                Padding="18"
+                BackgroundColor="#080B0A"
+                Stroke="#D4A62C"
+                StrokeThickness="1.4"
+                StrokeShape="RoundRectangle 24">
+                <VerticalStackLayout Spacing="12">
+                    <Image x:Name="MatchDialogIcon" Source="trophy_3d.png" WidthRequest="74" HeightRequest="74" HorizontalOptions="Center" />
+                    <Label x:Name="MatchDialogTitle" Text="انتهت المباراة" TextColor="#FFD447" FontSize="26" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                    <Label x:Name="MatchDialogMessage" TextColor="#F8EAD0" FontSize="16" HorizontalTextAlignment="Center" LineBreakMode="WordWrap" />
+                    <Border x:Name="MatchDialogRewardCard" Padding="12,8" BackgroundColor="#11120E" Stroke="#8A641F" StrokeThickness="1" StrokeShape="RoundRectangle 16">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" FlowDirection="LeftToRight">
+                            <Image Source="coins.png" WidthRequest="42" HeightRequest="42" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+                                <Label Text="مكافأة الفوز" TextColor="#F4DFC2" FontSize="12" />
+                                <Label x:Name="MatchDialogRewardLabel" Text="+0 coins" TextColor="#FFD447" FontSize="22" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button x:Name="MatchDialogSecondaryButton" Text="الخروج" Clicked="OnDialogSecondaryClicked" BackgroundColor="#111111" BorderColor="#8A641F" BorderWidth="1" TextColor="#F8EAD0" CornerRadius="14" HeightRequest="50" />
+                        <Button x:Name="MatchDialogPrimaryButton" Grid.Column="1" Text="استمرار اللعب" Clicked="OnDialogPrimaryClicked" BackgroundColor="#D8A51F" TextColor="#221400" CornerRadius="14" HeightRequest="50" FontAttributes="Bold" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
     </Grid>
-</Grid>
 </ContentPage>

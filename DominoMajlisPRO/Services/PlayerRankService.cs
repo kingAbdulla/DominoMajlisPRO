@@ -118,14 +118,14 @@ public static class PlayerRankService
     {
         return rankBase switch
         {
-            "Bronze" => "rank_bronze.png",
-            "Silver" => "rank_silver.png",
-            "Gold" => "rank_gold.png",
-            "Platinum" => "rank_platinum.png",
-            "Diamond" => "rank_diamond.png",
-            "Majlis Master" => "rank_master.png",
-            "Majlis Legend" => "rank_legend.png",
-            _ => "rank_unranked.png"
+            "Bronze" => "bronze.png",
+            "Silver" => "silver.png",
+            "Gold" => "gold.png",
+            "Platinum" => "platinum.png",
+            "Diamond" => "diamond.png",
+            "Majlis Master" => "majlis_master.png",
+            "Majlis Legend" => "majlis_legend.png",
+            _ => "unranked.png"
         };
     }
 
