@@ -149,6 +149,7 @@ public partial class HallOfFamePage : ContentPage
         for (int i = 0; i < teams.Count; i++)
         {
             identities.TryGetValue(teams[i].TeamId, out var identity);
+            identity ??= await TeamIdentityResolver.ResolveAsync(teams[i].TeamId);
             TopTeamsContainer.Children.Add(CreateTeamCard(i + 1, teams[i], identity));
         }
 
@@ -168,6 +169,7 @@ public partial class HallOfFamePage : ContentPage
         for (int i = 0; i < players.Count; i++)
         {
             identities.TryGetValue(players[i].PlayerId, out var identity);
+            identity ??= await PlayerVisualIdentityResolver.ResolveAsync(players[i].PlayerId);
             TopPlayersContainer.Children.Add(CreatePlayerCard(i + 1, players[i], identity));
         }
 
@@ -226,7 +228,7 @@ public partial class HallOfFamePage : ContentPage
 
     View CreateTeamCard(int rank, HallTeamEvaluation team, TeamIdentityModel? identity)
     {
-        string border = RankBorder(rank);
+        string border = !string.IsNullOrWhiteSpace(identity?.TeamColorHex) ? identity.TeamColorHex : RankBorder(rank);
         var emblem = new Image
         {
             Source = ToImageSource(identity?.EmblemImagePath) ?? "shield_3d.png",
@@ -235,16 +237,22 @@ public partial class HallOfFamePage : ContentPage
             HorizontalOptions = LayoutOptions.Center
         };
         TeamEffectBehavior.SetTeamId(emblem, team.TeamId);
+        var emblemHost = new Grid { HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 74 : 98 };
+        AddTeamBackground(emblemHost, identity);
+        emblemHost.Children.Add(emblem);
 
         var layout = new VerticalStackLayout { Spacing = 4, HorizontalOptions = LayoutOptions.Center };
         layout.Children.Add(Label(rank <= 3 ? $"#{rank}" : rank.ToString(), 13, Color.FromArgb(Gold), true));
-        layout.Children.Add(new Grid { HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 74 : 98, Children = { emblem } });
+        layout.Children.Add(emblemHost);
         layout.Children.Add(Label(team.DisplayName, DeviceInfo.Idiom == DeviceIdiom.Phone ? 15 : 19, Colors.White, true));
+        layout.Children.Add(Label(team.LevelTitle, 10, Color.FromArgb(Muted)));
+        layout.Children.Add(Label($"Level {team.Level}", 10, Color.FromArgb(Gold), true));
         layout.Children.Add(Label($"{team.Wins:N0} انتصار", 11, Color.FromArgb(Muted)));
         layout.Children.Add(Label($"Legacy {team.Legacy:N0}", 12, Color.FromArgb(Gold), true));
+        layout.Children.Add(Label($"دخل القاعة {team.HallEnteredAt:dd/MM/yyyy}", 10, Color.FromArgb(Muted)));
         layout.Children.Add(Label($"{team.FinalScore:0.#}%", 11, Color.FromArgb(Gold), true));
 
-        return Frame(layout, 22, border, rank == 1 ? "#1B1005" : "#0C0C0C", 8, DeviceInfo.Idiom == DeviceIdiom.Phone ? 120 : 165, DeviceInfo.Idiom == DeviceIdiom.Phone ? 180 : 235);
+        return Frame(layout, 22, border, rank == 1 ? "#1B1005" : "#0C0C0C", 8, DeviceInfo.Idiom == DeviceIdiom.Phone ? 132 : 176, DeviceInfo.Idiom == DeviceIdiom.Phone ? 218 : 270);
     }
 
     View CreatePlayerCard(int rank, HallPlayerEvaluation player, PlayerVisualIdentity? identity)
@@ -254,7 +262,7 @@ public partial class HallOfFamePage : ContentPage
         AddOptionalBackground(avatar, identity?.ProfileBackground?.PreviewImage);
         avatar.Children.Add(new Image
         {
-            Source = ToImageSource(identity?.Avatar?.PreviewImage) ?? "player_card.png",
+            Source = ToImageSource(identity?.Avatar?.PreviewImage) ?? ToImageSource(player.AvatarImagePath) ?? "player_card.png",
             Aspect = Aspect.AspectFill,
             HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 66 : 88,
             WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 66 : 88,
@@ -262,16 +270,18 @@ public partial class HallOfFamePage : ContentPage
             VerticalOptions = LayoutOptions.Center
         });
         AddPlayerEffect(avatar, identity?.Effect);
+        AddPlayerFrame(avatar, identity?.Frame?.PreviewImage);
 
         var layout = new VerticalStackLayout { Spacing = 4, HorizontalOptions = LayoutOptions.Center };
         layout.Children.Add(Label(rank <= 3 ? $"#{rank}" : rank.ToString(), 13, Color.FromArgb(Gold), true));
         layout.Children.Add(avatar);
         layout.Children.Add(Label(player.DisplayName, DeviceInfo.Idiom == DeviceIdiom.Phone ? 14 : 18, Colors.White, true));
-        layout.Children.Add(Label(player.Category, 10, Color.FromArgb(Muted)));
+        layout.Children.Add(Label(identity?.Title?.DisplayName ?? player.Category, 10, Color.FromArgb(Muted)));
         layout.Children.Add(Label($"Legacy {player.Legacy:N0}", 12, Color.FromArgb(Gold), true));
+        layout.Children.Add(Label($"دخل القاعة {player.HallEnteredAt:dd/MM/yyyy}", 10, Color.FromArgb(Muted)));
         layout.Children.Add(Label($"{player.FinalScore:0.#}%", 11, Color.FromArgb(Gold), true));
 
-        return Frame(layout, 22, border, rank == 1 ? "#1B1005" : "#0C0C0C", 8, DeviceInfo.Idiom == DeviceIdiom.Phone ? 118 : 155, DeviceInfo.Idiom == DeviceIdiom.Phone ? 176 : 228);
+        return Frame(layout, 22, border, rank == 1 ? "#1B1005" : "#0C0C0C", 8, DeviceInfo.Idiom == DeviceIdiom.Phone ? 132 : 166, DeviceInfo.Idiom == DeviceIdiom.Phone ? 214 : 260);
     }
 
     View CreateRecordCard(HallRecord record)
@@ -376,11 +386,47 @@ public partial class HallOfFamePage : ContentPage
         host.Children.Add(new Image { Source = source, Aspect = Aspect.AspectFill, Opacity = 0.45 });
     }
 
+    static void AddTeamBackground(Grid host, TeamIdentityModel? identity)
+    {
+        string source = identity?.EmblemBackgroundSource ?? "";
+        if (string.IsNullOrWhiteSpace(source) || string.Equals(source, "Transparent", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (source.StartsWith("#", StringComparison.Ordinal))
+        {
+            host.BackgroundColor = Color.FromArgb(source);
+            return;
+        }
+
+        host.Children.Add(new Image
+        {
+            Source = InventoryDisplayResolver.ResolveImageSource(source, ""),
+            Aspect = Aspect.AspectFill,
+            Opacity = 0.46
+        });
+    }
+
     static void AddPlayerEffect(Grid host, CatalogAssetDisplay? effect)
     {
         var overlay = new Image { InputTransparent = true, Aspect = Aspect.AspectFit };
         PlayerEffectEngine.Apply(overlay, effect, 1.08);
         host.Children.Add(overlay);
+    }
+
+    static void AddPlayerFrame(Grid host, string? imagePath)
+    {
+        var source = ToImageSource(imagePath);
+        if (source == null)
+            return;
+
+        host.Children.Add(new Image
+        {
+            Source = source,
+            Aspect = Aspect.AspectFit,
+            InputTransparent = true,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        });
     }
 
     static string RankBorder(int rank) => rank switch

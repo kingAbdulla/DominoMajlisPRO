@@ -303,7 +303,10 @@
                 <!-- HIDDEN CANDIDATES -->
                 <Border
                     x:Name="CandidatesSection"
-                    IsVisible="False">
+                    IsVisible="False"
+                    BackgroundColor="Transparent"
+                    StrokeThickness="0"
+                    Padding="0">
                     <VerticalStackLayout x:Name="CandidatesContainer"/>
                 </Border>
 

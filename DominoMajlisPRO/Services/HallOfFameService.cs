@@ -29,6 +29,7 @@ public static class HallOfFameService
         var matches = matchesTask.Result.Where(match => match.IsFinished || MatchDate(match) != default).ToList();
         var teamEvaluations = teamStatsTask.Result.Teams.Select(EvaluateTeam).ToList();
         var playerEvaluations = playerStatsTask.Result.Players.Select(EvaluatePlayer).ToList();
+        await PersistFirstAdmissionDatesAsync(teamEvaluations, playerEvaluations);
         var auditEntries = teamEvaluations.Select(item => item.Audit)
             .Concat(playerEvaluations.Select(item => item.Audit))
             .OrderByDescending(item => item.CreatedAt)
@@ -49,7 +50,7 @@ public static class HallOfFameService
             .ToList();
 
         cachedSnapshot = new HallOfFameSnapshot(
-            SeasonText: ResolveSeasonText(teamStatsTask.Result.Teams),
+            SeasonText: ResolveSeasonText(teamStatsTask.Result.Teams, matches),
             HeroTeam: teams.FirstOrDefault(),
             TeamMembers: teams,
             PlayerMembers: players,
@@ -111,6 +112,9 @@ public static class HallOfFameService
             Championships: team.Championships,
             HighestScore: Math.Max(team.SourceTeam.HighestScore, team.Matches.Select(match => Math.Max(match.Team1Score, match.Team2Score)).DefaultIfEmpty(0).Max()),
             WinningStreak: team.HighestWinStreak,
+            Level: team.Level,
+            LevelTitle: team.LevelTitle,
+            HallEnteredAt: ResolveTeamHallDate(team.SourceTeam),
             FinalScore: Math.Round(score, 1),
             Decision: decision,
             PublicStatus: BuildPublicStatus(decision, Math.Clamp(score / 100, 0, 1)),
@@ -167,6 +171,8 @@ public static class HallOfFameService
             Trust: player.Trust,
             MVP: player.MVP,
             Championships: player.Championships,
+            AvatarImagePath: ResolvePlayerAvatarPath(player.SourcePlayer),
+            HallEnteredAt: ResolvePlayerHallDate(player.SourcePlayer),
             FinalScore: Math.Round(score, 1),
             Decision: decision,
             PublicStatus: BuildPublicStatus(decision, Math.Clamp(score / 100, 0, 1)),
@@ -244,22 +250,22 @@ public static class HallOfFameService
     static IReadOnlyList<HallRecord> BuildRecords(IReadOnlyList<TeamStatisticsProfile> teams, IReadOnlyList<PlayerStatisticsProfile> players, IReadOnlyList<SavedMatch> matches)
     {
         var mostWins = teams.OrderByDescending(item => item.Wins).FirstOrDefault();
-        var mostMeles = teams.OrderByDescending(item => item.SourceTeam.MelesCount + item.SourceTeam.LifetimeMeles).FirstOrDefault();
+        var mostMeles = teams.Where(item => item.SourceTeam.MelesCount + item.SourceTeam.LifetimeMeles > 0).OrderByDescending(item => item.SourceTeam.MelesCount + item.SourceTeam.LifetimeMeles).FirstOrDefault();
         var fastest = matches.Where(item => item.MatchDurationMinutes > 0).OrderBy(item => item.MatchDurationMinutes).FirstOrDefault();
         var highestScore = matches.OrderByDescending(item => Math.Max(item.Team1Score, item.Team2Score)).FirstOrDefault();
         var highestTrust = teams.OrderByDescending(item => item.Trust).FirstOrDefault();
         var highestLegacy = teams.OrderByDescending(item => item.Legacy).FirstOrDefault();
-        var mostXp = teams.OrderByDescending(item => item.XP).FirstOrDefault();
-        var longestStreak = teams.OrderByDescending(item => item.HighestWinStreak).FirstOrDefault();
+        var mostXp = teams.Where(item => item.XP > 0).OrderByDescending(item => item.XP).FirstOrDefault();
+        var longestStreak = teams.Where(item => item.HighestWinStreak > 0).OrderByDescending(item => item.HighestWinStreak).FirstOrDefault();
         var lowestLosses = teams.Where(item => item.TotalMatches > 0).OrderBy(item => item.Losses).FirstOrDefault();
-        var mostMvp = players.OrderByDescending(item => item.MVP).FirstOrDefault();
-        var mostChampion = players.OrderByDescending(item => item.Championships).FirstOrDefault();
-        var bestSeason = teams.OrderByDescending(item => item.SourceTeam.SeasonXP).FirstOrDefault();
+        var mostMvp = players.Where(item => item.MVP > 0).OrderByDescending(item => item.MVP).FirstOrDefault();
+        var mostChampion = players.Where(item => item.Championships > 0).OrderByDescending(item => item.Championships).FirstOrDefault();
+        var bestSeason = teams.Where(item => item.SourceTeam.SeasonXP > 0).OrderByDescending(item => item.SourceTeam.SeasonXP).FirstOrDefault();
 
         return new[]
         {
             Record("Most Wins", mostWins?.TeamName, mostWins?.Wins.ToString("N0")),
-            Record("Most Meles", mostMeles?.TeamName, (mostMeles?.SourceTeam.MelesCount + mostMeles?.SourceTeam.LifetimeMeles)?.ToString("N0")),
+            Record("Most Meles", mostMeles?.TeamName, mostMeles == null ? null : (mostMeles.SourceTeam.MelesCount + mostMeles.SourceTeam.LifetimeMeles).ToString("N0")),
             Record("Fastest Match", fastest == null ? null : "الزمن", fastest == null ? null : $"{fastest.MatchDurationMinutes} د"),
             Record("Highest Score", highestScore == null ? null : "Score", highestScore == null ? null : Math.Max(highestScore.Team1Score, highestScore.Team2Score).ToString("N0")),
             Record("Highest Trust", highestTrust?.TeamName, highestTrust == null ? null : $"{highestTrust.Trust}%"),
@@ -295,6 +301,91 @@ public static class HallOfFameService
         }
     }
 
+    static async Task PersistFirstAdmissionDatesAsync(
+        IReadOnlyList<HallTeamEvaluation> teams,
+        IReadOnlyList<HallPlayerEvaluation> players)
+    {
+        var acceptedTeams = teams
+            .Where(item => item.Decision == HallDecision.Accepted)
+            .Select(item => item.TeamId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var acceptedPlayers = players
+            .Where(item => item.Decision == HallDecision.Accepted)
+            .Select(item => item.PlayerId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (acceptedTeams.Count > 0)
+        {
+            var storedTeams = await TeamProfileService.LoadTeamsAsync();
+            bool changed = false;
+            foreach (var team in storedTeams.Where(item => acceptedTeams.Contains(string.IsNullOrWhiteSpace(item.TeamId) ? item.TeamName : item.TeamId)))
+            {
+                if (!team.HallOfFameMember)
+                {
+                    team.HallOfFameMember = true;
+                    changed = true;
+                }
+                if (!team.HasHallOfFameBadge)
+                {
+                    team.HasHallOfFameBadge = true;
+                    changed = true;
+                }
+                if (team.HallOfFameDate == default)
+                {
+                    team.HallOfFameDate = DateTime.Now;
+                    changed = true;
+                }
+            }
+            if (changed)
+                await TeamProfileService.SaveTeamsAsync(storedTeams);
+        }
+
+        if (acceptedPlayers.Count > 0)
+        {
+            var storedPlayers = await PlayerProfileService.LoadPlayersAsync();
+            bool changed = false;
+            foreach (var player in storedPlayers.Where(item => acceptedPlayers.Contains(item.PlayerId)))
+            {
+                if (!player.IsHallOfLegendsMember)
+                {
+                    player.IsHallOfLegendsMember = true;
+                    changed = true;
+                }
+                if (string.IsNullOrWhiteSpace(player.HallOfFameHistory))
+                {
+                    player.HallOfFameHistory = $"HallOfFame:{DateTime.Now:yyyy-MM-dd}";
+                    changed = true;
+                }
+            }
+            if (changed)
+                await PlayerProfileService.SavePlayersAsync(storedPlayers);
+        }
+    }
+
+    static DateTime ResolveTeamHallDate(TeamProfileModel team) =>
+        team.HallOfFameDate != default ? team.HallOfFameDate : DateTime.Now;
+
+    static DateTime ResolvePlayerHallDate(PlayerProfileModel player)
+    {
+        var history = player.HallOfFameHistory?.Trim() ?? "";
+        var marker = history.Split(new[] { ';', '|', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault(item => item.StartsWith("HallOfFame:", StringComparison.OrdinalIgnoreCase));
+        if (marker != null && DateTime.TryParse(marker["HallOfFame:".Length..], out var parsed))
+            return parsed;
+        return player.CreatedAt != default ? player.CreatedAt : DateTime.Now;
+    }
+
+    static string ResolvePlayerAvatarPath(PlayerProfileModel player) =>
+        player.UseCustomAvatar && !string.IsNullOrWhiteSpace(player.AvatarPath)
+            ? player.AvatarPath
+            : !string.IsNullOrWhiteSpace(player.ProfileImagePath)
+                ? player.ProfileImagePath
+                : !string.IsNullOrWhiteSpace(player.AvatarImage)
+                    ? player.AvatarImage
+                    : !string.IsNullOrWhiteSpace(player.BuiltInAvatar)
+                        ? player.BuiltInAvatar
+                        : "player_card.png";
+
     static HallRequirement Requirement(string article, string title, double current, double required, bool passed, string reason) =>
         new(article, title, Math.Round(current, 1), required, passed, reason);
 
@@ -304,7 +395,27 @@ public static class HallOfFameService
     static bool HasConfirmedTeamEvidence(TeamStatisticsProfile team) => team.Trust < 30 || team.SourceTeam.SuspiciousScore >= 95;
     static bool HasConfirmedPlayerEvidence(PlayerStatisticsProfile player) => player.Trust < 30;
     static string EstimateRemaining(IReadOnlyList<HallRequirement> checks) => checks.Any(item => !item.Passed) ? $"{checks.Count(item => !item.Passed)} متطلبات متبقية" : "مكتمل";
-    static string ResolveSeasonText(IReadOnlyList<TeamStatisticsProfile> teams) => teams.Select(item => item.SourceTeam.CurrentSeasonId).DefaultIfEmpty(0).Max() > 0 ? teams.Select(item => item.SourceTeam.CurrentSeasonId).DefaultIfEmpty(0).Max().ToString() : "الحالي";
+    static string ResolveSeasonText(IReadOnlyList<TeamStatisticsProfile> teams, IReadOnlyList<SavedMatch> matches)
+    {
+        int seasonId = teams.Select(item => item.SourceTeam.CurrentSeasonId).DefaultIfEmpty(0).Max();
+        if (seasonId > 0)
+            return $"S{seasonId}";
+
+        var seasonStart = teams
+            .Select(item => item.SourceTeam.SeasonStartDate)
+            .Where(date => date != default)
+            .DefaultIfEmpty()
+            .Max();
+        if (seasonStart != default)
+            return seasonStart.ToString("yyyy");
+
+        var lastMatch = matches
+            .Select(MatchDate)
+            .Where(date => date != default)
+            .DefaultIfEmpty(DateTime.Now)
+            .Max();
+        return lastMatch.ToString("yyyy");
+    }
     static DateTime MatchDate(SavedMatch match) => match.MatchEndDate != default ? match.MatchEndDate : match.MatchDate != default ? match.MatchDate : match.LastPlayedTime;
 
     static string ResolvePlayerCategory(PlayerProfileModel player, double score)
@@ -354,6 +465,9 @@ public sealed record HallTeamEvaluation(
     int Championships,
     int HighestScore,
     int WinningStreak,
+    int Level,
+    string LevelTitle,
+    DateTime HallEnteredAt,
     double FinalScore,
     HallDecision Decision,
     SafeStatusResult PublicStatus,
@@ -376,6 +490,8 @@ public sealed record HallPlayerEvaluation(
     int Trust,
     int MVP,
     int Championships,
+    string AvatarImagePath,
+    DateTime HallEnteredAt,
     double FinalScore,
     HallDecision Decision,
     SafeStatusResult PublicStatus,
