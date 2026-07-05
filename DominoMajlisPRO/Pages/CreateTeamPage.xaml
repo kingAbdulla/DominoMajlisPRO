@@ -310,7 +310,7 @@
                                             </Grid>
                                         </Border>
                                         <Border IsVisible="{Binding IsSelected}" WidthRequest="18" HeightRequest="18" BackgroundColor="#F2C46D" Stroke="Black" StrokeShape="RoundRectangle 9" HorizontalOptions="Start" VerticalOptions="Start">
-                                            <Label Text="âœ“" FontSize="10" TextColor="Black" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                            <Label Text="✓" FontSize="10" TextColor="Black" HorizontalOptions="Center" VerticalOptions="Center"/>
                                         </Border>
                                     </Grid>
                                 </DataTemplate>
