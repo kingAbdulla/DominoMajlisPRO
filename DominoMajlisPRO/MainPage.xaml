@@ -10,7 +10,7 @@
 
     <Grid>
 
-        <ScrollView>
+        <ScrollView x:Name="MainPageScroll">
 
             <VerticalStackLayout
             Padding="18"

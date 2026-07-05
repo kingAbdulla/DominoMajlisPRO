@@ -66,10 +66,12 @@ public partial class MainPage : ContentPage
     bool logoPressed = false;
     bool identityChoiceShowing;
     int headerRefreshVersion;
+    readonly bool focusPlayAreaOnAppear;
 
 
-    public MainPage()
+    public MainPage(bool focusPlayArea = false)
     {
+        focusPlayAreaOnAppear = focusPlayArea;
         InitializeComponent();
         ApplyRulesSelection(LocalRulesLabel, closeDropdown: true);
         UpdateMainSeasonCard();
@@ -126,6 +128,15 @@ public partial class MainPage : ContentPage
         await RefreshMainPlayerProgressAsync();
         await RefreshMainSeasonHeroAsync();
         StartMainSeasonHeroTimer();
+
+        if (focusPlayAreaOnAppear)
+        {
+            Dispatcher.Dispatch(async () =>
+            {
+                await Task.Delay(120);
+                await MainPageScroll.ScrollToAsync(StartMatchPrimaryButton, ScrollToPosition.Center, true);
+            });
+        }
     }
     // =========================
     // PAGE LIFECYCLE - DISAPPEARING

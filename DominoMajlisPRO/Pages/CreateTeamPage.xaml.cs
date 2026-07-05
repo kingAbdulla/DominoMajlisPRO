@@ -52,6 +52,48 @@ public sealed class TeamColorCarouselItem(string assetId, string colorHex, strin
 
 public sealed record EmblemBackgroundPickerItem(string AssetId, string Background, string DisplayName);
 
+public sealed class EmblemBackgroundCarouselItem : INotifyPropertyChanged
+{
+    private bool _isSelected;
+
+    public EmblemBackgroundCarouselItem(string assetId, string background, string displayName)
+    {
+        AssetId = assetId;
+        Background = background;
+        DisplayName = displayName;
+    }
+
+    public string AssetId { get; }
+    public string Background { get; }
+    public string DisplayName { get; }
+    public ImageSource ImageSource => Background.StartsWith('#') ||
+                                      string.Equals(Background, "Transparent", StringComparison.OrdinalIgnoreCase)
+        ? InventoryDisplayResolver.ResolveImageSource("ss.png")
+        : InventoryDisplayResolver.ResolveImageSource(Background, "ss.png");
+
+    public Color SwatchColor => Background.StartsWith('#')
+        ? Color.FromArgb(Background)
+        : Color.FromArgb("#16110A");
+
+    public bool IsImage => !Background.StartsWith('#') &&
+                           !string.Equals(Background, "Transparent", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value)
+                return;
+
+            _isSelected = value;
+            PropertyChanged?.Invoke(this, new(nameof(IsSelected)));
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+}
+
 public sealed class PlayerSelectionItem(PlayerProfileModel player) : INotifyPropertyChanged
 {
     private bool _isSelected;
@@ -89,6 +131,7 @@ public sealed class TeamSelectionItem(TeamProfileModel team) : INotifyPropertyCh
         ? Team.Player1
         : $"{Team.Player1} + {Team.Player2}";
     public ImageSource EmblemSource => Team.EmblemSource;
+    public Color BackgroundColor => ResolveBackgroundColor(Team);
     public Color AccentColor => IsSelected
         ? Color.FromArgb("#FFD15F")
         : SafeTeamColor(Team.ColorHex);
@@ -104,6 +147,7 @@ public sealed class TeamSelectionItem(TeamProfileModel team) : INotifyPropertyCh
             _isSelected = value;
             PropertyChanged?.Invoke(this, new(nameof(IsSelected)));
             PropertyChanged?.Invoke(this, new(nameof(AccentColor)));
+            PropertyChanged?.Invoke(this, new(nameof(BackgroundColor)));
         }
     }
 
@@ -119,6 +163,15 @@ public sealed class TeamSelectionItem(TeamProfileModel team) : INotifyPropertyCh
         {
             return Color.FromArgb("#6E4A18");
         }
+    }
+
+    private static Color ResolveBackgroundColor(TeamProfileModel team)
+    {
+        if (!string.IsNullOrWhiteSpace(team.EmblemBackground) &&
+            team.EmblemBackground.StartsWith('#'))
+            return SafeTeamColor(team.EmblemBackground).WithAlpha(0.35f);
+
+        return SafeTeamColor(team.ColorHex).WithAlpha(0.22f);
     }
 }
 
@@ -143,6 +196,9 @@ public sealed class TeamEffectCarouselItem : INotifyPropertyChanged
     public CatalogAssetDisplay? Effect { get; }
     public string OwnerPlayerId { get; }
     public bool IsNone => Effect == null;
+    public bool HasPreviewImage => Effect != null && !string.IsNullOrWhiteSpace(Effect.PreviewImage);
+    public ImageSource? PreviewImageSource =>
+        HasPreviewImage ? InventoryDisplayResolver.ResolveImageSource(Effect!.PreviewImage) : null;
 
     public bool IsSelected
     {
@@ -165,6 +221,7 @@ public partial class CreateTeamPage : ContentPage
     private List<EmblemCarouselItem> emblemItems = new();
     private List<TeamColorCarouselItem> colorItems = new();
     private List<EmblemBackgroundPickerItem> backgroundItems = new();
+    private List<EmblemBackgroundCarouselItem> backgroundCarouselItems = new();
     private List<TeamEffectCarouselItem> teamEffectItems = new();
     private List<PlayerSelectionItem> playerSelectionItems = new();
     private List<TeamSelectionItem> teamSelectionItems = new();
@@ -195,17 +252,21 @@ public partial class CreateTeamPage : ContentPage
     private bool _ownedAssetsReloadRequested = false;
     private bool _isReloadingOwnedAssets = false;
     private List<TeamProfileModel> LoadedTeams = new();
+    private TaskCompletionSource<bool>? _dialogCompletionSource;
 
     public CreateTeamPage()
     {
         InitializeComponent();
 
+        EmblemBackgroundPicker.IsVisible = false;
         EmblemCarousel.ItemsSource = emblemItems;
         ColorCarousel.ItemsSource = colorItems;
         EmblemBackgroundPicker.ItemsSource = backgroundItems;
+        EmblemBackgroundCarousel.ItemsSource = backgroundCarouselItems;
         TeamEffectCarousel.ItemsSource = teamEffectItems;
         PlayersCollection.ItemsSource = playerSelectionItems;
         TeamsCarousel.ItemsSource = teamSelectionItems;
+        TuneCompactActionButtons();
 
         OnTeamClicked(this, EventArgs.Empty);
 
@@ -216,9 +277,127 @@ public partial class CreateTeamPage : ContentPage
         Player2Entry.Focused += (_, _) => _activePlayerSlot = 2;
     }
 
+    void TuneCompactActionButtons()
+    {
+        var actionBorders = ActionButtonsGrid.Children.OfType<Border>().ToList();
+        for (int i = 0; i < actionBorders.Count; i++)
+        {
+            actionBorders[i].StrokeThickness = 1.25;
+            actionBorders[i].Shadow = new Shadow
+            {
+                Brush = new SolidColorBrush(i == 0 ? Color.FromArgb("#D6A642") : Color.FromArgb("#FF5A4D")),
+                Radius = 10,
+                Opacity = i == 0 ? 0.42f : 0.28f,
+                Offset = new Point(0, 2)
+            };
+        }
+
+        foreach (var label in EnumerateVisualChildren(ActionButtonsGrid).OfType<Label>())
+        {
+            label.FontSize = ReferenceEquals(label, SaveButtonText) ? 12 : 11;
+            label.LineBreakMode = LineBreakMode.TailTruncation;
+            label.MaxLines = 1;
+            label.HorizontalTextAlignment = TextAlignment.Center;
+        }
+
+        foreach (var image in EnumerateVisualChildren(ActionButtonsGrid).OfType<Image>())
+        {
+            image.WidthRequest = Math.Min(image.WidthRequest > 0 ? image.WidthRequest : 18, 18);
+            image.HeightRequest = Math.Min(image.HeightRequest > 0 ? image.HeightRequest : 18, 18);
+        }
+    }
+
+    async Task<bool> ShowProDialogAsync(
+        string title,
+        string message,
+        string okText = "حسناً",
+        string? cancelText = null)
+    {
+        _dialogCompletionSource?.TrySetResult(false);
+        _dialogCompletionSource = new TaskCompletionSource<bool>();
+
+        DialogTitleLabel.Text = title;
+        DialogMessageLabel.Text = message;
+        DialogOkLabel.Text = okText;
+        DialogCancelLabel.Text = cancelText ?? string.Empty;
+        DialogCancelButton.IsVisible = !string.IsNullOrWhiteSpace(cancelText);
+
+        DialogOverlay.IsVisible = true;
+        DialogOverlay.Opacity = 0;
+        DialogSheet.Scale = 0.92;
+        DialogSheet.TranslationY = 18;
+
+        await Task.WhenAll(
+            DialogOverlay.FadeTo(1, 160, Easing.CubicOut),
+            DialogSheet.ScaleTo(1, 210, Easing.CubicOut),
+            DialogSheet.TranslateTo(0, 0, 210, Easing.CubicOut));
+
+        return await _dialogCompletionSource.Task;
+    }
+
+    Task ShowProAlertAsync(string title, string message, string okText = "حسناً") =>
+        ShowProDialogAsync(title, message, okText);
+
+    Task<bool> ShowProConfirmAsync(string title, string message, string okText = "نعم", string cancelText = "إلغاء") =>
+        ShowProDialogAsync(title, message, okText, cancelText);
+
+    async void OnDialogOkTapped(object sender, TappedEventArgs e) =>
+        await CloseProDialogAsync(true);
+
+    async void OnDialogCancelTapped(object sender, TappedEventArgs e) =>
+        await CloseProDialogAsync(false);
+
+    async Task CloseProDialogAsync(bool result)
+    {
+        var completion = _dialogCompletionSource;
+        if (completion == null)
+            return;
+
+        await Task.WhenAll(
+            DialogOverlay.FadeTo(0, 120, Easing.CubicIn),
+            DialogSheet.ScaleTo(0.94, 120, Easing.CubicIn));
+
+        DialogOverlay.IsVisible = false;
+        completion.TrySetResult(result);
+        if (ReferenceEquals(_dialogCompletionSource, completion))
+            _dialogCompletionSource = null;
+    }
+
+    static IEnumerable<Element> EnumerateVisualChildren(Element root)
+    {
+        yield return root;
+
+        switch (root)
+        {
+            case Border border when border.Content is Element borderContent:
+                foreach (var child in EnumerateVisualChildren(borderContent))
+                    yield return child;
+                break;
+
+            case Layout layout:
+                foreach (var child in layout.Children.OfType<Element>())
+                {
+                    foreach (var nested in EnumerateVisualChildren(child))
+                        yield return nested;
+                }
+                break;
+
+            case ContentView contentView when contentView.Content is Element content:
+                foreach (var child in EnumerateVisualChildren(content))
+                    yield return child;
+                break;
+        }
+    }
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+#if ANDROID
+        var window = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity?.Window;
+        window?.SetStatusBarColor(Android.Graphics.Color.ParseColor("#050607"));
+        window?.SetNavigationBarColor(Android.Graphics.Color.ParseColor("#050607"));
+#endif
 
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
@@ -292,16 +471,15 @@ public partial class CreateTeamPage : ContentPage
                 emblemItems.Clear();
                 colorItems.Clear();
                 backgroundItems.Clear();
+                backgroundCarouselItems.Clear();
 
                 var catalog = await StoreAssetCatalogService.LoadAsync();
-                var storeOwner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
                 var ownedTeamEffects = new List<TeamEffectCarouselItem>();
 
                 var teamEffectOwnerIds = new[]
                     {
                         player1?.PlayerId ?? ownerTeam?.Player1Id,
-                        player2?.PlayerId ?? (isTeamMode ? ownerTeam?.Player2Id : null),
-                        storeOwner.IsGhost ? null : storeOwner.PlayerId
+                        player2?.PlayerId ?? (isTeamMode ? ownerTeam?.Player2Id : null)
                     }
                     .Where(id => !string.IsNullOrWhiteSpace(id))
                     .Select(id => id!.Trim())
@@ -384,13 +562,11 @@ public partial class CreateTeamPage : ContentPage
                 var newEmblems = emblemItems.ToList();
                 var newColors = colorItems.ToList();
                 var newBackgrounds = backgroundItems.ToList();
-                var newTeamEffects = ownedTeamEffects.Count == 0
-                    ? new List<TeamEffectCarouselItem>()
-                    : new[] { new TeamEffectCarouselItem("", "بدون تأثير", null) }
-                        .Concat(ownedTeamEffects
-                            .GroupBy(item => $"{item.AssetId}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
-                            .Select(group => group.First()))
-                        .ToList();
+                var newBackgroundCarouselItems = backgroundCarouselItems.ToList();
+                var newTeamEffects = ownedTeamEffects
+                    .GroupBy(item => $"{item.AssetId}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
+                    .Select(group => group.First())
+                    .ToList();
 
                 // Suppress selection handlers while we replace ItemsSource.
                 bool prevSuppress = _suppressSelectionHandlers;
@@ -402,9 +578,11 @@ public partial class CreateTeamPage : ContentPage
                         EmblemCarousel.ItemsSource = newEmblems;
                         ColorCarousel.ItemsSource = newColors;
                         EmblemBackgroundPicker.ItemsSource = newBackgrounds;
+                        EmblemBackgroundCarousel.ItemsSource = newBackgroundCarouselItems;
                         emblemItems = newEmblems;
                         colorItems = newColors;
                         backgroundItems = newBackgrounds;
+                        backgroundCarouselItems = newBackgroundCarouselItems;
                         teamEffectItems = newTeamEffects;
                         TeamEffectCarousel.ItemsSource = newTeamEffects;
                         TeamEffectSection.IsVisible = newTeamEffects.Count > 1;
@@ -616,7 +794,10 @@ public partial class CreateTeamPage : ContentPage
                 || string.Equals(item.Background, background, StringComparison.OrdinalIgnoreCase));
 
         if (!exists)
+        {
             backgroundItems.Add(new EmblemBackgroundPickerItem(assetId, background, displayName));
+            backgroundCarouselItems.Add(new EmblemBackgroundCarouselItem(assetId, background, displayName));
+        }
     }
 
     void OnSingleClicked(object sender, EventArgs e)
@@ -784,6 +965,15 @@ public partial class CreateTeamPage : ContentPage
             SelectEmblemBackground(selected.AssetId);
     }
 
+    void OnEmblemBackgroundCarouselSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressSelectionHandlers)
+            return;
+
+        if (e.CurrentSelection.FirstOrDefault() is EmblemBackgroundCarouselItem selected)
+            SelectEmblemBackground(selected.AssetId);
+    }
+
     bool SelectEmblemBackground(string assetId)
     {
         var selected = backgroundItems.FirstOrDefault(item =>
@@ -796,6 +986,13 @@ public partial class CreateTeamPage : ContentPage
         selectedEmblemBackground = selected.Background;
 
         EmblemBackgroundPicker.SelectedItem = selected;
+        foreach (var item in backgroundCarouselItems)
+            item.IsSelected = string.Equals(item.AssetId, selected.AssetId, StringComparison.OrdinalIgnoreCase);
+
+        var selectedVisual = backgroundCarouselItems.FirstOrDefault(item => item.IsSelected);
+        if (selectedVisual != null)
+            EmblemBackgroundCarousel.SelectedItem = selectedVisual;
+
         PreviewEmblemBackground.BackgroundColor = SafeColor(selected.Background);
         ApplyPreviewBackground(selected.Background);
 
@@ -924,16 +1121,29 @@ public partial class CreateTeamPage : ContentPage
         string teamName = TeamNameEntry.Text?.Trim() ?? string.Empty;
         string player1 = Player1Entry.Text?.Trim() ?? string.Empty;
         string player2 = isTeamMode ? Player2Entry.Text?.Trim() ?? string.Empty : string.Empty;
-        bool duplicatePlayers = !string.IsNullOrWhiteSpace(player1) &&
-            !string.IsNullOrWhiteSpace(player2) &&
-            IsVerySimilarName(player1, player2);
+        var readiness = TeamReadinessEngine.Evaluate(
+            teamName,
+            player1,
+            player2,
+            isTeamMode,
+            LoadedTeams,
+            CurrentTeam?.TeamId,
+            value => NormalizeArabicSearch(PlayerIdentityService.NormalizePlayerName(value ?? string.Empty)),
+            IsVerySimilarName);
 
-        AddValidationChip("اسم الفريق", !string.IsNullOrWhiteSpace(teamName));
-        AddValidationChip("اللاعب الأول", !string.IsNullOrWhiteSpace(player1));
-        AddValidationChip("اللاعب الثاني", !isTeamMode || !string.IsNullOrWhiteSpace(player2));
-        AddValidationChip("تكرار اللاعبين", !duplicatePlayers);
-        AddValidationChip("هوية اللاعبين", !string.IsNullOrWhiteSpace(player1) && (!isTeamMode || !string.IsNullOrWhiteSpace(player2)));
-        AddValidationChip("ملكية الأصول", true);
+        ReadinessStatusLabel.Text = $"{readiness.Summary} • {readiness.ReadinessScore}%";
+        ReadinessStatusLabel.TextColor = readiness.CanSave
+            ? Color.FromArgb("#8FE3A7")
+            : readiness.ReadinessScore >= 70
+                ? Color.FromArgb("#F2C46D")
+                : Color.FromArgb("#FF9D8F");
+
+        AddValidationChip("اسم الفريق", readiness.HasTeamName);
+        AddValidationChip("اللاعب الأول", readiness.HasPlayerOne);
+        AddValidationChip("اللاعب الثاني", readiness.HasPlayerTwo);
+        AddValidationChip("تكرار اللاعبين", !readiness.HasDuplicatePlayers);
+        AddValidationChip("تكرار الفريق", !readiness.HasDuplicateTeam);
+        AddValidationChip("ملكية الأصول", readiness.HasRequiredAssets);
     }
 
     void AddValidationChip(string text, bool valid)
@@ -1039,7 +1249,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (string.IsNullOrWhiteSpace(TeamNameEntry.Text))
         {
-            await DisplayAlert("تنبيه", "أدخل اسم الفريق", "حسناً");
+            await ShowProAlertAsync("تنبيه", "أدخل اسم الفريق");
             return;
         }
 
@@ -1056,7 +1266,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (string.IsNullOrWhiteSpace(player1) || (isTeamMode && string.IsNullOrWhiteSpace(player2)))
         {
-            await DisplayAlert("تنبيه", "أدخل أسماء اللاعبين المطلوبة", "حسناً");
+            await ShowProAlertAsync("تنبيه", "أدخل أسماء اللاعبين المطلوبة");
             return;
         }
 
@@ -1066,10 +1276,9 @@ public partial class CreateTeamPage : ContentPage
         if (!string.IsNullOrWhiteSpace(player2) &&
             (normalizedPlayer1 == normalizedPlayer2 || IsVerySimilarName(player1, player2)))
         {
-            await DisplayAlert(
+            await ShowProAlertAsync(
                 "لا يمكن اختيار نفس اللاعب مرتين",
-                $"لا يمكن اختيار نفس اللاعب مرتين داخل نفس الفريق\n\n{player1}\n{player2}",
-                "حسناً");
+                $"لا يمكن اختيار نفس اللاعب مرتين داخل نفس الفريق\n\n{player1}\n{player2}");
             return;
         }
 
@@ -1081,7 +1290,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (duplicateName)
         {
-            await DisplayAlert("تنبيه", "اسم الفريق مستخدم مسبقاً", "حسناً");
+            await ShowProAlertAsync("تنبيه", "اسم الفريق مستخدم مسبقاً");
             return;
         }
 
@@ -1090,7 +1299,7 @@ public partial class CreateTeamPage : ContentPage
 
         if (TeamCompositionExists(teams, player1Id, player2Id))
         {
-            await DisplayAlert("تنبيه", "هذه التشكيلة تمتلك فريقاً مسبقاً", "حسناً");
+            await ShowProAlertAsync("تنبيه", "هذه التشكيلة تمتلك فريقاً مسبقاً");
             return;
         }
 
@@ -1137,7 +1346,7 @@ public partial class CreateTeamPage : ContentPage
 
             RaiseTeamMutationEvents(team.TeamId);
 
-            await DisplayAlert("تم", "تم إنشاء الفريق", "ممتاز");
+            await ShowProAlertAsync("تم", "تم إنشاء الفريق", "ممتاز");
 
             ResetForm();
 
@@ -1212,7 +1421,7 @@ public partial class CreateTeamPage : ContentPage
 
         RaiseTeamMutationEvents(existing.TeamId);
 
-        await DisplayAlert("تم", "تم تعديل الفريق", "ممتاز");
+        await ShowProAlertAsync("تم", "تم تعديل الفريق", "ممتاز");
 
         ResetForm();
 
@@ -1222,6 +1431,19 @@ public partial class CreateTeamPage : ContentPage
     async void OnBackClicked(object sender, EventArgs e)
     {
         await Navigation.PopAsync();
+    }
+
+    async void OnHelpClicked(object sender, EventArgs e)
+    {
+        await ShowProAlertAsync(
+            "دليل الفريق",
+            "اكتب اسم الفريق ثم اختر فردي أو فريق. اختر اللاعبين من الاقتراحات أو اكتب اسماً جديداً. عند اختيار لاعب موجود سيتم استخدام هويته الأصلية. لا يمكن وضع نفس اللاعب مرتين داخل الفريق نفسه. أصول الشعار واللون والخلفية والتأثيرات تظهر فقط عندما يمتلكها أحد لاعبي الفريق.");
+    }
+
+    async void OnClearFieldsClicked(object sender, TappedEventArgs e)
+    {
+        ResetForm();
+        await ShowProAlertAsync("تم", "تم تنظيف الحقول وإعادة الخيارات الافتراضية", "ممتاز");
     }
 
     void TeamNameChanged(object sender, TextChangedEventArgs e)
@@ -1253,6 +1475,8 @@ public partial class CreateTeamPage : ContentPage
         PreviewPlayer2Host.IsVisible = isTeamMode;
         _ = UpdatePreviewAvatarsAsync();
         RefreshValidationPanel();
+        string activeSearch = ReferenceEquals(sender, Player2Entry) ? Player2Entry.Text ?? string.Empty : Player1Entry.Text ?? string.Empty;
+        _ = LoadPlayersForSelectionAsync(activeSearch);
         _ = LoadOwnedTeamAssetsAsync();
     }
 
@@ -1260,7 +1484,7 @@ public partial class CreateTeamPage : ContentPage
     {
         if (CurrentTeam == null)
         {
-            await DisplayAlert("تنبيه", "اختر فريقاً أولاً قبل الحذف", "حسناً");
+            await ShowProAlertAsync("تنبيه", "اختر فريقاً أولاً قبل الحذف");
             return;
         }
 
@@ -1283,7 +1507,7 @@ public partial class CreateTeamPage : ContentPage
             return;
 
         bool confirm =
-            await DisplayAlert(
+            await ShowProConfirmAsync(
                 "حذف الفريق",
                 $"هل تريد حذف {team.TeamName}؟",
                 "نعم",
@@ -1315,7 +1539,7 @@ public partial class CreateTeamPage : ContentPage
     async void OnDeleteAllTeamsClicked(object sender, EventArgs e)
     {
         bool confirm =
-            await DisplayAlert(
+            await ShowProConfirmAsync(
                 "حذف جميع الفرق",
                 "سيتم حذف جميع الفرق المحفوظة نهائياً. لن يتم حذف اللاعبين. هل أنت متأكد؟",
                 "نعم",
@@ -1339,7 +1563,7 @@ public partial class CreateTeamPage : ContentPage
         Player1Entry.Text = "";
         Player2Entry.Text = "";
 
-        await DisplayAlert("تم", "تم حذف جميع الفرق", "ممتاز");
+        await ShowProAlertAsync("تم", "تم حذف جميع الفرق", "ممتاز");
     }
 
     async void OnSelectTeamClicked(object sender, EventArgs e)
@@ -1347,10 +1571,37 @@ public partial class CreateTeamPage : ContentPage
         await LoadTeamsForSelectionAsync(TeamInlineSearchEntry.Text);
     }
 
+    async void OnFooterHomeTapped(object sender, TappedEventArgs e)
+    {
+        await NavigateWithPolishAsync(new DominoMajlisPRO.MainPage());
+    }
+
+    async void OnFooterCreateTapped(object sender, TappedEventArgs e)
+    {
+        await MainScroll.ScrollToAsync(0, 0, true);
+    }
+
+    async void OnFooterPlayTapped(object sender, TappedEventArgs e)
+    {
+        await NavigateWithPolishAsync(new DominoMajlisPRO.MainPage(focusPlayArea: true));
+    }
+
+    async void OnFooterStoreTapped(object sender, TappedEventArgs e)
+    {
+        await NavigateWithPolishAsync(new DominoMajlisPRO.GalleryEngine.Pages.GalleryPage());
+    }
+
+    async Task NavigateWithPolishAsync(Page page)
+    {
+        await this.FadeTo(0.88, 90, Easing.CubicOut);
+        await Navigation.PushAsync(page, true);
+        Opacity = 1;
+    }
+
     async Task OnDeleteAllTeamsDirect()
     {
         bool confirm =
-            await DisplayAlert(
+            await ShowProConfirmAsync(
                 "حذف جميع الفرق",
                 "سيتم حذف جميع الفرق المحفوظة نهائياً. لن يتم حذف اللاعبين. هل أنت متأكد؟",
                 "نعم",
@@ -1370,7 +1621,7 @@ public partial class CreateTeamPage : ContentPage
         Player1Entry.Text = "";
         Player2Entry.Text = "";
 
-        await DisplayAlert("تم", "تم حذف جميع الفرق", "ممتاز");
+        await ShowProAlertAsync("تم", "تم حذف جميع الفرق", "ممتاز");
     }
 
     void LoadTeam(TeamProfileModel team)
@@ -1567,7 +1818,7 @@ public partial class CreateTeamPage : ContentPage
         if (similarPlayer != null)
         {
             bool useExisting =
-      await DisplayAlert(
+                await ShowProConfirmAsync(
                     "لاعب مشابه",
                     $"تم العثور على لاعب مشابه:\n\n{similarPlayer.PlayerName}\n({similarPlayer.PlayerId})\n\nهل تقصد هذا اللاعب؟",
                     "نعم",
@@ -1615,28 +1866,58 @@ public partial class CreateTeamPage : ContentPage
 
     bool IsVerySimilarName(string name1, string name2)
     {
-        name1 = PlayerIdentityService.NormalizePlayerName(name1);
-        name2 = PlayerIdentityService.NormalizePlayerName(name2);
+        name1 = NormalizeArabicSearch(PlayerIdentityService.NormalizePlayerName(name1));
+        name2 = NormalizeArabicSearch(PlayerIdentityService.NormalizePlayerName(name2));
 
         if (name1 == name2)
             return true;
 
-        if (Math.Abs(name1.Length - name2.Length) > 1)
-            return false;
-
-        int differences = 0;
-
         int minLength = Math.Min(name1.Length, name2.Length);
 
-        for (int i = 0; i < minLength; i++)
+        // One-letter and two-letter handles must be exact. A and B are clearly different players.
+        if (minLength <= 2)
+            return false;
+
+        if (name1[0] != name2[0])
+            return false;
+
+        if (Math.Abs(name1.Length - name2.Length) > 2)
+            return false;
+
+        int maxDistance = minLength >= 6 ? 2 : 1;
+
+        return LevenshteinDistance(name1, name2) <= maxDistance;
+    }
+
+    static int LevenshteinDistance(string left, string right)
+    {
+        if (left.Length == 0)
+            return right.Length;
+        if (right.Length == 0)
+            return left.Length;
+
+        var previous = new int[right.Length + 1];
+        var current = new int[right.Length + 1];
+
+        for (int j = 0; j <= right.Length; j++)
+            previous[j] = j;
+
+        for (int i = 1; i <= left.Length; i++)
         {
-            if (name1[i] != name2[i])
-                differences++;
+            current[0] = i;
+
+            for (int j = 1; j <= right.Length; j++)
+            {
+                int cost = left[i - 1] == right[j - 1] ? 0 : 1;
+                current[j] = Math.Min(
+                    Math.Min(current[j - 1] + 1, previous[j] + 1),
+                    previous[j - 1] + cost);
+            }
+
+            (previous, current) = (current, previous);
         }
 
-        differences += Math.Abs(name1.Length - name2.Length);
-
-        return differences <= 1;
+        return previous[right.Length];
     }
 
     async Task RegisterPlayerAsync(string playerName)
