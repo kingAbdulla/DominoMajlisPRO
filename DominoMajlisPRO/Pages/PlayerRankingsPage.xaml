@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DominoMajlisPRO.Pages.PlayerRankingsPage"
+    BackgroundColor="#0B0B0F"
+    NavigationPage.HasNavigationBar="False"
+    FlowDirection="RightToLeft">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+
+        <!-- ========================= -->
+        <!-- HEADER -->
+        <!-- ========================= -->
+
+        <Border
+            Grid.Row="0"
+            BackgroundColor="#14141A"
+            StrokeThickness="0"
+            Padding="16,16">
+
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+
+                <Image
+                    Source="back_gold.png"
+                    WidthRequest="32"
+                    HeightRequest="32"
+                    VerticalOptions="Center">
+                    <Image.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackClicked"/>
+                    </Image.GestureRecognizers>
+                </Image>
+
+                <Label
+                    Grid.Column="1"
+                    Text="التصنيفات"
+                    FontSize="24"
+                    FontAttributes="Bold"
+                    TextColor="White"
+                    VerticalTextAlignment="Center"/>
+
+                <!-- Coins -->
+                <Border
+                    Grid.Column="2"
+                    BackgroundColor="#1B1B24"
+                    Stroke="#3A2F12"
+                    StrokeThickness="1"
+                    Padding="8,4"
+                    VerticalOptions="Center"
+                    StrokeShape="RoundRectangle 14">
+                    <HorizontalStackLayout Spacing="4">
+                        <Image Source="gold.png" WidthRequest="16" HeightRequest="16" VerticalOptions="Center"/>
+                        <Label x:Name="CoinsLabel" Text="0" TextColor="#F2C14E" FontSize="12" FontAttributes="Bold" VerticalTextAlignment="Center"/>
+                    </HorizontalStackLayout>
+                </Border>
+
+                <!-- Gems -->
+                <Border
+                    Grid.Column="3"
+                    BackgroundColor="#1B1B24"
+                    Stroke="#163040"
+                    StrokeThickness="1"
+                    Padding="8,4"
+                    VerticalOptions="Center"
+                    StrokeShape="RoundRectangle 14">
+                    <HorizontalStackLayout Spacing="4">
+                        <Image Source="diamond.png" WidthRequest="16" HeightRequest="16" VerticalOptions="Center"/>
+                        <Label x:Name="GemsLabel" Text="0" TextColor="#5AC8FA" FontSize="12" FontAttributes="Bold" VerticalTextAlignment="Center"/>
+                    </HorizontalStackLayout>
+                </Border>
+
+                <!-- Current user avatar -->
+                <Border
+                    Grid.Column="4"
+                    WidthRequest="38"
+                    HeightRequest="38"
+                    BackgroundColor="#151515"
+                    Stroke="#D4AF37"
+                    StrokeThickness="1.5"
+                    VerticalOptions="Center"
+                    StrokeShape="RoundRectangle 999">
+                    <Image
+                        x:Name="CurrentUserAvatar"
+                        Aspect="AspectFill"
+                        WidthRequest="38"
+                        HeightRequest="38"/>
+                </Border>
+
+            </Grid>
+
+        </Border>
+
+        <!-- ========================= -->
+        <!-- SEGMENTED CONTROL -->
+        <!-- ========================= -->
+
+        <Border
+            Grid.Row="1"
+            Margin="16,10,16,4"
+            BackgroundColor="#121218"
+            Stroke="#262633"
+            StrokeThickness="1"
+            Padding="4"
+            StrokeShape="RoundRectangle 18">
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+
+                <Border
+                    x:Name="TeamsTab"
+                    Grid.Column="0"
+                    BackgroundColor="Transparent"
+                    StrokeThickness="0"
+                    Padding="0,10"
+                    StrokeShape="RoundRectangle 14">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnTeamsTabClicked"/>
+                    </Border.GestureRecognizers>
+                    <Label
+                        Text="تصنيف الفرق"
+                        TextColor="#A6A6B5"
+                        FontSize="15"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"/>
+                </Border>
+
+                <Border
+                    x:Name="PlayersTab"
+                    Grid.Column="1"
+                    BackgroundColor="#2A2008"
+                    Stroke="#D4AF37"
+                    StrokeThickness="1"
+                    Padding="0,10"
+                    StrokeShape="RoundRectangle 14">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnPlayersTabClicked"/>
+                    </Border.GestureRecognizers>
+                    <Label
+                        Text="تصنيف اللاعبين"
+                        TextColor="#FFD700"
+                        FontSize="15"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"/>
+                </Border>
+
+            </Grid>
+
+        </Border>
+
+        <!-- ========================= -->
+        <!-- FILTER CHIPS -->
+        <!-- ========================= -->
+
+        <ScrollView
+            Grid.Row="2"
+            Orientation="Horizontal"
+            HorizontalScrollBarVisibility="Never">
+
+            <HorizontalStackLayout
+                x:Name="FilterContainer"
+                Padding="16,8"
+                Spacing="8"/>
+
+        </ScrollView>
+
+        <!-- ========================= -->
+        <!-- CONTENT -->
+        <!-- ========================= -->
+
+        <ScrollView Grid.Row="3">
+
+            <VerticalStackLayout
+                x:Name="ContentRoot"
+                Padding="16,6,16,40"
+                Spacing="16"
+                MaximumWidthRequest="1100"
+                HorizontalOptions="Fill">
+
+                <!-- Hero card -->
+                <VerticalStackLayout x:Name="HeroContainer"/>
+
+                <!-- Top 3 podium -->
+                <VerticalStackLayout x:Name="PodiumContainer"/>
+
+                <!-- Leaderboard table -->
+                <Border
+                    x:Name="TableCard"
+                    BackgroundColor="#101016"
+                    Stroke="#23232E"
+                    StrokeThickness="1"
+                    Padding="10"
+                    StrokeShape="RoundRectangle 22">
+                    <VerticalStackLayout
+                        x:Name="TableContainer"
+                        Spacing="0"/>
+                </Border>
+
+                <!-- Show more / hide -->
+                <Border
+                    x:Name="ShowMoreButton"
+                    IsVisible="False"
+                    BackgroundColor="#15151C"
+                    Stroke="#D4AF37"
+                    StrokeThickness="1"
+                    Padding="0,12"
+                    StrokeShape="RoundRectangle 16">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnShowMoreClicked"/>
+                    </Border.GestureRecognizers>
+                    <Label
+                        x:Name="ShowMoreLabel"
+                        Text="عرض المزيد"
+                        TextColor="#FFD700"
+                        FontSize="14"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"/>
+                </Border>
+
+                <!-- Empty state -->
+                <VerticalStackLayout x:Name="EmptyStateContainer" IsVisible="False"/>
+
+                <Label
+                    x:Name="LastUpdatedLabel"
+                    Text=""
+                    TextColor="#6B6B78"
+                    FontSize="11"
+                    HorizontalTextAlignment="Center"/>
+
+            </VerticalStackLayout>
+
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>

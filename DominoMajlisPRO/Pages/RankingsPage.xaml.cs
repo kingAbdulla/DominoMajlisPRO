@@ -120,12 +120,7 @@ public partial class RankingsPage : ContentPage
     {
         PageContent.Children.Clear();
         PageContent.Children.Add(BuildHeader());
-        PageContent.Children.Add(BuildHero());
-        PageContent.Children.Add(BuildSeasonInfo());
-
-        if (snapshot.Champion != null)
-            PageContent.Children.Add(BuildChampion(snapshot.Champion));
-
+        PageContent.Children.Add(BuildHeroShowcase());
         PageContent.Children.Add(BuildTopThree());
         PageContent.Children.Add(BuildSearchAndFilters());
         PageContent.Children.Add(BuildTable());
@@ -173,82 +168,140 @@ public partial class RankingsPage : ContentPage
         return root;
     }
 
-    View BuildHero()
+    View BuildHeroShowcase()
     {
         var slide = CurrentSlide();
-        var root = Card("#E60A0D10", "#7E5A21", 0, 14);
+        var champion = snapshot.Champion;
+        var root = Card("#E60A0D10", "#9C6D24", 0, 14);
         root.Padding = 0;
-        root.HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 162 : 220;
-        root.Content = new Grid
+        root.HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 348 : 310;
+
+        var layout = new Grid
         {
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Star },
+                new RowDefinition { Height = GridLength.Auto }
+            }
+        };
+
+        var heroGrid = new Grid
+        {
+            Padding = 14,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(1.02, GridUnitType.Star) },
+                new ColumnDefinition { Width = new GridLength(1.38, GridUnitType.Star) },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 8,
             Children =
             {
                 new Image
                 {
                     Source = ResolveSource(slide.ImagePath, "season_reward_gold.png"),
                     Aspect = Aspect.AspectFill,
-                    Opacity = 0.62
+                    Opacity = 0.5
                 },
-                new BoxView { Color = Color.FromArgb("#BB000000") },
-                new Grid
+                new BoxView { Color = Color.FromArgb("#B8000000") }
+            }
+        };
+
+        if (champion != null)
+        {
+            var emblem = TeamEmblem(champion, DeviceInfo.Idiom == DeviceIdiom.Phone ? 136 : 168);
+            Grid.SetColumn(emblem, 0);
+            heroGrid.Children.Add(emblem);
+
+            var championInfo = new VerticalStackLayout
+            {
+                Spacing = 7,
+                VerticalOptions = LayoutOptions.Center,
+                HorizontalOptions = LayoutOptions.Fill,
+                Children =
                 {
-                    Padding = 14,
-                    ColumnDefinitions =
-                    {
-                        new ColumnDefinition { Width = GridLength.Star },
-                        new ColumnDefinition { Width = GridLength.Auto }
-                    },
-                    Children =
-                    {
-                        new VerticalStackLayout
-                        {
-                            Spacing = 7,
-                            VerticalOptions = LayoutOptions.Center,
-                            Children =
-                            {
-                                Label("موسم التصنيفات", 12, "#F2C46D", true),
-                                Label(slide.Title, DeviceInfo.Idiom == DeviceIdiom.Phone ? 22 : 30, "#FFFFFF", true),
-                                Label(slide.Subtitle, 12, "#DEC894", false),
-                                BuildMiniProgress(snapshot.SeasonProgress, "#F2C46D", "#39270D", 8)
-                            }
-                        },
-                        SetColumn(new VerticalStackLayout
-                        {
-                            Spacing = 4,
-                            WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 86 : 116,
-                            HorizontalOptions = LayoutOptions.End,
-                            VerticalOptions = LayoutOptions.Center,
-                            Children =
-                            {
-                                new Image { Source = "season_reward_gold.png", WidthRequest = 62, HeightRequest = 62, HorizontalOptions = LayoutOptions.Center },
-                                Label($"{snapshot.SeasonDaysLeft} يوم", 13, "#F2C46D", true, TextAlignment.Center),
-                                Label("نهاية الموسم", 10, "#E7D8B0", false, TextAlignment.Center)
-                            }
-                        }, 1)
-                    }
+                    Label("بطل الموسم الحالي", 12, "#F2C46D", true, TextAlignment.Center),
+                    Label(champion.Team.TeamName, DeviceInfo.Idiom == DeviceIdiom.Phone ? 24 : 30, "#F8D47B", true, TextAlignment.Center),
+                    Label(champion.PlayersText, 12, "#FFFFFF", false, TextAlignment.Center),
+                    RankBadge(champion.Rank, 46),
+                    BuildRankProgress(champion),
+                    Label($"{champion.Team.XP:N0} / {champion.Rank.NextXp:N0} XP", 12, "#FFFFFF", true, TextAlignment.Center)
+                }
+            };
+            Grid.SetColumn(championInfo, 1);
+            heroGrid.Children.Add(championInfo);
+        }
+        else
+        {
+            var empty = new VerticalStackLayout
+            {
+                Spacing = 7,
+                VerticalOptions = LayoutOptions.Center,
+                Children =
+                {
+                    Label("موسم التصنيفات", 14, "#F2C46D", true, TextAlignment.Center),
+                    Label(slide.Title, 24, "#FFFFFF", true, TextAlignment.Center),
+                    Label(slide.Subtitle, 12, "#DEC894", false, TextAlignment.Center),
+                    BuildMiniProgress(snapshot.SeasonProgress, "#F2C46D", "#39270D", 8)
+                }
+            };
+            Grid.SetColumnSpan(empty, 2);
+            heroGrid.Children.Add(empty);
+        }
+
+        var seasonBox = new Border
+        {
+            WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 88 : 126,
+            BackgroundColor = Color.FromArgb("#AA070809"),
+            Stroke = Color.FromArgb("#5E421B"),
+            StrokeShape = new RoundRectangle { CornerRadius = 14 },
+            Padding = new Thickness(8),
+            VerticalOptions = LayoutOptions.Start,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 4,
+                Children =
+                {
+                    Label(slide.Title, 12, "#F2C46D", true, TextAlignment.Center),
+                    Label($"{snapshot.SeasonDaysLeft}", 28, "#FFFFFF", true, TextAlignment.Center),
+                    Label("يوم", 12, "#F2C46D", true, TextAlignment.Center)
                 }
             }
         };
-        return root;
-    }
+        Grid.SetColumn(seasonBox, 2);
+        heroGrid.Children.Add(seasonBox);
+        layout.Children.Add(heroGrid);
 
-    View BuildSeasonInfo()
-    {
-        var grid = new Grid
+        var rewards = new Grid
         {
+            Padding = new Thickness(12, 8),
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star }
+                new ColumnDefinition { Width = GridLength.Auto }
             },
-            ColumnSpacing = 8
+            BackgroundColor = Color.FromArgb("#8008090A")
         };
+        rewards.Children.Add(new HorizontalStackLayout
+        {
+            Spacing = 10,
+            VerticalOptions = LayoutOptions.Center,
+            Children =
+            {
+                Label("المكافأة التالية", 12, "#F2C46D", true),
+                Label("25,000", 14, "#FFFFFF", true),
+                new Image { Source = "diamond.png", WidthRequest = 20, HeightRequest = 20 },
+                Label("500", 14, "#FFFFFF", true)
+            }
+        });
+        var prizes = TextButton("عرض جميع الجوائز", "gift_gold.png", async (_, _) => await ShowSeasonPrizesAsync());
+        Grid.SetColumn(prizes, 1);
+        rewards.Children.Add(prizes);
+        Grid.SetRow(rewards, 1);
+        layout.Children.Add(rewards);
 
-        grid.Children.Add(InfoPill("إجمالي XP", snapshot.TotalXp.ToString("N0"), "xp_gold.png", 0));
-        grid.Children.Add(InfoPill("الثقة", $"{snapshot.AverageTrust}%", "trust_gold.png", 1));
-        grid.Children.Add(InfoPill("المباريات", snapshot.TotalMatches.ToString("N0"), "calendar_gold.png", 2));
-        return grid;
+        root.Content = layout;
+        return root;
     }
 
     View BuildChampion(RankingTeamCard card)
@@ -412,7 +465,7 @@ public partial class RankingsPage : ContentPage
         var stack = new VerticalStackLayout { Spacing = 8 };
         stack.Children.Add(Label("قائمة التصنيفات", 18, "#F2C46D", true));
 
-        var tableTeams = visibleTeams.Skip(3).ToList();
+        var tableTeams = visibleTeams.ToList();
         var rows = showAllRows ? tableTeams : tableTeams.Take(5).ToList();
         foreach (var card in rows)
             stack.Children.Add(TeamRow(card));
@@ -549,23 +602,30 @@ public partial class RankingsPage : ContentPage
 
     View RankBadge(RankingRankInfo rank, double iconSize)
     {
-        var grid = new Grid { WidthRequest = iconSize + 22, HeightRequest = iconSize + 20 };
-        grid.Children.Add(new Image { Source = rank.Icon, WidthRequest = iconSize, HeightRequest = iconSize, HorizontalOptions = LayoutOptions.Center });
+        var stack = new VerticalStackLayout
+        {
+            Spacing = 2,
+            WidthRequest = iconSize + 22,
+            HorizontalOptions = LayoutOptions.Center,
+            Children =
+            {
+                new Image { Source = rank.Icon, WidthRequest = iconSize, HeightRequest = iconSize, HorizontalOptions = LayoutOptions.Center }
+            }
+        };
         if (!string.IsNullOrWhiteSpace(rank.Tier))
         {
-            grid.Children.Add(new Border
+            stack.Children.Add(new Border
             {
-                WidthRequest = 24,
-                HeightRequest = 24,
+                WidthRequest = 30,
+                HeightRequest = 22,
                 BackgroundColor = Color.FromArgb("#11100B"),
                 Stroke = Color.FromArgb("#F2C46D"),
-                StrokeShape = new RoundRectangle { CornerRadius = 12 },
-                HorizontalOptions = LayoutOptions.End,
-                VerticalOptions = LayoutOptions.Start,
+                StrokeShape = new RoundRectangle { CornerRadius = 11 },
+                HorizontalOptions = LayoutOptions.Center,
                 Content = Label(rank.Tier, 9, "#F2C46D", true, TextAlignment.Center)
             });
         }
-        return grid;
+        return stack;
     }
 
     View TeamEmblem(RankingTeamCard card, double size)
@@ -674,6 +734,34 @@ public partial class RankingsPage : ContentPage
             DetailsOverlay.FadeTo(0, 120, Easing.CubicIn),
             DetailsSheet.TranslateTo(0, 80, 140, Easing.CubicIn));
         DetailsOverlay.IsVisible = false;
+    }
+
+    async Task ShowSeasonPrizesAsync()
+    {
+        DetailsContent.Children.Clear();
+        DetailsContent.Children.Add(Label("جوائز الموسم", 20, "#F2C46D", true, TextAlignment.Center));
+        DetailsContent.Children.Add(new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 8,
+            Children =
+            {
+                InfoPill("ذهب", "25,000", "gold.png", 0),
+                InfoPill("جواهر", "500", "diamond.png", 1)
+            }
+        });
+        DetailsContent.Children.Add(TextButton("إغلاق", "back_gold.png", async (_, _) => await CloseDetailsAsync()));
+
+        DetailsOverlay.IsVisible = true;
+        DetailsOverlay.Opacity = 0;
+        DetailsSheet.TranslationY = 80;
+        await Task.WhenAll(
+            DetailsOverlay.FadeTo(1, 160, Easing.CubicOut),
+            DetailsSheet.TranslateTo(0, 0, 220, Easing.CubicOut));
     }
 
     void StartSeasonSlider()
@@ -832,7 +920,7 @@ public partial class RankingsPage : ContentPage
         await Navigation.PopAsync();
 
     async void OnPlayerRankingsClicked(object sender, TappedEventArgs e) =>
-        await NavigateAsync(new PlayerStatisticsPage());
+        await NavigateAsync(new PlayerRankingsPage());
 
     async void OnFooterHomeTapped(object sender, TappedEventArgs e) =>
         await NavigateAsync(new DominoMajlisPRO.MainPage());
