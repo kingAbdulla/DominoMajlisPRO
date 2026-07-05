@@ -1,1006 +1,369 @@
 <?xml version="1.0" encoding="utf-8" ?>
-
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:pages="clr-namespace:DominoMajlisPRO.Pages"
-    xmlns:shapes="clr-namespace:Microsoft.Maui.Controls.Shapes;assembly=Microsoft.Maui.Controls"
     x:Class="DominoMajlisPRO.Pages.CreateTeamPage"
-    BackgroundColor="#050505"
-    FlowDirection="RightToLeft"
-  Title="إنشاء فريق">
+    Title="إنشاء فريق"
+    BackgroundColor="#050607"
+    FlowDirection="RightToLeft">
 
-    <Grid>
+    <ContentPage.Resources>
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Stroke" Value="#76521B"/>
+            <Setter Property="StrokeThickness" Value="1"/>
+            <Setter Property="BackgroundColor" Value="#E60B0D0F"/>
+            <Setter Property="StrokeShape" Value="RoundRectangle 18"/>
+            <Setter Property="Padding" Value="14"/>
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="Label">
+            <Setter Property="TextColor" Value="#F2C46D"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontAttributes" Value="Bold"/>
+            <Setter Property="HorizontalTextAlignment" Value="End"/>
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="Label">
+            <Setter Property="TextColor" Value="#F5E4C6"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Margin" Value="0,2,0,-4"/>
+        </Style>
+        <Style x:Key="DarkEntry" TargetType="Entry">
+            <Setter Property="TextColor" Value="White"/>
+            <Setter Property="PlaceholderColor" Value="#8B8B8B"/>
+            <Setter Property="BackgroundColor" Value="Transparent"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="HeightRequest" Value="48"/>
+        </Style>
+    </ContentPage.Resources>
 
-        <ScrollView x:Name="MainScroll">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView x:Name="MainScroll" Grid.Row="0">
+            <VerticalStackLayout Padding="{OnIdiom Phone='14,14,14,10', Tablet='28,20'}" Spacing="12">
 
-            <VerticalStackLayout
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Margin="0,0,0,4">
+                    <Button
+                        Text="‹"
+                        WidthRequest="54"
+                        HeightRequest="54"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="#141414"
+                        BorderColor="#76521B"
+                        BorderWidth="1"
+                        CornerRadius="16"
+                        TextColor="#F2C46D"
+                        FontSize="34"/>
 
-                Padding="25"
-            Spacing="20">
-
-            <Grid
-    ColumnDefinitions="Auto,*">
-
-                <Button
-        Text="←"
-        WidthRequest="50"
-        HeightRequest="50"
-        Clicked="OnBackClicked"
-        BackgroundColor="#1A1A1A"
-        TextColor="Gold"/>
-
-                <Label
-        Grid.Column="1"
-        Text="إنشاء فريق"
-        FontSize="28"
-        FontAttributes="Bold"
-        TextColor="Gold"
-        HorizontalOptions="Center"/>
-            </Grid>
-            <!-- TEAM TYPE -->
-
-            <Label
-    Text="نوع الفريق"
-    FontSize="22"
-    FontAttributes="Bold"
-    TextColor="Gold"/>
-
-            <Grid
-    ColumnDefinitions="*,*"
-    ColumnSpacing="12">
-
-                <!-- فردي -->
-
-                <Border
-        x:Name="SingleCard"
-        Stroke="#404040"
-        StrokeThickness="2"
-        BackgroundColor="#151515"
-        StrokeShape="RoundRectangle 18">
-
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer
-                Tapped="OnSingleClicked"/>
-                    </Border.GestureRecognizers>
-
-                    <VerticalStackLayout
-            Padding="15"
-            Spacing="8"
-            HorizontalOptions="Center">
-
-                        <Image
-                Source="player_card.png"
-                WidthRequest="42"
-                HeightRequest="42"
-                Aspect="AspectFit"/>
-
+                    <HorizontalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="10">
                         <Label
-                Text="فردي"
-                FontSize="18"
-                TextColor="White"
-                HorizontalOptions="Center"/>
-
-                    </VerticalStackLayout>
-
-                </Border>
-
-                <!-- فريق -->
-
-                <Border
-        x:Name="TeamCard"
-        Grid.Column="1"
-        Stroke="#FFD700"
-        StrokeThickness="2"
-        BackgroundColor="#1A1A00"
-        StrokeShape="RoundRectangle 18">
-
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer
-                Tapped="OnTeamClicked"/>
-                    </Border.GestureRecognizers>
-
-                    <VerticalStackLayout
-            Padding="15"
-            Spacing="8"
-            HorizontalOptions="Center">
-
-                        <Image
-                Source="players_card.png"
-                WidthRequest="42"
-                HeightRequest="42"
-                Aspect="AspectFit"/>
-
-                        <Label
-                Text="فريق"
-                FontSize="18"
-                TextColor="Gold"
-                HorizontalOptions="Center"/>
-
-                    </VerticalStackLayout>
-
-                </Border>
-
-            </Grid>
-            <!-- TEAM NAME -->
-
-            <Border
-    Stroke="#7A5A00"
-    StrokeThickness="1.5"
-    BackgroundColor="#0B0B0B"
-    StrokeShape="RoundRectangle 18"
-    Padding="0">
-
-                <Grid
-        ColumnDefinitions="55,*,55">
-
-                    <!-- Team Icon -->
-
-                    <Border
-            Grid.Column="0"
-            BackgroundColor="#111111"
-            Stroke="#2A2A2A"
-            StrokeShape="RoundRectangle 18,0,0,18">
-
-                        <Image
-                Source="teamname_card.png"
-                WidthRequest="34"
-                HeightRequest="34"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                Aspect="AspectFit"/>
-
-                    </Border>
-
-                    <!-- Team Name Entry -->
-
-                    <Entry
-            Grid.Column="1"
-            x:Name="TeamNameEntry"
-            Placeholder="اكتب اسم الفريق"
-            PlaceholderColor="#777777"
-            TextColor="White"
-            BackgroundColor="Transparent"
-            FontSize="18"
-            Margin="10,0"/>
-
-                    <!-- Select Team Button -->
-
-                    <Border
-            Grid.Column="2"
-            BackgroundColor="#111111"
-            Stroke="#2A2A2A"
-            StrokeShape="RoundRectangle 0,18,18,0">
-
-                        <Image
-                Source="edit_card.png"
-                WidthRequest="30"
-                HeightRequest="30"
-                HorizontalOptions="Center"
-                VerticalOptions="Center">
-
-                            <Image.GestureRecognizers>
-
-                                <TapGestureRecognizer
-                        Tapped="OnSelectTeamClicked"/>
-
-                            </Image.GestureRecognizers>
-
-                        </Image>
-
-                    </Border>
-
-                </Grid>
-
-            </Border>
-            <!-- Player 1 -->
-
-            <Border
-    Stroke="#7A5A00"
-    StrokeThickness="1.5"
-    BackgroundColor="#0B0B0B"
-    StrokeShape="RoundRectangle 18">
-
-                <Grid
-        ColumnDefinitions="55,*">
-
-                    <Border
-            BackgroundColor="#111111"
-            Stroke="#2A2A2A"
-            StrokeShape="RoundRectangle 18,0,0,18">
-
-                        <Image
-                Source="player_card.png"
-                WidthRequest="34"
-                HeightRequest="34"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                Aspect="AspectFit"/>
-
-                    </Border>
-
-                    <Entry
-            Grid.Column="1"
-            x:Name="Player1Entry"
-            Placeholder="اللاعب الأول (قائد الفريق)"
-            PlaceholderColor="#777777"
-            TextColor="White"
-            BackgroundColor="Transparent"
-            FontSize="18"
-            Margin="10,0"/>
-
-                </Grid>
-
-            </Border>
-
-            <!-- Player 2 -->
-
-            <VerticalStackLayout
-    x:Name="Player2Layout">
-
-                <Border
-        Stroke="#7A5A00"
-        StrokeThickness="1.5"
-        BackgroundColor="#0B0B0B"
-        StrokeShape="RoundRectangle 18">
-
-                    <Grid
-            ColumnDefinitions="55,*">
-
-                        <Border
-                BackgroundColor="#111111"
-                Stroke="#2A2A2A"
-                StrokeShape="RoundRectangle 18,0,0,18">
-
-                            <Image
-                    Source="player_card.png"
-                    WidthRequest="34"
-                    HeightRequest="34"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"
-                    Aspect="AspectFit"/>
-
-                        </Border>
-
-                        <Entry
-                Grid.Column="1"
-                x:Name="Player2Entry"
-                Placeholder="اللاعب الثاني (اختياري)"
-                PlaceholderColor="#777777"
-                TextColor="White"
-                BackgroundColor="Transparent"
-                FontSize="18"
-                Margin="10,0"/>
-
-                    </Grid>
-
-                </Border>
-
-            </VerticalStackLayout>
-            <!-- Emblem -->
-
-            <!--معاينة النتائج المختارة -->
-            <Label
-    Text="اختر الشعار"
-    FontSize="20"
-    FontAttributes="Bold"
-    HorizontalOptions="Center"
-    TextColor="Gold"/>
-
-            <CollectionView
-                x:Name="EmblemCarousel"
-                HeightRequest="54"
-                HorizontalOptions="Fill"
-                SelectionMode="Single"
-                SelectionChanged="OnEmblemSelectionChanged"
-                ItemsUpdatingScrollMode="KeepScrollOffset">
-
-                <CollectionView.ItemsLayout>
-                    <LinearItemsLayout
-                        Orientation="Horizontal"
-                        ItemSpacing="10"
-                        SnapPointsAlignment="Center"
-                        SnapPointsType="MandatorySingle"/>
-                </CollectionView.ItemsLayout>
-
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="pages:EmblemCarouselItem">
-                        <Grid
-                            WidthRequest="54"
-                            HeightRequest="54"
-                            HorizontalOptions="Center">
-
-                            <Border
-                                IsVisible="{Binding IsSelected}"
-                                Margin="2"
-                                BackgroundColor="#332B2100"
-                                Stroke="Gold"
-                                StrokeThickness="1.5"
-                                StrokeShape="RoundRectangle 25">
-                                <Border.Shadow>
-                                    <Shadow
-                                        Brush="Gold"
-                                        Opacity="0.75"
-                                        Radius="10"
-                                        Offset="0,0"/>
-                                </Border.Shadow>
-                            </Border>
-
-                            <Image
-                                Source="ss.png"
-                                WidthRequest="54"
-                                HeightRequest="54"
-                                Opacity="0.8"
-                                Aspect="Fill"/>
-
-                            <Image
-                                Source="{Binding ImageSource}"
-                                WidthRequest="38"
-                                HeightRequest="38"
-                                HorizontalOptions="Center"
-                                VerticalOptions="Center">
-                                <Image.Triggers>
-                                    <DataTrigger
-                                        TargetType="Image"
-                                        Binding="{Binding IsSelected}"
-                                        Value="True">
-                                        <Setter Property="Scale" Value="1.15"/>
-                                    </DataTrigger>
-                                </Image.Triggers>
-                            </Image>
-
-                            <Border
-                                IsVisible="{Binding IsSelected}"
-                                WidthRequest="18"
-                                HeightRequest="18"
-                                BackgroundColor="Gold"
-                                Stroke="Black"
-                                StrokeThickness="1"
-                                HorizontalOptions="Start"
-                                VerticalOptions="Start"
-                                TranslationX="4"
-                                TranslationY="-4"
-                                ZIndex="999"
-                                StrokeShape="RoundRectangle 9">
-
-                                <Label
-                                    Text="✓"
-                                    FontSize="10"
-                                    TextColor="Black"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"/>
-
-                            </Border>
-
-                        </Grid>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-
-            </CollectionView>
-
-
-            <VerticalStackLayout
-                x:Name="TeamEffectSection"
-                IsVisible="False"
-                Spacing="8">
-
-                <Label
-                    Text="مؤثر الفريق"
-                    FontSize="20"
-                    FontAttributes="Bold"
-                    TextColor="Gold"
-                    HorizontalOptions="Center"/>
-
-                <CollectionView
-                    x:Name="TeamEffectCarousel"
-                    HeightRequest="64"
-                    HorizontalOptions="Fill"
-                    SelectionMode="Single"
-                    SelectionChanged="OnTeamEffectSelectionChanged"
-                    ItemsUpdatingScrollMode="KeepScrollOffset">
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout
-                            Orientation="Horizontal"
-                            ItemSpacing="10"
-                            SnapPointsAlignment="Center"
-                            SnapPointsType="MandatorySingle"/>
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="pages:TeamEffectCarouselItem">
-                            <Grid
-                                WidthRequest="64"
-                                HeightRequest="64"
-                                Loaded="OnTeamEffectItemLoaded">
-                                <Border
-                                    IsVisible="{Binding IsSelected}"
-                                    Stroke="Gold"
-                                    StrokeThickness="1.5"
-                                    BackgroundColor="#221A0C"
-                                    StrokeShape="RoundRectangle 30"/>
-                                <Image
-                                    Source="shield_3d.png"
-                                    WidthRequest="38"
-                                    HeightRequest="38"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"/>
-                                <Label
-                                    IsVisible="{Binding IsNone}"
-                                    Text="بدون"
-                                    FontSize="10"
-                                    TextColor="White"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="End"/>
-                            </Grid>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </VerticalStackLayout>
-
-            <!-- Team Color -->
-
-            <Label
-    Text="لون الفريق"
-    FontSize="20"
-    FontAttributes="Bold"
-    TextColor="Gold"
-    HorizontalOptions="Center"/>
-
-            <CollectionView
-                x:Name="ColorCarousel"
-                HeightRequest="40"
-                HorizontalOptions="Fill"
-                SelectionMode="Single"
-                SelectionChanged="OnColorSelectionChanged"
-                ItemsUpdatingScrollMode="KeepScrollOffset">
-
-                <CollectionView.ItemsLayout>
-                    <LinearItemsLayout
-                        Orientation="Horizontal"
-                        ItemSpacing="10"
-                        SnapPointsAlignment="Center"
-                        SnapPointsType="MandatorySingle"/>
-                </CollectionView.ItemsLayout>
-
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="pages:TeamColorCarouselItem">
-                        <Grid
-                            WidthRequest="40"
-                            HeightRequest="40"
-                            HorizontalOptions="Center">
-
-                            <Border
-                                IsVisible="{Binding IsSelected}"
-                                Margin="1"
-                                BackgroundColor="#332B2100"
-                                Stroke="Gold"
-                                StrokeThickness="1.5"
-                                StrokeShape="RoundRectangle 19">
-                                <Border.Shadow>
-                                    <Shadow
-                                        Brush="Gold"
-                                        Opacity="0.75"
-                                        Radius="8"
-                                        Offset="0,0"/>
-                                </Border.Shadow>
-                            </Border>
-
-                            <Image
-                                Source="ss.png"
-                                WidthRequest="40"
-                                HeightRequest="40"
-                                Opacity="0.8"
-                                Aspect="Fill"/>
-
-                            <Image
-                                Source="{Binding ImageSource}"
-                                WidthRequest="30"
-                                HeightRequest="30"
-                                HorizontalOptions="Center"
-                                VerticalOptions="Center"
-                                Aspect="AspectFit">
-                                <Image.Triggers>
-                                    <DataTrigger
-                                        TargetType="Image"
-                                        Binding="{Binding IsSelected}"
-                                        Value="True">
-                                        <Setter Property="Scale" Value="1.12"/>
-                                    </DataTrigger>
-                                </Image.Triggers>
-                            </Image>
-
-                            <Border
-                                IsVisible="{Binding IsSelected}"
-                                WidthRequest="18"
-                                HeightRequest="18"
-                                BackgroundColor="Gold"
-                                Stroke="Black"
-                                StrokeThickness="1"
-                                StrokeShape="RoundRectangle 9"
-                                HorizontalOptions="Start"
-                                VerticalOptions="Start"
-                                ZIndex="999">
-
-                                <Label
-                                    Text="✓"
-                                    FontSize="10"
-                                    TextColor="Black"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"/>
-
-                            </Border>
-
-                        </Grid>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-
-            </CollectionView>
-
-            <Grid
-    Margin="0,10,0,-15"
-    HorizontalOptions="Center"
-    ZIndex="10">
-
-                <Border
-    HorizontalOptions="Center"
-    BackgroundColor="#111111"
-    Stroke="#0B0B0B"
-    StrokeThickness="1"
-    StrokeShape="RoundRectangle 18"
-    Padding="16,5"
-    Margin="0,0,0,-18"
-    ZIndex="100">
-
-                    <Label
-        Text="معاينة سريعة"
-        FontSize="18"
-        FontAttributes="Bold"
-        TextColor="Gold"/>
-                </Border>
-            </Grid>
-
-
-
-            <Grid
-    Margin="0,-10,0,0"
-    HeightRequest="260">
-
-                <Picker
-                    x:Name="EmblemBackgroundPicker"
-                    Title="خلفية الشعار"
-                    ItemDisplayBinding="{Binding DisplayName}"
-                    SelectedIndexChanged="OnEmblemBackgroundSelectionChanged"
-                    HorizontalOptions="Center"
-                    VerticalOptions="End"
-                    ZIndex="1000"/>
-
-                <!-- الإطار الذهبي -->
-
-                <Image
-        Source="preview_fram.png"
-        Aspect="Fill"
-                    Opacity="0.8"
-        HorizontalOptions="Fill"
-        VerticalOptions="Fill"/>
-
-                <!-- خلفية البطاقة -->
-
-                <Border
-        Margin="18"
-        BackgroundColor="#0B0B0B"
-        StrokeThickness="0"
-        StrokeShape="RoundRectangle 26">
-
-                    <Grid
-            Padding="18">
-
-                        <Grid
-                HeightRequest="200"
-                ColumnDefinitions="1.4*,1,1.6*">
-
-                            <!-- الشعار -->
-
-                            <Border
-                    x:Name="PreviewEmblemBackground"
-                    Grid.Column="2"
-                    BackgroundColor="Transparent"
-                    StrokeThickness="0"
-                    StrokeShape="RoundRectangle 999"
-                    WidthRequest="125"
-                    HeightRequest="125"
-                    MaximumWidthRequest="170"
-                    MaximumHeightRequest="170"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"/>
-
-                            <Image
-                    x:Name="PreviewTeamEffectOverlay"
-                    Grid.Column="2"
-                    WidthRequest="155"
-                    HeightRequest="155"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"
-                    InputTransparent="True"
-                    IsVisible="False"/>
-
-                            <Image
-                    x:Name="PreviewEmblem"
-                    Grid.Column="2"
-                    Source="shield_3d.png"
-                    WidthRequest="125"
-                    HeightRequest="125"
-                    MaximumWidthRequest="170"
-                    MaximumHeightRequest="170"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"
-                    Aspect="AspectFit"/>
-
-                            <!-- الفاصل -->
-
-                            <BoxView
-                    Grid.Column="1"
-                    WidthRequest="1"
-                    Margin="15,25"
-                    Color="#8A8A8A"/>
-
-                            <!-- المعلومات -->
-
-                            <VerticalStackLayout
-                    Grid.Column="0"
-                    VerticalOptions="Center"
-                    Spacing="12">
-
-                                <Label
-                        x:Name="PreviewTeamName"
-                        Text="اسم الفريق"
-                        FontSize="22"
-                        FontAttributes="Bold"
-                        MaxLines="2"
-                        LineBreakMode="NoWrap"
-                        TextColor="Gold"/>
-
-                                <Grid
-                        ColumnDefinitions="*,Auto,*"
-                        Margin="0,5,0,0">
-
-                                    <Label
-                            x:Name="PreviewPlayer1"
-                            Text="اللاعب الأول"
-                            FontSize="15"
-                            TextColor="White"
-                            HorizontalTextAlignment="Center"
-                            LineBreakMode="NoWrap"
-                            MaxLines="2"/>
-
-                                    <Label
-                            Grid.Column="1"
-                            Text="|"
-                            FontSize="18"
-                            TextColor="Gold"
-                            Margin="10,0"/>
-
-                                    <Label
-                            x:Name="PreviewPlayer2"
-                            Grid.Column="2"
-                            Text="اللاعب الثاني"
-                            FontSize="15"
-                            TextColor="White"
-                            HorizontalTextAlignment="Center"
-                            LineBreakMode="NoWrap"
-                            MaxLines="2"/>
-
-                                </Grid>
-
-                                <Grid
-                        ColumnDefinitions="Auto,*"
-                        VerticalOptions="End">
-
-                                    <Frame
-                            x:Name="PreviewColorDot"
-                            WidthRequest="20"
-                            HeightRequest="20"
-                            CornerRadius="10"
-                            Padding="0"
-                            BorderColor="Gold"
-                            BackgroundColor="Gold"
-                            HasShadow="False"
-                            HorizontalOptions="Start"/>
-
-                                    <Label
-                            Grid.Column="1"
-                            x:Name="PreviewMode"
-                            Text="فريق"
-                            FontSize="18"
-                            TextColor="#CCCCCC"
-                            VerticalOptions="Center"
-                            Margin="10,0,0,0"/>
-
-                                </Grid>
-
-                            </VerticalStackLayout>
-
-                        </Grid>
-
-                    </Grid>
-
-                </Border>
-
-            </Grid>
-
-            <!-- Save -->
-
-
-            <!-- SAVE TEAM BUTTON -->
-
-            <Border
-    Stroke="#FFD700"
-    StrokeThickness="3"
-    BackgroundColor="#111111"
-    StrokeShape="RoundRectangle 25"
-    HeightRequest="75"
-    Margin="0,10,0,0">
-
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer
-            Tapped="OnSaveClicked"/>
-                </Border.GestureRecognizers>
-
-                <Grid
-        ColumnDefinitions="Auto,*"
-        Padding="20,0">
-
-                    <!-- أيقونة الحفظ -->
-
-                    <Image
-                        x:Name="SaveButtonIcon"
-            Source="save_card.png"
-            WidthRequest="42"
-            HeightRequest="42"
-            VerticalOptions="Center"
-            HorizontalOptions="Center"/>
-
-                    <!-- النص -->
-                        <Label
-x:Name="SaveButtonText"
-Grid.Column="1"
-Text="إنشاء الفريق"
-FontSize="24"
-FontAttributes="Bold"
-TextColor="Gold"
-HorizontalOptions="Center"
-VerticalOptions="Center"/>
-
-                    </Grid>
-
-            </Border>
-
-        
-    
-
-
-            <!-- SAVED TEAMS BOTTOM SHEET -->
-
-           
-
-            </VerticalStackLayout>
-
-        </ScrollView>
-        <Grid
-x:Name="TeamsOverlay"
-IsVisible="False"
-BackgroundColor="#AA000000"
-ZIndex="999">
-
-            <!-- لمس الخلفية للإغلاق -->
-
-            <Grid.GestureRecognizers>
-                <TapGestureRecognizer
-        Tapped="OnCloseTeamsOverlay"/>
-            </Grid.GestureRecognizers>
-
-            <!-- النافذة -->
-
-            <Border
-    VerticalOptions="End"
-    BackgroundColor="#0B0B0B"
-    Stroke="#FFD700"
-    StrokeThickness="2"
-    StrokeShape="RoundRectangle 30,30,0,0"
-    HeightRequest="500">
-
-                <Grid
-        RowDefinitions="Auto,Auto,Auto,*,Auto">
-
-                    <!-- المقبض -->
-
-                    <BoxView
-            HeightRequest="5"
-            WidthRequest="70"
-            CornerRadius="3"
-            Color="#666666"
-            HorizontalOptions="Center"
-            Margin="0,10"/>
-
-                    <!-- العنوان -->
-
-                    <Label
-            Grid.Row="1"
-            Text="الفرق المحفوظة"
-            FontSize="24"
-            FontAttributes="Bold"
-            TextColor="Gold"
-            HorizontalOptions="Center"
-            Margin="0,10"/>
-
-                    <!-- البحث -->
-
-                    <Border
-            Grid.Row="2"
-            Margin="20,10,20,0"
-            HeightRequest="55"
-            Stroke="#444444"
-            BackgroundColor="#111111"
-            StrokeShape="RoundRectangle 18"
-            VerticalOptions="Start">
-
-                        <Entry
-    x:Name="TeamSearchEntry"
-    Placeholder="ابحث عن فريق..."
-    PlaceholderColor="#777777"
-    TextColor="White"
-    BackgroundColor="Transparent"
-    TextChanged="OnTeamSearchTextChanged"/>
-
-                    </Border>
-
-                    <!-- الفرق -->
-
-                    <CollectionView
-    x:Name="TeamsCollection"
-    Grid.Row="3"
-    Margin="20,10"
-    SelectionMode="None">
-
-                        <CollectionView.ItemTemplate>
-
-                            <DataTemplate>
-
-                                <Border
-                Margin="0,0,0,10"
-                Padding="12"
-                BackgroundColor="#111111"
-                Stroke="#333333"
-                StrokeShape="RoundRectangle 18">
-
-                                    <Grid
-                    ColumnDefinitions="55,*,40,40"
-                    ColumnSpacing="6">
-   
-                                        <!-- الشعار -->
-
-                                        <Image
-                        Source="{Binding EmblemSource}"
-                        WidthRequest="45"
-                        HeightRequest="45"/>
-
-                                        <!-- المعلومات -->
-
-                                        <VerticalStackLayout
-                        Grid.Column="1"
-                        Spacing="2">
-
-                                            <Label
-                            Text="{Binding TeamName}"
-                            TextColor="Gold"
+                            Text="إنشاء فريق جديد"
+                            FontSize="{OnIdiom Phone=25, Tablet=34}"
                             FontAttributes="Bold"
-                            FontSize="18"/>
+                            TextColor="#F2C46D"
+                            VerticalOptions="Center"/>
+                        <Image Source="eagle_3d.png" WidthRequest="46" HeightRequest="46"/>
+                    </HorizontalStackLayout>
 
-                                            <Label
-                            Text="{Binding Player1}"
-                            TextColor="White"
-                            FontSize="14"/>
-                                           
-                                            <Label
-                                                
- Text="{Binding Player2}"
- TextColor="White"
- FontSize="14"/>
-
-                                        </VerticalStackLayout>
-
-                                        <!-- تعديل -->
-
-                                        <Image
+                    <Button
                         Grid.Column="2"
-                        Source="edit_card.png"
-                        WidthRequest="26"
-                        HeightRequest="26">
+                        Text="?"
+                        WidthRequest="54"
+                        HeightRequest="54"
+                        BackgroundColor="#141414"
+                        BorderColor="#76521B"
+                        BorderWidth="1"
+                        CornerRadius="16"
+                        TextColor="#F2C46D"
+                        FontSize="24"
+                        FontAttributes="Bold"/>
+                </Grid>
 
-                                            <Image.GestureRecognizers>
-                                                <TapGestureRecognizer
-                                Tapped="OnEditTeamClicked"/>
-                                            </Image.GestureRecognizers>
+                <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="Stretch" JustifyContent="SpaceBetween">
+                    <Border Style="{StaticResource CardBorder}" FlexLayout.Basis="{OnIdiom Phone='100%', Tablet='48%'}" Margin="0,0,0,12">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="معلومات الفريق  👥" Style="{StaticResource SectionTitle}"/>
 
-                                        </Image>
+                            <Label Text="اسم الفريق" Style="{StaticResource FieldLabel}"/>
+                            <Border Stroke="#7A5A20" BackgroundColor="#101214" StrokeShape="RoundRectangle 12" Padding="10,0">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Entry x:Name="TeamNameEntry" Style="{StaticResource DarkEntry}" Placeholder="أدخل اسم الفريق"/>
+                                    <Image Grid.Column="1" Source="edit_card.png" WidthRequest="26" HeightRequest="26" VerticalOptions="Center"/>
+                                </Grid>
+                            </Border>
 
-                                        <!-- حذف -->
-
-                                        <Image
-                        Grid.Column="3"
-                        Source="delete_icon.png"
-                        WidthRequest="26"
-                        HeightRequest="26">
-
-                                            <Image.GestureRecognizers>
-                                                <TapGestureRecognizer
-                                Tapped="OnDeleteTeamClicked"/>
-                                            </Image.GestureRecognizers>
-
-                                        </Image>
-
-                                    </Grid>
-
+                            <Label Text="نوع الفريق" Style="{StaticResource FieldLabel}"/>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                <Border x:Name="TeamCard" Stroke="#FFD15F" BackgroundColor="#5A3A0D" StrokeShape="RoundRectangle 12" Padding="10">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnTeamClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                                        <Image Source="players_card.png" WidthRequest="24" HeightRequest="24"/>
+                                        <Label Text="فريق" TextColor="#FFE4A3" FontSize="16" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
                                 </Border>
 
-                            </DataTemplate>
+                                <Border x:Name="SingleCard" Grid.Column="1" Stroke="#3A3A3A" BackgroundColor="#151719" StrokeShape="RoundRectangle 12" Padding="10">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnSingleClicked"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                                        <Image Source="player_card.png" WidthRequest="24" HeightRequest="24"/>
+                                        <Label Text="فردي" TextColor="#E8E0D2" FontSize="16" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </Grid>
 
-                        </CollectionView.ItemTemplate>
+                            <Label Text="اسم اللاعب الأول" Style="{StaticResource FieldLabel}"/>
+                            <Border Stroke="#3D3528" BackgroundColor="#101214" StrokeShape="RoundRectangle 12" Padding="10,0">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Entry x:Name="Player1Entry" Style="{StaticResource DarkEntry}" Placeholder="أدخل اسم اللاعب الأول"/>
+                                    <Image Grid.Column="1" Source="player_card.png" WidthRequest="25" HeightRequest="25" VerticalOptions="Center"/>
+                                </Grid>
+                            </Border>
 
-                    </CollectionView>
-
-                    <Label
- x:Name="NoResultsLabel"
- Text="لا توجد نتائج مطابقة"
- TextColor="#888888"
- FontSize="18"
- HorizontalOptions="Center"
- Margin="0,20,0,0"
- IsVisible="False"/>
-
-                    <!-- حذف الكل -->
-               
-                    <Border
-            Grid.Row="4"
-            Margin="20"
-            Stroke="#AA0000"
-            StrokeThickness="2"
-            BackgroundColor="#111111"
-            StrokeShape="RoundRectangle 18">
-
-                        <Border.GestureRecognizers>
-
-                            <TapGestureRecognizer
-                    Tapped="OnDeleteAllTeamsClicked"/>
-
-                        </Border.GestureRecognizers>
-
-                        <HorizontalStackLayout
-                Spacing="12"
-                Padding="15"
-                HorizontalOptions="Center">
-
-                            <Image
-                    Source="delete_icon.png"
-                    WidthRequest="28"
-                    HeightRequest="28"/>
-
-                            <Label
-                    Text="حذف جميع الفرق"
-                    TextColor="#FF5555"
-                    FontSize="18"
-                    FontAttributes="Bold"/>
-                            
-
-                        </HorizontalStackLayout>
-
+                            <VerticalStackLayout x:Name="Player2Layout" Spacing="6">
+                                <Label Text="اسم اللاعب الثاني (اختياري)" Style="{StaticResource FieldLabel}"/>
+                                <Border Stroke="#3D3528" BackgroundColor="#101214" StrokeShape="RoundRectangle 12" Padding="10,0">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Entry x:Name="Player2Entry" Style="{StaticResource DarkEntry}" Placeholder="أدخل اسم اللاعب الثاني"/>
+                                        <Image Grid.Column="1" Source="player_card.png" WidthRequest="25" HeightRequest="25" VerticalOptions="Center"/>
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
                     </Border>
-                    
 
+                    <Border
+                        x:Name="PreviewCard"
+                        Style="{StaticResource CardBorder}"
+                        FlexLayout.Basis="{OnIdiom Phone='100%', Tablet='48%'}"
+                        Margin="0,0,0,12">
+                        <Grid>
+                            <Border x:Name="PreviewEmblemBackground" BackgroundColor="#070707" StrokeThickness="0" StrokeShape="RoundRectangle 16"/>
+                            <Image x:Name="PreviewBackgroundImage" IsVisible="False" Aspect="AspectFill" Opacity="0.72"/>
+                            <BoxView Color="#B0000000"/>
+                            <VerticalStackLayout Padding="8" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Label Text="معاينة سريعة" Style="{StaticResource SectionTitle}" HorizontalOptions="Center"/>
+                                <Grid WidthRequest="{OnIdiom Phone=160, Tablet=220}" HeightRequest="{OnIdiom Phone=150, Tablet=190}">
+                                    <Image x:Name="PreviewTeamEffectOverlay" IsVisible="False" Aspect="AspectFit"/>
+                                    <Image x:Name="PreviewEmblem" Source="shield_3d.png" Aspect="AspectFit"/>
+                                </Grid>
+                                <Label x:Name="PreviewTeamName" Text="اسم الفريق" TextColor="#F2C46D" FontSize="28" FontAttributes="Bold" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                <HorizontalStackLayout x:Name="PreviewPlayersHost" HorizontalOptions="Center" Spacing="18">
+                                    <VerticalStackLayout Spacing="4" WidthRequest="92">
+                                        <Border Stroke="#B8893B" BackgroundColor="#141414" StrokeShape="RoundRectangle 34" HeightRequest="68" WidthRequest="68" HorizontalOptions="Center">
+                                            <Image x:Name="PreviewPlayer1Avatar" Source="player_card.png" Aspect="AspectFill"/>
+                                        </Border>
+                                        <Label x:Name="PreviewPlayer1" Text="اللاعب الأول" TextColor="White" FontSize="13" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout x:Name="PreviewPlayer2Host" Spacing="4" WidthRequest="92">
+                                        <Border Stroke="#B8893B" BackgroundColor="#141414" StrokeShape="RoundRectangle 34" HeightRequest="68" WidthRequest="68" HorizontalOptions="Center">
+                                            <Image x:Name="PreviewPlayer2Avatar" Source="player_card.png" Aspect="AspectFill"/>
+                                        </Border>
+                                        <Label x:Name="PreviewPlayer2" Text="اللاعب الثاني" TextColor="White" FontSize="13" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                    </VerticalStackLayout>
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                                    <Frame x:Name="PreviewColorDot" WidthRequest="18" HeightRequest="18" CornerRadius="9" Padding="0" BackgroundColor="#FFD700" BorderColor="#F2C46D" HasShadow="False"/>
+                                    <Label x:Name="PreviewMode" Text="فريق" TextColor="#D8D0C2" FontSize="15"/>
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </FlexLayout>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="اختيار اللاعبين  👥" Style="{StaticResource SectionTitle}"/>
+                            <Entry x:Name="PlayerSearchEntry" Grid.Column="1" WidthRequest="{OnIdiom Phone=150, Tablet=240}" Placeholder="بحث" Style="{StaticResource DarkEntry}" TextChanged="OnPlayerSearchTextChanged"/>
+                        </Grid>
+                        <CollectionView x:Name="PlayersCollection" HeightRequest="92" SelectionMode="None">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="12"/>
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="pages:PlayerSelectionItem">
+                                    <Grid WidthRequest="78">
+                                        <Border Stroke="{Binding AccentColor}" StrokeThickness="1.4" BackgroundColor="#111315" StrokeShape="RoundRectangle 39" WidthRequest="64" HeightRequest="64" HorizontalOptions="Center">
+                                            <Image Source="{Binding AvatarSource}" Aspect="AspectFill"/>
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnPlayerCardTapped"/>
+                                            </Border.GestureRecognizers>
+                                        </Border>
+                                        <Label Text="{Binding DisplayName}" TextColor="#EDE4D0" FontSize="11" HorizontalTextAlignment="Center" VerticalOptions="End" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="اختيار الفريق  🛡" Style="{StaticResource SectionTitle}"/>
+                            <Entry x:Name="TeamInlineSearchEntry" Grid.Column="1" WidthRequest="{OnIdiom Phone=150, Tablet=240}" Placeholder="بحث" Style="{StaticResource DarkEntry}" TextChanged="OnInlineTeamSearchTextChanged"/>
+                        </Grid>
+                        <CollectionView x:Name="TeamsCarousel" HeightRequest="118" SelectionMode="None">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="12"/>
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="pages:TeamSelectionItem">
+                                    <Border WidthRequest="190" Stroke="{Binding AccentColor}" BackgroundColor="#111315" StrokeShape="RoundRectangle 14" Padding="10">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnTeamCardTapped"/>
+                                        </Border.GestureRecognizers>
+                                        <Grid ColumnDefinitions="54,*" ColumnSpacing="8">
+                                            <Image Source="{Binding EmblemSource}" WidthRequest="48" HeightRequest="48" Aspect="AspectFit"/>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                <Label Text="{Binding TeamName}" TextColor="#F2C46D" FontAttributes="Bold" FontSize="15" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                                <Label Text="{Binding PlayersText}" TextColor="#EDE4D0" FontSize="12" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="اختيار الشعار  🛡" Style="{StaticResource SectionTitle}"/>
+                        <CollectionView x:Name="EmblemCarousel" HeightRequest="82" SelectionMode="Single" SelectionChanged="OnEmblemSelectionChanged" ItemsUpdatingScrollMode="KeepScrollOffset">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="12" SnapPointsAlignment="Center" SnapPointsType="MandatorySingle"/>
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="pages:EmblemCarouselItem">
+                                    <Grid WidthRequest="76" HeightRequest="76">
+                                        <Border IsVisible="{Binding IsSelected}" Stroke="Gold" StrokeThickness="2" BackgroundColor="#332B2100" StrokeShape="RoundRectangle 14"/>
+                                        <Image Source="{Binding ImageSource}" WidthRequest="64" HeightRequest="64" HorizontalOptions="Center" VerticalOptions="Center" Aspect="AspectFit"/>
+                                        <Border IsVisible="{Binding IsSelected}" WidthRequest="20" HeightRequest="20" BackgroundColor="#F2C46D" Stroke="Black" StrokeShape="RoundRectangle 10" HorizontalOptions="Start" VerticalOptions="Start">
+                                            <Label Text="✓" FontSize="12" TextColor="Black" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="اختيار اللون  🎨" Style="{StaticResource SectionTitle}"/>
+                        <CollectionView x:Name="ColorCarousel" HeightRequest="58" SelectionMode="Single" SelectionChanged="OnColorSelectionChanged" ItemsUpdatingScrollMode="KeepScrollOffset">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="14" SnapPointsAlignment="Center" SnapPointsType="MandatorySingle"/>
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="pages:TeamColorCarouselItem">
+                                    <Grid WidthRequest="52" HeightRequest="52">
+                                        <Border IsVisible="{Binding IsSelected}" Stroke="Gold" StrokeThickness="2" BackgroundColor="#332B2100" StrokeShape="RoundRectangle 26"/>
+                                        <Image Source="{Binding ImageSource}" WidthRequest="42" HeightRequest="42" HorizontalOptions="Center" VerticalOptions="Center" Aspect="AspectFit"/>
+                                        <Border IsVisible="{Binding IsSelected}" WidthRequest="18" HeightRequest="18" BackgroundColor="#F2C46D" Stroke="Black" StrokeShape="RoundRectangle 9" HorizontalOptions="Start" VerticalOptions="Start">
+                                            <Label Text="✓" FontSize="10" TextColor="Black" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
+                            <Label Text="الإطارات" TextColor="#F2C46D" HorizontalTextAlignment="Center"/>
+                            <Label Grid.Column="1" Text="تأثيرات الخطوط" TextColor="#F2C46D" HorizontalTextAlignment="Center"/>
+                            <Label Grid.Column="2" Text="الخلفيات" TextColor="#F2C46D" HorizontalTextAlignment="Center"/>
+                            <Label Grid.Column="3" Text="التأثيرات البصرية" TextColor="#F2C46D" HorizontalTextAlignment="Center"/>
+                        </Grid>
+
+                        <Picker x:Name="EmblemBackgroundPicker" Title="خلفية الشعار" ItemDisplayBinding="{Binding DisplayName}" SelectedIndexChanged="OnEmblemBackgroundSelectionChanged" TextColor="#F2C46D" TitleColor="#F2C46D"/>
+
+                        <VerticalStackLayout x:Name="TeamEffectSection" IsVisible="False" Spacing="8">
+                            <Label Text="تأثير الفريق" TextColor="#F2C46D" FontAttributes="Bold" HorizontalTextAlignment="End"/>
+                            <CollectionView x:Name="TeamEffectCarousel" HeightRequest="66" SelectionMode="Single" SelectionChanged="OnTeamEffectSelectionChanged" ItemsUpdatingScrollMode="KeepScrollOffset">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10" SnapPointsAlignment="Center" SnapPointsType="MandatorySingle"/>
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="pages:TeamEffectCarouselItem">
+                                        <Grid WidthRequest="64" HeightRequest="64" Loaded="OnTeamEffectItemLoaded">
+                                            <Border IsVisible="{Binding IsSelected}" Stroke="Gold" StrokeThickness="1.5" BackgroundColor="#221A0C" StrokeShape="RoundRectangle 12"/>
+                                            <Image Source="shield_3d.png" WidthRequest="38" HeightRequest="38" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                            <Label IsVisible="{Binding IsNone}" Text="بدون" FontSize="10" TextColor="White" HorizontalOptions="Center" VerticalOptions="End"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}" Padding="12">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="التحقق قبل الحفظ" Style="{StaticResource SectionTitle}"/>
+                        <FlexLayout x:Name="ValidationPanel" Direction="Row" Wrap="Wrap" JustifyContent="End"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10" Margin="0,6,0,2">
+                    <Border Stroke="#A05E21" BackgroundColor="#8C5A1B" StrokeShape="RoundRectangle 14" Padding="10">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnSaveClicked"/>
+                        </Border.GestureRecognizers>
+                        <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                            <Image x:Name="SaveButtonIcon" Source="save_card.png" WidthRequest="26" HeightRequest="26"/>
+                            <Label x:Name="SaveButtonText" Text="إنشاء الفريق" TextColor="#FFE7B0" FontAttributes="Bold" FontSize="17"/>
+                        </HorizontalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1" Stroke="#7B201B" BackgroundColor="#42110F" StrokeShape="RoundRectangle 14" Padding="10">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnDeleteCurrentTeamClicked"/>
+                        </Border.GestureRecognizers>
+                        <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                            <Image Source="delete_icon.png" WidthRequest="24" HeightRequest="24"/>
+                            <Label Text="حذف الفريق" TextColor="#FF6B5F" FontAttributes="Bold" FontSize="17"/>
+                        </HorizontalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="2" Stroke="#7B201B" BackgroundColor="#42110F" StrokeShape="RoundRectangle 14" Padding="10">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnDeleteAllTeamsClicked"/>
+                        </Border.GestureRecognizers>
+                        <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                            <Image Source="delete_icon.png" WidthRequest="24" HeightRequest="24"/>
+                            <Label Text="حذف جميع الفرق" TextColor="#FF6B5F" FontAttributes="Bold" FontSize="17"/>
+                        </HorizontalStackLayout>
+                    </Border>
                 </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
 
-
-            </Border>
-
-        </Grid>
+        <Border Grid.Row="1" Margin="12,0,12,10" Stroke="#3D2C15" BackgroundColor="#F007090B" StrokeShape="RoundRectangle 18" Padding="0">
+            <Grid ColumnDefinitions="*,*,*,*" HeightRequest="76">
+                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
+                    <Image Source="home_card.png" WidthRequest="28" HeightRequest="28"/>
+                    <Label Text="الصفحة الرئيسية" TextColor="#D7B66F" FontSize="12"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Image Source="players_card.png" WidthRequest="28" HeightRequest="28"/>
+                    <Label Text="إنشاء فريق" TextColor="#FFD15F" FontSize="12" FontAttributes="Bold"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Image Source="dice_card.png" WidthRequest="28" HeightRequest="28"/>
+                    <Label Text="اللعب" TextColor="#D7B66F" FontSize="12"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="3" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Image Source="store_card.png" WidthRequest="28" HeightRequest="28"/>
+                    <Label Text="المتجر" TextColor="#D7B66F" FontSize="12"/>
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
     </Grid>
-
 </ContentPage>

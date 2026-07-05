@@ -1,7 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
-using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.Pages;
@@ -44,8 +43,8 @@ public partial class CreateTeamPage
 
     private void RefreshCreateTeamVisualPipeline()
     {
-        RepairCreateTeamArabicText(this);
         UpdatePreviewIdentityLabelsSafely();
+        _ = UpdatePreviewAvatarsAsync();
         _ = SyncTeamEffectChoicesAndPreviewAsync();
     }
 
@@ -65,13 +64,14 @@ public partial class CreateTeamPage
                 ? "اللاعب الثاني"
                 : Player2Entry.Text.Trim();
 
-            // The preview card is visually RTL. Keep player 1 in the right slot and player 2 in the left slot.
-            PreviewPlayer1.Text = isTeamMode ? player2 : player1;
-            PreviewPlayer2.Text = isTeamMode ? player1 : string.Empty;
+            PreviewPlayer1.Text = player1;
+            PreviewPlayer2.Text = isTeamMode ? player2 : string.Empty;
             PreviewPlayer2.IsVisible = isTeamMode;
+            PreviewPlayer2Host.IsVisible = isTeamMode;
 
             PreviewMode.Text = isTeamMode ? "فريق" : "فردي";
-            SaveButtonText.Text = IsEditMode ? "تحديث الفريق" : "إنشاء الفريق";
+            SaveButtonText.Text = IsEditMode ? "تعديل الفريق" : "إنشاء الفريق";
+            RefreshValidationPanel();
         }
         catch
         {
@@ -148,7 +148,7 @@ public partial class CreateTeamPage
         }
         catch
         {
-            // Effect choice synchronization is visual-only here; save validation remains in OnSaveClicked.
+            // Effect synchronization is visual-only here; save validation remains in OnSaveClicked.
         }
         finally
         {
@@ -225,43 +225,5 @@ public partial class CreateTeamPage
                string.Equals(legacy.EquipTarget, "Team", StringComparison.OrdinalIgnoreCase)
             ? legacy
             : null;
-    }
-
-    private static void RepairCreateTeamArabicText(Element element)
-    {
-        if (element is Label label)
-            label.Text = RepairCreateTeamArabic(label.Text);
-        else if (element is Button button)
-            button.Text = RepairCreateTeamArabic(button.Text);
-        else if (element is Entry entry)
-            entry.Placeholder = RepairCreateTeamArabic(entry.Placeholder);
-        else if (element is Picker picker)
-            picker.Title = RepairCreateTeamArabic(picker.Title);
-
-        foreach (var child in element.LogicalChildren)
-            RepairCreateTeamArabicText(child);
-    }
-
-    private static string RepairCreateTeamArabic(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return value ?? string.Empty;
-
-        return value
-            .Replace("ط¨ط¯ظˆظ† ط®ظ„ظپظٹط©", "بدون خلفية", StringComparison.Ordinal)
-            .Replace("ط¨ط¯ظˆظ† طھط£ط«ظٹط±", "بدون تأثير", StringComparison.Ordinal)
-            .Replace("ط§ط³ظ… ط§ظ„ظپط±ظٹظ‚", "اسم الفريق", StringComparison.Ordinal)
-            .Replace("ط§ظ„ظ„ط§ط¹ط¨ ط§ظ„ط£ظˆظ„", "اللاعب الأول", StringComparison.Ordinal)
-            .Replace("ط§ظ„ظ„ط§ط¹ط¨ ط§ظ„ط«ط§ظ†ظٹ", "اللاعب الثاني", StringComparison.Ordinal)
-            .Replace("ظپط±ظٹظ‚", "فريق", StringComparison.Ordinal)
-            .Replace("ظپط±ط¯ظٹ", "فردي", StringComparison.Ordinal)
-            .Replace("ط¥ظ†ط´ط§ط، ط§ظ„ظپط±ظٹظ‚", "إنشاء الفريق", StringComparison.Ordinal)
-            .Replace("طھط­ط¯ظٹط« ط§ظ„ظپط±ظٹظ‚", "تحديث الفريق", StringComparison.Ordinal)
-            .Replace("طھظ†ط¨ظٹظ‡", "تنبيه", StringComparison.Ordinal)
-            .Replace("ط­ط³ظ†ط§ظ‹", "حسناً", StringComparison.Ordinal)
-            .Replace("طھظ…", "تم", StringComparison.Ordinal)
-            .Replace("ظ…ظ…طھط§ط²", "ممتاز", StringComparison.Ordinal)
-            .Replace("ط¥ظ„ط؛ط§ط،", "إلغاء", StringComparison.Ordinal)
-            .Replace("ظ†ط¹ظ…", "نعم", StringComparison.Ordinal);
     }
 }
