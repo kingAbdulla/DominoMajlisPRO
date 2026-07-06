@@ -12,6 +12,10 @@ public static class AppEvents
     public static event Action<string>? StoreProgressChanged;
     public static event Action<string>? TeamAssetsChanged;
     public static event Action<string>? TeamEffectChanged;
+    public static event Action? SeasonChanged;
+    public static event Action? TeamStatsChanged;
+    public static event Action<string>? WalletChanged;
+    public static event Action<string>? RankRewardGranted;
 
     static void SafeRaise(Action? action)
     {
@@ -39,6 +43,38 @@ public static class AppEvents
 
         SafeRaise(StoreEconomyChanged, playerId);
         SafeRaise(StoreProgressChanged, playerId);
+        SafeRaise(WalletChanged, playerId);
+    }
+
+    public static void RaiseWalletChanged(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+
+        SafeRaise(WalletChanged, playerId);
+        SafeRaise(StoreEconomyChanged, playerId);
+        SafeRaise(StoreProgressChanged, playerId);
+    }
+
+    public static void RaiseSeasonChanged()
+    {
+        SafeRaise(SeasonChanged);
+        SafeRaise(RankingsChanged);
+    }
+
+    public static void RaiseTeamStatsChanged()
+    {
+        SafeRaise(TeamStatsChanged);
+        SafeRaise(TeamsChanged);
+    }
+
+    public static void RaiseRankRewardGranted(string teamId)
+    {
+        if (string.IsNullOrWhiteSpace(teamId))
+            return;
+
+        SafeRaise(RankRewardGranted, teamId);
+        SafeRaise(RankingsChanged);
     }
 
     public static void RaisePlayerProfileChanged()

@@ -1,3 +1,5 @@
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
@@ -17,7 +19,9 @@ public partial class RankingsPage : ContentPage
         0,
         0,
         0,
-        0);
+        0,
+        1,
+        null);
 
     IReadOnlyList<RankingTeamCard> visibleTeams = Array.Empty<RankingTeamCard>();
     string sortMode = "XP";
@@ -26,6 +30,7 @@ public partial class RankingsPage : ContentPage
     int seasonSlideIndex;
     bool pageActive;
     bool seasonSliderRunning;
+    Image? heroSlideImage;
 
     public RankingsPage()
     {
@@ -51,19 +56,19 @@ public partial class RankingsPage : ContentPage
 
     void Subscribe()
     {
-        AppEvents.RankingsChanged -= OnDataChanged;
-        AppEvents.TeamsChanged -= OnDataChanged;
-        AppEvents.MatchesChanged -= OnDataChanged;
-        AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
-        AppEvents.TeamEffectChanged -= OnTeamAssetsChanged;
-        AppEvents.StoreProgressChanged -= OnStoreChanged;
+        Unsubscribe();
 
         AppEvents.RankingsChanged += OnDataChanged;
         AppEvents.TeamsChanged += OnDataChanged;
         AppEvents.MatchesChanged += OnDataChanged;
+        AppEvents.TeamStatsChanged += OnDataChanged;
+        AppEvents.SeasonChanged += OnDataChanged;
         AppEvents.TeamAssetsChanged += OnTeamAssetsChanged;
         AppEvents.TeamEffectChanged += OnTeamAssetsChanged;
         AppEvents.StoreProgressChanged += OnStoreChanged;
+        AppEvents.WalletChanged += OnStoreChanged;
+        AppEvents.RankRewardGranted += OnTeamAssetsChanged;
+        CurrentSeasonAdminService.PublishedChanged += OnSeasonPublishedChanged;
     }
 
     void Unsubscribe()
@@ -71,14 +76,20 @@ public partial class RankingsPage : ContentPage
         AppEvents.RankingsChanged -= OnDataChanged;
         AppEvents.TeamsChanged -= OnDataChanged;
         AppEvents.MatchesChanged -= OnDataChanged;
+        AppEvents.TeamStatsChanged -= OnDataChanged;
+        AppEvents.SeasonChanged -= OnDataChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;
         AppEvents.TeamEffectChanged -= OnTeamAssetsChanged;
         AppEvents.StoreProgressChanged -= OnStoreChanged;
+        AppEvents.WalletChanged -= OnStoreChanged;
+        AppEvents.RankRewardGranted -= OnTeamAssetsChanged;
+        CurrentSeasonAdminService.PublishedChanged -= OnSeasonPublishedChanged;
     }
 
     async void OnDataChanged() => await LoadAsync();
     async void OnTeamAssetsChanged(string teamId) => await LoadAsync();
     async void OnStoreChanged(string playerId) => await LoadAsync();
+    async void OnSeasonPublishedChanged(CurrentSeasonRecord? record) => await LoadAsync();
 
     async Task LoadAsync()
     {
@@ -194,6 +205,35 @@ public partial class RankingsPage : ContentPage
         root.Padding = 0;
         root.HeightRequest = isPhone ? 348 : 320;
 
+        // Layer 0 : season background slider (covers the whole card).
+        // Layer 1 : transparent dark overlay for readability.
+        // Layer 2 : champion team identity content.
+        var stack = new Grid();
+
+        heroSlideImage = new Image
+        {
+            Source = ResolveSource(slide.ImagePath, "season_reward_gold.png"),
+            Aspect = Aspect.AspectFill,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
+        stack.Children.Add(heroSlideImage);
+
+        stack.Children.Add(new BoxView
+        {
+            Background = new LinearGradientBrush
+            {
+                StartPoint = new Point(0, 0),
+                EndPoint = new Point(1, 1),
+                GradientStops =
+                {
+                    new GradientStop(Color.FromArgb("#4A000000"), 0f),
+                    new GradientStop(Color.FromArgb("#8A000000"), 0.5f),
+                    new GradientStop(Color.FromArgb("#B0000000"), 1f)
+                }
+            }
+        });
+
         var layout = new Grid
         {
             RowDefinitions =
@@ -214,15 +254,6 @@ public partial class RankingsPage : ContentPage
             },
             ColumnSpacing = 8
         };
-
-        var seasonBackground = new Image
-        {
-            Source = ResolveSource(slide.ImagePath, "season_reward_gold.png"),
-            Aspect = Aspect.AspectFill,
-            Opacity = 0.52
-        };
-        heroGrid.Children.Add(SpanColumns(seasonBackground, 3));
-        heroGrid.Children.Add(SpanColumns(new BoxView { Color = Color.FromArgb("#B9000000") }, 3));
 
         if (champion != null)
         {
@@ -282,7 +313,7 @@ public partial class RankingsPage : ContentPage
 
         var seasonBox = new Border
         {
-            WidthRequest = isPhone ? 86 : 126,
+            WidthRequest = isPhone ? 92 : 132,
             BackgroundColor = Color.FromArgb("#AA070809"),
             Stroke = Color.FromArgb("#5E421B"),
             StrokeShape = new RoundRectangle { CornerRadius = 14 },
@@ -290,10 +321,11 @@ public partial class RankingsPage : ContentPage
             VerticalOptions = LayoutOptions.Start,
             Content = new VerticalStackLayout
             {
-                Spacing = 3,
+                Spacing = 2,
                 Children =
                 {
-                    Label("الموسم", 12, "#F2C46D", true, TextAlignment.Center),
+                    Label($"الموسم {snapshot.SeasonNumber}", 12, "#F2C46D", true, TextAlignment.Center),
+                    Label("ينتهي بعد", 10, "#DEC894", false, TextAlignment.Center),
                     Label($"{snapshot.SeasonDaysLeft}", 28, "#FFFFFF", true, TextAlignment.Center),
                     Label("يوم", 12, "#F2C46D", true, TextAlignment.Center)
                 }
@@ -302,6 +334,21 @@ public partial class RankingsPage : ContentPage
         Grid.SetColumn(seasonBox, 2);
         heroGrid.Children.Add(seasonBox);
         layout.Children.Add(heroGrid);
+
+        var reward = snapshot.ChampionNextReward;
+        var rewardInfo = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            VerticalOptions = LayoutOptions.Center,
+            Children =
+            {
+                Label("المكافأة التالية", 12, "#F2C46D", true),
+                new Image { Source = "gold.png", WidthRequest = 18, HeightRequest = 18 },
+                Label((reward?.CoinsReward ?? 0).ToString("N0"), 14, "#FFFFFF", true),
+                new Image { Source = "diamond.png", WidthRequest = 18, HeightRequest = 18 },
+                Label((reward?.GemsReward ?? 0).ToString("N0"), 14, "#FFFFFF", true)
+            }
+        };
 
         var rewards = new Grid
         {
@@ -313,22 +360,12 @@ public partial class RankingsPage : ContentPage
             },
             BackgroundColor = Color.FromArgb("#8008090A")
         };
-        rewards.Children.Add(new HorizontalStackLayout
-        {
-            Spacing = 10,
-            VerticalOptions = LayoutOptions.Center,
-            Children =
-            {
-                Label("المكافأة التالية", 12, "#F2C46D", true),
-                Label("25,000", 14, "#FFFFFF", true),
-                new Image { Source = "diamond.png", WidthRequest = 20, HeightRequest = 20 },
-                Label("500", 14, "#FFFFFF", true)
-            }
-        });
+        rewards.Children.Add(rewardInfo);
         rewards.Children.Add(SetColumn(TextButton("عرض جميع الجوائز", "gift_gold.png", async (_, _) => await ShowSeasonPrizesAsync()), 1));
         layout.Children.Add(SetRow(rewards, 1));
 
-        root.Content = layout;
+        stack.Children.Add(layout);
+        root.Content = stack;
         return root;
     }
 
@@ -407,13 +444,16 @@ public partial class RankingsPage : ContentPage
 
         var isChampion = place == 1;
 
+        // Card fills the whole column so the pos background covers everything
+        // with no empty black area behind it.
         var item = new Grid
         {
-            VerticalOptions = LayoutOptions.End,
+            VerticalOptions = LayoutOptions.Fill,
             HorizontalOptions = LayoutOptions.Fill,
-            HeightRequest = isChampion ? 290 : 270
+            HeightRequest = isChampion ? 300 : 278
         };
 
+        // Layer 0 : pos background, cover the whole card (AspectFill = no black gaps).
         var background = new Image
         {
             Source = place switch
@@ -422,59 +462,67 @@ public partial class RankingsPage : ContentPage
                 2 => "pos2.png",
                 _ => "pos3.png"
             },
-            Aspect = Aspect.Fill,
+            Aspect = Aspect.AspectFill,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
             ZIndex = 0
+        };
+        background.Clip = new RoundRectangleGeometry { CornerRadius = 20 };
+
+        // Layer 1 : glass card (~55% black) that holds the team info, sitting on
+        // the upper face of the pod (leaving the podium base visible below).
+        var content = new VerticalStackLayout
+        {
+            Padding = new Thickness(8, 12, 8, 12),
+            Spacing = 6,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            Children =
+            {
+                // Team emblem: PNG only (no team emblem background in Top 3).
+                TeamEmblem(card, isChampion ? 70 : 60, false),
+
+                Label(card.Team.TeamName, isChampion ? 15 : 13, "#FFFFFF", true, TextAlignment.Center),
+
+                Label(card.PlayersText, 10, "#E8D9B5", false, TextAlignment.Center),
+
+                // Rank shown vertically: emblem then name + tier below it.
+                RankCompact(card.Rank, isChampion ? 28 : 24)
+            }
         };
 
         var glass = new Border
         {
             ZIndex = 1,
-            BackgroundColor = Color.FromArgb("#99000000"), // حوالي 60% شفافية
-            StrokeThickness = 0,
-            StrokeShape = new RoundRectangle
-            {
-                CornerRadius = 26
-            },
-            Margin = new Thickness(18, 22, 18, 58),
+            BackgroundColor = Color.FromArgb("#8C000000"), // ~55% transparent black
+            Stroke = Color.FromArgb("#33FFFFFF"),
+            StrokeThickness = 0.6,
+            StrokeShape = new RoundRectangle { CornerRadius = 22 },
+            Margin = new Thickness(10, 18, 10, isChampion ? 66 : 74),
             VerticalOptions = LayoutOptions.Fill,
-            HorizontalOptions = LayoutOptions.Fill
+            HorizontalOptions = LayoutOptions.Fill,
+            Content = content
         };
 
-        var stack = new VerticalStackLayout
+        // Layer 2 : position badge (dark circle) in the top corner.
+        var badge = new Border
         {
             ZIndex = 2,
-            Margin = new Thickness(0, 26, 0, 0),
-            Padding = new Thickness(10, 0),
-            Spacing = 6,
-            HorizontalOptions = LayoutOptions.Fill,
+            WidthRequest = 26,
+            HeightRequest = 26,
+            Margin = new Thickness(14, 8, 14, 0),
+            BackgroundColor = Color.FromArgb("#CC0A0B0D"),
+            Stroke = Color.FromArgb("#F2C46D"),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = 13 },
+            HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Start,
-            Children =
-        {
-            TeamEmblem(card, isChampion ? 68 : 58, false),
-
-            Label(
-                card.Team.TeamName,
-                isChampion ? 14 : 12,
-                "#FFFFFF",
-                true,
-                TextAlignment.Center),
-
-            Label(
-                card.PlayersText,
-                10,
-                "#E8D9B5",
-                false,
-                TextAlignment.Center),
-
-            RankCompact(
-                card.Rank,
-                isChampion ? 26 : 22)
-        }
+            Content = Label(place.ToString(), 12, "#FFD98A", true, TextAlignment.Center)
         };
 
         item.Children.Add(background);
         item.Children.Add(glass);
-        item.Children.Add(stack);
+        item.Children.Add(badge);
 
         grid.Children.Add(SetColumn(item, column));
     }
@@ -597,7 +645,7 @@ public partial class RankingsPage : ContentPage
             {
                 Label(card.IsTrendUp ? "↑" : card.IsTrendDown ? "↓" : "-", 18, ToHex(card.TrendColor), true, TextAlignment.Center),
                 Label(card.TrendText, 10, ToHex(card.TrendColor), true, TextAlignment.Center),
-                Label($"🔥 {card.Team.ConsecutiveWins}", 10, "#F2C46D", true, TextAlignment.Center)
+                Label($"🔥 {Math.Max(0, card.Team.MelesCount)}", 10, "#F2C46D", true, TextAlignment.Center)
             }
         };
         grid.Children.Add(SetColumn(trend, 4));
@@ -886,21 +934,33 @@ public partial class RankingsPage : ContentPage
     async Task ShowSeasonPrizesAsync()
     {
         DetailsContent.Children.Clear();
-        DetailsContent.Children.Add(Label("جوائز الموسم", 20, "#F2C46D", true, TextAlignment.Center));
-        DetailsContent.Children.Add(new Grid
+        DetailsContent.Children.Add(Label("جوائز الرتب", 20, "#F2C46D", true, TextAlignment.Center));
+
+        var next = snapshot.ChampionNextReward;
+        if (next != null)
         {
-            ColumnDefinitions =
+            DetailsContent.Children.Add(Label("المكافأة التالية", 13, "#DEC894", true, TextAlignment.Center));
+            DetailsContent.Children.Add(new Grid
             {
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star }
-            },
-            ColumnSpacing = 8,
-            Children =
-            {
-                InfoPill("ذهب", "25,000", "gold.png", 0),
-                InfoPill("جواهر", "500", "diamond.png", 1)
-            }
-        });
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Star }
+                },
+                ColumnSpacing = 8,
+                Children =
+                {
+                    InfoPill("ذهب", next.CoinsReward.ToString("N0"), "gold.png", 0),
+                    InfoPill("جواهر", next.GemsReward.ToString("N0"), "diamond.png", 1)
+                }
+            });
+        }
+
+        foreach (var definition in RankRewardCatalog.All)
+        {
+            DetailsContent.Children.Add(BuildRewardRow(definition));
+        }
+
         DetailsContent.Children.Add(TextButton("إغلاق", "back_gold.png", async (_, _) => await CloseDetailsAsync()));
 
         DetailsOverlay.IsVisible = true;
@@ -928,11 +988,32 @@ public partial class RankingsPage : ContentPage
             if (snapshot.SeasonSlides.Count > 1)
             {
                 seasonSlideIndex = (seasonSlideIndex + 1) % snapshot.SeasonSlides.Count;
-                BuildPage();
+                _ = AnimateSeasonSlideAsync();
             }
 
             return pageActive;
         });
+    }
+
+    // Visual-only background swap. Does not rebuild the page or move any card.
+    async Task AnimateSeasonSlideAsync()
+    {
+        var image = heroSlideImage;
+        if (image == null)
+            return;
+
+        var next = ResolveSource(CurrentSlide().ImagePath, "season_reward_gold.png");
+        try
+        {
+            await image.FadeTo(0, 260, Easing.CubicInOut);
+            image.Source = next;
+            await image.FadeTo(1, 260, Easing.CubicInOut);
+        }
+        catch
+        {
+            image.Source = next;
+            image.Opacity = 1;
+        }
     }
 
     RankingSeasonSlide CurrentSlide() =>
@@ -955,6 +1036,44 @@ public partial class RankingsPage : ContentPage
             border.Stroke = Color.FromArgb(active ? "#F2C46D" : "#4A3515");
         }
         return chip;
+    }
+
+    View BuildRewardRow(Models.RankRewardDefinition definition)
+    {
+        var row = Card("#CC0A0D10", "#3A2B14", 0, 10);
+        row.Padding = new Thickness(10, 8);
+        var rankLabel = string.IsNullOrWhiteSpace(definition.Tier)
+            ? definition.RankName
+            : $"{definition.RankName} {definition.Tier}";
+        row.Content = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = 30 },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 8,
+            VerticalOptions = LayoutOptions.Center,
+            Children =
+            {
+                new Image { Source = RankingsPageEngine.ResolveRankIcon(definition.RankId), WidthRequest = 26, HeightRequest = 26 },
+                SetColumn(Label(rankLabel, 13, "#F6D17D", true), 1),
+                SetColumn(new HorizontalStackLayout
+                {
+                    Spacing = 6,
+                    VerticalOptions = LayoutOptions.Center,
+                    Children =
+                    {
+                        new Image { Source = "gold.png", WidthRequest = 16, HeightRequest = 16 },
+                        Label(definition.CoinsReward.ToString("N0"), 12, "#FFFFFF", true),
+                        new Image { Source = "diamond.png", WidthRequest = 16, HeightRequest = 16 },
+                        Label(definition.GemsReward.ToString("N0"), 12, "#FFFFFF", true)
+                    }
+                }, 2)
+            }
+        };
+        return row;
     }
 
     Border InfoPill(string title, string value, string icon, int column)

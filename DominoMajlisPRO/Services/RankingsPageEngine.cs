@@ -45,7 +45,9 @@ public sealed record RankingsPageSnapshot(
     double SeasonProgress,
     int TotalXp,
     int AverageTrust,
-    int TotalMatches);
+    int TotalMatches,
+    int SeasonNumber,
+    RankRewardDefinition? ChampionNextReward);
 
 public static class RankingsPageEngine
 {
@@ -65,6 +67,13 @@ public static class RankingsPageEngine
 
         BadgeEngine.UpdateAllTeamsBadges(teams);
         await RankingService.SaveTeamsAsync(teams);
+
+        var seasonNumber = SeasonManager.GetCurrentSeasonNumber(teams);
+
+        // Grant (once) any newly earned rank rewards. Idempotent: already
+        // claimed ranks are skipped, so this is safe to run on every build.
+        foreach (var team in teams)
+            await RankRewardService.SyncTeamRewardsAsync(team);
 
         var identities = await TeamIdentityResolver.ResolveManyAsync(teams.Select(team => team.TeamId));
         var ordered = teams
@@ -121,16 +130,23 @@ public static class RankingsPageEngine
             : 0;
         var seasonProgress = ResolveSeasonProgress(activeSlide.StartsAt, activeSlide.EndsAt, now);
 
+        var champion = cards.FirstOrDefault();
+        var championNextReward = champion == null
+            ? null
+            : RankRewardCatalog.NextRewardFromXp(champion.Team.XP);
+
         return new RankingsPageSnapshot(
             cards,
             cards.Take(3).ToList(),
-            cards.FirstOrDefault(),
+            champion,
             slides,
             daysLeft,
             seasonProgress,
             cards.Sum(card => card.Team.XP),
             cards.Count == 0 ? 0 : (int)Math.Round(cards.Average(card => card.Team.TrustScore)),
-            cards.Sum(card => Math.Max(card.Team.TotalMatches, card.Team.GamesPlayed)));
+            cards.Sum(card => Math.Max(card.Team.TotalMatches, card.Team.GamesPlayed)),
+            seasonNumber,
+            championNextReward);
     }
 
     static RankingTeamCard CreateCard(TeamProfileModel team, TeamIdentityModel identity, int position, int previousPosition)
