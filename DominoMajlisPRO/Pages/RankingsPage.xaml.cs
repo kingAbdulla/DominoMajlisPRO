@@ -1,6 +1,7 @@
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
+using Microsoft.Maui.Controls.Internals;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.Pages;
@@ -390,7 +391,7 @@ public partial class RankingsPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Star }
             },
             ColumnSpacing = 6,
-            HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 196 : 250
+            HeightRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 315 : 360
         };
 
         AddPodium(grid, snapshot.TopThree.ElementAtOrDefault(1), 0, 2);
@@ -405,43 +406,79 @@ public partial class RankingsPage : ContentPage
             return;
 
         var isChampion = place == 1;
+
         var item = new Grid
         {
-            RowDefinitions =
-            {
-                new RowDefinition { Height = GridLength.Star },
-                new RowDefinition { Height = GridLength.Auto }
-            },
             VerticalOptions = LayoutOptions.End,
-            HeightRequest = isChampion ? 184 : 158
+            HorizontalOptions = LayoutOptions.Fill,
+            HeightRequest = isChampion ? 290 : 270
+        };
+
+        var background = new Image
+        {
+            Source = place switch
+            {
+                1 => "pos1.png",
+                2 => "pos2.png",
+                _ => "pos3.png"
+            },
+            Aspect = Aspect.Fill,
+            ZIndex = 0
+        };
+
+        var glass = new Border
+        {
+            ZIndex = 1,
+            BackgroundColor = Color.FromArgb("#99000000"), // حوالي 60% شفافية
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle
+            {
+                CornerRadius = 26
+            },
+            Margin = new Thickness(18, 22, 18, 58),
+            VerticalOptions = LayoutOptions.Fill,
+            HorizontalOptions = LayoutOptions.Fill
         };
 
         var stack = new VerticalStackLayout
         {
-            Spacing = 2,
-            VerticalOptions = LayoutOptions.End,
+            ZIndex = 2,
+            Margin = new Thickness(0, 26, 0, 0),
+            Padding = new Thickness(10, 0),
+            Spacing = 6,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Start,
             Children =
-            {
-                TeamEmblem(card, isChampion ? 76 : 62, true),
-                Label(card.Team.TeamName, isChampion ? 13 : 11, "#FFFFFF", true, TextAlignment.Center),
-                RankCompact(card.Rank, isChampion ? 25 : 22),
-                Label($"{card.Team.XP:N0} XP", 10, "#F2C46D", true, TextAlignment.Center)
-            }
+        {
+            TeamEmblem(card, isChampion ? 68 : 58, false),
+
+            Label(
+                card.Team.TeamName,
+                isChampion ? 14 : 12,
+                "#FFFFFF",
+                true,
+                TextAlignment.Center),
+
+            Label(
+                card.PlayersText,
+                10,
+                "#E8D9B5",
+                false,
+                TextAlignment.Center),
+
+            RankCompact(
+                card.Rank,
+                isChampion ? 26 : 22)
+        }
         };
+
+        item.Children.Add(background);
+        item.Children.Add(glass);
         item.Children.Add(stack);
 
-        var baseGrid = new Grid
-        {
-            HeightRequest = isChampion ? 56 : 44,
-            Children =
-            {
-                new Image { Source = "pos.png", Aspect = Aspect.Fill, Opacity = isChampion ? 1 : 0.86 },
-                Label(place.ToString(), 13, "#0A0A0A", true, TextAlignment.Center)
-            }
-        };
-        item.Children.Add(SetRow(baseGrid, 1));
         grid.Children.Add(SetColumn(item, column));
     }
+
 
     View BuildSearchAndFilters()
     {
@@ -651,10 +688,10 @@ public partial class RankingsPage : ContentPage
 
     View RankCompact(RankingRankInfo rank, double iconSize)
     {
-        return new HorizontalStackLayout
+        return new VerticalStackLayout
         {
             Spacing = 4,
-            HorizontalOptions = LayoutOptions.Start,
+            HorizontalOptions = LayoutOptions.Center,
             Children =
             {
                 new Image { Source = rank.Icon, WidthRequest = iconSize, HeightRequest = iconSize },
@@ -706,7 +743,7 @@ public partial class RankingsPage : ContentPage
         var backgroundSource = useTeamBackground ? card.Identity.EmblemBackgroundSource : null;
         grid.Children.Add(new Border
         {
-            BackgroundColor = SafeColor(backgroundSource, fallbackColor),
+            BackgroundColor = Colors.Transparent,
             StrokeShape = new RoundRectangle { CornerRadius = size / 5 },
             StrokeThickness = 0
         });
@@ -723,7 +760,7 @@ public partial class RankingsPage : ContentPage
             });
         }
 
-        grid.Children.Add(new BoxView { Color = Color.FromArgb("#44000000") });
+      
 
         var emblem = new Image
         {
