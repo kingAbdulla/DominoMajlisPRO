@@ -203,7 +203,7 @@ public partial class RankingsPage : ContentPage
 
         var root = Card("#E60A0D10", "#B37A25", 0, 16);
         root.Padding = 0;
-        root.HeightRequest = isPhone ? 348 : 320;
+        root.HeightRequest = isPhone ? 392 : 366;
 
         // Layer 0 : season background slider (covers the whole card).
         // Layer 1 : transparent dark overlay for readability.
@@ -219,17 +219,18 @@ public partial class RankingsPage : ContentPage
         };
         stack.Children.Add(heroSlideImage);
 
+        // Subtle overlay (~35-45% black) so the season image stays visible.
         stack.Children.Add(new BoxView
         {
             Background = new LinearGradientBrush
             {
                 StartPoint = new Point(0, 0),
-                EndPoint = new Point(1, 1),
+                EndPoint = new Point(0, 1),
                 GradientStops =
                 {
-                    new GradientStop(Color.FromArgb("#4A000000"), 0f),
-                    new GradientStop(Color.FromArgb("#8A000000"), 0.5f),
-                    new GradientStop(Color.FromArgb("#B0000000"), 1f)
+                    new GradientStop(Color.FromArgb("#59000000"), 0f),
+                    new GradientStop(Color.FromArgb("#66000000"), 0.55f),
+                    new GradientStop(Color.FromArgb("#94000000"), 1f)
                 }
             }
         });
@@ -243,25 +244,10 @@ public partial class RankingsPage : ContentPage
             }
         };
 
-        var heroGrid = new Grid
-        {
-            Padding = new Thickness(14, 14, 14, 10),
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = new GridLength(1.02, GridUnitType.Star) },
-                new ColumnDefinition { Width = new GridLength(1.38, GridUnitType.Star) },
-                new ColumnDefinition { Width = GridLength.Auto }
-            },
-            ColumnSpacing = 8
-        };
+        var content = new Grid { Padding = new Thickness(12, 12, 12, 6) };
 
         if (champion != null)
         {
-            var emblemSize = isPhone ? 146 : 174;
-            var emblem = TeamEmblem(champion, emblemSize, true);
-            Grid.SetColumn(emblem, 0);
-            heroGrid.Children.Add(emblem);
-
             var playerAvatars = new HorizontalStackLayout
             {
                 Spacing = 10,
@@ -274,31 +260,35 @@ public partial class RankingsPage : ContentPage
                 }
             };
 
-            var championInfo = new VerticalStackLayout
+            var playersText = !string.IsNullOrWhiteSpace(champion.Team.Player1)
+                ? $"{champion.Team.Player1} + {champion.Team.Player2}"
+                : champion.PlayersText;
+
+            var centered = new VerticalStackLayout
             {
                 Spacing = 5,
                 VerticalOptions = LayoutOptions.Center,
                 HorizontalOptions = LayoutOptions.Fill,
                 Children =
                 {
+                    // Team emblem: PNG only (no accidental background/slider behind it).
+                    TeamEmblem(champion, isPhone ? 92 : 104, false),
                     Label("بطل الموسم الحالي", 12, "#F2C46D", true, TextAlignment.Center),
-                    Label(champion.Team.TeamName, isPhone ? 25 : 30, "#F8D47B", true, TextAlignment.Center),
+                    Label(champion.Team.TeamName, isPhone ? 22 : 26, "#F8D47B", true, TextAlignment.Center),
                     playerAvatars,
-                    Label(champion.PlayersText, 11, "#FFFFFF", false, TextAlignment.Center),
-                    RankTitle(champion.Rank, 44),
-                    BuildRankProgress(champion, true),
-                    Label($"{champion.Team.XP:N0} / {champion.Rank.NextXp:N0} XP", 12, "#FFFFFF", true, TextAlignment.Center)
+                    Label(playersText, 11, "#FFFFFF", false, TextAlignment.Center),
+                    BuildHeroRankBlock(champion)
                 }
             };
-            Grid.SetColumn(championInfo, 1);
-            heroGrid.Children.Add(championInfo);
+            content.Children.Add(centered);
         }
         else
         {
-            var empty = new VerticalStackLayout
+            content.Children.Add(new VerticalStackLayout
             {
                 Spacing = 8,
                 VerticalOptions = LayoutOptions.Center,
+                HorizontalOptions = LayoutOptions.Fill,
                 Children =
                 {
                     Label("موسم التصنيفات", 14, "#F2C46D", true, TextAlignment.Center),
@@ -306,34 +296,33 @@ public partial class RankingsPage : ContentPage
                     Label(slide.Subtitle, 12, "#DEC894", false, TextAlignment.Center),
                     BuildMiniProgress(snapshot.SeasonProgress, "#F2C46D", "#39270D", 8)
                 }
-            };
-            Grid.SetColumnSpan(empty, 2);
-            heroGrid.Children.Add(empty);
+            });
         }
 
+        // Season box: small overlay in the top corner; does not push the layout.
         var seasonBox = new Border
         {
-            WidthRequest = isPhone ? 92 : 132,
-            BackgroundColor = Color.FromArgb("#AA070809"),
+            WidthRequest = isPhone ? 88 : 120,
+            BackgroundColor = Color.FromArgb("#B3070809"),
             Stroke = Color.FromArgb("#5E421B"),
             StrokeShape = new RoundRectangle { CornerRadius = 14 },
-            Padding = new Thickness(8),
+            Padding = new Thickness(8, 6),
+            HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Start,
             Content = new VerticalStackLayout
             {
-                Spacing = 2,
+                Spacing = 1,
                 Children =
                 {
                     Label($"الموسم {snapshot.SeasonNumber}", 12, "#F2C46D", true, TextAlignment.Center),
-                    Label("ينتهي بعد", 10, "#DEC894", false, TextAlignment.Center),
-                    Label($"{snapshot.SeasonDaysLeft}", 28, "#FFFFFF", true, TextAlignment.Center),
-                    Label("يوم", 12, "#F2C46D", true, TextAlignment.Center)
+                    Label("ينتهي بعد", 9, "#DEC894", false, TextAlignment.Center),
+                    Label($"{snapshot.SeasonDaysLeft}", 24, "#FFFFFF", true, TextAlignment.Center),
+                    Label("يوم", 11, "#F2C46D", true, TextAlignment.Center)
                 }
             }
         };
-        Grid.SetColumn(seasonBox, 2);
-        heroGrid.Children.Add(seasonBox);
-        layout.Children.Add(heroGrid);
+        content.Children.Add(seasonBox);
+        layout.Children.Add(content);
 
         var reward = snapshot.ChampionNextReward;
         var rewardInfo = new HorizontalStackLayout
@@ -491,15 +480,17 @@ public partial class RankingsPage : ContentPage
             }
         };
 
+        // Glass: only a ~45% black panel over the upper face of the pod, small
+        // enough to keep the pos image (and its podium base) clearly visible.
         var glass = new Border
         {
             ZIndex = 1,
-            BackgroundColor = Color.FromArgb("#8C000000"), // ~55% transparent black
-            Stroke = Color.FromArgb("#33FFFFFF"),
+            BackgroundColor = Color.FromArgb("#73000000"), // ~45% transparent black
+            Stroke = Color.FromArgb("#40FFFFFF"),
             StrokeThickness = 0.6,
-            StrokeShape = new RoundRectangle { CornerRadius = 22 },
-            Margin = new Thickness(10, 18, 10, isChampion ? 66 : 74),
-            VerticalOptions = LayoutOptions.Fill,
+            StrokeShape = new RoundRectangle { CornerRadius = 20 },
+            Margin = new Thickness(12, 16, 12, isChampion ? 84 : 92),
+            VerticalOptions = LayoutOptions.Start,
             HorizontalOptions = LayoutOptions.Fill,
             Content = content
         };
@@ -598,57 +589,96 @@ public partial class RankingsPage : ContentPage
         {
             ColumnDefinitions =
             {
-                new ColumnDefinition { Width = 30 },
-                new ColumnDefinition { Width = 54 },
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = 48 },
-                new ColumnDefinition { Width = 42 }
+                new ColumnDefinition { Width = 30 },   // 1: position + delta
+                new ColumnDefinition { Width = GridLength.Star }, // 2: team identity
+                new ColumnDefinition { Width = 104 },  // 3: rank + progress
+                new ColumnDefinition { Width = 40 },   // 4: trust ring
+                new ColumnDefinition { Width = 32 },   // 5: meles
+                new ColumnDefinition { Width = 18 }    // 6: details arrow
             },
-            ColumnSpacing = 7,
-            MinimumHeightRequest = 84
+            ColumnSpacing = 6,
+            MinimumHeightRequest = 92
         };
 
-        grid.Children.Add(Label(card.Position.ToString(), 18, card.Position <= 3 ? "#F2C46D" : "#FFFFFF", true, TextAlignment.Center));
-        grid.Children.Add(SetColumn(TeamEmblem(card, 50, true), 1));
+        // Column 1 : ranking position + position delta.
+        grid.Children.Add(new VerticalStackLayout
+        {
+            Spacing = 0,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center,
+            Children =
+            {
+                Label(card.Position.ToString(), 18, card.Position <= 3 ? "#F2C46D" : "#FFFFFF", true, TextAlignment.Center),
+                Label(card.IsTrendUp ? "▲" : card.IsTrendDown ? "▼" : "—", 9, ToHex(card.TrendColor), true, TextAlignment.Center)
+            }
+        });
 
-        var info = new VerticalStackLayout
+        // Column 2 : team identity grouped vertically (emblem -> name -> players).
+        grid.Children.Add(SetColumn(new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = 48 },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 8,
+            VerticalOptions = LayoutOptions.Center,
+            Children =
+            {
+                TeamEmblem(card, 44, false),
+                SetColumn(new VerticalStackLayout
+                {
+                    Spacing = 2,
+                    VerticalOptions = LayoutOptions.Center,
+                    Children =
+                    {
+                        Label(card.Team.TeamName, 14, "#F6D17D", true),
+                        Label(card.PlayersText, 10, "#D8D0C2", false)
+                    }
+                }, 1)
+            }
+        }, 1));
+
+        // Column 3 : current rank emblem, name + tier, progress bar.
+        grid.Children.Add(SetColumn(new VerticalStackLayout
         {
             Spacing = 3,
             VerticalOptions = LayoutOptions.Center,
             Children =
             {
-                Label(card.Team.TeamName, 14, "#F6D17D", true),
-                Label(card.PlayersText, 10, "#D8D0C2", false),
                 RankCompact(card.Rank, 22),
                 BuildRankProgress(card, false)
             }
-        };
-        grid.Children.Add(SetColumn(info, 2));
+        }, 2));
 
-        var xp = new VerticalStackLayout
+        // Column 4 : trust ring.
+        grid.Children.Add(SetColumn(new VerticalStackLayout
         {
             Spacing = 2,
             VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center,
             Children =
             {
-                Label(card.Team.XP.ToString("N0"), 11, "#FFFFFF", true, TextAlignment.Center),
                 TrustRing(card.Team.TrustScore, 34)
             }
-        };
-        grid.Children.Add(SetColumn(xp, 3));
+        }, 3));
 
-        var trend = new VerticalStackLayout
+        // Column 5 : meles / fire count.
+        grid.Children.Add(SetColumn(new VerticalStackLayout
         {
-            Spacing = 0,
+            Spacing = 1,
             VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center,
             Children =
             {
-                Label(card.IsTrendUp ? "↑" : card.IsTrendDown ? "↓" : "-", 18, ToHex(card.TrendColor), true, TextAlignment.Center),
-                Label(card.TrendText, 10, ToHex(card.TrendColor), true, TextAlignment.Center),
-                Label($"🔥 {Math.Max(0, card.Team.MelesCount)}", 10, "#F2C46D", true, TextAlignment.Center)
+                Label("🔥", 14, "#F2C46D", true, TextAlignment.Center),
+                Label(Math.Max(0, card.Team.MelesCount).ToString(), 11, "#FFFFFF", true, TextAlignment.Center)
             }
-        };
-        grid.Children.Add(SetColumn(trend, 4));
+        }, 4));
+
+        // Column 6 : details arrow (RTL -> points left).
+        grid.Children.Add(SetColumn(Label("‹", 22, "#F2C46D", true, TextAlignment.Center), 5));
+
         row.Content = grid;
         return row;
     }
@@ -668,6 +698,102 @@ public partial class RankingsPage : ContentPage
             })
         });
         return button;
+    }
+
+    // AAA hero progress block: rank emblem + name on top, a large gold bar
+    // flanked by current/next rank emblems, with % inside and XP text below.
+    View BuildHeroRankBlock(RankingTeamCard card)
+    {
+        var rank = card.Rank;
+        var progress = Math.Clamp(rank.Progress, 0, 1);
+        var nextName = RankingService.GetNextRankName(card.Team.XP);
+        var nextIcon = RankingsPageEngine.ResolveRankIcon(nextName);
+        var remaining = Math.Max(0, rank.NextXp - card.Team.XP);
+        var rankLabel = string.IsNullOrWhiteSpace(rank.Tier) ? rank.BaseName : $"{rank.BaseName} {rank.Tier}";
+
+        const double barHeight = 22;
+        var track = new Grid { HeightRequest = barHeight, VerticalOptions = LayoutOptions.Center };
+        track.Children.Add(new Border
+        {
+            BackgroundColor = Color.FromArgb("#59120C05"),
+            Stroke = Color.FromArgb("#7A5A24"),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = barHeight / 2 }
+        });
+
+        var fillHost = new Grid
+        {
+            Padding = new Thickness(2),
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(progress, GridUnitType.Star) },
+                new ColumnDefinition { Width = new GridLength(1 - progress, GridUnitType.Star) }
+            }
+        };
+        fillHost.Children.Add(SetColumn(new Border
+        {
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = barHeight / 2 },
+            Background = new LinearGradientBrush
+            {
+                StartPoint = new Point(0, 0),
+                EndPoint = new Point(1, 0),
+                GradientStops =
+                {
+                    new GradientStop(Color.FromArgb("#F8D66B"), 0f),
+                    new GradientStop(Color.FromArgb("#E0A73C"), 1f)
+                }
+            }
+        }, 0));
+        track.Children.Add(fillHost);
+        track.Children.Add(Label($"{progress:P0}", 11, "#1A1206", true, TextAlignment.Center));
+
+        var row = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 8,
+            VerticalOptions = LayoutOptions.Center
+        };
+        row.Children.Add(new VerticalStackLayout
+        {
+            Spacing = 1,
+            HorizontalOptions = LayoutOptions.Center,
+            Children =
+            {
+                new Image { Source = rank.Icon, WidthRequest = 30, HeightRequest = 30, HorizontalOptions = LayoutOptions.Center },
+                Label(rankLabel, 9, "#DEC894", true, TextAlignment.Center)
+            }
+        });
+        row.Children.Add(SetColumn(track, 1));
+        row.Children.Add(SetColumn(new VerticalStackLayout
+        {
+            Spacing = 1,
+            HorizontalOptions = LayoutOptions.Center,
+            Children =
+            {
+                new Image { Source = nextIcon, WidthRequest = 30, HeightRequest = 30, HorizontalOptions = LayoutOptions.Center },
+                Label(nextName, 9, "#DEC894", true, TextAlignment.Center)
+            }
+        }, 2));
+
+        return new VerticalStackLayout
+        {
+            Spacing = 5,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(4, 2, 4, 0),
+            Children =
+            {
+                new Image { Source = rank.Icon, WidthRequest = 46, HeightRequest = 46, HorizontalOptions = LayoutOptions.Center },
+                Label(rankLabel, 15, "#F8D47B", true, TextAlignment.Center),
+                row,
+                Label($"{card.Team.XP:N0} / {rank.NextXp:N0} XP  ·  متبقٍ {remaining:N0}", 11, "#FFFFFF", true, TextAlignment.Center)
+            }
+        };
     }
 
     View BuildRankProgress(RankingTeamCard card, bool large)
