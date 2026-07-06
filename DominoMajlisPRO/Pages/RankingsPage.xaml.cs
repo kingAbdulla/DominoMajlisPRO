@@ -214,6 +214,7 @@ public partial class RankingsPage : ContentPage
         {
             Source = ResolveSource(slide.ImagePath, "season_reward_gold.png"),
             Aspect = Aspect.AspectFill,
+     
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
         };
@@ -332,9 +333,9 @@ public partial class RankingsPage : ContentPage
             Children =
             {
                 Label("المكافأة التالية", 12, "#F2C46D", true),
-                new Image { Source = "gold.png", WidthRequest = 18, HeightRequest = 18 },
+                new Image { Source = "coins.png", WidthRequest = 18, HeightRequest = 18 },
                 Label((reward?.CoinsReward ?? 0).ToString("N0"), 14, "#FFFFFF", true),
-                new Image { Source = "diamond.png", WidthRequest = 18, HeightRequest = 18 },
+                new Image { Source = "gems.png", WidthRequest = 18, HeightRequest = 18 },
                 Label((reward?.GemsReward ?? 0).ToString("N0"), 14, "#FFFFFF", true)
             }
         };
