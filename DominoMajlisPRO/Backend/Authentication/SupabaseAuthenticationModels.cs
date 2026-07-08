@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace DominoMajlisPRO.Backend.Authentication;
@@ -30,6 +31,7 @@ public sealed class SupabaseAuthenticationSession
 {
     public string SupabaseUserId { get; init; } = "";
     public string Email { get; init; } = "";
+    public string Nickname { get; init; } = "";
     public bool EmailConfirmed { get; init; }
     public string AccessToken { get; init; } = "";
     public string RefreshToken { get; init; } = "";
@@ -61,6 +63,30 @@ sealed class SupabaseAuthUser
 
     [JsonPropertyName("email_confirmed_at")]
     public string? EmailConfirmedAt { get; set; }
+
+    [JsonPropertyName("user_metadata")]
+    public Dictionary<string, JsonElement>? UserMetadata { get; set; }
+
+    public string GetNickname()
+    {
+        if (UserMetadata == null)
+            return "";
+
+        return GetMetadataString("nickname") ??
+               GetMetadataString("display_name") ??
+               GetMetadataString("name") ??
+               "";
+    }
+
+    string? GetMetadataString(string key)
+    {
+        if (!UserMetadata.TryGetValue(key, out var value))
+            return null;
+
+        return value.ValueKind == JsonValueKind.String
+            ? value.GetString()?.Trim()
+            : null;
+    }
 }
 
 sealed class SupabaseAuthError
