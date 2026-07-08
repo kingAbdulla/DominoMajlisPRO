@@ -7,12 +7,6 @@ public partial class PlayerProfilesPage
 {
     Button? changeDisplayNameButton;
 
-    protected override void OnHandlerChanged()
-    {
-        base.OnHandlerChanged();
-        EnsureDisplayNameButton();
-    }
-
     void EnsureDisplayNameButton()
     {
         if (changeDisplayNameButton != null || RegisteredAccountControls == null)
