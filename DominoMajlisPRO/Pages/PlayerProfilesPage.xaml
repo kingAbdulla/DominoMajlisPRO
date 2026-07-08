@@ -200,7 +200,7 @@
                                 <Button
                                     x:Name="SwitchIdentityButton"
                                     Text="تبديل الحساب"
-                                    Clicked="OnSwitchIdentityClicked"
+                                    Clicked="OnOpenPremiumAuthClicked"
                                     Margin="0,0,6,6"
                                     BackgroundColor="#292929"
                                     TextColor="#D4AF37"/>
@@ -230,7 +230,7 @@
                                 <Button
                                     x:Name="CreateIdentityButton"
                                     Text="إنشاء حساب جديد"
-                                    Clicked="OnCreateIdentityClicked"
+                                    Clicked="OnOpenPremiumAuthClicked"
                                     Margin="0,0,6,6"
                                     BackgroundColor="#292929"
                                     TextColor="#D4AF37"/>
