@@ -306,7 +306,9 @@ public sealed class PremiumAuthPage : ContentPage
                 return;
             }
 
-            await SupabaseAccountLinkService.EnsureLinkedApplicationUserAsync(result.Session);
+            await SupabaseAccountLinkService.EnsureLinkedApplicationUserAsync(
+                result.Session,
+                result.Session.Nickname);
             OpenMainPage();
         }
         catch (Exception ex)
@@ -324,7 +326,8 @@ public sealed class PremiumAuthPage : ContentPage
 
             var result = await supabaseAuth.SignUpAsync(
                 registerEmailEntry?.Text ?? "",
-                registerPasswordEntry?.Text ?? "");
+                registerPasswordEntry?.Text ?? "",
+                registerNicknameEntry?.Text ?? "");
 
             if (!result.IsSuccess)
             {
