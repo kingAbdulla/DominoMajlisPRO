@@ -113,6 +113,39 @@ public sealed class SupabaseAuthenticationService
         return SupabaseAuthenticationResult.Success("تم إرسال رابط استعادة كلمة المرور إلى البريد الإلكتروني.");
     }
 
+    public async Task<SupabaseAuthenticationResult> UpdateNicknameAsync(
+        string accessToken,
+        string nickname)
+    {
+        if (!SupabaseBackendConfiguration.IsConfigured)
+            return SupabaseAuthenticationResult.Failure("Supabase غير مهيأ داخل التطبيق.");
+
+        nickname = nickname.Trim();
+
+        var response = await SendUserRequestAsync(
+            HttpMethod.Put,
+            "/auth/v1/user",
+            accessToken,
+            new
+            {
+                data = new
+                {
+                    nickname,
+                    display_name = nickname
+                }
+            });
+
+        if (!response.IsSuccessStatusCode)
+            return SupabaseAuthenticationResult.Failure(await ReadErrorAsync(response));
+
+        var auth = await ReadAuthResponseAsync(response);
+        var session = ToSession(auth);
+
+        return SupabaseAuthenticationResult.Success(
+            "تم تحديث الاسم الظاهر بنجاح.",
+            session);
+    }
+
     public void SignOut()
     {
         SupabaseTokenStore.Clear();
@@ -123,6 +156,32 @@ public sealed class SupabaseAuthenticationService
         string path,
         object body)
     {
+        return await SendRequestAsync(
+            method,
+            path,
+            SupabaseBackendConfiguration.PublishableKey,
+            body);
+    }
+
+    async Task<HttpResponseMessage> SendUserRequestAsync(
+        HttpMethod method,
+        string path,
+        string accessToken,
+        object body)
+    {
+        return await SendRequestAsync(
+            method,
+            path,
+            accessToken,
+            body);
+    }
+
+    async Task<HttpResponseMessage> SendRequestAsync(
+        HttpMethod method,
+        string path,
+        string bearerToken,
+        object body)
+    {
         var request = new HttpRequestMessage(
             method,
             BuildUri(path));
@@ -130,7 +189,7 @@ public sealed class SupabaseAuthenticationService
         request.Headers.Add("apikey", SupabaseBackendConfiguration.PublishableKey);
         request.Headers.Authorization = new AuthenticationHeaderValue(
             "Bearer",
-            SupabaseBackendConfiguration.PublishableKey);
+            bearerToken);
 
         string json = JsonSerializer.Serialize(body);
         request.Content = new StringContent(json, Encoding.UTF8, "application/json");
