@@ -1,3 +1,5 @@
+using DominoMajlisPRO.Backend.Authentication;
+using DominoMajlisPRO.Backend.Profiles;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -8,13 +10,13 @@ public sealed class PremiumAuthPage : ContentPage
 {
     readonly Grid root;
     readonly VerticalStackLayout contentHost;
+    readonly SupabaseAuthenticationService supabaseAuth = new();
     bool checkedActiveSession;
 
-    Entry? loginUsernameEntry;
+    Entry? loginEmailEntry;
     Entry? loginPasswordEntry;
     Label? loginErrorLabel;
 
-    Entry? registerUsernameEntry;
     Entry? registerNicknameEntry;
     Entry? registerPasswordEntry;
     Entry? registerConfirmPasswordEntry;
@@ -70,7 +72,6 @@ public sealed class PremiumAuthPage : ContentPage
 
         root.Children.Add(contentHost);
         Content = root;
-
         ShowWelcome();
     }
 
@@ -115,7 +116,7 @@ public sealed class PremiumAuthPage : ContentPage
 
         contentHost.Children.Add(new Label
         {
-            Text = "سجّل الدخول باسم الدخول وكلمة السر. الاسم الظاهر ليس وسيلة دخول، ومعرّف اللاعب يبقى داخلياً لحماية حسابك ومقتنياتك.",
+            Text = "التسجيل وتسجيل الدخول يتمان الآن عبر Supabase مع تأكيد البريد الإلكتروني.",
             TextColor = Color.FromArgb("#CFCFCF"),
             FontSize = 13,
             HorizontalTextAlignment = TextAlignment.Center,
@@ -146,7 +147,7 @@ public sealed class PremiumAuthPage : ContentPage
     {
         contentHost.Children.Clear();
 
-        loginUsernameEntry = EntryField("اسم الدخول Username");
+        loginEmailEntry = EntryField("البريد الإلكتروني Email", keyboard: Keyboard.Email);
         loginPasswordEntry = EntryField("كلمة السر", isPassword: true);
         loginErrorLabel = ErrorLabel();
 
@@ -156,110 +157,57 @@ public sealed class PremiumAuthPage : ContentPage
             Spacing = 12,
             Children =
             {
-                loginUsernameEntry,
+                loginEmailEntry,
                 loginPasswordEntry,
                 loginErrorLabel,
                 PrimaryButton("دخول", async () => await LoginAsync()),
-                SecondaryButton("تغيير كلمة المرور", ShowPasswordChange),
-                SecondaryButton("استعادة بواسطة Recovery Key", ShowRecoveryReset),
+                SecondaryButton("نسيت كلمة المرور", ShowPasswordRecovery),
                 GhostButton("الرجوع", ShowWelcome)
             }
         }));
     }
 
-    void ShowPasswordChange()
+    void ShowPasswordRecovery()
     {
         contentHost.Children.Clear();
 
-        var usernameEntry = EntryField("اسم الدخول Username");
-        var currentPasswordEntry = EntryField("كلمة السر الحالية", isPassword: true);
-        var newPasswordEntry = EntryField("كلمة السر الجديدة", isPassword: true);
-        var confirmNewPasswordEntry = EntryField("تأكيد كلمة السر الجديدة", isPassword: true);
+        var emailEntry = EntryField("البريد الإلكتروني Email", keyboard: Keyboard.Email);
         var errorLabel = ErrorLabel();
 
-        contentHost.Children.Add(Title("تغيير كلمة المرور"));
+        contentHost.Children.Add(Title("استعادة كلمة المرور"));
         contentHost.Children.Add(CreatePanel(new VerticalStackLayout
         {
             Spacing = 12,
             Children =
             {
-                usernameEntry,
-                currentPasswordEntry,
-                newPasswordEntry,
-                confirmNewPasswordEntry,
+                emailEntry,
                 new Label
                 {
-                    Text = "بعد تغيير كلمة المرور سيتم توليد Recovery Key جديد وإبطال القديم.",
+                    Text = "سيتم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني عبر Supabase.",
                     TextColor = Color.FromArgb("#CFCFCF"),
                     FontSize = 11,
                     HorizontalTextAlignment = TextAlignment.Center,
                     LineBreakMode = LineBreakMode.WordWrap
                 },
                 errorLabel,
-                PrimaryButton("تحديث كلمة المرور", async () =>
+                PrimaryButton("إرسال رابط الاستعادة", async () =>
                 {
                     try
                     {
                         SetInlineError(errorLabel, "");
-                        var result = await PremiumAccountAuthService.ChangePasswordAsync(
-                            usernameEntry.Text ?? "",
-                            currentPasswordEntry.Text ?? "",
-                            newPasswordEntry.Text ?? "",
-                            confirmNewPasswordEntry.Text ?? "");
+                        var result = await supabaseAuth.SendPasswordResetAsync(emailEntry.Text ?? "");
 
-                        ShowPasswordRotationCode(result.NewRecoveryCode);
-                    }
-                    catch (Exception ex)
-                    {
-                        SetInlineError(errorLabel, ex.Message);
-                    }
-                }),
-                SecondaryButton("الرجوع", ShowLogin)
-            }
-        }));
-    }
+                        if (!result.IsSuccess)
+                        {
+                            SetInlineError(errorLabel, result.Message);
+                            return;
+                        }
 
-    void ShowRecoveryReset()
-    {
-        contentHost.Children.Clear();
-
-        var usernameEntry = EntryField("اسم الدخول Username");
-        var recoveryKeyEntry = EntryField("Recovery Key", isPassword: true);
-        var newPasswordEntry = EntryField("كلمة السر الجديدة", isPassword: true);
-        var confirmNewPasswordEntry = EntryField("تأكيد كلمة السر الجديدة", isPassword: true);
-        var errorLabel = ErrorLabel();
-
-        contentHost.Children.Add(Title("استعادة الحساب"));
-        contentHost.Children.Add(CreatePanel(new VerticalStackLayout
-        {
-            Spacing = 12,
-            Children =
-            {
-                usernameEntry,
-                recoveryKeyEntry,
-                newPasswordEntry,
-                confirmNewPasswordEntry,
-                new Label
-                {
-                    Text = "استخدم Recovery Key المحفوظ لإثبات ملكية الحساب. بعد النجاح سيتم توليد Recovery Key جديد وإبطال القديم.",
-                    TextColor = Color.FromArgb("#CFCFCF"),
-                    FontSize = 11,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    LineBreakMode = LineBreakMode.WordWrap
-                },
-                errorLabel,
-                PrimaryButton("إنشاء كلمة مرور جديدة", async () =>
-                {
-                    try
-                    {
-                        SetInlineError(errorLabel, "");
-                        var result = await PremiumAccountAuthService.ResetPasswordWithRecoveryKeyAsync(
-                            usernameEntry.Text ?? "",
-                            recoveryKeyEntry.Text ?? "",
-                            newPasswordEntry.Text ?? "",
-                            confirmNewPasswordEntry.Text ?? "");
-
-                        ShowPasswordRotationCode(result.NewRecoveryCode);
+                        ShowMessagePanel(
+                            "تم الإرسال",
+                            result.Message,
+                            "العودة لتسجيل الدخول",
+                            ShowLogin);
                     }
                     catch (Exception ex)
                     {
@@ -275,8 +223,8 @@ public sealed class PremiumAuthPage : ContentPage
     {
         contentHost.Children.Clear();
 
-        registerUsernameEntry = EntryField("اسم الدخول Username");
         registerNicknameEntry = EntryField("الاسم الظاهر User Nickname");
+        registerEmailEntry = EntryField("البريد الإلكتروني Email", keyboard: Keyboard.Email);
         registerPasswordEntry = EntryField("كلمة السر القوية", isPassword: true);
         registerConfirmPasswordEntry = EntryField("تأكيد كلمة السر", isPassword: true);
         registerAgeEntry = EntryField("العمر", keyboard: Keyboard.Numeric);
@@ -290,16 +238,15 @@ public sealed class PremiumAuthPage : ContentPage
         registerGenderPicker.Items.Add("ذكر");
         registerGenderPicker.Items.Add("أنثى");
         registerGenderPicker.Items.Add("أفضل عدم التحديد");
-        registerEmailEntry = EntryField("البريد الإلكتروني Email - اختياري", keyboard: Keyboard.Email);
-        registerSecurityQuestionEntry = EntryField("سؤال الأمان");
-        registerSecurityAnswerEntry = EntryField("إجابة سؤال الأمان", isPassword: true);
+        registerSecurityQuestionEntry = EntryField("سؤال الأمان المحلي");
+        registerSecurityAnswerEntry = EntryField("إجابة سؤال الأمان المحلي", isPassword: true);
 
         ageCheckBox = ConsentBox();
         privacyCheckBox = ConsentBox();
         termsCheckBox = ConsentBox();
         credentialsCheckBox = ConsentBox();
         registerErrorLabel = ErrorLabel();
-        saveAccountButton = PrimaryButton("حفظ الحساب", async () => await RegisterAsync());
+        saveAccountButton = PrimaryButton("إنشاء الحساب", async () => await RegisterAsync());
         saveAccountButton.IsEnabled = false;
         saveAccountButton.Opacity = 0.45;
 
@@ -315,8 +262,8 @@ public sealed class PremiumAuthPage : ContentPage
                 Spacing = 12,
                 Children =
                 {
-                    registerUsernameEntry,
                     registerNicknameEntry,
+                    registerEmailEntry,
                     registerPasswordEntry,
                     new Label
                     {
@@ -328,28 +275,13 @@ public sealed class PremiumAuthPage : ContentPage
                     registerConfirmPasswordEntry,
                     registerAgeEntry,
                     registerGenderPicker,
-                    registerEmailEntry,
-                    new Label
-                    {
-                        Text = "البريد الإلكتروني اختياري حالياً. عند ربط التطبيق بسيرفر يمكن استخدامه لاستعادة كلمة السر.",
-                        TextColor = Color.FromArgb("#AFAFAF"),
-                        FontSize = 10,
-                        HorizontalTextAlignment = TextAlignment.End
-                    },
                     registerSecurityQuestionEntry,
                     registerSecurityAnswerEntry,
-                    new Label
-                    {
-                        Text = "سيتم حفظ إجابة سؤال الأمان مشفرة كـ Hash، ولن تظهر كنص داخل ملفات التطبيق.",
-                        TextColor = Color.FromArgb("#AFAFAF"),
-                        FontSize = 10,
-                        HorizontalTextAlignment = TextAlignment.End
-                    },
                     LegalOpenButton(),
                     ConsentRow(ageCheckBox, "أؤكد أن عمري 18 سنة أو أكثر."),
                     ConsentRow(privacyCheckBox, "قرأت سياسة الخصوصية وأوافق عليها."),
                     ConsentRow(termsCheckBox, "قرأت شروط الاستخدام وأوافق عليها."),
-                    ConsentRow(credentialsCheckBox, "أفهم أنني مسؤول عن المحافظة على اسم الدخول وكلمة السر."),
+                    ConsentRow(credentialsCheckBox, "أفهم أنني مسؤول عن المحافظة على بيانات الدخول."),
                     registerErrorLabel,
                     saveAccountButton,
                     SecondaryButton("تراجع", ShowWelcome)
@@ -363,10 +295,18 @@ public sealed class PremiumAuthPage : ContentPage
         try
         {
             SetLoginError("");
-            await PremiumAccountAuthService.LoginAsync(
-                loginUsernameEntry?.Text ?? "",
+
+            var result = await supabaseAuth.SignInAsync(
+                loginEmailEntry?.Text ?? "",
                 loginPasswordEntry?.Text ?? "");
 
+            if (!result.IsSuccess || result.Session == null)
+            {
+                SetLoginError(result.Message);
+                return;
+            }
+
+            await SupabaseAccountLinkService.EnsureLinkedApplicationUserAsync(result.Session);
             OpenMainPage();
         }
         catch (Exception ex)
@@ -380,25 +320,23 @@ public sealed class PremiumAuthPage : ContentPage
         try
         {
             SetRegisterError("");
+            ValidateRegistrationInput();
 
-            int.TryParse(registerAgeEntry?.Text?.Trim(), out int age);
-
-            var result = await PremiumAccountAuthService.RegisterAsync(
-                registerUsernameEntry?.Text ?? "",
-                registerNicknameEntry?.Text ?? "",
-                registerPasswordEntry?.Text ?? "",
-                registerConfirmPasswordEntry?.Text ?? "",
-                age,
-                registerGenderPicker?.SelectedItem?.ToString() ?? "",
+            var result = await supabaseAuth.SignUpAsync(
                 registerEmailEntry?.Text ?? "",
-                registerSecurityQuestionEntry?.Text ?? "",
-                registerSecurityAnswerEntry?.Text ?? "",
-                ageCheckBox?.IsChecked == true,
-                privacyCheckBox?.IsChecked == true,
-                termsCheckBox?.IsChecked == true,
-                credentialsCheckBox?.IsChecked == true);
+                registerPasswordEntry?.Text ?? "");
 
-            ShowRecoveryCode(result.RecoveryCode);
+            if (!result.IsSuccess)
+            {
+                SetRegisterError(result.Message);
+                return;
+            }
+
+            ShowMessagePanel(
+                "تم إنشاء الحساب",
+                "تم إرسال رسالة تأكيد إلى بريدك الإلكتروني. لن تتمكن من تسجيل الدخول حتى تؤكد البريد.",
+                "العودة لتسجيل الدخول",
+                ShowLogin);
         }
         catch (Exception ex)
         {
@@ -406,45 +344,65 @@ public sealed class PremiumAuthPage : ContentPage
         }
     }
 
-    void ShowRecoveryCode(string recoveryCode)
+    void ValidateRegistrationInput()
     {
-        ShowRecoveryCodePanel(
-            "تم حفظ بياناتك",
-            "تم تأكيد حفظ بياناتك. احفظ كلمة السر ورمز الاسترداد في مكان آمن.",
-            recoveryCode,
-            "هذا هو رمز الاسترداد الوحيد لحسابك. يمكنك أيضاً استخدام سؤال الأمان لاحقاً كوسيلة مجانية ثانية عند تفعيل شاشة الاسترداد.",
-            OpenMainPage);
+        string nickname = registerNicknameEntry?.Text?.Trim() ?? "";
+        string email = registerEmailEntry?.Text?.Trim() ?? "";
+        string password = registerPasswordEntry?.Text ?? "";
+        string confirm = registerConfirmPasswordEntry?.Text ?? "";
+        string securityQuestion = registerSecurityQuestionEntry?.Text?.Trim() ?? "";
+        string securityAnswer = registerSecurityAnswerEntry?.Text?.Trim() ?? "";
+        int.TryParse(registerAgeEntry?.Text?.Trim(), out int age);
+
+        if (ageCheckBox?.IsChecked != true ||
+            privacyCheckBox?.IsChecked != true ||
+            termsCheckBox?.IsChecked != true ||
+            credentialsCheckBox?.IsChecked != true)
+            throw new InvalidOperationException("يجب الموافقة على جميع بنود الحماية والاستخدام قبل إنشاء الحساب.");
+
+        if (age < 18)
+            throw new InvalidOperationException("التطبيق مخصص لمن هم بعمر 18 سنة أو أكثر فقط.");
+
+        if (string.IsNullOrWhiteSpace(nickname) || nickname.Length > 40)
+            throw new InvalidOperationException("الاسم الظاهر مطلوب ويجب ألا يتجاوز 40 حرفاً.");
+
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@', StringComparison.Ordinal) || email.Length > 120)
+            throw new InvalidOperationException("البريد الإلكتروني مطلوب وغير صالح.");
+
+        if (registerGenderPicker?.SelectedItem == null)
+            throw new InvalidOperationException("اختر الجنس لإكمال إنشاء الحساب.");
+
+        if (string.IsNullOrWhiteSpace(securityQuestion) || securityQuestion.Length < 6)
+            throw new InvalidOperationException("سؤال الأمان المحلي مطلوب ويجب أن يكون واضحاً.");
+
+        if (string.IsNullOrWhiteSpace(securityAnswer) || securityAnswer.Length < 3)
+            throw new InvalidOperationException("إجابة سؤال الأمان المحلي مطلوبة ويجب ألا تقل عن 3 أحرف.");
+
+        if (!string.Equals(password, confirm, StringComparison.Ordinal))
+            throw new InvalidOperationException("كلمتا السر غير متطابقتين.");
+
+        if (!IsStrongPassword(password))
+            throw new InvalidOperationException(PremiumAccountAuthService.PasswordPolicyText);
     }
 
-    void ShowPasswordRotationCode(string recoveryCode)
+    static bool IsStrongPassword(string password)
     {
-        ShowRecoveryCodePanel(
-            "تم تحديث كلمة المرور",
-            "تم تحديث كلمة المرور بنجاح. تم إبطال Recovery Key القديم.",
-            recoveryCode,
-            "هذا هو Recovery Key الجديد. احتفظ به في مكان آمن، ولن يعمل الرمز القديم بعد الآن.",
-            OpenMainPage);
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 8)
+            return false;
+
+        return password.Any(char.IsUpper) &&
+               password.Any(char.IsLower) &&
+               password.Any(char.IsDigit) &&
+               password.Any(ch => !char.IsLetterOrDigit(ch));
     }
 
-    void ShowRecoveryCodePanel(
+    void ShowMessagePanel(
         string title,
         string message,
-        string recoveryCode,
-        string note,
-        Action continueAction)
+        string buttonText,
+        Action action)
     {
         contentHost.Children.Clear();
-
-        CheckBox savedCheck = ConsentBox();
-        Button continueButton = PrimaryButton("متابعة إلى التطبيق", continueAction);
-        continueButton.IsEnabled = false;
-        continueButton.Opacity = 0.45;
-        savedCheck.CheckedChanged += (_, _) =>
-        {
-            continueButton.IsEnabled = savedCheck.IsChecked;
-            continueButton.Opacity = savedCheck.IsChecked ? 1 : 0.45;
-        };
-
         contentHost.Children.Add(Title(title));
         contentHost.Children.Add(CreatePanel(new VerticalStackLayout
         {
@@ -459,32 +417,7 @@ public sealed class PremiumAuthPage : ContentPage
                     HorizontalTextAlignment = TextAlignment.Center,
                     LineBreakMode = LineBreakMode.WordWrap
                 },
-                new Border
-                {
-                    Stroke = Color.FromArgb("#D4AF37"),
-                    StrokeThickness = 1.5,
-                    BackgroundColor = Color.FromArgb("#0A0A0A"),
-                    Padding = 16,
-                    StrokeShape = new RoundRectangle { CornerRadius = 18 },
-                    Content = new Label
-                    {
-                        Text = recoveryCode,
-                        TextColor = Color.FromArgb("#FFD76A"),
-                        FontSize = 24,
-                        FontAttributes = FontAttributes.Bold,
-                        HorizontalTextAlignment = TextAlignment.Center
-                    }
-                },
-                new Label
-                {
-                    Text = note,
-                    TextColor = Color.FromArgb("#CFCFCF"),
-                    FontSize = 12,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    LineBreakMode = LineBreakMode.WordWrap
-                },
-                ConsentRow(savedCheck, "لقد قمت بحفظ Recovery Key الجديد."),
-                continueButton
+                PrimaryButton(buttonText, action)
             }
         }));
     }
@@ -509,7 +442,7 @@ public sealed class PremiumAuthPage : ContentPage
             "لا يتحمل المطور مسؤولية فقدان الحساب الناتج عن مشاركة كلمة السر أو الإهمال أو استخدام أجهزة غير آمنة.\n\n" +
             "يحظر استخدام التطبيق في نشاط مخالف للقانون أو الغش أو انتحال الشخصية، ويحتفظ المطور بحق تعليق الحسابات المخالفة.\n\n" +
             "يحتفظ المطور بحق تعديل الشروط والسياسات عند الحاجة، ويعتبر استمرار استخدام التطبيق بعد التعديل موافقة عليه.\n\n" +
-            "في حال فقدان كلمة السر يمكن استخدام نظام استعادة الحساب عند توفره في الإصدارات المستقبلية.\n\n" +
+            "في حال فقدان كلمة السر يمكن استخدام نظام استعادة الحساب عند توفره.\n\n" +
             "لا يجمع التطبيق بيانات شخصية أكثر من اللازم لتشغيل الخدمات الأساسية.\n\n" +
             "التطبيق مخصص لإدارة وتنظيم وتوثيق نتائج مباريات الدومينو فقط، ولا يقدم خدمات مراهنة أو قمار أو جوائز مالية.\n\n" +
             "يتم توفير التطبيق كما هو، ويبذل المطور أفضل الجهود لضمان الاستقرار دون ضمان خلوه من جميع الأخطاء أو انقطاع الخدمة.",
