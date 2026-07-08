@@ -106,6 +106,12 @@ public static class HonorIdentityService
         if (role == HonorRoleType.None)
             return false;
 
+        var mergedUser =
+            await DeveloperIdentityMergeService
+                .MergeCurrentUserWithVerifiedHonorRoleAsync(
+                    role,
+                    displayName);
+
         var identity =
             new HonorIdentityModel
             {
@@ -117,16 +123,24 @@ public static class HonorIdentityService
                     ? HonorActivationService.GetFounderNumber(activationKey)
                     : 0,
                 ActivationDate = DateTime.Now,
+                ActivatedAt = DateTime.Now,
                 DeviceId = GetDeviceId(),
-                DisplayName = displayName.Trim()
+                DisplayName =
+                    mergedUser?.DisplayName?.Trim() ??
+                    displayName.Trim(),
+                HonorOwnerId =
+                    mergedUser?.ApplicationUserId?.Trim() ?? "",
+                PlayerId =
+                    mergedUser?.PlayerId?.Trim() ?? "",
+                HonorType = role.ToString()
             };
 
         await SaveAsync(identity);
 
         await SecurityLogService.AddAsync(
             "HONOR",
-            $"تم تفعيل صلاحية {role}",
-            $"Activated Role: {role}",
+            $"تم تفعيل صلاحية {role} ودمجها مع الحساب الحالي",
+            $"Activated Role: {role}; AccountId: {identity.HonorOwnerId}; PlayerId: {identity.PlayerId}",
             "High",
             true);
 
