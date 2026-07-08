@@ -16,6 +16,13 @@ public static class CertificateQrService
     public const string CertificateType = "DominoMajlisPRO.Certificate";
     public const int PayloadVersion = 1;
 
+    // Verification endpoints. QR encodes a URL (deep link preferred, HTTPS
+    // fallback) — never raw JSON. Full JSON stays available internally via
+    // BuildQrPayload for local verification / export.
+    public const string DeepLinkScheme = "dominomajlispro";
+    public const string VerificationBaseUrl =
+        "https://dominomajlispro.app/certificate/verify";
+
     /// <summary>
     /// Deterministic certificate id for a match. The same match always maps to
     /// the same id (never random per call). Prefers the persisted MatchId, and
@@ -44,8 +51,100 @@ public static class CertificateQrService
     }
 
     /// <summary>
-    /// Compact JSON verification payload embedded in the QR. Uses IDs (not only
-    /// display names) so the certificate stays verifiable if names change.
+    /// The string actually encoded into the QR image: an HTTPS verification URL
+    /// carrying the stable IDs. Never raw JSON. Falls back to a readable compact
+    /// text if URL building fails.
+    /// </summary>
+    public static string BuildQrContent(SavedMatch? match)
+    {
+        try
+        {
+            if (match == null)
+                return BuildCompactText(match);
+
+            return BuildVerificationUrl(match);
+        }
+        catch
+        {
+            return BuildCompactText(match);
+        }
+    }
+
+    /// <summary>
+    /// HTTPS verification URL, e.g.
+    /// https://dominomajlispro.app/certificate/verify?certificateId=...&amp;matchId=...
+    /// Uses IDs so it stays verifiable if display names change.
+    /// </summary>
+    public static string BuildVerificationUrl(SavedMatch? match) =>
+        BuildUrl(VerificationBaseUrl, match);
+
+    /// <summary>
+    /// Custom-scheme deep link for when in-app deep linking is wired up:
+    /// dominomajlispro://certificate/verify?certificateId=...&amp;matchId=...
+    /// </summary>
+    public static string BuildDeepLink(SavedMatch? match) =>
+        BuildUrl($"{DeepLinkScheme}://certificate/verify", match);
+
+    static string BuildUrl(string baseUrl, SavedMatch? match)
+    {
+        if (match == null)
+            return $"{baseUrl}?certificateId=DMC-UNKNOWN";
+
+        var q = new StringBuilder(baseUrl);
+        q.Append('?');
+        Append(q, "certificateId", BuildCertificateId(match), true);
+        Append(q, "matchId", match.MatchId.ToString(), false);
+        Append(q, "winnerTeamId", match.WinnerTeamId, false);
+        Append(q, "team1Id", match.Team1Id, false);
+        Append(q, "team2Id", match.Team2Id, false);
+        Append(q, "score", $"{match.Team1Score}-{match.Team2Score}", false);
+        Append(q, "date", match.MatchDate.ToString("yyyy-MM-ddTHH:mm:ss"), false);
+
+        return q.ToString();
+    }
+
+    static void Append(StringBuilder sb, string key, string? value, bool first)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        if (!first)
+            sb.Append('&');
+
+        sb.Append(key)
+          .Append('=')
+          .Append(Uri.EscapeDataString(value.Trim()));
+    }
+
+    /// <summary>
+    /// Human-readable compact fallback used only when URL building fails.
+    /// </summary>
+    public static string BuildCompactText(SavedMatch? match)
+    {
+        if (match == null)
+        {
+            return
+                "DominoMajlisPRO Certificate Verification\n" +
+                "Certificate ID: DMC-UNKNOWN";
+        }
+
+        var winner = string.IsNullOrWhiteSpace(match.WinnerTeamName)
+            ? match.WinnerTeam
+            : match.WinnerTeamName;
+
+        return
+            "DominoMajlisPRO Certificate Verification\n" +
+            $"Certificate ID: {BuildCertificateId(match)}\n" +
+            $"Match ID: {match.MatchId}\n" +
+            $"Winner: {Safe(winner)}\n" +
+            $"Score: {match.Team1Score}-{match.Team2Score}\n" +
+            $"Date: {match.MatchDate:yyyy-MM-ddTHH:mm:ss}";
+    }
+
+    /// <summary>
+    /// Compact JSON verification payload kept INTERNALLY (not encoded in the QR).
+    /// Uses IDs (not only display names) so the certificate stays verifiable if
+    /// names change.
     /// </summary>
     public static string BuildQrPayload(SavedMatch? match)
     {
@@ -118,8 +217,8 @@ public static class CertificateQrService
         SavedMatch? match,
         int pixelsPerModule = 12)
     {
-        var payload = BuildQrPayload(match);
-        return GenerateQrImageSource(payload, pixelsPerModule);
+        var content = BuildQrContent(match);
+        return GenerateQrImageSource(content, pixelsPerModule);
     }
 
     public static ImageSource GenerateQrImageSource(
@@ -134,7 +233,7 @@ public static class CertificateQrService
     }
 
     static string FallbackPayload() =>
-        $"DMPRO|CERT|v{PayloadVersion}|DMC-UNKNOWN|app=DominoMajlisPRO";
+        $"{VerificationBaseUrl}?certificateId=DMC-UNKNOWN";
 
     static string Safe(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "" : value.Trim();
