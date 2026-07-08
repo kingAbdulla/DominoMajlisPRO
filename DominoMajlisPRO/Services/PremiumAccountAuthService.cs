@@ -10,6 +10,10 @@ public static class PremiumAccountAuthService
         ApplicationUserModel User,
         string RecoveryCode);
 
+    public sealed record PasswordRotationResult(
+        ApplicationUserModel User,
+        string NewRecoveryCode);
+
     sealed class CredentialState
     {
         public List<LocalAccountCredential> Accounts { get; set; } = new();
@@ -35,6 +39,7 @@ public static class PremiumAccountAuthService
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public DateTime LastLoginAt { get; set; }
+        public DateTime LastPasswordChangedAt { get; set; }
     }
 
     const string CredentialsFileName = "local_account_credentials.json";
@@ -135,7 +140,8 @@ public static class PremiumAccountAuthService
                 Gender = gender,
                 AcceptedTermsVersion = CurrentTermsVersion,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                LastPasswordChangedAt = DateTime.UtcNow
             });
 
             await SaveStateAsync(state);
@@ -192,6 +198,100 @@ public static class PremiumAccountAuthService
         }
     }
 
+    public static async Task<PasswordRotationResult> ChangePasswordAsync(
+        string username,
+        string currentPassword,
+        string newPassword,
+        string confirmNewPassword)
+    {
+        username = NormalizeUsername(username);
+        ValidateNewPassword(newPassword, confirmNewPassword);
+
+        await Gate.WaitAsync();
+        try
+        {
+            var state = await LoadStateAsync();
+            var credential = state.Accounts.FirstOrDefault(account =>
+                string.Equals(account.Username, username, StringComparison.OrdinalIgnoreCase));
+
+            if (credential == null ||
+                !VerifySecret(currentPassword, credential.PasswordSalt, credential.PasswordHash))
+            {
+                RegisterFailedLogin(username);
+                throw new InvalidOperationException(GenericLoginError);
+            }
+
+            string newRecoveryCode = RotatePasswordAndRecovery(credential, newPassword);
+            await SaveStateAsync(state);
+            ClearFailedLogin(username);
+
+            await ApplicationUserService.SwitchUserAsync(credential.ApplicationUserId);
+            var user = await ApplicationUserService.GetCurrentUserAsync();
+
+            return new PasswordRotationResult(user, newRecoveryCode);
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
+    public static async Task<PasswordRotationResult> ResetPasswordWithRecoveryKeyAsync(
+        string username,
+        string recoveryKey,
+        string newPassword,
+        string confirmNewPassword)
+    {
+        username = NormalizeUsername(username);
+        ValidateNewPassword(newPassword, confirmNewPassword);
+
+        await Gate.WaitAsync();
+        try
+        {
+            var state = await LoadStateAsync();
+            var credential = state.Accounts.FirstOrDefault(account =>
+                string.Equals(account.Username, username, StringComparison.OrdinalIgnoreCase));
+
+            if (credential == null ||
+                !VerifySecret(Safe(recoveryKey), credential.RecoveryCodeSalt, credential.RecoveryCodeHash))
+            {
+                RegisterFailedLogin(username);
+                throw new InvalidOperationException("رمز الاسترداد أو اسم الدخول غير صحيح.");
+            }
+
+            string newRecoveryCode = RotatePasswordAndRecovery(credential, newPassword);
+            await SaveStateAsync(state);
+            ClearFailedLogin(username);
+
+            await ApplicationUserService.SwitchUserAsync(credential.ApplicationUserId);
+            var user = await ApplicationUserService.GetCurrentUserAsync();
+
+            return new PasswordRotationResult(user, newRecoveryCode);
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
+    static string RotatePasswordAndRecovery(
+        LocalAccountCredential credential,
+        string newPassword)
+    {
+        byte[] newPasswordSalt = GenerateSalt();
+        byte[] newRecoverySalt = GenerateSalt();
+        string newRecoveryCode = GenerateRecoveryCode();
+
+        credential.PasswordSalt = Convert.ToBase64String(newPasswordSalt);
+        credential.PasswordHash = HashSecret(newPassword, newPasswordSalt);
+        credential.RecoveryCodeSalt = Convert.ToBase64String(newRecoverySalt);
+        credential.RecoveryCodeHash = HashSecret(newRecoveryCode, newRecoverySalt);
+        credential.UpdatedAt = DateTime.UtcNow;
+        credential.LastPasswordChangedAt = DateTime.UtcNow;
+
+        return newRecoveryCode;
+    }
+
     static void ValidateRegistration(
         string username,
         string nickname,
@@ -237,6 +337,11 @@ public static class PremiumAccountAuthService
         if (string.IsNullOrWhiteSpace(securityAnswer) || securityAnswer.Length < 3 || securityAnswer.Length > 80)
             throw new InvalidOperationException("إجابة سؤال الأمان مطلوبة ويجب ألا تقل عن 3 أحرف.");
 
+        ValidateNewPassword(password, confirmPassword);
+    }
+
+    static void ValidateNewPassword(string password, string confirmPassword)
+    {
         if (!string.Equals(password, confirmPassword, StringComparison.Ordinal))
             throw new InvalidOperationException("كلمتا السر غير متطابقتين.");
 
