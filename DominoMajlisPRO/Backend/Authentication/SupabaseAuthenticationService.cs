@@ -26,10 +26,13 @@ public sealed class SupabaseAuthenticationService
 
     public async Task<SupabaseAuthenticationResult> SignUpAsync(
         string email,
-        string password)
+        string password,
+        string nickname)
     {
         if (!SupabaseBackendConfiguration.IsConfigured)
             return SupabaseAuthenticationResult.Failure("Supabase غير مهيأ داخل التطبيق.");
+
+        nickname = nickname.Trim();
 
         var response = await SendAuthRequestAsync(
             HttpMethod.Post,
@@ -37,7 +40,12 @@ public sealed class SupabaseAuthenticationService
             new
             {
                 email = email.Trim(),
-                password
+                password,
+                data = new
+                {
+                    nickname,
+                    display_name = nickname
+                }
             });
 
         if (!response.IsSuccessStatusCode)
@@ -169,6 +177,7 @@ public sealed class SupabaseAuthenticationService
         {
             SupabaseUserId = auth.User.Id,
             Email = auth.User.Email,
+            Nickname = auth.User.GetNickname(),
             EmailConfirmed = !string.IsNullOrWhiteSpace(auth.User.EmailConfirmedAt),
             AccessToken = auth.AccessToken,
             RefreshToken = auth.RefreshToken,
