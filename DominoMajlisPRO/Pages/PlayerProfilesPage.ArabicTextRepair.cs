@@ -7,6 +7,7 @@ public partial class PlayerProfilesPage
     protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
+        EnsureDisplayNameButton();
 
         if (Handler == null || _playerProfilesArabicRepairStarted)
             return;
