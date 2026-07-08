@@ -222,7 +222,7 @@
                                 <Button
                                     x:Name="LoginIdentityButton"
                                     Text="تسجيل الدخول"
-                                    Clicked="OnLoginIdentityClicked"
+                                    Clicked="OnOpenPremiumAuthClicked"
                                     Margin="0,0,6,6"
                                     BackgroundColor="#D4AF37"
                                     TextColor="Black"
