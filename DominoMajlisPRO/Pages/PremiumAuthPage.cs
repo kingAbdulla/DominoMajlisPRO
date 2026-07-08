@@ -20,6 +20,9 @@ public sealed class PremiumAuthPage : ContentPage
     Entry? registerConfirmPasswordEntry;
     Entry? registerAgeEntry;
     Picker? registerGenderPicker;
+    Entry? registerEmailEntry;
+    Entry? registerSecurityQuestionEntry;
+    Entry? registerSecurityAnswerEntry;
     CheckBox? ageCheckBox;
     CheckBox? privacyCheckBox;
     CheckBox? termsCheckBox;
@@ -160,7 +163,7 @@ public sealed class PremiumAuthPage : ContentPage
                 SecondaryButton("الرجوع", ShowWelcome),
                 GhostButton("استعادة الرمز السري - لاحقاً", () =>
                 {
-                    loginErrorLabel.Text = "سيتم تفعيل نظام الاستعادة بواسطة رمز الاسترداد في إصدار لاحق.";
+                    loginErrorLabel.Text = "سيتم تفعيل الاستعادة لاحقاً بواسطة رمز الاسترداد أو سؤال الأمان أو البريد الإلكتروني الاختياري عند توفر الاتصال.";
                     loginErrorLabel.IsVisible = true;
                 })
             }
@@ -186,6 +189,9 @@ public sealed class PremiumAuthPage : ContentPage
         registerGenderPicker.Items.Add("ذكر");
         registerGenderPicker.Items.Add("أنثى");
         registerGenderPicker.Items.Add("أفضل عدم التحديد");
+        registerEmailEntry = EntryField("البريد الإلكتروني Email - اختياري", keyboard: Keyboard.Email);
+        registerSecurityQuestionEntry = EntryField("سؤال الأمان");
+        registerSecurityAnswerEntry = EntryField("إجابة سؤال الأمان", isPassword: true);
 
         ageCheckBox = ConsentBox();
         privacyCheckBox = ConsentBox();
@@ -221,6 +227,23 @@ public sealed class PremiumAuthPage : ContentPage
                     registerConfirmPasswordEntry,
                     registerAgeEntry,
                     registerGenderPicker,
+                    registerEmailEntry,
+                    new Label
+                    {
+                        Text = "البريد الإلكتروني اختياري حالياً. عند ربط التطبيق بسيرفر يمكن استخدامه لاستعادة كلمة السر.",
+                        TextColor = Color.FromArgb("#AFAFAF"),
+                        FontSize = 10,
+                        HorizontalTextAlignment = TextAlignment.End
+                    },
+                    registerSecurityQuestionEntry,
+                    registerSecurityAnswerEntry,
+                    new Label
+                    {
+                        Text = "سيتم حفظ إجابة سؤال الأمان مشفرة كـ Hash، ولن تظهر كنص داخل ملفات التطبيق.",
+                        TextColor = Color.FromArgb("#AFAFAF"),
+                        FontSize = 10,
+                        HorizontalTextAlignment = TextAlignment.End
+                    },
                     LegalOpenButton(),
                     ConsentRow(ageCheckBox, "أؤكد أن عمري 18 سنة أو أكثر."),
                     ConsentRow(privacyCheckBox, "قرأت سياسة الخصوصية وأوافق عليها."),
@@ -266,6 +289,9 @@ public sealed class PremiumAuthPage : ContentPage
                 registerConfirmPasswordEntry?.Text ?? "",
                 age,
                 registerGenderPicker?.SelectedItem?.ToString() ?? "",
+                registerEmailEntry?.Text ?? "",
+                registerSecurityQuestionEntry?.Text ?? "",
+                registerSecurityAnswerEntry?.Text ?? "",
                 ageCheckBox?.IsChecked == true,
                 privacyCheckBox?.IsChecked == true,
                 termsCheckBox?.IsChecked == true,
@@ -325,7 +351,7 @@ public sealed class PremiumAuthPage : ContentPage
                 },
                 new Label
                 {
-                    Text = "هذا هو رمز الاسترداد الوحيد لحسابك. يمكن استخدامه مستقبلاً لاستعادة الوصول عند نسيان كلمة السر.",
+                    Text = "هذا هو رمز الاسترداد الوحيد لحسابك. يمكنك أيضاً استخدام سؤال الأمان لاحقاً كوسيلة مجانية ثانية عند تفعيل شاشة الاسترداد.",
                     TextColor = Color.FromArgb("#CFCFCF"),
                     FontSize = 12,
                     HorizontalTextAlignment = TextAlignment.Center,
