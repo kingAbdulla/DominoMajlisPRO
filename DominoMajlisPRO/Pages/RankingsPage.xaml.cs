@@ -209,6 +209,7 @@ public partial class RankingsPage : ContentPage
         {
             Source = ResolveSource(slide.ImagePath, "season_reward_gold.png"),
             Aspect = Aspect.AspectFill,
+     
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
         };
