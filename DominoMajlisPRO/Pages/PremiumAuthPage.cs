@@ -160,12 +160,113 @@ public sealed class PremiumAuthPage : ContentPage
                 loginPasswordEntry,
                 loginErrorLabel,
                 PrimaryButton("دخول", async () => await LoginAsync()),
-                SecondaryButton("الرجوع", ShowWelcome),
-                GhostButton("استعادة الرمز السري - لاحقاً", () =>
+                SecondaryButton("تغيير كلمة المرور", ShowPasswordChange),
+                SecondaryButton("استعادة بواسطة Recovery Key", ShowRecoveryReset),
+                GhostButton("الرجوع", ShowWelcome)
+            }
+        }));
+    }
+
+    void ShowPasswordChange()
+    {
+        contentHost.Children.Clear();
+
+        var usernameEntry = EntryField("اسم الدخول Username");
+        var currentPasswordEntry = EntryField("كلمة السر الحالية", isPassword: true);
+        var newPasswordEntry = EntryField("كلمة السر الجديدة", isPassword: true);
+        var confirmNewPasswordEntry = EntryField("تأكيد كلمة السر الجديدة", isPassword: true);
+        var errorLabel = ErrorLabel();
+
+        contentHost.Children.Add(Title("تغيير كلمة المرور"));
+        contentHost.Children.Add(CreatePanel(new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
+            {
+                usernameEntry,
+                currentPasswordEntry,
+                newPasswordEntry,
+                confirmNewPasswordEntry,
+                new Label
                 {
-                    loginErrorLabel.Text = "سيتم تفعيل الاستعادة لاحقاً بواسطة رمز الاسترداد أو سؤال الأمان أو البريد الإلكتروني الاختياري عند توفر الاتصال.";
-                    loginErrorLabel.IsVisible = true;
-                })
+                    Text = "بعد تغيير كلمة المرور سيتم توليد Recovery Key جديد وإبطال القديم.",
+                    TextColor = Color.FromArgb("#CFCFCF"),
+                    FontSize = 11,
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    LineBreakMode = LineBreakMode.WordWrap
+                },
+                errorLabel,
+                PrimaryButton("تحديث كلمة المرور", async () =>
+                {
+                    try
+                    {
+                        SetInlineError(errorLabel, "");
+                        var result = await PremiumAccountAuthService.ChangePasswordAsync(
+                            usernameEntry.Text ?? "",
+                            currentPasswordEntry.Text ?? "",
+                            newPasswordEntry.Text ?? "",
+                            confirmNewPasswordEntry.Text ?? "");
+
+                        ShowPasswordRotationCode(result.NewRecoveryCode);
+                    }
+                    catch (Exception ex)
+                    {
+                        SetInlineError(errorLabel, ex.Message);
+                    }
+                }),
+                SecondaryButton("الرجوع", ShowLogin)
+            }
+        }));
+    }
+
+    void ShowRecoveryReset()
+    {
+        contentHost.Children.Clear();
+
+        var usernameEntry = EntryField("اسم الدخول Username");
+        var recoveryKeyEntry = EntryField("Recovery Key", isPassword: true);
+        var newPasswordEntry = EntryField("كلمة السر الجديدة", isPassword: true);
+        var confirmNewPasswordEntry = EntryField("تأكيد كلمة السر الجديدة", isPassword: true);
+        var errorLabel = ErrorLabel();
+
+        contentHost.Children.Add(Title("استعادة الحساب"));
+        contentHost.Children.Add(CreatePanel(new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
+            {
+                usernameEntry,
+                recoveryKeyEntry,
+                newPasswordEntry,
+                confirmNewPasswordEntry,
+                new Label
+                {
+                    Text = "استخدم Recovery Key المحفوظ لإثبات ملكية الحساب. بعد النجاح سيتم توليد Recovery Key جديد وإبطال القديم.",
+                    TextColor = Color.FromArgb("#CFCFCF"),
+                    FontSize = 11,
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    LineBreakMode = LineBreakMode.WordWrap
+                },
+                errorLabel,
+                PrimaryButton("إنشاء كلمة مرور جديدة", async () =>
+                {
+                    try
+                    {
+                        SetInlineError(errorLabel, "");
+                        var result = await PremiumAccountAuthService.ResetPasswordWithRecoveryKeyAsync(
+                            usernameEntry.Text ?? "",
+                            recoveryKeyEntry.Text ?? "",
+                            newPasswordEntry.Text ?? "",
+                            confirmNewPasswordEntry.Text ?? "");
+
+                        ShowPasswordRotationCode(result.NewRecoveryCode);
+                    }
+                    catch (Exception ex)
+                    {
+                        SetInlineError(errorLabel, ex.Message);
+                    }
+                }),
+                SecondaryButton("الرجوع", ShowLogin)
             }
         }));
     }
@@ -307,10 +408,35 @@ public sealed class PremiumAuthPage : ContentPage
 
     void ShowRecoveryCode(string recoveryCode)
     {
+        ShowRecoveryCodePanel(
+            "تم حفظ بياناتك",
+            "تم تأكيد حفظ بياناتك. احفظ كلمة السر ورمز الاسترداد في مكان آمن.",
+            recoveryCode,
+            "هذا هو رمز الاسترداد الوحيد لحسابك. يمكنك أيضاً استخدام سؤال الأمان لاحقاً كوسيلة مجانية ثانية عند تفعيل شاشة الاسترداد.",
+            OpenMainPage);
+    }
+
+    void ShowPasswordRotationCode(string recoveryCode)
+    {
+        ShowRecoveryCodePanel(
+            "تم تحديث كلمة المرور",
+            "تم تحديث كلمة المرور بنجاح. تم إبطال Recovery Key القديم.",
+            recoveryCode,
+            "هذا هو Recovery Key الجديد. احتفظ به في مكان آمن، ولن يعمل الرمز القديم بعد الآن.",
+            OpenMainPage);
+    }
+
+    void ShowRecoveryCodePanel(
+        string title,
+        string message,
+        string recoveryCode,
+        string note,
+        Action continueAction)
+    {
         contentHost.Children.Clear();
 
         CheckBox savedCheck = ConsentBox();
-        Button continueButton = PrimaryButton("متابعة إلى التطبيق", OpenMainPage);
+        Button continueButton = PrimaryButton("متابعة إلى التطبيق", continueAction);
         continueButton.IsEnabled = false;
         continueButton.Opacity = 0.45;
         savedCheck.CheckedChanged += (_, _) =>
@@ -319,7 +445,7 @@ public sealed class PremiumAuthPage : ContentPage
             continueButton.Opacity = savedCheck.IsChecked ? 1 : 0.45;
         };
 
-        contentHost.Children.Add(Title("تم حفظ بياناتك"));
+        contentHost.Children.Add(Title(title));
         contentHost.Children.Add(CreatePanel(new VerticalStackLayout
         {
             Spacing = 14,
@@ -327,7 +453,7 @@ public sealed class PremiumAuthPage : ContentPage
             {
                 new Label
                 {
-                    Text = "تم تأكيد حفظ بياناتك. احفظ كلمة السر ورمز الاسترداد في مكان آمن.",
+                    Text = message,
                     TextColor = Colors.White,
                     FontSize = 15,
                     HorizontalTextAlignment = TextAlignment.Center,
@@ -351,13 +477,13 @@ public sealed class PremiumAuthPage : ContentPage
                 },
                 new Label
                 {
-                    Text = "هذا هو رمز الاسترداد الوحيد لحسابك. يمكنك أيضاً استخدام سؤال الأمان لاحقاً كوسيلة مجانية ثانية عند تفعيل شاشة الاسترداد.",
+                    Text = note,
                     TextColor = Color.FromArgb("#CFCFCF"),
                     FontSize = 12,
                     HorizontalTextAlignment = TextAlignment.Center,
                     LineBreakMode = LineBreakMode.WordWrap
                 },
-                ConsentRow(savedCheck, "لقد قمت بحفظ رمز الاسترداد."),
+                ConsentRow(savedCheck, "لقد قمت بحفظ Recovery Key الجديد."),
                 continueButton
             }
         }));
@@ -507,6 +633,12 @@ public sealed class PremiumAuthPage : ContentPage
         IsVisible = false,
         HorizontalTextAlignment = TextAlignment.Center
     };
+
+    static void SetInlineError(Label label, string message)
+    {
+        label.Text = message;
+        label.IsVisible = !string.IsNullOrWhiteSpace(message);
+    }
 
     void SetLoginError(string message)
     {
