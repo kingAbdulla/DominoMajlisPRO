@@ -10,6 +10,9 @@ public partial class CertificatePrintPage : ContentPage
 {
     SavedMatch match;
     bool _isExporting;
+    IDispatcherTimer? _counterTimer;
+    int _seconds;
+
     public CertificatePrintPage(
         SavedMatch savedMatch)
     {
@@ -26,10 +29,34 @@ public partial class CertificatePrintPage : ContentPage
 
             _isExporting = true;
 
+            StartCounter();
+
             await Task.Delay(1500);
 
             await ExportPdfAsync();
         };
+    }
+
+    void StartCounter()
+    {
+        _seconds = 0;
+        LoadingLabel.Text = "جاري إنشاء PDF... 0";
+
+        _counterTimer?.Stop();
+        _counterTimer = Dispatcher.CreateTimer();
+        _counterTimer.Interval = TimeSpan.FromSeconds(1);
+        _counterTimer.Tick += (_, _) =>
+        {
+            _seconds++;
+            LoadingLabel.Text = $"جاري إنشاء PDF... {_seconds}";
+        };
+        _counterTimer.Start();
+    }
+
+    void StopCounter()
+    {
+        _counterTimer?.Stop();
+        _counterTimer = null;
     }
 
     async void LoadData()
@@ -227,6 +254,10 @@ public partial class CertificatePrintPage : ContentPage
 
             document.Save(pdfPath);
 
+            TryDelete(pngPath);
+
+            StopCounter();
+
             await Share.Default.RequestAsync(
                 new ShareFileRequest
                 {
@@ -235,15 +266,35 @@ public partial class CertificatePrintPage : ContentPage
                 });
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await Navigation.PopAsync();
+                await Navigation.PopAsync(false);
             });
         }
-        catch (Exception ex)
+        catch
         {
+            StopCounter();
+
             await DisplayAlert(
-                "PDF Error",
-                ex.Message,
-                "OK");
+                "تعذر التصدير",
+                "تعذر إنشاء ملف PDF حالياً. حاول مرة أخرى.",
+                "حسناً");
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Navigation.PopAsync(false);
+            });
+        }
+    }
+
+    static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+        catch
+        {
+            // Ignore cleanup failures.
         }
     }
 

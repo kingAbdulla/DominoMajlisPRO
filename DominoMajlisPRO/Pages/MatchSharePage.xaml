@@ -19,29 +19,35 @@
             HorizontalOptions="Start"
             VerticalOptions="Start"/>
 
-        <!-- Lightweight busy indicator shown while generating -->
+        <!-- Opaque overlay covering the off-screen capture surface so the user
+             never sees the intermediate share-card rendering. -->
 
-        <VerticalStackLayout
+        <Grid
             x:Name="BusyPanel"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"
-            Spacing="14">
+            BackgroundColor="#050505">
 
-            <ActivityIndicator
-                IsRunning="True"
-                Color="#D4AF37"
-                WidthRequest="46"
-                HeightRequest="46"/>
+            <VerticalStackLayout
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Spacing="14">
 
-            <Label
-                x:Name="BusyLabel"
-                Text="جارٍ التحضير..."
-                TextColor="#D4AF37"
-                FontSize="16"
-                FontAttributes="Bold"
-                HorizontalTextAlignment="Center"/>
+                <ActivityIndicator
+                    IsRunning="True"
+                    Color="#D4AF37"
+                    WidthRequest="46"
+                    HeightRequest="46"/>
 
-        </VerticalStackLayout>
+                <Label
+                    x:Name="BusyLabel"
+                    Text="جارٍ التحضير..."
+                    TextColor="#D4AF37"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    HorizontalTextAlignment="Center"/>
+
+            </VerticalStackLayout>
+
+        </Grid>
 
     </Grid>
 

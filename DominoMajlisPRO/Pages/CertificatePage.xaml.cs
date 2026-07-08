@@ -1,13 +1,7 @@
 ﻿using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using DominoMajlisPRO.GalleryEngine.Services;
-using Microsoft.Maui.Graphics;
 namespace DominoMajlisPRO.Pages;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.ApplicationModel.DataTransfer;
-using PdfSharpCore.Drawing;
-using PdfSharpCore.Pdf;
-using PdfSharpCore.Pdf.AcroForms;
 
 public partial class CertificatePage : ContentPage
 {
@@ -143,20 +137,50 @@ public partial class CertificatePage : ContentPage
             CertificateQrImage.Source = "qr_gold.png";
         }
     }
-    // save as png
-  
-    // PDF
+    // PDF export. The heavy render/capture/PDF work happens on the hidden
+    // CertificatePrintPage (covered by a loading overlay + counter). Here we
+    // just guard against repeated taps and reflect a loading state on the
+    // button, restoring it when we return from the export page.
+
+    bool _isExporting;
 
     async void OnExportPdfClicked(
-   object sender,
-   TappedEventArgs e)
+        object sender,
+        TappedEventArgs e)
     {
-        if (match == null) return; await Navigation.PushAsync(new CertificatePrintPage(match));
-       
+        if (_isExporting || match == null)
+            return;
 
-        
-     
+        _isExporting = true;
+        PdfButton.Text = "جاري إنشاء PDF...";
+
+        try
+        {
+            await Navigation.PushAsync(new CertificatePrintPage(match), false);
+        }
+        catch
+        {
+            RestoreExportButton();
+
+            await DisplayAlert(
+                "تعذر التصدير",
+                "تعذر إنشاء ملف PDF حالياً. حاول مرة أخرى.",
+                "حسناً");
+        }
     }
-   
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        RestoreExportButton();
+    }
+
+    void RestoreExportButton()
+    {
+        _isExporting = false;
+
+        if (PdfButton != null)
+            PdfButton.Text = "Export PDF";
+    }
 }
 

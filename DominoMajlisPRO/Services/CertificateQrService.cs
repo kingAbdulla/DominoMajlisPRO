@@ -16,12 +16,19 @@ public static class CertificateQrService
     public const string CertificateType = "DominoMajlisPRO.Certificate";
     public const int PayloadVersion = 1;
 
-    // Verification endpoints. QR encodes a URL (deep link preferred, HTTPS
-    // fallback) — never raw JSON. Full JSON stays available internally via
-    // BuildQrPayload for local verification / export.
+    // QR payload policy: the JSON verification data is kept INTERNALLY only
+    // (BuildQrPayload). The QR itself encodes a deep link ONLY when in-app
+    // deep-link verification is actually implemented; otherwise it encodes a
+    // human-readable verification text. It must NEVER encode the public HTTPS
+    // URL while that domain/server is not live (a scanned dead URL just shows
+    // ERR_NAME_NOT_RESOLVED in the browser).
     public const string DeepLinkScheme = "dominomajlispro";
     public const string VerificationBaseUrl =
         "https://dominomajlispro.app/certificate/verify";
+
+    // Flip to true only once the app registers and handles the
+    // dominomajlispro://certificate/verify deep link end-to-end.
+    public const bool DeepLinkVerificationEnabled = false;
 
     /// <summary>
     /// Deterministic certificate id for a match. The same match always maps to
@@ -51,9 +58,9 @@ public static class CertificateQrService
     }
 
     /// <summary>
-    /// The string actually encoded into the QR image: an HTTPS verification URL
-    /// carrying the stable IDs. Never raw JSON. Falls back to a readable compact
-    /// text if URL building fails.
+    /// The string actually encoded into the QR image. Never raw JSON and never
+    /// the dead HTTPS URL: encodes the deep link when deep-link verification is
+    /// enabled, otherwise a human-readable verification text.
     /// </summary>
     public static string BuildQrContent(SavedMatch? match)
     {
@@ -62,7 +69,9 @@ public static class CertificateQrService
             if (match == null)
                 return BuildCompactText(match);
 
-            return BuildVerificationUrl(match);
+            return DeepLinkVerificationEnabled
+                ? BuildDeepLink(match)
+                : BuildCompactText(match);
         }
         catch
         {
@@ -71,9 +80,8 @@ public static class CertificateQrService
     }
 
     /// <summary>
-    /// HTTPS verification URL, e.g.
-    /// https://dominomajlispro.app/certificate/verify?certificateId=...&amp;matchId=...
-    /// Uses IDs so it stays verifiable if display names change.
+    /// HTTPS verification URL. Reserved for when the public verification site is
+    /// live; NOT encoded into the QR while the domain is offline.
     /// </summary>
     public static string BuildVerificationUrl(SavedMatch? match) =>
         BuildUrl(VerificationBaseUrl, match);
@@ -117,7 +125,8 @@ public static class CertificateQrService
     }
 
     /// <summary>
-    /// Human-readable compact fallback used only when URL building fails.
+    /// Human-readable verification text encoded into the QR while deep-link
+    /// verification is not yet active (also used as a fallback on any failure).
     /// </summary>
     public static string BuildCompactText(SavedMatch? match)
     {
@@ -233,7 +242,7 @@ public static class CertificateQrService
     }
 
     static string FallbackPayload() =>
-        $"{VerificationBaseUrl}?certificateId=DMC-UNKNOWN";
+        "DominoMajlisPRO Certificate Verification\nCertificate ID: DMC-UNKNOWN";
 
     static string Safe(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "" : value.Trim();

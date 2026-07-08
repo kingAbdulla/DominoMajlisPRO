@@ -4,10 +4,18 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     x:Class="DominoMajlisPRO.Pages.CertificatePrintPage"
+    NavigationPage.HasNavigationBar="False"
     BackgroundColor="Black">
+
+    <!-- Root: the off-screen-sized certificate is rendered/captured underneath
+         an opaque loading overlay so the user never sees the raw certificate
+         render or the intermediate capture surface. -->
+
+    <Grid BackgroundColor="Black">
 
     <Grid
     x:Name="PrintContainer"
+    FlowDirection="LeftToRight"
     WidthRequest="1654"
     HeightRequest="2339">
 
@@ -517,6 +525,37 @@
             </Frame>
         </VerticalStackLayout>
        
+    </Grid>
+
+        <!-- Opaque loading overlay + live seconds counter -->
+
+        <Grid
+            x:Name="LoadingOverlay"
+            BackgroundColor="#0A0A0A">
+
+            <VerticalStackLayout
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Spacing="16">
+
+                <ActivityIndicator
+                    IsRunning="True"
+                    Color="#D4AF37"
+                    WidthRequest="54"
+                    HeightRequest="54"/>
+
+                <Label
+                    x:Name="LoadingLabel"
+                    Text="جاري إنشاء PDF... 0"
+                    TextColor="#D4AF37"
+                    FontSize="18"
+                    FontAttributes="Bold"
+                    HorizontalTextAlignment="Center"/>
+
+            </VerticalStackLayout>
+
+        </Grid>
+
     </Grid>
 
 </ContentPage>
