@@ -1,3 +1,4 @@
+using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
@@ -79,7 +80,12 @@ public sealed class PremiumAuthPage : ContentPage
 
         checkedActiveSession = true;
 
-        if (await ApplicationUserService.HasActiveSessionAsync())
+        if (!await ApplicationUserService.HasActiveSessionAsync())
+            return;
+
+        var currentUser = await ApplicationUserService.GetCurrentUserAsync();
+
+        if (currentUser.Role != ApplicationUserRole.Ghost)
             OpenMainPage();
     }
 
