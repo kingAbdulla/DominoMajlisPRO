@@ -1,7 +1,7 @@
 ﻿namespace DominoMajlisPRO;
 
-using DominoMajlisPRO.GalleryEngine.Pages;
 using DominoMajlisPRO.Localization;
+using DominoMajlisPRO.Pages;
 
 public partial class App : Application
 {
@@ -13,6 +13,6 @@ public partial class App : Application
 
         MainPage =
             new NavigationPage(
-                new MainPage());
+                new PremiumAuthPage());
     }
 }
