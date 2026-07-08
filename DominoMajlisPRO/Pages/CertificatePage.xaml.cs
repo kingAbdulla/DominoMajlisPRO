@@ -126,10 +126,22 @@ public partial class CertificatePage : ContentPage
             : "No Meles";
 
         CertificateHighestRoundLabel.Text =
-            $"Highest\n{match.RoundsHistory.Max(x => x.Points)}";
+            $"Highest\n{(match.RoundsHistory.Any() ? match.RoundsHistory.Max(x => x.Points) : 0)}";
+
+        var certificateId = CertificateQrService.BuildCertificateId(match);
 
         CertificateHashLabel.Text =
-            $"CERTIFICATE HASH : {match.MatchId.ToString().ToUpper()}";
+            $"CERTIFICATE ID : {certificateId}";
+
+        try
+        {
+            CertificateQrImage.Source =
+                CertificateQrService.GenerateQrImageSource(match);
+        }
+        catch
+        {
+            CertificateQrImage.Source = "qr_gold.png";
+        }
     }
     // save as png
   

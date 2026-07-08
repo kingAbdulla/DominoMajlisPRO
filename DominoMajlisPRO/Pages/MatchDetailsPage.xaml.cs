@@ -163,23 +163,16 @@ public partial class MatchDetailsPage : ContentPage
 
         MelesLabel.Text =
             match.HasMeles
-                ? "YES"
-                : "NO";
+                ? "ملص"
+                : "لا يوجد";
         WinnerLabel.Text =
     match.WinnerTeam;
 
         ResultLabel.Text =
             $"{match.Team1Score} - {match.Team2Score}";
-        if (match.RoundsHistory.Any())
-        {
-            var lastRound =
-                match.RoundsHistory.Last();
 
-        }
-       
         MatchDateLabel.Text =
     match.MatchDate.ToString("yy/MM/dd");
-        MatchStartTimeLabel.Text = match.MatchDate.ToString("HH:mm");
         MatchStartTimeLabel.Text =
      match.MatchDate.ToString("HH:mm");
 
@@ -574,20 +567,43 @@ public partial class MatchDetailsPage : ContentPage
         object sender,
         TappedEventArgs e)
     {
-        await DisplayAlert(
-            "قريباً",
-            "ميزة مشاركة الصورة قيد التطوير",
-            "حسناً");
+        await ShareMatchAsync(MatchShareMode.Image);
     }
 
     async void OnSharePdfClicked(
         object sender,
         TappedEventArgs e)
     {
-        await DisplayAlert(
-            "قريباً",
-            "ميزة PDF قيد التطوير",
-            "حسناً");
+        await ShareMatchAsync(MatchShareMode.Pdf);
+    }
+
+    async Task ShareMatchAsync(MatchShareMode shareMode)
+    {
+        if (match == null)
+            return;
+
+        try
+        {
+            await CloseBottomSheetAsync();
+            await Navigation.PushAsync(new MatchSharePage(match, shareMode));
+        }
+        catch
+        {
+            await DisplayAlert(
+                "تعذر المشاركة",
+                "تعذر إنشاء ملف المشاركة حالياً. حاول مرة أخرى.",
+                "حسناً");
+        }
+    }
+
+    async Task CloseBottomSheetAsync()
+    {
+        if (!panelOpened)
+            return;
+
+        await BottomSheet.TranslateToAsync(0, 600, 200, Easing.CubicIn);
+        BottomSheetRoot.IsVisible = false;
+        panelOpened = false;
     }
 
     // copy
@@ -767,16 +783,6 @@ public partial class MatchDetailsPage : ContentPage
 
         momentumOpened = false;
     }
-    async void OnIntegrityClicked(
-        object sender,
-        TappedEventArgs e)
-    {
-        await DisplayAlert(
-            "قريباً",
-            "ميزة سلامة المباراة قيد التطوير",
-            "حسناً");
-    }
-
     async void OnCertificateClicked(
       object sender,
       TappedEventArgs e)
@@ -786,15 +792,5 @@ public partial class MatchDetailsPage : ContentPage
 
         await Navigation.PushAsync(
             new CertificatePage(match));
-    }
-
-    async void OnQrCodeClicked(
-        object sender,
-        TappedEventArgs e)
-    {
-        await DisplayAlert(
-            "قريباً",
-            "ميزة QR Code قيد التطوير",
-            "حسناً");
     }
 }

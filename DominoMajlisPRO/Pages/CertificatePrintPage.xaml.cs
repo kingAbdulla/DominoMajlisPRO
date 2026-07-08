@@ -110,7 +110,16 @@ public partial class CertificatePrintPage : ContentPage
                     team2.Emblem,
                     "shield_3d.png");
         }
-       
+
+        try
+        {
+            PrintQrImage.Source =
+                CertificateQrService.GenerateQrImageSource(match, 16);
+        }
+        catch
+        {
+            PrintQrImage.Source = "qr_gold.png";
+        }
     }
     // Export Pdf
     async Task ExportPdfAsync()

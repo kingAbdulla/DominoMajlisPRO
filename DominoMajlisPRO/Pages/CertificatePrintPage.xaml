@@ -357,14 +357,15 @@
 
                     <Frame
             BorderColor="Gold"
-            BackgroundColor="Black"
+            BackgroundColor="White"
             Padding="10"
-            WidthRequest="90"
-            HeightRequest="90"
+            WidthRequest="180"
+            HeightRequest="180"
             HorizontalOptions="Center"
             VerticalOptions="Center">
 
                         <Image
+                x:Name="PrintQrImage"
                 Source="qr_gold.png"
                 Aspect="AspectFit"/>
                     </Frame>
@@ -389,7 +390,7 @@
 
                         <Label
                              FontFamily="CinzelDecorative-Bold"
-                Text="Coming Soon"
+                Text="Scan to Verify"
                 FontSize="30"
                 TextColor="White"
                 HorizontalTextAlignment="Center"/>

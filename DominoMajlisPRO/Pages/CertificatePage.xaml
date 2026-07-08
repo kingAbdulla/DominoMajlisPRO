@@ -28,6 +28,33 @@
             InputTransparent="True"
             ZIndex="999"/>
 
+        <!-- Fixed Back Button: always visible above content & frame,
+             respects the status bar safe area, never scrolls away. -->
+
+        <Border
+            ZIndex="1000"
+            BackgroundColor="#CC000000"
+            Stroke="#D4AF37"
+            StrokeThickness="1.5"
+            StrokeShape="RoundRectangle 22"
+            WidthRequest="44"
+            HeightRequest="44"
+            Padding="8"
+            Margin="0,48,18,0"
+            HorizontalOptions="End"
+            VerticalOptions="Start">
+
+            <Image
+                Source="back_gold.png"
+                Aspect="AspectFit"/>
+
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer
+                    Tapped="OnBackClicked"/>
+            </Border.GestureRecognizers>
+
+        </Border>
+
         <ScrollView>
 
             <VerticalStackLayout
@@ -36,27 +63,10 @@
                 Padding="45,120,42,120"
                 Spacing="10">
 
-                <!-- Back -->
-
-                <Image
-                    x:Name="BackButton"
-                      Margin="0,-40,0,0"
-                    Source="back_gold.png"
-                    WidthRequest="28"
-                    HeightRequest="28"
-                    HorizontalOptions="End">
-
-                    <Image.GestureRecognizers>
-                        <TapGestureRecognizer
-                            Tapped="OnBackClicked"/>
-                    </Image.GestureRecognizers>
-
-                </Image>
-
                 <!-- DOMINO -->
 
                 <Label
-                                          Margin="0,-50,0,0"
+                                          Margin="0,-10,0,0"
 
                     Text="DOMINO"
                     FontFamily="CinzelDecorative-Bold"
@@ -359,62 +369,68 @@
                     Padding="15">
 
                     <Grid
-                        ColumnDefinitions="*,*,*"
-                        ColumnSpacing="5">
+                        ColumnDefinitions="*,Auto"
+                        ColumnSpacing="10"
+                        VerticalOptions="Center">
 
-                        <!-- QR -->
+                        <!-- Official Seal + verify text -->
 
                         <VerticalStackLayout
                             Grid.Column="0"
                             HorizontalOptions="Center"
-                            VerticalOptions="Center">
+                            VerticalOptions="Center"
+                            Spacing="4">
 
                             <Image
-                                Opacity="0.5"
-                                Source="qr_gold.png"
-                                WidthRequest="75"
-                                HeightRequest="75"/>
+                                Source="lin.png"
+                                Opacity="0.55"
+                                WidthRequest="54"
+                                HeightRequest="54"
+                                HorizontalOptions="Center"/>
 
                             <Label
-                                Text="QR VERIFY"
+                                Text="Official Authentication"
                                 FontFamily="CinzelDecorative-Bold"
+                                Opacity="0.85"
                                 TextColor="Gold"
                                 FontSize="12"
                                 HorizontalTextAlignment="Center"/>
 
                         </VerticalStackLayout>
 
-                        <!-- Official Seal -->
-
-                        <Grid
-                            Grid.Column="1">
-
-                            <Image
-                                Source="lin.png"
-                                Opacity="0.50"
-                                WidthRequest="50"
-                                HeightRequest="50"
-                                HorizontalOptions="Center"
-                                VerticalOptions="Center"/>
-
-                        </Grid>
+                        <!-- QR (bottom-right, inside certificate boundary) -->
 
                         <VerticalStackLayout
-                            Grid.Column="2"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center">
+                            Grid.Column="1"
+                            HorizontalOptions="End"
+                            VerticalOptions="Center"
+                            Spacing="4">
+
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#D4AF37"
+                                StrokeThickness="2"
+                                StrokeShape="RoundRectangle 10"
+                                Padding="6"
+                                HorizontalOptions="End">
+
+                                <Image
+                                    x:Name="CertificateQrImage"
+                                    Source="qr_gold.png"
+                                    WidthRequest="82"
+                                    HeightRequest="82"
+                                    Aspect="AspectFit"/>
+
+                            </Border>
+
                             <Label
-    Text="سوف تتفعل خاصية QR قريبا "
-    FontFamily="CinzelDecorative-Bold"
-                       Opacity="0.8"     
-    TextColor="Gold"
-    FontSize="12"
-    HorizontalTextAlignment="Center"/>
+                                Text="تحقق من الشهادة"
+                                FontFamily="CinzelDecorative-Bold"
+                                TextColor="Gold"
+                                FontSize="12"
+                                HorizontalTextAlignment="Center"/>
 
                         </VerticalStackLayout>
-
-
-
 
                     </Grid>
 

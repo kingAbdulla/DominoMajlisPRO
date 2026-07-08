@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DominoMajlisPRO.Pages.MatchSharePage"
+    BackgroundColor="#050505"
+    NavigationPage.HasNavigationBar="False">
+
+    <Grid>
+
+        <!-- Off-screen capture surface (fixed width, dynamic height) -->
+
+        <Grid
+            x:Name="ShareContainer"
+            WidthRequest="1000"
+            FlowDirection="RightToLeft"
+            BackgroundColor="#0A0A0A"
+            HorizontalOptions="Start"
+            VerticalOptions="Start"/>
+
+        <!-- Lightweight busy indicator shown while generating -->
+
+        <VerticalStackLayout
+            x:Name="BusyPanel"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            Spacing="14">
+
+            <ActivityIndicator
+                IsRunning="True"
+                Color="#D4AF37"
+                WidthRequest="46"
+                HeightRequest="46"/>
+
+            <Label
+                x:Name="BusyLabel"
+                Text="جارٍ التحضير..."
+                TextColor="#D4AF37"
+                FontSize="16"
+                FontAttributes="Bold"
+                HorizontalTextAlignment="Center"/>
+
+        </VerticalStackLayout>
+
+    </Grid>
+
+</ContentPage>
