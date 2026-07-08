@@ -7,6 +7,7 @@ public sealed class PremiumAuthPage : ContentPage
 {
     readonly Grid root;
     readonly VerticalStackLayout contentHost;
+    bool checkedActiveSession;
 
     Entry? loginUsernameEntry;
     Entry? loginPasswordEntry;
@@ -67,6 +68,19 @@ public sealed class PremiumAuthPage : ContentPage
         Content = root;
 
         ShowWelcome();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (checkedActiveSession)
+            return;
+
+        checkedActiveSession = true;
+
+        if (await ApplicationUserService.HasActiveSessionAsync())
+            OpenMainPage();
     }
 
     void ShowWelcome()
