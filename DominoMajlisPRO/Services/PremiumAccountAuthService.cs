@@ -25,6 +25,10 @@ public static class PremiumAccountAuthService
         public string PasswordSalt { get; set; } = "";
         public string RecoveryCodeHash { get; set; } = "";
         public string RecoveryCodeSalt { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string SecurityQuestion { get; set; } = "";
+        public string SecurityAnswerHash { get; set; } = "";
+        public string SecurityAnswerSalt { get; set; } = "";
         public int Age { get; set; }
         public string Gender { get; set; } = "";
         public string AcceptedTermsVersion { get; set; } = CurrentTermsVersion;
@@ -34,7 +38,7 @@ public static class PremiumAccountAuthService
     }
 
     const string CredentialsFileName = "local_account_credentials.json";
-    const string CurrentTermsVersion = "18-plus-legal-consent-v1";
+    const string CurrentTermsVersion = "18-plus-legal-consent-v2";
     const int Pbkdf2Iterations = 180_000;
     const int HashSizeBytes = 32;
     const int SaltSizeBytes = 16;
@@ -66,6 +70,9 @@ public static class PremiumAccountAuthService
         string confirmPassword,
         int age,
         string gender,
+        string email,
+        string securityQuestion,
+        string securityAnswer,
         bool acceptedAge,
         bool acceptedPrivacy,
         bool acceptedTerms,
@@ -74,6 +81,9 @@ public static class PremiumAccountAuthService
         username = NormalizeUsername(username);
         nickname = Safe(nickname);
         gender = Safe(gender);
+        email = NormalizeEmail(email);
+        securityQuestion = Safe(securityQuestion);
+        securityAnswer = NormalizeSecurityAnswer(securityAnswer);
 
         ValidateRegistration(
             username,
@@ -82,6 +92,9 @@ public static class PremiumAccountAuthService
             confirmPassword,
             age,
             gender,
+            email,
+            securityQuestion,
+            securityAnswer,
             acceptedAge,
             acceptedPrivacy,
             acceptedTerms,
@@ -102,6 +115,7 @@ public static class PremiumAccountAuthService
             string recoveryCode = GenerateRecoveryCode();
             byte[] passwordSalt = GenerateSalt();
             byte[] recoverySalt = GenerateSalt();
+            byte[] securitySalt = GenerateSalt();
 
             state.Accounts.Add(new LocalAccountCredential
             {
@@ -113,6 +127,10 @@ public static class PremiumAccountAuthService
                 PasswordHash = HashSecret(password, passwordSalt),
                 RecoveryCodeSalt = Convert.ToBase64String(recoverySalt),
                 RecoveryCodeHash = HashSecret(recoveryCode, recoverySalt),
+                Email = email,
+                SecurityQuestion = securityQuestion,
+                SecurityAnswerSalt = Convert.ToBase64String(securitySalt),
+                SecurityAnswerHash = HashSecret(securityAnswer, securitySalt),
                 Age = age,
                 Gender = gender,
                 AcceptedTermsVersion = CurrentTermsVersion,
@@ -181,6 +199,9 @@ public static class PremiumAccountAuthService
         string confirmPassword,
         int age,
         string gender,
+        string email,
+        string securityQuestion,
+        string securityAnswer,
         bool acceptedAge,
         bool acceptedPrivacy,
         bool acceptedTerms,
@@ -204,6 +225,18 @@ public static class PremiumAccountAuthService
         if (string.IsNullOrWhiteSpace(gender))
             throw new InvalidOperationException("اختر الجنس لإكمال إنشاء الحساب.");
 
+        if (!string.IsNullOrWhiteSpace(email) &&
+            (!email.Contains('@', StringComparison.Ordinal) || email.Length > 120))
+        {
+            throw new InvalidOperationException("البريد الإلكتروني الاختياري غير صالح.");
+        }
+
+        if (string.IsNullOrWhiteSpace(securityQuestion) || securityQuestion.Length < 6 || securityQuestion.Length > 120)
+            throw new InvalidOperationException("سؤال الأمان مطلوب ويجب أن يكون واضحاً.");
+
+        if (string.IsNullOrWhiteSpace(securityAnswer) || securityAnswer.Length < 3 || securityAnswer.Length > 80)
+            throw new InvalidOperationException("إجابة سؤال الأمان مطلوبة ويجب ألا تقل عن 3 أحرف.");
+
         if (!string.Equals(password, confirmPassword, StringComparison.Ordinal))
             throw new InvalidOperationException("كلمتا السر غير متطابقتين.");
 
@@ -223,6 +256,12 @@ public static class PremiumAccountAuthService
     }
 
     static string NormalizeUsername(string value) =>
+        Safe(value).ToLowerInvariant();
+
+    static string NormalizeEmail(string value) =>
+        Safe(value).ToLowerInvariant();
+
+    static string NormalizeSecurityAnswer(string value) =>
         Safe(value).ToLowerInvariant();
 
     static string Safe(string? value) =>
