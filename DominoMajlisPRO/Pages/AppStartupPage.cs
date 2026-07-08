@@ -64,7 +64,7 @@ public sealed class AppStartupPage : ContentPage
 
     static async Task RouteAsync()
     {
-        bool hasActiveSession = await ApplicationUserService.HasActiveRegisteredSessionAsync();
+        bool hasActiveSession = await StartupSessionRouterService.HasActiveRegisteredSessionAsync();
 
         Application.Current!.MainPage = hasActiveSession
             ? new NavigationPage(new MainPage())
