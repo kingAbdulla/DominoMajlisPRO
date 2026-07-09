@@ -115,6 +115,7 @@ public static class PlayerDisplayNameService
                 {
                     SupabaseUserId = freshSession.SupabaseUserId,
                     Email = freshSession.Email,
+                    Username = freshSession.Username,
                     Nickname = newName,
                     EmailConfirmed = freshSession.EmailConfirmed,
                     AccessToken = freshSession.AccessToken,
