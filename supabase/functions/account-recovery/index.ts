@@ -89,7 +89,11 @@ serve(async (req) => {
         );
       }
 
-      await sendOtpEmail(email, username, otp);
+      const emailResult = await sendOtpEmail(email, username, otp);
+      if (!emailResult.success) {
+        return json({ success: false, message: emailResult.message }, 500);
+      }
+
       console.log("account-recovery:otp_email_sent", { username });
 
       return json({ success: true, message: "تم إرسال رمز التحقق إلى البريد الإلكتروني." });
@@ -122,7 +126,7 @@ serve(async (req) => {
 
       if (error) {
         console.error("account-recovery:otp_lookup_failed", error);
-        return json({ success: false, message: "تعذر التحقق من الرمز." }, 500);
+        return json({ success: false, message: `تعذر التحقق من الرمز: ${error.code ?? "NO_CODE"} - ${error.message ?? "NO_MESSAGE"}` }, 500);
       }
 
       const row = rows?.[0];
@@ -157,7 +161,7 @@ serve(async (req) => {
 
       if (updateError) {
         console.error("account-recovery:password_update_failed", updateError);
-        return json({ success: false, message: "تعذر تحديث كلمة المرور." }, 500);
+        return json({ success: false, message: `تعذر تحديث كلمة المرور: ${updateError.message ?? "NO_MESSAGE"}` }, 500);
       }
 
       await admin
@@ -173,7 +177,7 @@ serve(async (req) => {
     return json({ success: false, message: "أمر غير معروف." }, 400);
   } catch (err) {
     console.error("account-recovery:unhandled_error", err);
-    return json({ success: false, message: "تعذر تنفيذ عملية الاسترداد." }, 500);
+    return json({ success: false, message: `تعذر تنفيذ عملية الاسترداد: ${errorMessage(err)}` }, 500);
   }
 });
 
@@ -231,7 +235,7 @@ async function sendOtpEmail(email: string, username: string, otp: string) {
   if (!resendApiKey || !fromEmail) {
     console.warn("account-recovery:email_secrets_missing");
     console.log(`Account recovery OTP for ${username}/${email}: ${otp}`);
-    return;
+    return { success: false, message: "إعدادات البريد غير مكتملة: RESEND_API_KEY أو ACCOUNT_RECOVERY_FROM_EMAIL غير موجود." };
   }
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -261,11 +265,12 @@ async function sendOtpEmail(email: string, username: string, otp: string) {
       status: response.status,
       body: text,
     });
-    throw new Error("Failed to send OTP email");
+    return { success: false, message: `فشل إرسال البريد عبر Resend: ${response.status} - ${text}` };
   }
 
   const text = await response.text();
   console.log("account-recovery:resend_success", text);
+  return { success: true, message: "تم الإرسال." };
 }
 
 function generateOtp() {
@@ -300,6 +305,15 @@ function mustEnv(name: string) {
   const value = Deno.env.get(name)?.trim();
   if (!value) throw new Error(`Missing env ${name}`);
   return value;
+}
+
+function errorMessage(err: unknown) {
+  if (err instanceof Error) return err.message;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
 }
 
 function json(payload: unknown, status = 200) {
