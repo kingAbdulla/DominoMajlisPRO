@@ -6,6 +6,15 @@ namespace DominoMajlisPRO.Pages;
 
 public sealed class AccountRecoveryPage : ContentPage
 {
+    static readonly string[] SecurityQuestions =
+    {
+        "ما اسم أول مقهى لعبت فيه الدومينو؟",
+        "ما اسم أقرب صديق دومينو لديك؟",
+        "ما المدينة التي بدأت فيها لعب الدومينو؟",
+        "ما اسم أول فريق دومينو لعبت معه؟",
+        "ما الكلمة السرية التي تختارها للتذكير؟"
+    };
+
     readonly VerticalStackLayout contentHost;
     readonly SupabaseRecoveryOtpService otpService = new();
 
@@ -15,6 +24,12 @@ public sealed class AccountRecoveryPage : ContentPage
     Entry? recoveryCodeEntry;
     Entry? newPasswordEntry;
     Entry? confirmPasswordEntry;
+    Picker? securityQuestion1Picker;
+    Picker? securityQuestion2Picker;
+    Picker? securityQuestion3Picker;
+    Entry? securityAnswer1Entry;
+    Entry? securityAnswer2Entry;
+    Entry? securityAnswer3Entry;
     Label? errorLabel;
 
     public AccountRecoveryPage()
@@ -73,7 +88,7 @@ public sealed class AccountRecoveryPage : ContentPage
                 Info("اختر طريقة الاستعادة المناسبة لحسابك."),
                 PrimaryButton("الاستعادة عبر رمز البريد الإلكتروني", ShowEmailOtpRequest),
                 SecondaryButton("الاستعادة عبر Recovery Code", ShowRecoveryCodeReset),
-                SecondaryButton("الاستعادة عبر أسئلة الأمان", ShowSecurityQuestionsPlaceholder),
+                SecondaryButton("الاستعادة عبر أسئلة الأمان", ShowSecurityQuestionsReset),
                 GhostButton("الرجوع", async () => await Navigation.PopAsync())
             }
         }));
@@ -108,7 +123,6 @@ public sealed class AccountRecoveryPage : ContentPage
             return;
 
         SetInlineError(errorLabel, "");
-
         string username = usernameEntry.Text?.Trim() ?? "";
         string email = emailEntry.Text?.Trim() ?? "";
 
@@ -160,7 +174,6 @@ public sealed class AccountRecoveryPage : ContentPage
             return;
 
         SetInlineError(errorLabel, "");
-
         string otp = otpEntry.Text?.Trim() ?? "";
         string password = newPasswordEntry.Text ?? "";
         string confirm = confirmPasswordEntry.Text ?? "";
@@ -211,7 +224,6 @@ public sealed class AccountRecoveryPage : ContentPage
             return;
 
         SetInlineError(errorLabel, "");
-
         string username = usernameEntry.Text?.Trim() ?? "";
         string recoveryCode = recoveryCodeEntry.Text?.Trim() ?? "";
         string password = newPasswordEntry.Text ?? "";
@@ -244,11 +256,103 @@ public sealed class AccountRecoveryPage : ContentPage
         }
     }
 
-    void ShowSecurityQuestionsPlaceholder()
+    void ShowSecurityQuestionsReset()
     {
-        ShowMessage(
-            "أسئلة الأمان",
-            "تم تحويل أسئلة الأمان في إنشاء الحساب إلى اختيارات ثابتة. تفعيل الاستعادة بها يتطلب حفظ الإجابات في Backend، وهي المرحلة التالية بعد اختبار OTP.");
+        contentHost.Children.Clear();
+        usernameEntry = EntryField("Username اسم المستخدم");
+        emailEntry = EntryField("البريد الإلكتروني المسجل", keyboard: Keyboard.Email);
+        securityQuestion1Picker = PickerField("سؤال الأمان الأول", SecurityQuestions);
+        securityQuestion2Picker = PickerField("سؤال الأمان الثاني", SecurityQuestions);
+        securityQuestion3Picker = PickerField("سؤال الأمان الثالث", SecurityQuestions);
+        securityAnswer1Entry = EntryField("إجابة السؤال الأول", isPassword: true);
+        securityAnswer2Entry = EntryField("إجابة السؤال الثاني", isPassword: true);
+        securityAnswer3Entry = EntryField("إجابة السؤال الثالث", isPassword: true);
+        newPasswordEntry = EntryField("كلمة المرور الجديدة", isPassword: true);
+        confirmPasswordEntry = EntryField("تأكيد كلمة المرور الجديدة", isPassword: true);
+        errorLabel = ErrorLabel();
+
+        contentHost.Children.Add(Title("أسئلة الأمان"));
+        contentHost.Children.Add(CreatePanel(new ScrollView
+        {
+            MaximumHeightRequest = 620,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 12,
+                Children =
+                {
+                    Info("اختر نفس أسئلة الأمان الثلاثة التي سجلتها ثم أدخل إجاباتها. عند التحقق تظهر كلمة المرور الجديدة وتُحفظ مباشرة."),
+                    usernameEntry,
+                    emailEntry,
+                    securityQuestion1Picker,
+                    securityAnswer1Entry,
+                    securityQuestion2Picker,
+                    securityAnswer2Entry,
+                    securityQuestion3Picker,
+                    securityAnswer3Entry,
+                    newPasswordEntry,
+                    confirmPasswordEntry,
+                    errorLabel,
+                    PrimaryButton("تحقق وإعادة تعيين كلمة المرور", async () => await ResetWithSecurityQuestionsAsync()),
+                    GhostButton("الرجوع", ShowOptions)
+                }
+            }
+        }));
+    }
+
+    async Task ResetWithSecurityQuestionsAsync()
+    {
+        if (errorLabel == null || usernameEntry == null || emailEntry == null ||
+            securityQuestion1Picker == null || securityQuestion2Picker == null || securityQuestion3Picker == null ||
+            securityAnswer1Entry == null || securityAnswer2Entry == null || securityAnswer3Entry == null ||
+            newPasswordEntry == null || confirmPasswordEntry == null)
+            return;
+
+        SetInlineError(errorLabel, "");
+        string username = usernameEntry.Text?.Trim() ?? "";
+        string email = emailEntry.Text?.Trim() ?? "";
+        string password = newPasswordEntry.Text ?? "";
+        string confirm = confirmPasswordEntry.Text ?? "";
+
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(email))
+        {
+            SetInlineError(errorLabel, "أدخل اسم المستخدم والبريد الإلكتروني.");
+            return;
+        }
+
+        var questions = BuildSecurityQuestionAnswers();
+        if (questions.Count != 3)
+        {
+            SetInlineError(errorLabel, "اختر 3 أسئلة مختلفة وأدخل إجابة لكل سؤال.");
+            return;
+        }
+
+        if (!ValidateNewPassword(password, confirm, errorLabel))
+            return;
+
+        var result = await otpService.VerifySecurityQuestionsAndResetPasswordAsync(username, email, questions, password);
+        if (!result.Success)
+        {
+            SetInlineError(errorLabel, result.Message);
+            return;
+        }
+
+        ShowMessage("تم تحديث كلمة المرور", "تمت إعادة تعيين كلمة المرور عبر أسئلة الأمان. يمكنك الآن تسجيل الدخول باسم المستخدم وكلمة المرور الجديدة.");
+    }
+
+    List<(string Question, string Answer)> BuildSecurityQuestionAnswers()
+    {
+        var items = new List<(string Question, string Answer)>
+        {
+            (securityQuestion1Picker?.SelectedItem?.ToString() ?? "", securityAnswer1Entry?.Text ?? ""),
+            (securityQuestion2Picker?.SelectedItem?.ToString() ?? "", securityAnswer2Entry?.Text ?? ""),
+            (securityQuestion3Picker?.SelectedItem?.ToString() ?? "", securityAnswer3Entry?.Text ?? "")
+        };
+
+        return items
+            .Where(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer))
+            .GroupBy(item => item.Question, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .ToList();
     }
 
     void ShowMessage(string title, string message)
@@ -293,6 +397,23 @@ public sealed class AccountRecoveryPage : ContentPage
                password.Any(char.IsLower) &&
                password.Any(char.IsDigit) &&
                password.Any(ch => !char.IsLetterOrDigit(ch));
+    }
+
+    static Picker PickerField(string title, params string[] items)
+    {
+        var picker = new Picker
+        {
+            Title = title,
+            TextColor = Colors.White,
+            TitleColor = Color.FromArgb("#AFAFAF"),
+            BackgroundColor = Color.FromArgb("#111111"),
+            HorizontalTextAlignment = TextAlignment.End
+        };
+
+        foreach (var item in items)
+            picker.Items.Add(item);
+
+        return picker;
     }
 
     static Label Title(string text) => new()
