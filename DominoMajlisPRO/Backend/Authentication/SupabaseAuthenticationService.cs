@@ -28,13 +28,20 @@ public sealed class SupabaseAuthenticationService
         string email,
         string password,
         string username,
-        string nickname)
+        string nickname,
+        IEnumerable<string>? securityQuestions = null)
     {
         if (!SupabaseBackendConfiguration.IsConfigured)
             return SupabaseAuthenticationResult.Failure("Supabase غير مهيأ داخل التطبيق.");
 
         username = username.Trim();
         nickname = nickname.Trim();
+        var securityQuestionList = securityQuestions?
+            .Select(item => item.Trim())
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.Ordinal)
+            .Take(3)
+            .ToArray() ?? Array.Empty<string>();
 
         var response = await SendAuthRequestAsync(
             HttpMethod.Post,
@@ -47,7 +54,9 @@ public sealed class SupabaseAuthenticationService
                 {
                     username,
                     nickname,
-                    display_name = nickname
+                    display_name = nickname,
+                    security_question_count = securityQuestionList.Length,
+                    security_questions = securityQuestionList
                 }
             });
 
@@ -259,98 +268,81 @@ public sealed class SupabaseAuthenticationService
         return await httpClient.SendAsync(request);
     }
 
-    static string BuildUri(string path) =>
-        SupabaseBackendConfiguration.ProjectUrl.TrimEnd('/') + path;
+    Uri BuildUri(string path) =>
+        new(SupabaseBackendConfiguration.ProjectUrl.TrimEnd('/') + path);
+
+    static async Task<string> ReadErrorAsync(HttpResponseMessage response)
+    {
+        string body = await response.Content.ReadAsStringAsync();
+
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            if (document.RootElement.TryGetProperty("msg", out var msg))
+                return TranslateError(msg.GetString() ?? body);
+
+            if (document.RootElement.TryGetProperty("message", out var message))
+                return TranslateError(message.GetString() ?? body);
+
+            if (document.RootElement.TryGetProperty("error_description", out var description))
+                return TranslateError(description.GetString() ?? body);
+        }
+        catch
+        {
+            // ignore malformed payloads and use the raw body.
+        }
+
+        return TranslateError(body);
+    }
+
+    static string TranslateError(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return "تعذر تنفيذ العملية.";
+
+        if (message.Contains("Invalid login credentials", StringComparison.OrdinalIgnoreCase))
+            return "اسم المستخدم أو كلمة السر غير صحيحة.";
+
+        if (message.Contains("Email not confirmed", StringComparison.OrdinalIgnoreCase))
+            return "يجب تأكيد البريد الإلكتروني قبل تسجيل الدخول.";
+
+        if (message.Contains("User already registered", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("already been registered", StringComparison.OrdinalIgnoreCase))
+            return "يوجد حساب مسجل مسبقاً بهذا البريد الإلكتروني.";
+
+        if (message.Contains("Password should be", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("weak password", StringComparison.OrdinalIgnoreCase))
+            return "كلمة السر ضعيفة. استخدم كلمة سر أقوى.";
+
+        if (message.Contains("Email address", StringComparison.OrdinalIgnoreCase) &&
+            message.Contains("invalid", StringComparison.OrdinalIgnoreCase))
+            return "البريد الإلكتروني غير صالح.";
+
+        return message;
+    }
 
     static async Task<SupabaseAuthResponse?> ReadAuthResponseAsync(HttpResponseMessage response)
     {
         string json = await response.Content.ReadAsStringAsync();
-
-        if (string.IsNullOrWhiteSpace(json))
-            return null;
-
         return JsonSerializer.Deserialize<SupabaseAuthResponse>(json, JsonOptions);
     }
 
-    static async Task<SupabaseRefreshResponse?> ReadRefreshResponseAsync(HttpResponseMessage response)
+    static async Task<SupabaseAuthResponse?> ReadRefreshResponseAsync(HttpResponseMessage response)
     {
         string json = await response.Content.ReadAsStringAsync();
-
-        if (string.IsNullOrWhiteSpace(json))
-            return null;
-
-        return JsonSerializer.Deserialize<SupabaseRefreshResponse>(json, JsonOptions);
+        return JsonSerializer.Deserialize<SupabaseAuthResponse>(json, JsonOptions);
     }
 
-    static async Task<SupabaseAuthUser?> ReadUserResponseAsync(HttpResponseMessage response)
+    static async Task<SupabaseUserResponse?> ReadUserResponseAsync(HttpResponseMessage response)
     {
         string json = await response.Content.ReadAsStringAsync();
-
-        if (string.IsNullOrWhiteSpace(json))
-            return null;
-
-        return JsonSerializer.Deserialize<SupabaseAuthUserResponse>(json, JsonOptions)?.ToUser();
+        return JsonSerializer.Deserialize<SupabaseUserResponse>(json, JsonOptions);
     }
 
-    static async Task<string> ReadErrorAsync(HttpResponseMessage response)
-    {
-        string json = await response.Content.ReadAsStringAsync();
-
-        try
-        {
-            var error = JsonSerializer.Deserialize<SupabaseAuthError>(json, JsonOptions);
-            return TranslateSupabaseError(error?.BestMessage ?? json);
-        }
-        catch
-        {
-            return TranslateSupabaseError(json);
-        }
-    }
-
-    static string TranslateSupabaseError(string? message)
-    {
-        string raw = message?.Trim() ?? "";
-
-        if (string.IsNullOrWhiteSpace(raw))
-            return "فشل الاتصال بخدمة الحسابات.";
-
-        string lower = raw.ToLowerInvariant();
-
-        if (lower.Contains("invalid login credentials") ||
-            lower.Contains("invalid_grant") ||
-            lower.Contains("invalid credentials"))
-            return "اسم المستخدم أو كلمة المرور غير صحيحة.";
-
-        if (lower.Contains("email not confirmed") ||
-            lower.Contains("email_not_confirmed"))
-            return "يجب تأكيد البريد الإلكتروني قبل تسجيل الدخول.";
-
-        if (lower.Contains("user already registered") ||
-            lower.Contains("already registered") ||
-            lower.Contains("already exists"))
-            return "هذا البريد الإلكتروني مسجل مسبقاً.";
-
-        if (lower.Contains("password") && lower.Contains("weak"))
-            return "كلمة المرور ضعيفة. استخدم كلمة مرور أقوى.";
-
-        if (lower.Contains("rate limit") || lower.Contains("too many"))
-            return "تم تنفيذ محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.";
-
-        if (lower.Contains("network") || lower.Contains("timeout") || lower.Contains("connection"))
-            return "تعذر الاتصال بالخادم. تحقق من الإنترنت ثم حاول مرة أخرى.";
-
-        if (lower.Contains("token") && lower.Contains("expired"))
-            return "انتهت الجلسة. يرجى تسجيل الدخول من جديد.";
-
-        if (lower.Contains("invalid jwt"))
-            return "انتهت الجلسة أو أصبحت غير صالحة. يرجى تسجيل الدخول من جديد.";
-
-        return raw.StartsWith("{")
-            ? "تعذر إكمال العملية. تحقق من البيانات وحاول مرة أخرى."
-            : raw;
-    }
-
-    static SupabaseAuthenticationSession? ToSession(SupabaseAuthResponse? auth)
+    static SupabaseAuthenticationSession? ToSession(
+        SupabaseAuthResponse? auth,
+        string fallbackNickname = "",
+        string fallbackRefreshToken = "")
     {
         if (auth?.User == null)
             return null;
@@ -360,40 +352,13 @@ public sealed class SupabaseAuthenticationService
             SupabaseUserId = auth.User.Id,
             Email = auth.User.Email,
             Username = auth.User.GetUsername(),
-            Nickname = auth.User.GetNickname(),
+            Nickname = auth.User.GetNickname(fallbackNickname),
             EmailConfirmed = !string.IsNullOrWhiteSpace(auth.User.EmailConfirmedAt),
-            AccessToken = auth.AccessToken,
-            RefreshToken = auth.RefreshToken,
-            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(Math.Max(auth.ExpiresIn, 0))
-        };
-    }
-
-    static SupabaseAuthenticationSession? ToSession(
-        SupabaseRefreshResponse? refresh,
-        string fallbackNickname,
-        string fallbackRefreshToken)
-    {
-        if (refresh?.User == null)
-            return null;
-
-        string nickname = refresh.User.GetNickname();
-        if (string.IsNullOrWhiteSpace(nickname))
-            nickname = fallbackNickname.Trim();
-
-        string nextRefreshToken = string.IsNullOrWhiteSpace(refresh.RefreshToken)
-            ? fallbackRefreshToken.Trim()
-            : refresh.RefreshToken.Trim();
-
-        return new SupabaseAuthenticationSession
-        {
-            SupabaseUserId = refresh.User.Id,
-            Email = refresh.User.Email,
-            Username = refresh.User.GetUsername(),
-            Nickname = nickname,
-            EmailConfirmed = !string.IsNullOrWhiteSpace(refresh.User.EmailConfirmedAt),
-            AccessToken = refresh.AccessToken,
-            RefreshToken = nextRefreshToken,
-            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(Math.Max(refresh.ExpiresIn, 0))
+            AccessToken = auth.AccessToken ?? "",
+            RefreshToken = auth.RefreshToken ?? fallbackRefreshToken,
+            ExpiresAtUtc = auth.ExpiresIn > 0
+                ? DateTime.UtcNow.AddSeconds(auth.ExpiresIn)
+                : DateTime.UtcNow
         };
     }
 }
