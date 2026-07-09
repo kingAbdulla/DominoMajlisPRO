@@ -53,6 +53,40 @@ public sealed class SupabaseRecoveryOtpService
             new_password = newPassword
         });
 
+    public Task<(bool Success, string Message)> RegisterSecurityQuestionsAsync(
+        string username,
+        string email,
+        IReadOnlyList<(string Question, string Answer)> questions) =>
+        SendAsync(new
+        {
+            action = "register_security_questions",
+            username = username.Trim(),
+            email = email.Trim(),
+            questions = questions.Select(item => new
+            {
+                question = item.Question.Trim(),
+                answer = item.Answer.Trim()
+            }).ToArray()
+        });
+
+    public Task<(bool Success, string Message)> VerifySecurityQuestionsAndResetPasswordAsync(
+        string username,
+        string email,
+        IReadOnlyList<(string Question, string Answer)> questions,
+        string newPassword) =>
+        SendAsync(new
+        {
+            action = "verify_security_questions_reset",
+            username = username.Trim(),
+            email = email.Trim(),
+            questions = questions.Select(item => new
+            {
+                question = item.Question.Trim(),
+                answer = item.Answer.Trim()
+            }).ToArray(),
+            new_password = newPassword
+        });
+
     async Task<(bool Success, string Message)> SendAsync(object body)
     {
         if (!SupabaseBackendConfiguration.IsConfigured)
