@@ -299,14 +299,55 @@ public sealed class SupabaseAuthenticationService
         try
         {
             var error = JsonSerializer.Deserialize<SupabaseAuthError>(json, JsonOptions);
-            return error?.BestMessage ?? "فشل الاتصال بخدمة Supabase.";
+            return TranslateSupabaseError(error?.BestMessage ?? json);
         }
         catch
         {
-            return string.IsNullOrWhiteSpace(json)
-                ? "فشل الاتصال بخدمة Supabase."
-                : json;
+            return TranslateSupabaseError(json);
         }
+    }
+
+    static string TranslateSupabaseError(string? message)
+    {
+        string raw = message?.Trim() ?? "";
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return "فشل الاتصال بخدمة الحسابات.";
+
+        string lower = raw.ToLowerInvariant();
+
+        if (lower.Contains("invalid login credentials") ||
+            lower.Contains("invalid_grant") ||
+            lower.Contains("invalid credentials"))
+            return "اسم المستخدم أو كلمة المرور غير صحيحة.";
+
+        if (lower.Contains("email not confirmed") ||
+            lower.Contains("email_not_confirmed"))
+            return "يجب تأكيد البريد الإلكتروني قبل تسجيل الدخول.";
+
+        if (lower.Contains("user already registered") ||
+            lower.Contains("already registered") ||
+            lower.Contains("already exists"))
+            return "هذا البريد الإلكتروني مسجل مسبقاً.";
+
+        if (lower.Contains("password") && lower.Contains("weak"))
+            return "كلمة المرور ضعيفة. استخدم كلمة مرور أقوى.";
+
+        if (lower.Contains("rate limit") || lower.Contains("too many"))
+            return "تم تنفيذ محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.";
+
+        if (lower.Contains("network") || lower.Contains("timeout") || lower.Contains("connection"))
+            return "تعذر الاتصال بالخادم. تحقق من الإنترنت ثم حاول مرة أخرى.";
+
+        if (lower.Contains("token") && lower.Contains("expired"))
+            return "انتهت الجلسة. يرجى تسجيل الدخول من جديد.";
+
+        if (lower.Contains("invalid jwt"))
+            return "انتهت الجلسة أو أصبحت غير صالحة. يرجى تسجيل الدخول من جديد.";
+
+        return raw.StartsWith("{")
+            ? "تعذر إكمال العملية. تحقق من البيانات وحاول مرة أخرى."
+            : raw;
     }
 
     static SupabaseAuthenticationSession? ToSession(SupabaseAuthResponse? auth)
