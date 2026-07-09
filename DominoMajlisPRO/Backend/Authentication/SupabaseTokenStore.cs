@@ -6,6 +6,7 @@ public static class SupabaseTokenStore
     const string RefreshTokenKey = "supabase_refresh_token";
     const string UserIdKey = "supabase_user_id";
     const string EmailKey = "supabase_email";
+    const string UsernameKey = "supabase_username";
     const string NicknameKey = "supabase_nickname";
     const string ExpiresAtKey = "supabase_expires_at_utc";
 
@@ -15,6 +16,7 @@ public static class SupabaseTokenStore
         await SecureStorage.SetAsync(RefreshTokenKey, session.RefreshToken);
         await SecureStorage.SetAsync(UserIdKey, session.SupabaseUserId);
         await SecureStorage.SetAsync(EmailKey, session.Email);
+        await SecureStorage.SetAsync(UsernameKey, session.Username);
         await SecureStorage.SetAsync(NicknameKey, session.Nickname);
         await SecureStorage.SetAsync(ExpiresAtKey, session.ExpiresAtUtc.ToString("O"));
     }
@@ -25,6 +27,7 @@ public static class SupabaseTokenStore
         string refreshToken = await SecureStorage.GetAsync(RefreshTokenKey) ?? "";
         string userId = await SecureStorage.GetAsync(UserIdKey) ?? "";
         string email = await SecureStorage.GetAsync(EmailKey) ?? "";
+        string username = await SecureStorage.GetAsync(UsernameKey) ?? "";
         string nickname = await SecureStorage.GetAsync(NicknameKey) ?? "";
         string expiresAtValue = await SecureStorage.GetAsync(ExpiresAtKey) ?? "";
 
@@ -47,6 +50,7 @@ public static class SupabaseTokenStore
             RefreshToken = refreshToken,
             SupabaseUserId = userId,
             Email = email,
+            Username = username,
             Nickname = nickname,
             EmailConfirmed = true,
             ExpiresAtUtc = expiresAtUtc == default ? DateTime.UtcNow : expiresAtUtc
@@ -59,6 +63,7 @@ public static class SupabaseTokenStore
         SecureStorage.Remove(RefreshTokenKey);
         SecureStorage.Remove(UserIdKey);
         SecureStorage.Remove(EmailKey);
+        SecureStorage.Remove(UsernameKey);
         SecureStorage.Remove(NicknameKey);
         SecureStorage.Remove(ExpiresAtKey);
     }
