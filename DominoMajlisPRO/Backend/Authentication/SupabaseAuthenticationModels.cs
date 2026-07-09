@@ -31,6 +31,7 @@ public sealed class SupabaseAuthenticationSession
 {
     public string SupabaseUserId { get; init; } = "";
     public string Email { get; init; } = "";
+    public string Username { get; init; } = "";
     public string Nickname { get; init; } = "";
     public bool EmailConfirmed { get; init; }
     public string AccessToken { get; init; } = "";
@@ -105,6 +106,9 @@ sealed class SupabaseAuthUser
     [JsonPropertyName("user_metadata")]
     public Dictionary<string, JsonElement>? UserMetadata { get; set; }
 
+    public string GetUsername() =>
+        GetMetadataString("username") ?? "";
+
     public string GetNickname()
     {
         if (UserMetadata == null)
@@ -118,7 +122,7 @@ sealed class SupabaseAuthUser
 
     string? GetMetadataString(string key)
     {
-        if (!UserMetadata.TryGetValue(key, out var value))
+        if (UserMetadata == null || !UserMetadata.TryGetValue(key, out var value))
             return null;
 
         return value.ValueKind == JsonValueKind.String
