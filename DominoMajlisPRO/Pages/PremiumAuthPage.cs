@@ -8,6 +8,15 @@ namespace DominoMajlisPRO.Pages;
 
 public sealed class PremiumAuthPage : ContentPage
 {
+    static readonly string[] SecurityQuestions =
+    {
+        "ما اسم أول مقهى لعبت فيه الدومينو؟",
+        "ما اسم أقرب صديق دومينو لديك؟",
+        "ما المدينة التي بدأت فيها لعب الدومينو؟",
+        "ما اسم أول فريق دومينو لعبت معه؟",
+        "ما الكلمة السرية التي تختارها للتذكير؟"
+    };
+
     readonly Grid root;
     readonly VerticalStackLayout contentHost;
     readonly SupabaseAuthenticationService supabaseAuth = new();
@@ -19,13 +28,17 @@ public sealed class PremiumAuthPage : ContentPage
 
     Entry? registerUsernameEntry;
     Entry? registerNicknameEntry;
+    Entry? registerEmailEntry;
     Entry? registerPasswordEntry;
     Entry? registerConfirmPasswordEntry;
     Entry? registerAgeEntry;
     Picker? registerGenderPicker;
-    Entry? registerEmailEntry;
-    Entry? registerSecurityQuestionEntry;
-    Entry? registerSecurityAnswerEntry;
+    Picker? securityQuestion1Picker;
+    Picker? securityQuestion2Picker;
+    Picker? securityQuestion3Picker;
+    Entry? securityAnswer1Entry;
+    Entry? securityAnswer2Entry;
+    Entry? securityAnswer3Entry;
     CheckBox? ageCheckBox;
     CheckBox? privacyCheckBox;
     CheckBox? termsCheckBox;
@@ -89,7 +102,6 @@ public sealed class PremiumAuthPage : ContentPage
             return;
 
         var currentUser = await ApplicationUserService.GetCurrentUserAsync();
-
         if (currentUser.Role != ApplicationUserRole.Ghost)
             OpenMainPage();
     }
@@ -97,33 +109,9 @@ public sealed class PremiumAuthPage : ContentPage
     void ShowWelcome()
     {
         contentHost.Children.Clear();
-
-        contentHost.Children.Add(new Label
-        {
-            Text = "DOMINO MAJLIS PRO",
-            TextColor = Color.FromArgb("#D4AF37"),
-            FontSize = 26,
-            FontAttributes = FontAttributes.Bold,
-            HorizontalTextAlignment = TextAlignment.Center
-        });
-
-        contentHost.Children.Add(new Label
-        {
-            Text = "بوابة الهوية الآمنة",
-            TextColor = Colors.White,
-            FontSize = 18,
-            HorizontalTextAlignment = TextAlignment.Center
-        });
-
-        contentHost.Children.Add(new Label
-        {
-            Text = "تسجيل الدخول يتم باسم المستخدم، والبريد الإلكتروني مخصص للتأكيد والاسترداد فقط.",
-            TextColor = Color.FromArgb("#CFCFCF"),
-            FontSize = 13,
-            HorizontalTextAlignment = TextAlignment.Center,
-            LineBreakMode = LineBreakMode.WordWrap
-        });
-
+        contentHost.Children.Add(Title("DOMINO MAJLIS PRO"));
+        contentHost.Children.Add(Subtitle("بوابة الهوية الآمنة"));
+        contentHost.Children.Add(Info("تسجيل الدخول يتم باسم المستخدم. البريد الإلكتروني مخصص للتأكيد والاسترداد فقط."));
         contentHost.Children.Add(CreatePanel(new VerticalStackLayout
         {
             Spacing = 12,
@@ -134,20 +122,12 @@ public sealed class PremiumAuthPage : ContentPage
                 GhostButton("الدخول كضيف", async () => await ContinueAsGuestAsync())
             }
         }));
-
-        contentHost.Children.Add(new Label
-        {
-            Text = "+18 فقط • التطبيق لتنظيم وتوثيق نتائج الدومينو وليس للمراهنة أو القمار",
-            TextColor = Color.FromArgb("#AFAFAF"),
-            FontSize = 11,
-            HorizontalTextAlignment = TextAlignment.Center
-        });
+        contentHost.Children.Add(Info("+18 فقط • التطبيق لتنظيم وتوثيق نتائج الدومينو وليس للمراهنة أو القمار", 11));
     }
 
     void ShowLogin()
     {
         contentHost.Children.Clear();
-
         loginUsernameEntry = EntryField("Username اسم المستخدم");
         loginPasswordEntry = EntryField("كلمة السر", isPassword: true);
         loginErrorLabel = ErrorLabel();
@@ -159,99 +139,12 @@ public sealed class PremiumAuthPage : ContentPage
             Children =
             {
                 loginUsernameEntry,
+                Info("مثال: KingEsmat", 11),
                 loginPasswordEntry,
                 loginErrorLabel,
                 PrimaryButton("دخول", async () => await LoginAsync()),
-                SecondaryButton("نسيت كلمة المرور", ShowPasswordRecoveryOptions),
+                SecondaryButton("نسيت كلمة المرور؟", async () => await Navigation.PushAsync(new AccountRecoveryPage())),
                 GhostButton("الرجوع", ShowWelcome)
-            }
-        }));
-    }
-
-    void ShowPasswordRecoveryOptions()
-    {
-        contentHost.Children.Clear();
-
-        contentHost.Children.Add(Title("استعادة الحساب"));
-        contentHost.Children.Add(CreatePanel(new VerticalStackLayout
-        {
-            Spacing = 12,
-            Children =
-            {
-                new Label
-                {
-                    Text = "اختر طريقة الاستعادة المناسبة لحسابك.",
-                    TextColor = Color.FromArgb("#CFCFCF"),
-                    FontSize = 13,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    LineBreakMode = LineBreakMode.WordWrap
-                },
-                PrimaryButton("الاستعادة عبر البريد الإلكتروني", ShowPasswordRecoveryByEmail),
-                SecondaryButton("الاستعادة عبر Recovery Code", () => ShowRecoveryUnavailable("Recovery Code")),
-                SecondaryButton("الاستعادة عبر سؤال الأمان", () => ShowRecoveryUnavailable("سؤال الأمان")),
-                GhostButton("الرجوع", ShowLogin)
-            }
-        }));
-    }
-
-    void ShowRecoveryUnavailable(string method)
-    {
-        ShowMessagePanel(
-            "قيد التجهيز",
-            $"طريقة الاستعادة عبر {method} ستُفعّل في مرحلة الاسترداد التالية. استخدم البريد الإلكتروني الآن.",
-            "العودة",
-            ShowPasswordRecoveryOptions);
-    }
-
-    void ShowPasswordRecoveryByEmail()
-    {
-        contentHost.Children.Clear();
-
-        var emailEntry = EntryField("البريد الإلكتروني المسجل", keyboard: Keyboard.Email);
-        var errorLabel = ErrorLabel();
-
-        contentHost.Children.Add(Title("استعادة عبر البريد"));
-        contentHost.Children.Add(CreatePanel(new VerticalStackLayout
-        {
-            Spacing = 12,
-            Children =
-            {
-                emailEntry,
-                new Label
-                {
-                    Text = "سيتم إرسال رابط استعادة كلمة المرور إلى البريد الإلكتروني المسجل للحساب.",
-                    TextColor = Color.FromArgb("#CFCFCF"),
-                    FontSize = 11,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    LineBreakMode = LineBreakMode.WordWrap
-                },
-                errorLabel,
-                PrimaryButton("إرسال رابط الاستعادة", async () =>
-                {
-                    try
-                    {
-                        SetInlineError(errorLabel, "");
-                        var result = await supabaseAuth.SendPasswordResetAsync(emailEntry.Text ?? "");
-
-                        if (!result.IsSuccess)
-                        {
-                            SetInlineError(errorLabel, result.Message);
-                            return;
-                        }
-
-                        ShowMessagePanel(
-                            "تم الإرسال",
-                            result.Message,
-                            "العودة لتسجيل الدخول",
-                            ShowLogin);
-                    }
-                    catch (Exception ex)
-                    {
-                        SetInlineError(errorLabel, ex.Message);
-                    }
-                }),
-                SecondaryButton("طرق استعادة أخرى", ShowPasswordRecoveryOptions),
-                GhostButton("الرجوع", ShowLogin)
             }
         }));
     }
@@ -266,18 +159,13 @@ public sealed class PremiumAuthPage : ContentPage
         registerPasswordEntry = EntryField("كلمة السر القوية", isPassword: true);
         registerConfirmPasswordEntry = EntryField("تأكيد كلمة السر", isPassword: true);
         registerAgeEntry = EntryField("العمر", keyboard: Keyboard.Numeric);
-        registerGenderPicker = new Picker
-        {
-            Title = "الجنس",
-            TextColor = Colors.White,
-            TitleColor = Color.FromArgb("#AFAFAF"),
-            BackgroundColor = Color.FromArgb("#111111")
-        };
-        registerGenderPicker.Items.Add("ذكر");
-        registerGenderPicker.Items.Add("أنثى");
-        registerGenderPicker.Items.Add("أفضل عدم التحديد");
-        registerSecurityQuestionEntry = EntryField("سؤال الأمان المحلي");
-        registerSecurityAnswerEntry = EntryField("إجابة سؤال الأمان المحلي", isPassword: true);
+        registerGenderPicker = PickerField("الجنس", "ذكر", "أنثى", "أفضل عدم التحديد");
+        securityQuestion1Picker = PickerField("سؤال الأمان الأول", SecurityQuestions);
+        securityQuestion2Picker = PickerField("سؤال الأمان الثاني", SecurityQuestions);
+        securityQuestion3Picker = PickerField("سؤال الأمان الثالث", SecurityQuestions);
+        securityAnswer1Entry = EntryField("إجابة السؤال الأول", isPassword: true);
+        securityAnswer2Entry = EntryField("إجابة السؤال الثاني", isPassword: true);
+        securityAnswer3Entry = EntryField("إجابة السؤال الثالث", isPassword: true);
 
         ageCheckBox = ConsentBox();
         privacyCheckBox = ConsentBox();
@@ -304,18 +192,17 @@ public sealed class PremiumAuthPage : ContentPage
                     registerNicknameEntry,
                     registerEmailEntry,
                     registerPasswordEntry,
-                    new Label
-                    {
-                        Text = PremiumAccountAuthService.PasswordPolicyText,
-                        TextColor = Color.FromArgb("#BEBEBE"),
-                        FontSize = 11,
-                        HorizontalTextAlignment = TextAlignment.End
-                    },
+                    Info(PremiumAccountAuthService.PasswordPolicyText, 11),
                     registerConfirmPasswordEntry,
                     registerAgeEntry,
                     registerGenderPicker,
-                    registerSecurityQuestionEntry,
-                    registerSecurityAnswerEntry,
+                    Info("اختر 3 أسئلة أمان مختلفة. سيتم ربطها بنظام الاستعادة عند تفعيل جدول الحسابات السحابي الكامل.", 11),
+                    securityQuestion1Picker,
+                    securityAnswer1Entry,
+                    securityQuestion2Picker,
+                    securityAnswer2Entry,
+                    securityQuestion3Picker,
+                    securityAnswer3Entry,
                     LegalOpenButton(),
                     ConsentRow(ageCheckBox, "أؤكد أن عمري 18 سنة أو أكثر."),
                     ConsentRow(privacyCheckBox, "قرأت سياسة الخصوصية وأوافق عليها."),
@@ -334,7 +221,6 @@ public sealed class PremiumAuthPage : ContentPage
         try
         {
             SetLoginError("");
-
             string username = loginUsernameEntry?.Text?.Trim() ?? "";
             string password = loginPasswordEntry?.Text ?? "";
 
@@ -345,26 +231,20 @@ public sealed class PremiumAuthPage : ContentPage
             }
 
             string? email = await SupabaseAccountLinkService.ResolveEmailByUsernameAsync(username);
-
             if (string.IsNullOrWhiteSpace(email))
             {
-                SetLoginError("اسم المستخدم غير موجود على هذا الجهاز. استخدم الاستعادة عبر البريد أو أنشئ الحساب من جديد.");
+                SetLoginError("اسم المستخدم غير موجود على هذا الجهاز. استخدم مركز الاستعادة عبر البريد الإلكتروني.");
                 return;
             }
 
-            var result = await supabaseAuth.SignInAsync(
-                email,
-                password);
-
+            var result = await supabaseAuth.SignInAsync(email, password);
             if (!result.IsSuccess || result.Session == null)
             {
                 SetLoginError(result.Message);
                 return;
             }
 
-            await SupabaseAccountLinkService.EnsureLinkedApplicationUserAsync(
-                result.Session,
-                result.Session.Nickname);
+            await SupabaseAccountLinkService.EnsureLinkedApplicationUserAsync(result.Session, result.Session.Nickname);
             OpenMainPage();
         }
         catch (Exception ex)
@@ -384,10 +264,7 @@ public sealed class PremiumAuthPage : ContentPage
             string email = registerEmailEntry?.Text?.Trim() ?? "";
             string nickname = registerNicknameEntry?.Text?.Trim() ?? "";
 
-            await SupabaseAccountLinkService.RegisterPendingLinkAsync(
-                username,
-                email,
-                nickname);
+            await SupabaseAccountLinkService.RegisterPendingLinkAsync(username, email, nickname);
 
             var result = await supabaseAuth.SignUpAsync(
                 email,
@@ -420,14 +297,9 @@ public sealed class PremiumAuthPage : ContentPage
         string email = registerEmailEntry?.Text?.Trim() ?? "";
         string password = registerPasswordEntry?.Text ?? "";
         string confirm = registerConfirmPasswordEntry?.Text ?? "";
-        string securityQuestion = registerSecurityQuestionEntry?.Text?.Trim() ?? "";
-        string securityAnswer = registerSecurityAnswerEntry?.Text?.Trim() ?? "";
         int.TryParse(registerAgeEntry?.Text?.Trim(), out int age);
 
-        if (ageCheckBox?.IsChecked != true ||
-            privacyCheckBox?.IsChecked != true ||
-            termsCheckBox?.IsChecked != true ||
-            credentialsCheckBox?.IsChecked != true)
+        if (ageCheckBox?.IsChecked != true || privacyCheckBox?.IsChecked != true || termsCheckBox?.IsChecked != true || credentialsCheckBox?.IsChecked != true)
             throw new InvalidOperationException("يجب الموافقة على جميع بنود الحماية والاستخدام قبل إنشاء الحساب.");
 
         if (age < 18)
@@ -444,11 +316,8 @@ public sealed class PremiumAuthPage : ContentPage
         if (registerGenderPicker?.SelectedItem == null)
             throw new InvalidOperationException("اختر الجنس لإكمال إنشاء الحساب.");
 
-        if (string.IsNullOrWhiteSpace(securityQuestion) || securityQuestion.Length < 6)
-            throw new InvalidOperationException("سؤال الأمان المحلي مطلوب ويجب أن يكون واضحاً.");
-
-        if (string.IsNullOrWhiteSpace(securityAnswer) || securityAnswer.Length < 3)
-            throw new InvalidOperationException("إجابة سؤال الأمان المحلي مطلوبة ويجب ألا تقل عن 3 أحرف.");
+        if (!SecurityQuestionsAreValid())
+            throw new InvalidOperationException("اختر 3 أسئلة أمان مختلفة وأدخل إجابة لكل سؤال.");
 
         if (!string.Equals(password, confirm, StringComparison.Ordinal))
             throw new InvalidOperationException("كلمتا السر غير متطابقتين.");
@@ -457,14 +326,29 @@ public sealed class PremiumAuthPage : ContentPage
             throw new InvalidOperationException(PremiumAccountAuthService.PasswordPolicyText);
     }
 
+    bool SecurityQuestionsAreValid()
+    {
+        var selected = new[]
+        {
+            securityQuestion1Picker?.SelectedItem?.ToString() ?? "",
+            securityQuestion2Picker?.SelectedItem?.ToString() ?? "",
+            securityQuestion3Picker?.SelectedItem?.ToString() ?? ""
+        };
+
+        if (selected.Any(string.IsNullOrWhiteSpace) || selected.Distinct(StringComparer.Ordinal).Count() != 3)
+            return false;
+
+        return !string.IsNullOrWhiteSpace(securityAnswer1Entry?.Text) &&
+               !string.IsNullOrWhiteSpace(securityAnswer2Entry?.Text) &&
+               !string.IsNullOrWhiteSpace(securityAnswer3Entry?.Text);
+    }
+
     static void ValidateUsername(string username)
     {
         if (username.Length < 3 || username.Length > 32)
             throw new InvalidOperationException("اسم المستخدم يجب أن يكون بين 3 و32 حرفاً.");
 
-        bool valid = username.All(ch =>
-            char.IsLetterOrDigit(ch) || ch == '_' || ch == '-' || ch == '.');
-
+        bool valid = username.All(ch => char.IsLetterOrDigit(ch) || ch == '_' || ch == '-' || ch == '.');
         if (!valid)
             throw new InvalidOperationException("اسم المستخدم يسمح بالحروف والأرقام و . _ - فقط.");
 
@@ -477,17 +361,10 @@ public sealed class PremiumAuthPage : ContentPage
         if (string.IsNullOrWhiteSpace(password) || password.Length < 8)
             return false;
 
-        return password.Any(char.IsUpper) &&
-               password.Any(char.IsLower) &&
-               password.Any(char.IsDigit) &&
-               password.Any(ch => !char.IsLetterOrDigit(ch));
+        return password.Any(char.IsUpper) && password.Any(char.IsLower) && password.Any(char.IsDigit) && password.Any(ch => !char.IsLetterOrDigit(ch));
     }
 
-    void ShowMessagePanel(
-        string title,
-        string message,
-        string buttonText,
-        Action action)
+    void ShowMessagePanel(string title, string message, string buttonText, Action action)
     {
         contentHost.Children.Clear();
         contentHost.Children.Add(Title(title));
@@ -496,14 +373,7 @@ public sealed class PremiumAuthPage : ContentPage
             Spacing = 14,
             Children =
             {
-                new Label
-                {
-                    Text = message,
-                    TextColor = Colors.White,
-                    FontSize = 15,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    LineBreakMode = LineBreakMode.WordWrap
-                },
+                Info(message, 15),
                 PrimaryButton(buttonText, action)
             }
         }));
@@ -528,11 +398,7 @@ public sealed class PremiumAuthPage : ContentPage
             "المستخدم مسؤول بالكامل عن سرية بيانات تسجيل الدخول، ويعد أي نشاط يتم من خلال حسابه صادراً عنه ما لم يثبت وجود خلل تقني في التطبيق.\n\n" +
             "لا يتحمل المطور مسؤولية فقدان الحساب الناتج عن مشاركة كلمة السر أو الإهمال أو استخدام أجهزة غير آمنة.\n\n" +
             "يحظر استخدام التطبيق في نشاط مخالف للقانون أو الغش أو انتحال الشخصية، ويحتفظ المطور بحق تعليق الحسابات المخالفة.\n\n" +
-            "يحتفظ المطور بحق تعديل الشروط والسياسات عند الحاجة، ويعتبر استمرار استخدام التطبيق بعد التعديل موافقة عليه.\n\n" +
-            "في حال فقدان كلمة السر يمكن استخدام نظام استعادة الحساب عند توفره.\n\n" +
-            "لا يجمع التطبيق بيانات شخصية أكثر من اللازم لتشغيل الخدمات الأساسية.\n\n" +
-            "التطبيق مخصص لإدارة وتنظيم وتوثيق نتائج مباريات الدومينو فقط، ولا يقدم خدمات مراهنة أو قمار أو جوائز مالية.\n\n" +
-            "يتم توفير التطبيق كما هو، ويبذل المطور أفضل الجهود لضمان الاستقرار دون ضمان خلوه من جميع الأخطاء أو انقطاع الخدمة.",
+            "التطبيق مخصص لإدارة وتنظيم وتوثيق نتائج مباريات الدومينو فقط، ولا يقدم خدمات مراهنة أو قمار أو جوائز مالية.",
             "فهمت");
     });
 
@@ -541,13 +407,26 @@ public sealed class PremiumAuthPage : ContentPage
         if (saveAccountButton == null)
             return;
 
-        bool enabled = ageCheckBox?.IsChecked == true &&
-                       privacyCheckBox?.IsChecked == true &&
-                       termsCheckBox?.IsChecked == true &&
-                       credentialsCheckBox?.IsChecked == true;
-
+        bool enabled = ageCheckBox?.IsChecked == true && privacyCheckBox?.IsChecked == true && termsCheckBox?.IsChecked == true && credentialsCheckBox?.IsChecked == true;
         saveAccountButton.IsEnabled = enabled;
         saveAccountButton.Opacity = enabled ? 1 : 0.45;
+    }
+
+    static Picker PickerField(string title, params string[] items)
+    {
+        var picker = new Picker
+        {
+            Title = title,
+            TextColor = Colors.White,
+            TitleColor = Color.FromArgb("#AFAFAF"),
+            BackgroundColor = Color.FromArgb("#111111"),
+            HorizontalTextAlignment = TextAlignment.End
+        };
+
+        foreach (var item in items)
+            picker.Items.Add(item);
+
+        return picker;
     }
 
     static Label Title(string text) => new()
@@ -557,6 +436,23 @@ public sealed class PremiumAuthPage : ContentPage
         FontSize = 24,
         FontAttributes = FontAttributes.Bold,
         HorizontalTextAlignment = TextAlignment.Center
+    };
+
+    static Label Subtitle(string text) => new()
+    {
+        Text = text,
+        TextColor = Colors.White,
+        FontSize = 18,
+        HorizontalTextAlignment = TextAlignment.Center
+    };
+
+    static Label Info(string text, double size = 13) => new()
+    {
+        Text = text,
+        TextColor = Color.FromArgb("#CFCFCF"),
+        FontSize = size,
+        HorizontalTextAlignment = TextAlignment.Center,
+        LineBreakMode = LineBreakMode.WordWrap
     };
 
     static Border CreatePanel(View content) => new()
