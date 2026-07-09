@@ -186,11 +186,26 @@ async function findUserByUsernameAndEmail(admin: any, username: string, email: s
 
     const user = data?.users?.find((item: any) => {
       const metadataUsername = normalize(item?.user_metadata?.username);
+      const metadataNickname = normalize(item?.user_metadata?.nickname);
+      const metadataDisplayName = normalize(item?.user_metadata?.display_name);
       const itemEmail = normalizeEmail(item?.email);
-      return metadataUsername === username && itemEmail === email;
+      const identityMatches =
+        metadataUsername === username ||
+        metadataNickname === username ||
+        metadataDisplayName === username;
+
+      return identityMatches && itemEmail === email;
     });
 
-    if (user) return user;
+    if (user) {
+      console.log("account-recovery:identity_match", {
+        matchedUsername: Boolean(normalize(user?.user_metadata?.username) === username),
+        matchedNickname: Boolean(normalize(user?.user_metadata?.nickname) === username),
+        matchedDisplayName: Boolean(normalize(user?.user_metadata?.display_name) === username),
+      });
+      return user;
+    }
+
     if (!data?.users || data.users.length < perPage) return null;
     page++;
   }
