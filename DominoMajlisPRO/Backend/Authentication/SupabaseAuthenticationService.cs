@@ -104,19 +104,21 @@ public sealed class SupabaseAuthenticationService
         if (string.IsNullOrWhiteSpace(refreshToken))
             return SupabaseAuthenticationResult.Failure("انتهت الجلسة. يرجى تسجيل الدخول من جديد.");
 
+        refreshToken = refreshToken.Trim();
+
         var response = await SendAuthRequestAsync(
             HttpMethod.Post,
             "/auth/v1/token?grant_type=refresh_token",
             new
             {
-                refresh_token = refreshToken.Trim()
+                refresh_token = refreshToken
             });
 
         if (!response.IsSuccessStatusCode)
             return SupabaseAuthenticationResult.Failure(await ReadErrorAsync(response));
 
         var refresh = await ReadRefreshResponseAsync(response);
-        var session = ToSession(refresh, fallbackNickname);
+        var session = ToSession(refresh, fallbackNickname, refreshToken);
 
         if (session == null)
             return SupabaseAuthenticationResult.Failure("تعذر تجديد جلسة Supabase.");
@@ -322,7 +324,8 @@ public sealed class SupabaseAuthenticationService
 
     static SupabaseAuthenticationSession? ToSession(
         SupabaseRefreshResponse? refresh,
-        string fallbackNickname)
+        string fallbackNickname,
+        string fallbackRefreshToken)
     {
         if (refresh?.User == null)
             return null;
@@ -331,6 +334,10 @@ public sealed class SupabaseAuthenticationService
         if (string.IsNullOrWhiteSpace(nickname))
             nickname = fallbackNickname.Trim();
 
+        string nextRefreshToken = string.IsNullOrWhiteSpace(refresh.RefreshToken)
+            ? fallbackRefreshToken.Trim()
+            : refresh.RefreshToken.Trim();
+
         return new SupabaseAuthenticationSession
         {
             SupabaseUserId = refresh.User.Id,
@@ -338,9 +345,7 @@ public sealed class SupabaseAuthenticationService
             Nickname = nickname,
             EmailConfirmed = !string.IsNullOrWhiteSpace(refresh.User.EmailConfirmedAt),
             AccessToken = refresh.AccessToken,
-            RefreshToken = string.IsNullOrWhiteSpace(refresh.RefreshToken)
-                ? ""
-                : refresh.RefreshToken,
+            RefreshToken = nextRefreshToken,
             ExpiresAtUtc = DateTime.UtcNow.AddSeconds(Math.Max(refresh.ExpiresIn, 0))
         };
     }
