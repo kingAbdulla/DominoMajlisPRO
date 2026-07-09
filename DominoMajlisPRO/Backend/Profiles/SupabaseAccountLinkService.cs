@@ -16,6 +16,7 @@ public static class SupabaseAccountLinkService
     {
         public string SupabaseUserId { get; set; } = "";
         public string Email { get; set; } = "";
+        public string Username { get; set; } = "";
         public string ApplicationUserId { get; set; } = "";
         public string PlayerId { get; set; } = "";
         public string Nickname { get; set; } = "";
@@ -36,6 +37,22 @@ public static class SupabaseAccountLinkService
     static string FilePath =>
         Path.Combine(FileSystem.AppDataDirectory, FileName);
 
+    public static async Task<string?> ResolveEmailByUsernameAsync(string username)
+    {
+        username = username.Trim();
+
+        if (string.IsNullOrWhiteSpace(username))
+            return null;
+
+        var state = await LoadAsync();
+        var link = state.Links.FirstOrDefault(item =>
+            Same(item.Username, username));
+
+        return string.IsNullOrWhiteSpace(link?.Email)
+            ? null
+            : link.Email.Trim();
+    }
+
     public static async Task<ApplicationUserModel> EnsureLinkedApplicationUserAsync(
         SupabaseAuthenticationSession session,
         string? preferredNickname = null)
@@ -53,6 +70,8 @@ public static class SupabaseAccountLinkService
             if (link != null && !string.IsNullOrWhiteSpace(link.ApplicationUserId))
             {
                 link.Email = session.Email.Trim();
+                link.Username = session.Username.Trim();
+                link.Nickname = BuildNickname(session.Email, preferredNickname);
                 link.LastLoginAt = DateTime.UtcNow;
                 await SaveAsync(state);
 
@@ -67,6 +86,7 @@ public static class SupabaseAccountLinkService
             {
                 SupabaseUserId = session.SupabaseUserId.Trim(),
                 Email = session.Email.Trim(),
+                Username = session.Username.Trim(),
                 ApplicationUserId = user.ApplicationUserId,
                 PlayerId = user.PlayerId,
                 Nickname = user.DisplayName,
@@ -76,6 +96,55 @@ public static class SupabaseAccountLinkService
 
             await SaveAsync(state);
             return user;
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
+    public static async Task RegisterPendingLinkAsync(
+        string username,
+        string email,
+        string nickname)
+    {
+        username = username.Trim();
+        email = email.Trim();
+        nickname = nickname.Trim();
+
+        if (string.IsNullOrWhiteSpace(username) ||
+            string.IsNullOrWhiteSpace(email))
+        {
+            return;
+        }
+
+        await Gate.WaitAsync();
+        try
+        {
+            var state = await LoadAsync();
+            var existing = state.Links.FirstOrDefault(item =>
+                Same(item.Username, username) || Same(item.Email, email));
+
+            if (existing == null)
+            {
+                state.Links.Add(new SupabaseAccountLink
+                {
+                    Email = email,
+                    Username = username,
+                    Nickname = nickname,
+                    CreatedAt = DateTime.UtcNow,
+                    LastLoginAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                existing.Email = email;
+                existing.Username = username;
+                existing.Nickname = nickname;
+                existing.LastLoginAt = DateTime.UtcNow;
+            }
+
+            await SaveAsync(state);
         }
         finally
         {
