@@ -80,7 +80,13 @@ serve(async (req) => {
 
       if (insertError) {
         console.error("account-recovery:otp_insert_failed", insertError);
-        return json({ success: false, message: "تعذر إنشاء رمز الاسترداد." }, 500);
+        return json(
+          {
+            success: false,
+            message: `تعذر إنشاء رمز الاسترداد: ${insertError.code ?? "NO_CODE"} - ${insertError.message ?? "NO_MESSAGE"}`,
+          },
+          500,
+        );
       }
 
       await sendOtpEmail(email, username, otp);
