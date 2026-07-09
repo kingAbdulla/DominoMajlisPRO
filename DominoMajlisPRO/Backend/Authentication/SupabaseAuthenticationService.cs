@@ -27,11 +27,13 @@ public sealed class SupabaseAuthenticationService
     public async Task<SupabaseAuthenticationResult> SignUpAsync(
         string email,
         string password,
+        string username,
         string nickname)
     {
         if (!SupabaseBackendConfiguration.IsConfigured)
             return SupabaseAuthenticationResult.Failure("Supabase غير مهيأ داخل التطبيق.");
 
+        username = username.Trim();
         nickname = nickname.Trim();
 
         var response = await SendAuthRequestAsync(
@@ -43,6 +45,7 @@ public sealed class SupabaseAuthenticationService
                 password,
                 data = new
                 {
+                    username,
                     nickname,
                     display_name = nickname
                 }
@@ -192,6 +195,7 @@ public sealed class SupabaseAuthenticationService
             {
                 SupabaseUserId = user.Id,
                 Email = user.Email,
+                Username = user.GetUsername(),
                 Nickname = user.GetNickname(),
                 EmailConfirmed = !string.IsNullOrWhiteSpace(user.EmailConfirmedAt),
                 AccessToken = accessToken,
@@ -314,6 +318,7 @@ public sealed class SupabaseAuthenticationService
         {
             SupabaseUserId = auth.User.Id,
             Email = auth.User.Email,
+            Username = auth.User.GetUsername(),
             Nickname = auth.User.GetNickname(),
             EmailConfirmed = !string.IsNullOrWhiteSpace(auth.User.EmailConfirmedAt),
             AccessToken = auth.AccessToken,
@@ -342,6 +347,7 @@ public sealed class SupabaseAuthenticationService
         {
             SupabaseUserId = refresh.User.Id,
             Email = refresh.User.Email,
+            Username = refresh.User.GetUsername(),
             Nickname = nickname,
             EmailConfirmed = !string.IsNullOrWhiteSpace(refresh.User.EmailConfirmedAt),
             AccessToken = refresh.AccessToken,
