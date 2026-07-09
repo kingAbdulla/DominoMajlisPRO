@@ -13,10 +13,11 @@ public sealed class PremiumAuthPage : ContentPage
     readonly SupabaseAuthenticationService supabaseAuth = new();
     bool checkedActiveSession;
 
-    Entry? loginEmailEntry;
+    Entry? loginUsernameEntry;
     Entry? loginPasswordEntry;
     Label? loginErrorLabel;
 
+    Entry? registerUsernameEntry;
     Entry? registerNicknameEntry;
     Entry? registerPasswordEntry;
     Entry? registerConfirmPasswordEntry;
@@ -116,7 +117,7 @@ public sealed class PremiumAuthPage : ContentPage
 
         contentHost.Children.Add(new Label
         {
-            Text = "التسجيل وتسجيل الدخول يتمان الآن عبر Supabase مع تأكيد البريد الإلكتروني.",
+            Text = "تسجيل الدخول يتم باسم المستخدم، والبريد الإلكتروني مخصص للتأكيد والاسترداد فقط.",
             TextColor = Color.FromArgb("#CFCFCF"),
             FontSize = 13,
             HorizontalTextAlignment = TextAlignment.Center,
@@ -147,7 +148,7 @@ public sealed class PremiumAuthPage : ContentPage
     {
         contentHost.Children.Clear();
 
-        loginEmailEntry = EntryField("البريد الإلكتروني Email", keyboard: Keyboard.Email);
+        loginUsernameEntry = EntryField("Username اسم المستخدم");
         loginPasswordEntry = EntryField("كلمة السر", isPassword: true);
         loginErrorLabel = ErrorLabel();
 
@@ -157,24 +158,59 @@ public sealed class PremiumAuthPage : ContentPage
             Spacing = 12,
             Children =
             {
-                loginEmailEntry,
+                loginUsernameEntry,
                 loginPasswordEntry,
                 loginErrorLabel,
                 PrimaryButton("دخول", async () => await LoginAsync()),
-                SecondaryButton("نسيت كلمة المرور", ShowPasswordRecovery),
+                SecondaryButton("نسيت كلمة المرور", ShowPasswordRecoveryOptions),
                 GhostButton("الرجوع", ShowWelcome)
             }
         }));
     }
 
-    void ShowPasswordRecovery()
+    void ShowPasswordRecoveryOptions()
     {
         contentHost.Children.Clear();
 
-        var emailEntry = EntryField("البريد الإلكتروني Email", keyboard: Keyboard.Email);
+        contentHost.Children.Add(Title("استعادة الحساب"));
+        contentHost.Children.Add(CreatePanel(new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
+            {
+                new Label
+                {
+                    Text = "اختر طريقة الاستعادة المناسبة لحسابك.",
+                    TextColor = Color.FromArgb("#CFCFCF"),
+                    FontSize = 13,
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    LineBreakMode = LineBreakMode.WordWrap
+                },
+                PrimaryButton("الاستعادة عبر البريد الإلكتروني", ShowPasswordRecoveryByEmail),
+                SecondaryButton("الاستعادة عبر Recovery Code", () => ShowRecoveryUnavailable("Recovery Code")),
+                SecondaryButton("الاستعادة عبر سؤال الأمان", () => ShowRecoveryUnavailable("سؤال الأمان")),
+                GhostButton("الرجوع", ShowLogin)
+            }
+        }));
+    }
+
+    void ShowRecoveryUnavailable(string method)
+    {
+        ShowMessagePanel(
+            "قيد التجهيز",
+            $"طريقة الاستعادة عبر {method} ستُفعّل في مرحلة الاسترداد التالية. استخدم البريد الإلكتروني الآن.",
+            "العودة",
+            ShowPasswordRecoveryOptions);
+    }
+
+    void ShowPasswordRecoveryByEmail()
+    {
+        contentHost.Children.Clear();
+
+        var emailEntry = EntryField("البريد الإلكتروني المسجل", keyboard: Keyboard.Email);
         var errorLabel = ErrorLabel();
 
-        contentHost.Children.Add(Title("استعادة كلمة المرور"));
+        contentHost.Children.Add(Title("استعادة عبر البريد"));
         contentHost.Children.Add(CreatePanel(new VerticalStackLayout
         {
             Spacing = 12,
@@ -183,7 +219,7 @@ public sealed class PremiumAuthPage : ContentPage
                 emailEntry,
                 new Label
                 {
-                    Text = "سيتم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني عبر Supabase.",
+                    Text = "سيتم إرسال رابط استعادة كلمة المرور إلى البريد الإلكتروني المسجل للحساب.",
                     TextColor = Color.FromArgb("#CFCFCF"),
                     FontSize = 11,
                     HorizontalTextAlignment = TextAlignment.Center,
@@ -214,7 +250,8 @@ public sealed class PremiumAuthPage : ContentPage
                         SetInlineError(errorLabel, ex.Message);
                     }
                 }),
-                SecondaryButton("الرجوع", ShowLogin)
+                SecondaryButton("طرق استعادة أخرى", ShowPasswordRecoveryOptions),
+                GhostButton("الرجوع", ShowLogin)
             }
         }));
     }
@@ -223,8 +260,9 @@ public sealed class PremiumAuthPage : ContentPage
     {
         contentHost.Children.Clear();
 
-        registerNicknameEntry = EntryField("الاسم الظاهر User Nickname");
-        registerEmailEntry = EntryField("البريد الإلكتروني Email", keyboard: Keyboard.Email);
+        registerUsernameEntry = EntryField("Username اسم المستخدم");
+        registerNicknameEntry = EntryField("User Nickname الاسم الظاهر");
+        registerEmailEntry = EntryField("البريد الإلكتروني للاسترداد والتأكيد", keyboard: Keyboard.Email);
         registerPasswordEntry = EntryField("كلمة السر القوية", isPassword: true);
         registerConfirmPasswordEntry = EntryField("تأكيد كلمة السر", isPassword: true);
         registerAgeEntry = EntryField("العمر", keyboard: Keyboard.Numeric);
@@ -262,6 +300,7 @@ public sealed class PremiumAuthPage : ContentPage
                 Spacing = 12,
                 Children =
                 {
+                    registerUsernameEntry,
                     registerNicknameEntry,
                     registerEmailEntry,
                     registerPasswordEntry,
@@ -296,9 +335,26 @@ public sealed class PremiumAuthPage : ContentPage
         {
             SetLoginError("");
 
+            string username = loginUsernameEntry?.Text?.Trim() ?? "";
+            string password = loginPasswordEntry?.Text ?? "";
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                SetLoginError("أدخل اسم المستخدم.");
+                return;
+            }
+
+            string? email = await SupabaseAccountLinkService.ResolveEmailByUsernameAsync(username);
+
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                SetLoginError("اسم المستخدم غير موجود على هذا الجهاز. استخدم الاستعادة عبر البريد أو أنشئ الحساب من جديد.");
+                return;
+            }
+
             var result = await supabaseAuth.SignInAsync(
-                loginEmailEntry?.Text ?? "",
-                loginPasswordEntry?.Text ?? "");
+                email,
+                password);
 
             if (!result.IsSuccess || result.Session == null)
             {
@@ -324,10 +380,20 @@ public sealed class PremiumAuthPage : ContentPage
             SetRegisterError("");
             ValidateRegistrationInput();
 
+            string username = registerUsernameEntry?.Text?.Trim() ?? "";
+            string email = registerEmailEntry?.Text?.Trim() ?? "";
+            string nickname = registerNicknameEntry?.Text?.Trim() ?? "";
+
+            await SupabaseAccountLinkService.RegisterPendingLinkAsync(
+                username,
+                email,
+                nickname);
+
             var result = await supabaseAuth.SignUpAsync(
-                registerEmailEntry?.Text ?? "",
+                email,
                 registerPasswordEntry?.Text ?? "",
-                registerNicknameEntry?.Text ?? "");
+                username,
+                nickname);
 
             if (!result.IsSuccess)
             {
@@ -337,7 +403,7 @@ public sealed class PremiumAuthPage : ContentPage
 
             ShowMessagePanel(
                 "تم إنشاء الحساب",
-                "تم إرسال رسالة تأكيد إلى بريدك الإلكتروني. لن تتمكن من تسجيل الدخول حتى تؤكد البريد.",
+                "تم إرسال رسالة تأكيد إلى بريدك الإلكتروني. بعد تأكيد البريد يمكنك تسجيل الدخول باسم المستخدم وليس بالبريد.",
                 "العودة لتسجيل الدخول",
                 ShowLogin);
         }
@@ -349,6 +415,7 @@ public sealed class PremiumAuthPage : ContentPage
 
     void ValidateRegistrationInput()
     {
+        string username = registerUsernameEntry?.Text?.Trim() ?? "";
         string nickname = registerNicknameEntry?.Text?.Trim() ?? "";
         string email = registerEmailEntry?.Text?.Trim() ?? "";
         string password = registerPasswordEntry?.Text ?? "";
@@ -365,6 +432,8 @@ public sealed class PremiumAuthPage : ContentPage
 
         if (age < 18)
             throw new InvalidOperationException("التطبيق مخصص لمن هم بعمر 18 سنة أو أكثر فقط.");
+
+        ValidateUsername(username);
 
         if (string.IsNullOrWhiteSpace(nickname) || nickname.Length > 40)
             throw new InvalidOperationException("الاسم الظاهر مطلوب ويجب ألا يتجاوز 40 حرفاً.");
@@ -386,6 +455,21 @@ public sealed class PremiumAuthPage : ContentPage
 
         if (!IsStrongPassword(password))
             throw new InvalidOperationException(PremiumAccountAuthService.PasswordPolicyText);
+    }
+
+    static void ValidateUsername(string username)
+    {
+        if (username.Length < 3 || username.Length > 32)
+            throw new InvalidOperationException("اسم المستخدم يجب أن يكون بين 3 و32 حرفاً.");
+
+        bool valid = username.All(ch =>
+            char.IsLetterOrDigit(ch) || ch == '_' || ch == '-' || ch == '.');
+
+        if (!valid)
+            throw new InvalidOperationException("اسم المستخدم يسمح بالحروف والأرقام و . _ - فقط.");
+
+        if (username.Contains('@', StringComparison.Ordinal))
+            throw new InvalidOperationException("اسم المستخدم لا يكون بريداً إلكترونياً.");
     }
 
     static bool IsStrongPassword(string password)
