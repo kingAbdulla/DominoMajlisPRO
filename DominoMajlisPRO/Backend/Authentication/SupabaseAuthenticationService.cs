@@ -94,6 +94,51 @@ public sealed class SupabaseAuthenticationService
         return SupabaseAuthenticationResult.Success("تم تسجيل الدخول بنجاح.", session);
     }
 
+    public async Task<SupabaseAuthenticationResult> RefreshSessionAsync(
+        string refreshToken,
+        string fallbackNickname = "")
+    {
+        if (!SupabaseBackendConfiguration.IsConfigured)
+            return SupabaseAuthenticationResult.Failure("Supabase غير مهيأ داخل التطبيق.");
+
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return SupabaseAuthenticationResult.Failure("انتهت الجلسة. يرجى تسجيل الدخول من جديد.");
+
+        var response = await SendAuthRequestAsync(
+            HttpMethod.Post,
+            "/auth/v1/token?grant_type=refresh_token",
+            new
+            {
+                refresh_token = refreshToken.Trim()
+            });
+
+        if (!response.IsSuccessStatusCode)
+            return SupabaseAuthenticationResult.Failure(await ReadErrorAsync(response));
+
+        var refresh = await ReadRefreshResponseAsync(response);
+        var session = ToSession(refresh, fallbackNickname);
+
+        if (session == null)
+            return SupabaseAuthenticationResult.Failure("تعذر تجديد جلسة Supabase.");
+
+        await SupabaseTokenStore.SaveAsync(session);
+        return SupabaseAuthenticationResult.Success("تم تجديد الجلسة.", session);
+    }
+
+    public async Task<SupabaseAuthenticationResult> EnsureFreshSessionAsync(
+        SupabaseAuthenticationSession session)
+    {
+        if (session.ExpiresAtUtc > DateTime.UtcNow.AddMinutes(2) &&
+            !string.IsNullOrWhiteSpace(session.AccessToken))
+        {
+            return SupabaseAuthenticationResult.Success("الجلسة صالحة.", session);
+        }
+
+        return await RefreshSessionAsync(
+            session.RefreshToken,
+            session.Nickname);
+    }
+
     public async Task<SupabaseAuthenticationResult> SendPasswordResetAsync(string email)
     {
         if (!SupabaseBackendConfiguration.IsConfigured)
@@ -138,8 +183,19 @@ public sealed class SupabaseAuthenticationService
         if (!response.IsSuccessStatusCode)
             return SupabaseAuthenticationResult.Failure(await ReadErrorAsync(response));
 
-        var auth = await ReadAuthResponseAsync(response);
-        var session = ToSession(auth);
+        var user = await ReadUserResponseAsync(response);
+        var session = user == null
+            ? null
+            : new SupabaseAuthenticationSession
+            {
+                SupabaseUserId = user.Id,
+                Email = user.Email,
+                Nickname = user.GetNickname(),
+                EmailConfirmed = !string.IsNullOrWhiteSpace(user.EmailConfirmedAt),
+                AccessToken = accessToken,
+                RefreshToken = "",
+                ExpiresAtUtc = DateTime.UtcNow
+            };
 
         return SupabaseAuthenticationResult.Success(
             "تم تحديث الاسم الظاهر بنجاح.",
@@ -210,6 +266,26 @@ public sealed class SupabaseAuthenticationService
         return JsonSerializer.Deserialize<SupabaseAuthResponse>(json, JsonOptions);
     }
 
+    static async Task<SupabaseRefreshResponse?> ReadRefreshResponseAsync(HttpResponseMessage response)
+    {
+        string json = await response.Content.ReadAsStringAsync();
+
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        return JsonSerializer.Deserialize<SupabaseRefreshResponse>(json, JsonOptions);
+    }
+
+    static async Task<SupabaseAuthUser?> ReadUserResponseAsync(HttpResponseMessage response)
+    {
+        string json = await response.Content.ReadAsStringAsync();
+
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        return JsonSerializer.Deserialize<SupabaseAuthUserResponse>(json, JsonOptions)?.ToUser();
+    }
+
     static async Task<string> ReadErrorAsync(HttpResponseMessage response)
     {
         string json = await response.Content.ReadAsStringAsync();
@@ -241,6 +317,31 @@ public sealed class SupabaseAuthenticationService
             AccessToken = auth.AccessToken,
             RefreshToken = auth.RefreshToken,
             ExpiresAtUtc = DateTime.UtcNow.AddSeconds(Math.Max(auth.ExpiresIn, 0))
+        };
+    }
+
+    static SupabaseAuthenticationSession? ToSession(
+        SupabaseRefreshResponse? refresh,
+        string fallbackNickname)
+    {
+        if (refresh?.User == null)
+            return null;
+
+        string nickname = refresh.User.GetNickname();
+        if (string.IsNullOrWhiteSpace(nickname))
+            nickname = fallbackNickname.Trim();
+
+        return new SupabaseAuthenticationSession
+        {
+            SupabaseUserId = refresh.User.Id,
+            Email = refresh.User.Email,
+            Nickname = nickname,
+            EmailConfirmed = !string.IsNullOrWhiteSpace(refresh.User.EmailConfirmedAt),
+            AccessToken = refresh.AccessToken,
+            RefreshToken = string.IsNullOrWhiteSpace(refresh.RefreshToken)
+                ? ""
+                : refresh.RefreshToken,
+            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(Math.Max(refresh.ExpiresIn, 0))
         };
     }
 }
