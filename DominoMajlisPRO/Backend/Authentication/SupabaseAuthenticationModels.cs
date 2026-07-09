@@ -53,6 +53,44 @@ sealed class SupabaseAuthResponse
     public SupabaseAuthUser? User { get; set; }
 }
 
+sealed class SupabaseRefreshResponse
+{
+    [JsonPropertyName("access_token")]
+    public string AccessToken { get; set; } = "";
+
+    [JsonPropertyName("refresh_token")]
+    public string RefreshToken { get; set; } = "";
+
+    [JsonPropertyName("expires_in")]
+    public int ExpiresIn { get; set; }
+
+    [JsonPropertyName("user")]
+    public SupabaseAuthUser? User { get; set; }
+}
+
+sealed class SupabaseAuthUserResponse
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = "";
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = "";
+
+    [JsonPropertyName("email_confirmed_at")]
+    public string? EmailConfirmedAt { get; set; }
+
+    [JsonPropertyName("user_metadata")]
+    public Dictionary<string, JsonElement>? UserMetadata { get; set; }
+
+    public SupabaseAuthUser ToUser() => new()
+    {
+        Id = Id,
+        Email = Email,
+        EmailConfirmedAt = EmailConfirmedAt,
+        UserMetadata = UserMetadata
+    };
+}
+
 sealed class SupabaseAuthUser
 {
     [JsonPropertyName("id")]
