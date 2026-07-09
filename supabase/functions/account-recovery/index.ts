@@ -22,6 +22,7 @@ serve(async (req) => {
 
   try {
     if (req.method !== "POST") {
+      console.warn("account-recovery:invalid_method", req.method);
       return json({ success: false, message: "Method not allowed" }, 405);
     }
 
@@ -30,7 +31,14 @@ serve(async (req) => {
     const username = normalize(body.username);
     const email = normalizeEmail(body.email);
 
+    console.log("account-recovery:request", {
+      action,
+      username,
+      emailDomain: email.includes("@") ? email.split("@")[1] : "invalid",
+    });
+
     if (!username || !email) {
+      console.warn("account-recovery:missing_identity_fields");
       return json({ success: false, message: "اسم المستخدم والبريد الإلكتروني مطلوبان." }, 400);
     }
 
@@ -42,16 +50,25 @@ serve(async (req) => {
 
     const user = await findUserByUsernameAndEmail(admin, username, email);
     if (!user) {
-      // Do not reveal whether an account exists.
+      console.warn("account-recovery:user_not_found_or_metadata_mismatch", {
+        username,
+        emailDomain: email.includes("@") ? email.split("@")[1] : "invalid",
+      });
       return json({ success: true, message: "إذا كانت البيانات صحيحة فسيتم إرسال رمز التحقق." });
     }
+
+    console.log("account-recovery:user_verified", {
+      username,
+      userId: user.id,
+      emailConfirmed: Boolean(user.email_confirmed_at),
+    });
 
     if (action === "request_email_otp") {
       const otp = generateOtp();
       const otpHash = await sha256(`${username}:${email}:${otp}:${mustEnv("ACCOUNT_RECOVERY_OTP_PEPPER")}`);
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-      await admin
+      const { error: insertError } = await admin
         .from("account_recovery_otps")
         .insert({
           username,
@@ -61,7 +78,13 @@ serve(async (req) => {
           expires_at: expiresAt,
         });
 
+      if (insertError) {
+        console.error("account-recovery:otp_insert_failed", insertError);
+        return json({ success: false, message: "تعذر إنشاء رمز الاسترداد." }, 500);
+      }
+
       await sendOtpEmail(email, username, otp);
+      console.log("account-recovery:otp_email_sent", { username });
 
       return json({ success: true, message: "تم إرسال رمز التحقق إلى البريد الإلكتروني." });
     }
@@ -71,10 +94,12 @@ serve(async (req) => {
       const newPassword = body.new_password ?? "";
 
       if (!isStrongPassword(newPassword)) {
+        console.warn("account-recovery:weak_new_password", { username });
         return json({ success: false, message: "كلمة المرور الجديدة لا تطابق شروط القوة." }, 400);
       }
 
       if (!otp || otp.length !== 6) {
+        console.warn("account-recovery:invalid_otp_format", { username });
         return json({ success: false, message: "رمز التحقق غير صالح." }, 400);
       }
 
@@ -90,23 +115,28 @@ serve(async (req) => {
         .limit(1);
 
       if (error) {
+        console.error("account-recovery:otp_lookup_failed", error);
         return json({ success: false, message: "تعذر التحقق من الرمز." }, 500);
       }
 
       const row = rows?.[0];
       if (!row) {
+        console.warn("account-recovery:otp_not_found", { username });
         return json({ success: false, message: "رمز التحقق غير صحيح." }, 400);
       }
 
       if (row.consumed_at) {
+        console.warn("account-recovery:otp_already_consumed", { username });
         return json({ success: false, message: "تم استخدام هذا الرمز مسبقاً." }, 400);
       }
 
       if (new Date(row.expires_at).getTime() < Date.now()) {
+        console.warn("account-recovery:otp_expired", { username });
         return json({ success: false, message: "انتهت صلاحية رمز التحقق." }, 400);
       }
 
       if ((row.attempts ?? 0) >= (row.max_attempts ?? 5)) {
+        console.warn("account-recovery:otp_attempts_exceeded", { username });
         return json({ success: false, message: "تم تجاوز عدد المحاولات المسموح." }, 429);
       }
 
@@ -120,6 +150,7 @@ serve(async (req) => {
       });
 
       if (updateError) {
+        console.error("account-recovery:password_update_failed", updateError);
         return json({ success: false, message: "تعذر تحديث كلمة المرور." }, 500);
       }
 
@@ -128,12 +159,14 @@ serve(async (req) => {
         .update({ consumed_at: new Date().toISOString() })
         .eq("id", row.id);
 
+      console.log("account-recovery:password_reset_success", { username, userId: user.id });
       return json({ success: true, message: "تم تحديث كلمة المرور بنجاح." });
     }
 
+    console.warn("account-recovery:unknown_action", { action });
     return json({ success: false, message: "أمر غير معروف." }, 400);
   } catch (err) {
-    console.error(err);
+    console.error("account-recovery:unhandled_error", err);
     return json({ success: false, message: "تعذر تنفيذ عملية الاسترداد." }, 500);
   }
 });
@@ -145,6 +178,11 @@ async function findUserByUsernameAndEmail(admin: any, username: string, email: s
   while (page <= 20) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
     if (error) throw error;
+
+    console.log("account-recovery:scan_users_page", {
+      page,
+      count: data?.users?.length ?? 0,
+    });
 
     const user = data?.users?.find((item: any) => {
       const metadataUsername = normalize(item?.user_metadata?.username);
@@ -164,7 +202,13 @@ async function sendOtpEmail(email: string, username: string, otp: string) {
   const resendApiKey = Deno.env.get("RESEND_API_KEY")?.trim() ?? "";
   const fromEmail = Deno.env.get("ACCOUNT_RECOVERY_FROM_EMAIL")?.trim() ?? "";
 
+  console.log("account-recovery:email_config", {
+    hasResendApiKey: Boolean(resendApiKey),
+    fromEmail,
+  });
+
   if (!resendApiKey || !fromEmail) {
+    console.warn("account-recovery:email_secrets_missing");
     console.log(`Account recovery OTP for ${username}/${email}: ${otp}`);
     return;
   }
@@ -192,9 +236,15 @@ async function sendOtpEmail(email: string, username: string, otp: string) {
 
   if (!response.ok) {
     const text = await response.text();
-    console.error("Resend failed", text);
+    console.error("account-recovery:resend_failed", {
+      status: response.status,
+      body: text,
+    });
     throw new Error("Failed to send OTP email");
   }
+
+  const text = await response.text();
+  console.log("account-recovery:resend_success", text);
 }
 
 function generateOtp() {
