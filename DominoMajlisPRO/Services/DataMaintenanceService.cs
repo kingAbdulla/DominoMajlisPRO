@@ -1,4 +1,5 @@
 ﻿using DominoMajlisPRO.Models;
+using DominoMajlisPRO.Backend.Authentication;
 using System.Text.Json;
 
 namespace DominoMajlisPRO.Services;
@@ -9,6 +10,8 @@ public static class DataMaintenanceService
     {
         string backupPath =
             await BackupService.CreateDeveloperResetBackupAsync();
+
+        SupabaseTokenStore.Clear();
 
         string appData =
             FileSystem.AppDataDirectory;
@@ -25,7 +28,7 @@ public static class DataMaintenanceService
             $"تم تصفير بيانات التطبيق بالكامل\n\n" +
             $"تم إنشاء نسخة احتياطية قابلة للمشاركة قبل الحذف:\n{Path.GetFileName(backupPath)}\n\n" +
             $"عدد ملفات البيانات المحذوفة: {deletedFiles}\n\n" +
-            $"أغلق التطبيق وافتحه من جديد.";
+            $"سيتم نقلك الآن إلى بوابة الهوية الآمنة.";
 
         return (message, backupPath);
     }
