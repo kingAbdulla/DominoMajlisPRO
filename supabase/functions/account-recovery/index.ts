@@ -7,12 +7,18 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+type SecurityQuestionPayload = {
+  question?: string;
+  answer?: string;
+};
+
 type RequestBody = {
   action?: string;
   username?: string;
   email?: string;
   otp?: string;
   new_password?: string;
+  questions?: SecurityQuestionPayload[];
 };
 
 serve(async (req) => {
@@ -54,7 +60,7 @@ serve(async (req) => {
         username,
         emailDomain: email.includes("@") ? email.split("@")[1] : "invalid",
       });
-      return json({ success: true, message: "إذا كانت البيانات صحيحة فسيتم إرسال رمز التحقق." });
+      return json({ success: true, message: "إذا كانت البيانات صحيحة فسيتم تنفيذ طلب الاسترداد." });
     }
 
     console.log("account-recovery:user_verified", {
@@ -62,6 +68,87 @@ serve(async (req) => {
       userId: user.id,
       emailConfirmed: Boolean(user.email_confirmed_at),
     });
+
+    if (action === "register_security_questions") {
+      const normalizedQuestions = normalizeQuestions(body.questions);
+      if (normalizedQuestions.length !== 3) {
+        return json({ success: false, message: "يجب تسجيل 3 أسئلة أمان مختلفة مع إجاباتها." }, 400);
+      }
+
+      const pepper = mustEnv("ACCOUNT_RECOVERY_OTP_PEPPER");
+      const rows = await Promise.all(normalizedQuestions.map(async (item) => ({
+        user_id: user.id,
+        username,
+        email,
+        question: item.question,
+        answer_hash: await sha256(`${username}:${email}:${item.question}:${item.answer}:${pepper}`),
+        updated_at: new Date().toISOString(),
+      })));
+
+      const { error } = await admin
+        .from("account_security_questions")
+        .upsert(rows, { onConflict: "username,email,question" });
+
+      if (error) {
+        console.error("account-recovery:security_questions_upsert_failed", error);
+        return json({ success: false, message: `تعذر حفظ أسئلة الأمان: ${error.code ?? "NO_CODE"} - ${error.message ?? "NO_MESSAGE"}` }, 500);
+      }
+
+      return json({ success: true, message: "تم حفظ أسئلة الأمان بنجاح." });
+    }
+
+    if (action === "verify_security_questions_reset") {
+      const newPassword = body.new_password ?? "";
+      if (!isStrongPassword(newPassword)) {
+        console.warn("account-recovery:weak_new_password", { username });
+        return json({ success: false, message: "كلمة المرور الجديدة لا تطابق شروط القوة." }, 400);
+      }
+
+      const normalizedQuestions = normalizeQuestions(body.questions);
+      if (normalizedQuestions.length !== 3) {
+        return json({ success: false, message: "اختر 3 أسئلة أمان وأدخل إجاباتها." }, 400);
+      }
+
+      const pepper = mustEnv("ACCOUNT_RECOVERY_OTP_PEPPER");
+      const expectedHashes = await Promise.all(normalizedQuestions.map((item) =>
+        sha256(`${username}:${email}:${item.question}:${item.answer}:${pepper}`)));
+
+      const { data: stored, error } = await admin
+        .from("account_security_questions")
+        .select("question, answer_hash")
+        .eq("username", username)
+        .eq("email", email);
+
+      if (error) {
+        console.error("account-recovery:security_questions_lookup_failed", error);
+        return json({ success: false, message: `تعذر التحقق من أسئلة الأمان: ${error.code ?? "NO_CODE"} - ${error.message ?? "NO_MESSAGE"}` }, 500);
+      }
+
+      const storedMap = new Map<string, string>();
+      for (const row of stored ?? []) {
+        storedMap.set(normalize(row.question), row.answer_hash ?? "");
+      }
+
+      const allMatch = normalizedQuestions.every((item, index) =>
+        storedMap.get(item.question) === expectedHashes[index]);
+
+      if (!allMatch || storedMap.size < 3) {
+        console.warn("account-recovery:security_questions_mismatch", { username });
+        return json({ success: false, message: "أسئلة الأمان أو إجاباتها غير صحيحة." }, 400);
+      }
+
+      const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
+        password: newPassword,
+      });
+
+      if (updateError) {
+        console.error("account-recovery:security_password_update_failed", updateError);
+        return json({ success: false, message: `تعذر تحديث كلمة المرور: ${updateError.message ?? "NO_MESSAGE"}` }, 500);
+      }
+
+      console.log("account-recovery:security_questions_password_reset_success", { username, userId: user.id });
+      return json({ success: true, message: "تم تحديث كلمة المرور بنجاح عبر أسئلة الأمان." });
+    }
 
     if (action === "request_email_otp") {
       const otp = generateOtp();
@@ -80,13 +167,7 @@ serve(async (req) => {
 
       if (insertError) {
         console.error("account-recovery:otp_insert_failed", insertError);
-        return json(
-          {
-            success: false,
-            message: `تعذر إنشاء رمز الاسترداد: ${insertError.code ?? "NO_CODE"} - ${insertError.message ?? "NO_MESSAGE"}`,
-          },
-          500,
-        );
+        return json({ success: false, message: `تعذر إنشاء رمز الاسترداد: ${insertError.code ?? "NO_CODE"} - ${insertError.message ?? "NO_MESSAGE"}` }, 500);
       }
 
       const emailResult = await sendOtpEmail(email, username, otp);
@@ -95,7 +176,6 @@ serve(async (req) => {
       }
 
       console.log("account-recovery:otp_email_sent", { username });
-
       return json({ success: true, message: "تم إرسال رمز التحقق إلى البريد الإلكتروني." });
     }
 
@@ -273,6 +353,22 @@ async function sendOtpEmail(email: string, username: string, otp: string) {
   return { success: true, message: "تم الإرسال." };
 }
 
+function normalizeQuestions(questions?: SecurityQuestionPayload[]) {
+  const items = (questions ?? [])
+    .map((item) => ({
+      question: normalize(item.question),
+      answer: normalizeSecurityAnswer(item.answer),
+    }))
+    .filter((item) => item.question.length > 0 && item.answer.length >= 3);
+
+  const unique = new Map<string, { question: string; answer: string }>();
+  for (const item of items) {
+    if (!unique.has(item.question)) unique.set(item.question, item);
+  }
+
+  return Array.from(unique.values()).slice(0, 3);
+}
+
 function generateOtp() {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
@@ -299,6 +395,10 @@ function normalize(value?: string) {
 
 function normalizeEmail(value?: string) {
   return (value ?? "").trim().toLowerCase();
+}
+
+function normalizeSecurityAnswer(value?: string) {
+  return normalize(value).replace(/\s+/g, " ");
 }
 
 function mustEnv(name: string) {
