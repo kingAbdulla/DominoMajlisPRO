@@ -91,11 +91,21 @@ public static class PlayerDisplayNameService
             }
 
             var tokenSession = await SupabaseTokenStore.LoadAsync();
-            if (tokenSession != null && !string.IsNullOrWhiteSpace(tokenSession.AccessToken))
+            if (tokenSession != null &&
+                !string.IsNullOrWhiteSpace(tokenSession.AccessToken))
             {
                 var auth = new SupabaseAuthenticationService();
+                var freshResult = await auth.EnsureFreshSessionAsync(tokenSession);
+
+                if (!freshResult.IsSuccess || freshResult.Session == null)
+                {
+                    SupabaseTokenStore.Clear();
+                    throw new InvalidOperationException("انتهت الجلسة. يرجى تسجيل الدخول من جديد.");
+                }
+
+                var freshSession = freshResult.Session;
                 var result = await auth.UpdateNicknameAsync(
-                    tokenSession.AccessToken,
+                    freshSession.AccessToken,
                     newName);
 
                 if (!result.IsSuccess)
@@ -103,13 +113,13 @@ public static class PlayerDisplayNameService
 
                 await SupabaseTokenStore.SaveAsync(new SupabaseAuthenticationSession
                 {
-                    SupabaseUserId = tokenSession.SupabaseUserId,
-                    Email = tokenSession.Email,
+                    SupabaseUserId = freshSession.SupabaseUserId,
+                    Email = freshSession.Email,
                     Nickname = newName,
-                    EmailConfirmed = tokenSession.EmailConfirmed,
-                    AccessToken = tokenSession.AccessToken,
-                    RefreshToken = tokenSession.RefreshToken,
-                    ExpiresAtUtc = tokenSession.ExpiresAtUtc
+                    EmailConfirmed = freshSession.EmailConfirmed,
+                    AccessToken = freshSession.AccessToken,
+                    RefreshToken = freshSession.RefreshToken,
+                    ExpiresAtUtc = freshSession.ExpiresAtUtc
                 });
             }
 
