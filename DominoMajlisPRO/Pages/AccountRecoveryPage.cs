@@ -1,4 +1,5 @@
 using DominoMajlisPRO.Backend.Authentication;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.Pages;
@@ -11,6 +12,7 @@ public sealed class AccountRecoveryPage : ContentPage
     Entry? usernameEntry;
     Entry? emailEntry;
     Entry? otpEntry;
+    Entry? recoveryCodeEntry;
     Entry? newPasswordEntry;
     Entry? confirmPasswordEntry;
     Label? errorLabel;
@@ -70,7 +72,7 @@ public sealed class AccountRecoveryPage : ContentPage
             {
                 Info("اختر طريقة الاستعادة المناسبة لحسابك."),
                 PrimaryButton("الاستعادة عبر رمز البريد الإلكتروني", ShowEmailOtpRequest),
-                SecondaryButton("الاستعادة عبر Recovery Code", ShowRecoveryCodePlaceholder),
+                SecondaryButton("الاستعادة عبر Recovery Code", ShowRecoveryCodeReset),
                 SecondaryButton("الاستعادة عبر أسئلة الأمان", ShowSecurityQuestionsPlaceholder),
                 GhostButton("الرجوع", async () => await Navigation.PopAsync())
             }
@@ -163,17 +165,8 @@ public sealed class AccountRecoveryPage : ContentPage
         string password = newPasswordEntry.Text ?? "";
         string confirm = confirmPasswordEntry.Text ?? "";
 
-        if (!string.Equals(password, confirm, StringComparison.Ordinal))
-        {
-            SetInlineError(errorLabel, "كلمتا المرور غير متطابقتين.");
+        if (!ValidateNewPassword(password, confirm, errorLabel))
             return;
-        }
-
-        if (!IsStrongPassword(password))
-        {
-            SetInlineError(errorLabel, "كلمة السر يجب أن تكون 8 أحرف على الأقل وتحتوي على حرف كبير، حرف صغير، رقم، ورمز.");
-            return;
-        }
 
         var result = await otpService.VerifyEmailOtpAndResetPasswordAsync(username, email, otp, password);
         if (!result.Success)
@@ -185,18 +178,77 @@ public sealed class AccountRecoveryPage : ContentPage
         ShowMessage("تم تحديث كلمة المرور", "يمكنك الآن تسجيل الدخول باسم المستخدم وكلمة المرور الجديدة.");
     }
 
-    void ShowRecoveryCodePlaceholder()
+    void ShowRecoveryCodeReset()
     {
-        ShowMessage(
-            "Recovery Code",
-            "سيتم ربط Recovery Code بالـ Backend بعد اعتماد جدول الحسابات السحابي الكامل. استخدم رمز البريد الإلكتروني الآن.");
+        contentHost.Children.Clear();
+        usernameEntry = EntryField("Username اسم المستخدم");
+        recoveryCodeEntry = EntryField("Recovery Code", isPassword: true);
+        newPasswordEntry = EntryField("كلمة المرور الجديدة", isPassword: true);
+        confirmPasswordEntry = EntryField("تأكيد كلمة المرور الجديدة", isPassword: true);
+        errorLabel = ErrorLabel();
+
+        contentHost.Children.Add(Title("Recovery Code"));
+        contentHost.Children.Add(CreatePanel(new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
+            {
+                Info("أدخل اسم المستخدم ورمز الاسترداد المحفوظ. بعد النجاح سيتم توليد Recovery Code جديد وإلغاء القديم."),
+                usernameEntry,
+                recoveryCodeEntry,
+                newPasswordEntry,
+                confirmPasswordEntry,
+                errorLabel,
+                PrimaryButton("إعادة تعيين كلمة المرور", async () => await ResetWithRecoveryCodeAsync()),
+                GhostButton("الرجوع", ShowOptions)
+            }
+        }));
+    }
+
+    async Task ResetWithRecoveryCodeAsync()
+    {
+        if (errorLabel == null || usernameEntry == null || recoveryCodeEntry == null || newPasswordEntry == null || confirmPasswordEntry == null)
+            return;
+
+        SetInlineError(errorLabel, "");
+
+        string username = usernameEntry.Text?.Trim() ?? "";
+        string recoveryCode = recoveryCodeEntry.Text?.Trim() ?? "";
+        string password = newPasswordEntry.Text ?? "";
+        string confirm = confirmPasswordEntry.Text ?? "";
+
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(recoveryCode))
+        {
+            SetInlineError(errorLabel, "أدخل اسم المستخدم ورمز الاسترداد.");
+            return;
+        }
+
+        if (!ValidateNewPassword(password, confirm, errorLabel))
+            return;
+
+        try
+        {
+            var result = await PremiumAccountAuthService.ResetPasswordWithRecoveryKeyAsync(
+                username,
+                recoveryCode,
+                password,
+                confirm);
+
+            ShowMessage(
+                "تم تحديث كلمة المرور",
+                "تم تحديث كلمة المرور بنجاح. احفظ Recovery Code الجديد الآن:\n\n" + result.NewRecoveryCode);
+        }
+        catch (Exception ex)
+        {
+            SetInlineError(errorLabel, ex.Message);
+        }
     }
 
     void ShowSecurityQuestionsPlaceholder()
     {
         ShowMessage(
             "أسئلة الأمان",
-            "سيتم تحويل أسئلة الأمان إلى 3 اختيارات ثابتة في شاشة التسجيل، ثم ربطها باستعادة كلمة المرور بعد حفظها على الخادم.");
+            "تم تحويل أسئلة الأمان في إنشاء الحساب إلى اختيارات ثابتة. تفعيل الاستعادة بها يتطلب حفظ الإجابات في Backend، وهي المرحلة التالية بعد اختبار OTP.");
     }
 
     void ShowMessage(string title, string message)
@@ -213,6 +265,23 @@ public sealed class AccountRecoveryPage : ContentPage
                 GhostButton("طرق استعادة أخرى", ShowOptions)
             }
         }));
+    }
+
+    static bool ValidateNewPassword(string password, string confirm, Label label)
+    {
+        if (!string.Equals(password, confirm, StringComparison.Ordinal))
+        {
+            SetInlineError(label, "كلمتا المرور غير متطابقتين.");
+            return false;
+        }
+
+        if (!IsStrongPassword(password))
+        {
+            SetInlineError(label, "كلمة السر يجب أن تكون 8 أحرف على الأقل وتحتوي على حرف كبير، حرف صغير، رقم، ورمز.");
+            return false;
+        }
+
+        return true;
     }
 
     static bool IsStrongPassword(string password)
