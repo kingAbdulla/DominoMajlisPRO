@@ -20,6 +20,7 @@ public sealed class PremiumAuthPage : ContentPage
     readonly Grid root;
     readonly VerticalStackLayout contentHost;
     readonly SupabaseAuthenticationService supabaseAuth = new();
+    readonly SupabaseRecoveryOtpService recoveryService = new();
     bool checkedActiveSession;
 
     Entry? loginUsernameEntry;
@@ -196,7 +197,7 @@ public sealed class PremiumAuthPage : ContentPage
                     registerConfirmPasswordEntry,
                     registerAgeEntry,
                     registerGenderPicker,
-                    Info("اختر 3 أسئلة أمان مختلفة. سيتم ربطها بنظام الاستعادة عند تفعيل جدول الحسابات السحابي الكامل.", 11),
+                    Info("اختر 3 أسئلة أمان مختلفة. ستستخدم هذه الأسئلة لاحقاً لاستعادة الحساب وإعادة تعيين كلمة المرور.", 11),
                     securityQuestion1Picker,
                     securityAnswer1Entry,
                     securityQuestion2Picker,
@@ -263,6 +264,7 @@ public sealed class PremiumAuthPage : ContentPage
             string username = registerUsernameEntry?.Text?.Trim() ?? "";
             string email = registerEmailEntry?.Text?.Trim() ?? "";
             string nickname = registerNicknameEntry?.Text?.Trim() ?? "";
+            var securityAnswers = BuildSecurityQuestionAnswers();
 
             await SupabaseAccountLinkService.RegisterPendingLinkAsync(username, email, nickname);
 
@@ -270,7 +272,8 @@ public sealed class PremiumAuthPage : ContentPage
                 email,
                 registerPasswordEntry?.Text ?? "",
                 username,
-                nickname);
+                nickname,
+                securityAnswers.Select(item => item.Question));
 
             if (!result.IsSuccess)
             {
@@ -278,9 +281,16 @@ public sealed class PremiumAuthPage : ContentPage
                 return;
             }
 
+            var securityResult = await recoveryService.RegisterSecurityQuestionsAsync(username, email, securityAnswers);
+            if (!securityResult.Success)
+            {
+                SetRegisterError(securityResult.Message);
+                return;
+            }
+
             ShowMessagePanel(
                 "تم إنشاء الحساب",
-                "تم إرسال رسالة تأكيد إلى بريدك الإلكتروني. بعد تأكيد البريد يمكنك تسجيل الدخول باسم المستخدم وليس بالبريد.",
+                "تم إرسال رسالة تأكيد إلى بريدك الإلكتروني، وتم حفظ أسئلة الأمان للاسترداد. بعد تأكيد البريد يمكنك تسجيل الدخول باسم المستخدم وليس بالبريد.",
                 "العودة لتسجيل الدخول",
                 ShowLogin);
         }
@@ -316,7 +326,7 @@ public sealed class PremiumAuthPage : ContentPage
         if (registerGenderPicker?.SelectedItem == null)
             throw new InvalidOperationException("اختر الجنس لإكمال إنشاء الحساب.");
 
-        if (!SecurityQuestionsAreValid())
+        if (BuildSecurityQuestionAnswers().Count != 3)
             throw new InvalidOperationException("اختر 3 أسئلة أمان مختلفة وأدخل إجابة لكل سؤال.");
 
         if (!string.Equals(password, confirm, StringComparison.Ordinal))
@@ -326,21 +336,20 @@ public sealed class PremiumAuthPage : ContentPage
             throw new InvalidOperationException(PremiumAccountAuthService.PasswordPolicyText);
     }
 
-    bool SecurityQuestionsAreValid()
+    List<(string Question, string Answer)> BuildSecurityQuestionAnswers()
     {
-        var selected = new[]
+        var items = new List<(string Question, string Answer)>
         {
-            securityQuestion1Picker?.SelectedItem?.ToString() ?? "",
-            securityQuestion2Picker?.SelectedItem?.ToString() ?? "",
-            securityQuestion3Picker?.SelectedItem?.ToString() ?? ""
+            (securityQuestion1Picker?.SelectedItem?.ToString() ?? "", securityAnswer1Entry?.Text ?? ""),
+            (securityQuestion2Picker?.SelectedItem?.ToString() ?? "", securityAnswer2Entry?.Text ?? ""),
+            (securityQuestion3Picker?.SelectedItem?.ToString() ?? "", securityAnswer3Entry?.Text ?? "")
         };
 
-        if (selected.Any(string.IsNullOrWhiteSpace) || selected.Distinct(StringComparer.Ordinal).Count() != 3)
-            return false;
-
-        return !string.IsNullOrWhiteSpace(securityAnswer1Entry?.Text) &&
-               !string.IsNullOrWhiteSpace(securityAnswer2Entry?.Text) &&
-               !string.IsNullOrWhiteSpace(securityAnswer3Entry?.Text);
+        return items
+            .Where(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer))
+            .GroupBy(item => item.Question, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .ToList();
     }
 
     static void ValidateUsername(string username)
