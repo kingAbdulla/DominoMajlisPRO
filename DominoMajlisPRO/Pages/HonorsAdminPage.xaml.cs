@@ -371,6 +371,9 @@ public partial class HonorsAdminPage : ContentPage
                 Title = "نسخة احتياطية قبل تصفير Domino Majlis PRO",
                 File = new ShareFile(result.BackupPath)
             });
+
+        Application.Current!.MainPage =
+            new NavigationPage(new PremiumAuthPage());
     }
 
     async void OnBackImageTapped(object sender, TappedEventArgs e)
