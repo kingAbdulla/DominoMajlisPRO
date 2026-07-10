@@ -47,6 +47,16 @@ public sealed class UsernameRegistryService
             player_id = playerId.Trim()
         });
 
+    public Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> ReleaseAsync(
+        string username,
+        string reservationToken) =>
+        SendAsync(new
+        {
+            action = "release",
+            username = username.Trim(),
+            reservation_token = reservationToken.Trim()
+        });
+
     async Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> SendAsync(object body)
     {
         if (!SupabaseBackendConfiguration.IsConfigured)
