@@ -11,6 +11,7 @@ public sealed class UsernameRegistryService
         public bool Success { get; set; }
         public bool Available { get; set; }
         public string Username { get; set; } = "";
+        public string ReservationToken { get; set; } = "";
         public string Message { get; set; } = "";
     }
 
@@ -21,17 +22,18 @@ public sealed class UsernameRegistryService
 
     readonly HttpClient httpClient = new();
 
-    public Task<(bool Success, bool Available, string Username, string Message)> CheckAsync(string username) =>
+    public Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> CheckAsync(string username) =>
         SendAsync(new { action = "check", username = username.Trim() });
 
-    public Task<(bool Success, bool Available, string Username, string Message)> SuggestAsync(string baseName) =>
+    public Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> SuggestAsync(string baseName) =>
         SendAsync(new { action = "suggest", base_name = baseName.Trim() });
 
-    public Task<(bool Success, bool Available, string Username, string Message)> ReserveAsync(string username) =>
+    public Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> ReserveAsync(string username) =>
         SendAsync(new { action = "reserve", username = username.Trim() });
 
-    public Task<(bool Success, bool Available, string Username, string Message)> ActivateAsync(
+    public Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> ActivateAsync(
         string username,
+        string reservationToken,
         string supabaseUserId,
         string applicationUserId,
         string playerId) =>
@@ -39,15 +41,16 @@ public sealed class UsernameRegistryService
         {
             action = "activate",
             username = username.Trim(),
+            reservation_token = reservationToken.Trim(),
             supabase_user_id = supabaseUserId.Trim(),
             application_user_id = applicationUserId.Trim(),
             player_id = playerId.Trim()
         });
 
-    async Task<(bool Success, bool Available, string Username, string Message)> SendAsync(object body)
+    async Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> SendAsync(object body)
     {
         if (!SupabaseBackendConfiguration.IsConfigured)
-            return (false, false, "", "Supabase غير مهيأ داخل التطبيق.");
+            return (false, false, "", "", "Supabase غير مهيأ داخل التطبيق.");
 
         var request = new HttpRequestMessage(
             HttpMethod.Post,
@@ -72,11 +75,12 @@ public sealed class UsernameRegistryService
                 response.IsSuccessStatusCode && result?.Success == true,
                 result?.Available == true,
                 result?.Username ?? "",
+                result?.ReservationToken ?? "",
                 result?.Message ?? "تعذر تنفيذ عملية اسم المستخدم.");
         }
         catch
         {
-            return (false, false, "", "تعذر الاتصال بخدمة أسماء المستخدمين.");
+            return (false, false, "", "", "تعذر الاتصال بخدمة أسماء المستخدمين.");
         }
     }
 }
