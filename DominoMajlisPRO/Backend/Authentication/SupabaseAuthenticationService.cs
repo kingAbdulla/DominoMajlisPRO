@@ -13,6 +13,7 @@ public sealed class SupabaseAuthenticationService
     };
 
     readonly HttpClient httpClient;
+    readonly SupabaseAccountIdentityService identityService;
 
     public SupabaseAuthenticationService()
         : this(new HttpClient())
@@ -22,6 +23,7 @@ public sealed class SupabaseAuthenticationService
     public SupabaseAuthenticationService(HttpClient httpClient)
     {
         this.httpClient = httpClient;
+        identityService = new SupabaseAccountIdentityService(httpClient);
     }
 
     public async Task<SupabaseAuthenticationResult> SignUpAsync(
@@ -34,43 +36,22 @@ public sealed class SupabaseAuthenticationService
         if (!SupabaseBackendConfiguration.IsConfigured)
             return SupabaseAuthenticationResult.Failure("Supabase غير مهيأ داخل التطبيق.");
 
-        username = username.Trim();
-        nickname = nickname.Trim();
-        var securityQuestionList = securityQuestions?
-            .Select(item => item.Trim())
-            .Where(item => !string.IsNullOrWhiteSpace(item))
-            .Distinct(StringComparer.Ordinal)
-            .Take(3)
-            .ToArray() ?? Array.Empty<string>();
+        var registration = await identityService.RegisterAccountAsync(
+            username.Trim(),
+            email.Trim(),
+            password,
+            nickname.Trim());
 
-        var response = await SendAuthRequestAsync(
-            HttpMethod.Post,
-            "/auth/v1/signup",
-            new
-            {
-                email = email.Trim(),
-                password,
-                data = new
-                {
-                    username,
-                    nickname,
-                    display_name = nickname,
-                    security_question_count = securityQuestionList.Length,
-                    security_questions = securityQuestionList
-                }
-            });
+        if (!registration.Success)
+            return SupabaseAuthenticationResult.Failure(registration.Message);
 
-        if (!response.IsSuccessStatusCode)
-            return SupabaseAuthenticationResult.Failure(await ReadErrorAsync(response));
-
-        var auth = await ReadAuthResponseAsync(response);
-
-        if (auth?.User == null)
-            return SupabaseAuthenticationResult.Success("تم إنشاء الحساب. تحقق من بريدك الإلكتروني قبل تسجيل الدخول.");
+        var signIn = await SignInAsync(email, password);
+        if (!signIn.IsSuccess)
+            return SupabaseAuthenticationResult.Failure(signIn.Message);
 
         return SupabaseAuthenticationResult.Success(
-            "تم إنشاء الحساب. تحقق من بريدك الإلكتروني قبل تسجيل الدخول.",
-            ToSession(auth));
+            "تم إنشاء الحساب ويمكنك الدخول الآن. توثيق البريد متاح من الإعدادات.",
+            signIn.Session);
     }
 
     public async Task<SupabaseAuthenticationResult> SignInAsync(
@@ -114,11 +95,7 @@ public sealed class SupabaseAuthenticationService
             ExpiresAtUtc = session.ExpiresAtUtc
         };
 
-        if (!session.EmailConfirmed)
-            return SupabaseAuthenticationResult.Failure("لم تتم مزامنة تأكيد البريد بعد. ارجع إلى التطبيق وحاول تسجيل الدخول مرة أخرى بعد لحظات.");
-
         await SupabaseTokenStore.SaveAsync(session);
-
         return SupabaseAuthenticationResult.Success("تم تسجيل الدخول بنجاح.", session);
     }
 
@@ -343,7 +320,6 @@ public sealed class SupabaseAuthenticationService
         }
         catch
         {
-            // ignore malformed payloads and use the raw body.
         }
 
         return TranslateError(body);
@@ -358,7 +334,11 @@ public sealed class SupabaseAuthenticationService
             return "اسم المستخدم أو كلمة السر غير صحيحة.";
 
         if (message.Contains("Email not confirmed", StringComparison.OrdinalIgnoreCase))
-            return "يجب تأكيد البريد الإلكتروني قبل تسجيل الدخول.";
+            return "هذا حساب قديم ما زال مرتبطًا بتأكيد البريد السابق. استخدم الاسترداد أو أنشئ حسابًا بعد تحديث نظام الهوية.";
+
+        if (message.Contains("email rate limit exceeded", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("rate limit", StringComparison.OrdinalIgnoreCase))
+            return "تم تنفيذ محاولات كثيرة خلال وقت قصير. انتظر قليلًا ثم حاول مرة أخرى.";
 
         if (message.Contains("User already registered", StringComparison.OrdinalIgnoreCase) ||
             message.Contains("already been registered", StringComparison.OrdinalIgnoreCase))
