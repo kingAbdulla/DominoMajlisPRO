@@ -307,7 +307,7 @@ public partial class RankingsPage
 
 internal static class RankingsResponsiveHeroBootstrap
 {
-    static readonly Timer RefreshTimer;
+    static Timer? RefreshTimer;
 
     [ModuleInitializer]
     internal static void Initialize()
