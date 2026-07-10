@@ -188,6 +188,7 @@ public sealed class AccountRecoveryPage : ContentPage
             return;
         }
 
+        await WriteRecoveryAuditAsync(username, "Email OTP", "تمت إعادة تعيين كلمة المرور بعد التحقق من رمز البريد الإلكتروني.");
         ShowMessage("تم تحديث كلمة المرور", "يمكنك الآن تسجيل الدخول باسم المستخدم وكلمة المرور الجديدة.");
     }
 
@@ -246,6 +247,7 @@ public sealed class AccountRecoveryPage : ContentPage
                 password,
                 confirm);
 
+            await WriteRecoveryAuditAsync(username, "Recovery Code", "تمت إعادة تعيين كلمة المرور وتدوير رمز الاسترداد المحلي.");
             ShowMessage(
                 "تم تحديث كلمة المرور",
                 "تم تحديث كلمة المرور بنجاح. احفظ Recovery Code الجديد الآن:\n\n" + result.NewRecoveryCode);
@@ -280,7 +282,7 @@ public sealed class AccountRecoveryPage : ContentPage
                 Spacing = 12,
                 Children =
                 {
-                    Info("اختر نفس أسئلة الأمان الثلاثة التي سجلتها ثم أدخل إجاباتها. عند التحقق تظهر كلمة المرور الجديدة وتُحفظ مباشرة."),
+                    Info("اختر نفس أسئلة الأمان الثلاثة التي سجلتها ثم أدخل إجاباتها. عند التحقق تُحفظ كلمة المرور الجديدة مباشرة."),
                     usernameEntry,
                     emailEntry,
                     securityQuestion1Picker,
@@ -336,7 +338,25 @@ public sealed class AccountRecoveryPage : ContentPage
             return;
         }
 
+        await WriteRecoveryAuditAsync(username, "Security Questions", "تمت إعادة تعيين كلمة المرور بعد التحقق من أسئلة الأمان الثلاثة.");
         ShowMessage("تم تحديث كلمة المرور", "تمت إعادة تعيين كلمة المرور عبر أسئلة الأمان. يمكنك الآن تسجيل الدخول باسم المستخدم وكلمة المرور الجديدة.");
+    }
+
+    static async Task WriteRecoveryAuditAsync(string username, string method, string details)
+    {
+        try
+        {
+            await SecurityLogService.AddAsync(
+                "Account Recovery",
+                "Password Reset",
+                $"Username: {username}\nRecovery Method: {method}\n{details}",
+                "Warning",
+                true);
+        }
+        catch
+        {
+            // نجاح تغيير كلمة المرور لا يُلغى إذا تعذر حفظ سجل التدقيق المحلي.
+        }
     }
 
     List<(string Question, string Answer)> BuildSecurityQuestionAnswers()
