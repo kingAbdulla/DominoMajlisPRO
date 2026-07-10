@@ -254,7 +254,7 @@ public partial class RankingsPage
         };
     }
 
-    View BuildResponsiveRewards(RankingRankReward? reward, bool isPhone)
+    View BuildResponsiveRewards(RankRewardDefinition? reward, bool isPhone)
     {
         var values = new HorizontalStackLayout
         {
