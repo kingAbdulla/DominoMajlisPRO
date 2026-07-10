@@ -51,7 +51,7 @@ public partial class GamePage
 
 internal static class GamePageRankLiveSyncBootstrap
 {
-    static readonly Timer PollTimer;
+    static Timer? pollTimer;
 
     [ModuleInitializer]
     internal static void Initialize()
@@ -61,7 +61,7 @@ internal static class GamePageRankLiveSyncBootstrap
         AppEvents.MatchesChanged += ForceRefreshActiveGamePage;
         AppEvents.SeasonChanged += ForceRefreshActiveGamePage;
 
-        PollTimer = new Timer(
+        pollTimer = new Timer(
             _ => QueueActivePageRefresh(force: false),
             null,
             TimeSpan.FromSeconds(1),
