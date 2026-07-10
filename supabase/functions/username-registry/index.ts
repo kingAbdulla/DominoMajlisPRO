@@ -11,6 +11,7 @@ type Body = {
   action?: string;
   username?: string;
   base_name?: string;
+  reservation_token?: string;
   supabase_user_id?: string;
   application_user_id?: string;
   player_id?: string;
@@ -27,6 +28,8 @@ serve(async (req) => {
     const admin = createClient(mustEnv("SUPABASE_URL"), mustEnv("SUPABASE_SERVICE_ROLE_KEY"), {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+
+    await releaseExpiredReservations(admin);
 
     if (action === "check") {
       const validation = validateUsername(body.username ?? "");
@@ -57,9 +60,14 @@ serve(async (req) => {
       const validation = validateUsername(body.username ?? "");
       if (!validation.valid) return json({ success: false, available: false, message: validation.message }, 400);
 
+      const reservationToken = crypto.randomUUID().replaceAll("-", "") + crypto.randomUUID().replaceAll("-", "");
+      const reservedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
       const { data, error } = await admin.from("username_registry").insert({
         username: validation.display,
         normalized_username: validation.normalized,
+        reservation_token: reservationToken,
+        reserved_until: reservedUntil,
         supabase_user_id: nullable(body.supabase_user_id),
         application_user_id: nullable(body.application_user_id),
         player_id: nullable(body.player_id),
@@ -74,20 +82,47 @@ serve(async (req) => {
         return json({ success: false, available: false, message: `تعذر حجز اسم المستخدم: ${error.message}` }, 500);
       }
 
-      return json({ success: true, available: true, username: data.username, reservation_id: data.id, message: "تم حجز اسم المستخدم بنجاح." });
+      return json({
+        success: true,
+        available: true,
+        username: data.username,
+        reservation_id: data.id,
+        reservation_token: reservationToken,
+        reserved_until: reservedUntil,
+        message: "تم حجز اسم المستخدم لمدة 15 دقيقة.",
+      });
     }
 
     if (action === "activate") {
       const validation = validateUsername(body.username ?? "");
       if (!validation.valid) return json({ success: false, message: validation.message }, 400);
 
+      const reservationToken = (body.reservation_token ?? "").trim();
+      if (!reservationToken) return json({ success: false, message: "رمز حجز اسم المستخدم مفقود." }, 400);
+
+      const { data: reservation, error: lookupError } = await admin.from("username_registry")
+        .select("id, status, reserved_until, reservation_token")
+        .eq("normalized_username", validation.normalized)
+        .in("status", ["reserved", "active"])
+        .limit(1)
+        .maybeSingle();
+
+      if (lookupError) throw lookupError;
+      if (!reservation || reservation.reservation_token !== reservationToken) {
+        return json({ success: false, message: "تعذر التحقق من حجز اسم المستخدم." }, 409);
+      }
+      if (reservation.status === "reserved" && new Date(reservation.reserved_until).getTime() < Date.now()) {
+        return json({ success: false, message: "انتهت مدة حجز اسم المستخدم. أعد المحاولة." }, 409);
+      }
+
       const { error } = await admin.from("username_registry").update({
         supabase_user_id: nullable(body.supabase_user_id),
         application_user_id: nullable(body.application_user_id),
         player_id: nullable(body.player_id),
         status: "active",
+        reserved_until: null,
         updated_at: new Date().toISOString(),
-      }).eq("normalized_username", validation.normalized).in("status", ["reserved", "active"]);
+      }).eq("id", reservation.id);
 
       if (error) {
         console.error("username-registry:activate_failed", error);
@@ -103,6 +138,14 @@ serve(async (req) => {
     return json({ success: false, message: "تعذر تنفيذ عملية اسم المستخدم." }, 500);
   }
 });
+
+async function releaseExpiredReservations(admin: any) {
+  const { error } = await admin.from("username_registry")
+    .update({ status: "released", updated_at: new Date().toISOString() })
+    .eq("status", "reserved")
+    .lt("reserved_until", new Date().toISOString());
+  if (error) console.warn("username-registry:expired_release_failed", error);
+}
 
 async function isAvailable(admin: any, normalized: string) {
   const { data, error } = await admin.from("username_registry")
