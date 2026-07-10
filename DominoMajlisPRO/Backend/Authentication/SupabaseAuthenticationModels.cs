@@ -69,7 +69,7 @@ sealed class SupabaseRefreshResponse
     public SupabaseAuthUser? User { get; set; }
 }
 
-sealed class SupabaseAuthUserResponse
+sealed class SupabaseUserResponse
 {
     [JsonPropertyName("id")]
     public string Id { get; set; } = "";
@@ -83,13 +83,24 @@ sealed class SupabaseAuthUserResponse
     [JsonPropertyName("user_metadata")]
     public Dictionary<string, JsonElement>? UserMetadata { get; set; }
 
-    public SupabaseAuthUser ToUser() => new()
+    public string GetUsername() =>
+        GetMetadataString("username") ?? "";
+
+    public string GetNickname() =>
+        GetMetadataString("nickname") ??
+        GetMetadataString("display_name") ??
+        GetMetadataString("name") ??
+        "";
+
+    string? GetMetadataString(string key)
     {
-        Id = Id,
-        Email = Email,
-        EmailConfirmedAt = EmailConfirmedAt,
-        UserMetadata = UserMetadata
-    };
+        if (UserMetadata == null || !UserMetadata.TryGetValue(key, out var value))
+            return null;
+
+        return value.ValueKind == JsonValueKind.String
+            ? value.GetString()?.Trim()
+            : null;
+    }
 }
 
 sealed class SupabaseAuthUser
@@ -109,15 +120,15 @@ sealed class SupabaseAuthUser
     public string GetUsername() =>
         GetMetadataString("username") ?? "";
 
-    public string GetNickname()
+    public string GetNickname(string fallbackNickname = "")
     {
         if (UserMetadata == null)
-            return "";
+            return fallbackNickname.Trim();
 
         return GetMetadataString("nickname") ??
                GetMetadataString("display_name") ??
                GetMetadataString("name") ??
-               "";
+               fallbackNickname.Trim();
     }
 
     string? GetMetadataString(string key)
