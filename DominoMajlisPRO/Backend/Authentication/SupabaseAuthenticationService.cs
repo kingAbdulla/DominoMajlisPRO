@@ -98,12 +98,66 @@ public sealed class SupabaseAuthenticationService
         if (session == null)
             return SupabaseAuthenticationResult.Failure("تعذر إنشاء جلسة Supabase.");
 
+        var verifiedUserResult = await GetCurrentUserAsync(session.AccessToken);
+        if (!verifiedUserResult.IsSuccess || verifiedUserResult.Session == null)
+            return SupabaseAuthenticationResult.Failure(verifiedUserResult.Message);
+
+        session = new SupabaseAuthenticationSession
+        {
+            SupabaseUserId = verifiedUserResult.Session.SupabaseUserId,
+            Email = verifiedUserResult.Session.Email,
+            Username = verifiedUserResult.Session.Username,
+            Nickname = verifiedUserResult.Session.Nickname,
+            EmailConfirmed = verifiedUserResult.Session.EmailConfirmed,
+            AccessToken = session.AccessToken,
+            RefreshToken = session.RefreshToken,
+            ExpiresAtUtc = session.ExpiresAtUtc
+        };
+
         if (!session.EmailConfirmed)
-            return SupabaseAuthenticationResult.Failure("يجب تأكيد البريد الإلكتروني قبل تسجيل الدخول.");
+            return SupabaseAuthenticationResult.Failure("لم تتم مزامنة تأكيد البريد بعد. ارجع إلى التطبيق وحاول تسجيل الدخول مرة أخرى بعد لحظات.");
 
         await SupabaseTokenStore.SaveAsync(session);
 
         return SupabaseAuthenticationResult.Success("تم تسجيل الدخول بنجاح.", session);
+    }
+
+    public async Task<SupabaseAuthenticationResult> GetCurrentUserAsync(string accessToken)
+    {
+        if (!SupabaseBackendConfiguration.IsConfigured)
+            return SupabaseAuthenticationResult.Failure("Supabase غير مهيأ داخل التطبيق.");
+
+        if (string.IsNullOrWhiteSpace(accessToken))
+            return SupabaseAuthenticationResult.Failure("جلسة Supabase غير صالحة.");
+
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            BuildUri("/auth/v1/user"));
+
+        request.Headers.Add("apikey", SupabaseBackendConfiguration.PublishableKey);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.Trim());
+
+        var response = await httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+            return SupabaseAuthenticationResult.Failure(await ReadErrorAsync(response));
+
+        var user = await ReadUserResponseAsync(response);
+        if (user == null)
+            return SupabaseAuthenticationResult.Failure("تعذر مزامنة حالة الحساب من Supabase.");
+
+        var session = new SupabaseAuthenticationSession
+        {
+            SupabaseUserId = user.Id,
+            Email = user.Email,
+            Username = user.GetUsername(),
+            Nickname = user.GetNickname(),
+            EmailConfirmed = !string.IsNullOrWhiteSpace(user.EmailConfirmedAt),
+            AccessToken = accessToken.Trim(),
+            RefreshToken = "",
+            ExpiresAtUtc = DateTime.UtcNow
+        };
+
+        return SupabaseAuthenticationResult.Success("تمت مزامنة حالة الحساب.", session);
     }
 
     public async Task<SupabaseAuthenticationResult> RefreshSessionAsync(
