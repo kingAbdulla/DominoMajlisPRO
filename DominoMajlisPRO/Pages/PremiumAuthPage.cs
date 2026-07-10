@@ -48,6 +48,7 @@ public sealed class PremiumAuthPage : ContentPage
     Button? saveAccountButton;
     Label? registerErrorLabel;
     Label? usernameStatusLabel;
+    Border? usernameFieldBorder;
     CancellationTokenSource? usernameCheckCancellation;
     bool usernameAvailable;
     string checkedUsername = "";
@@ -162,6 +163,8 @@ public sealed class PremiumAuthPage : ContentPage
         checkedUsername = "";
 
         registerUsernameEntry = EntryField("Username اسم المستخدم");
+        registerUsernameEntry.BackgroundColor = Colors.Transparent;
+        registerUsernameEntry.Margin = new Thickness(0);
         registerNicknameEntry = EntryField("User Nickname الاسم الظاهر");
         registerEmailEntry = EntryField("البريد الإلكتروني للاسترداد والتأكيد", keyboard: Keyboard.Email);
         registerPasswordEntry = EntryField("كلمة السر القوية", isPassword: true);
@@ -174,39 +177,53 @@ public sealed class PremiumAuthPage : ContentPage
         securityAnswer1Entry = EntryField("إجابة السؤال الأول", isPassword: true);
         securityAnswer2Entry = EntryField("إجابة السؤال الثاني", isPassword: true);
         securityAnswer3Entry = EntryField("إجابة السؤال الثالث", isPassword: true);
+
         usernameStatusLabel = new Label
         {
             FontSize = 11,
             TextColor = Color.FromArgb("#AFAFAF"),
             HorizontalTextAlignment = TextAlignment.End,
-            IsVisible = false
+            IsVisible = false,
+            Margin = new Thickness(4, -4, 4, 0)
         };
 
         var generateButton = new Button
         {
             Text = "⚡",
             FontSize = 18,
-            TextColor = Colors.Black,
-            BackgroundColor = Color.FromArgb("#D4AF37"),
-            CornerRadius = 14,
-            WidthRequest = 48,
+            TextColor = Color.FromArgb("#D4AF37"),
+            BackgroundColor = Colors.Transparent,
+            WidthRequest = 46,
             HeightRequest = 46,
-            Padding = 0
+            Padding = 0,
+            CornerRadius = 14
         };
         generateButton.Clicked += async (_, _) => await GenerateUsernameAsync();
         registerUsernameEntry.TextChanged += OnRegisterUsernameChanged;
+        registerUsernameEntry.Focused += (_, _) => UpdateUsernameBorder(true);
+        registerUsernameEntry.Unfocused += (_, _) => UpdateUsernameBorder(false);
 
-        var usernameRow = new Grid
+        var usernameGrid = new Grid
         {
             ColumnDefinitions =
             {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Auto)
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star)
             },
-            ColumnSpacing = 8
+            ColumnSpacing = 2
         };
-        usernameRow.Add(registerUsernameEntry, 0, 0);
-        usernameRow.Add(generateButton, 1, 0);
+        usernameGrid.Add(generateButton, 0, 0);
+        usernameGrid.Add(registerUsernameEntry, 1, 0);
+
+        usernameFieldBorder = new Border
+        {
+            BackgroundColor = Color.FromArgb("#111111"),
+            Stroke = Color.FromArgb("#333333"),
+            StrokeThickness = 1,
+            Padding = new Thickness(4, 0),
+            StrokeShape = new RoundRectangle { CornerRadius = 14 },
+            Content = usernameGrid
+        };
 
         ageCheckBox = ConsentBox();
         privacyCheckBox = ConsentBox();
@@ -229,10 +246,10 @@ public sealed class PremiumAuthPage : ContentPage
                 Spacing = 12,
                 Children =
                 {
-                    usernameRow,
+                    registerNicknameEntry,
+                    usernameFieldBorder,
                     usernameStatusLabel,
                     Info("يمكن استخدام الحروف والأرقام والرموز . _ - فقط. اضغط ⚡ لتوليد اسم متاح تلقائياً.", 11),
-                    registerNicknameEntry,
                     registerEmailEntry,
                     registerPasswordEntry,
                     Info(PremiumAccountAuthService.PasswordPolicyText, 11),
@@ -259,11 +276,25 @@ public sealed class PremiumAuthPage : ContentPage
         }));
     }
 
+    void UpdateUsernameBorder(bool focused)
+    {
+        if (usernameFieldBorder == null)
+            return;
+
+        usernameFieldBorder.Stroke = focused
+            ? Color.FromArgb("#D4AF37")
+            : usernameAvailable
+                ? Color.FromArgb("#5ED28A")
+                : Color.FromArgb("#333333");
+        usernameFieldBorder.StrokeThickness = focused ? 1.5 : 1;
+    }
+
     async void OnRegisterUsernameChanged(object? sender, TextChangedEventArgs e)
     {
         usernameAvailable = false;
         checkedUsername = "";
         UpdateSaveButtonState();
+        UpdateUsernameBorder(registerUsernameEntry?.IsFocused == true);
 
         usernameCheckCancellation?.Cancel();
         usernameCheckCancellation?.Dispose();
@@ -280,18 +311,19 @@ public sealed class PremiumAuthPage : ContentPage
             return;
         }
 
-        ShowUsernameStatus("جارٍ فحص توفر اسم المستخدم...", false, neutral: true);
+        ShowUsernameStatus("… جارٍ التحقق من توفر اسم المستخدم", false, neutral: true);
 
         try
         {
-            await Task.Delay(500, token);
+            await Task.Delay(450, token);
             var result = await usernameRegistry.CheckAsync(username);
-            if (token.IsCancellationRequested || registerUsernameEntry?.Text?.Trim() != username)
+            if (token.IsCancellationRequested || !string.Equals(registerUsernameEntry?.Text?.Trim(), username, StringComparison.Ordinal))
                 return;
 
             usernameAvailable = result.Success && result.Available;
             checkedUsername = usernameAvailable ? username : "";
             ShowUsernameStatus(result.Message, usernameAvailable);
+            UpdateUsernameBorder(registerUsernameEntry?.IsFocused == true);
             UpdateSaveButtonState();
         }
         catch (OperationCanceledException)
@@ -304,11 +336,11 @@ public sealed class PremiumAuthPage : ContentPage
         if (registerUsernameEntry == null)
             return;
 
-        string baseName = registerUsernameEntry.Text?.Trim() ?? "";
+        string baseName = registerNicknameEntry?.Text?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(baseName))
-            baseName = registerNicknameEntry?.Text?.Trim() ?? "";
+            baseName = registerUsernameEntry.Text?.Trim() ?? "";
 
-        ShowUsernameStatus("جارٍ توليد اسم مستخدم متاح...", false, neutral: true);
+        ShowUsernameStatus("… جارٍ توليد اسم مستخدم متاح", false, neutral: true);
         var result = await usernameRegistry.SuggestAsync(baseName);
         if (!result.Success || string.IsNullOrWhiteSpace(result.Username))
         {
@@ -317,9 +349,10 @@ public sealed class PremiumAuthPage : ContentPage
         }
 
         registerUsernameEntry.Text = result.Username;
-        usernameAvailable = true;
-        checkedUsername = result.Username;
-        ShowUsernameStatus("✓ " + result.Message, true);
+        usernameAvailable = result.Available;
+        checkedUsername = result.Available ? result.Username : "";
+        ShowUsernameStatus(result.Message, result.Available);
+        UpdateUsernameBorder(registerUsernameEntry.IsFocused);
         UpdateSaveButtonState();
     }
 
@@ -365,7 +398,7 @@ public sealed class PremiumAuthPage : ContentPage
                 return;
             }
 
-            var user = await SupabaseAccountLinkService.EnsureLinkedApplicationUserAsync(result.Session, result.Session.Nickname);
+            await SupabaseAccountLinkService.EnsureLinkedApplicationUserAsync(result.Session, result.Session.Nickname);
             OpenMainPage();
         }
         catch (Exception ex)
@@ -376,12 +409,16 @@ public sealed class PremiumAuthPage : ContentPage
 
     async Task RegisterAsync()
     {
+        string username = "";
+        string reservationToken = "";
+        bool activated = false;
+
         try
         {
             SetRegisterError("");
             ValidateRegistrationInput();
 
-            string username = registerUsernameEntry?.Text?.Trim() ?? "";
+            username = registerUsernameEntry?.Text?.Trim() ?? "";
             string email = registerEmailEntry?.Text?.Trim() ?? "";
             string nickname = registerNicknameEntry?.Text?.Trim() ?? "";
             var securityAnswers = BuildSecurityQuestionAnswers();
@@ -408,6 +445,7 @@ public sealed class PremiumAuthPage : ContentPage
                 return;
             }
 
+            reservationToken = reservation.ReservationToken;
             await SupabaseAccountLinkService.RegisterPendingLinkAsync(username, email, nickname);
 
             var result = await supabaseAuth.SignUpAsync(
@@ -427,7 +465,7 @@ public sealed class PremiumAuthPage : ContentPage
             {
                 var activation = await usernameRegistry.ActivateAsync(
                     username,
-                    reservation.ReservationToken,
+                    reservationToken,
                     result.Session.SupabaseUserId,
                     "",
                     "");
@@ -437,6 +475,8 @@ public sealed class PremiumAuthPage : ContentPage
                     SetRegisterError(activation.Message);
                     return;
                 }
+
+                activated = true;
             }
 
             var securityResult = await recoveryService.RegisterSecurityQuestionsAsync(username, email, securityAnswers);
@@ -448,13 +488,18 @@ public sealed class PremiumAuthPage : ContentPage
 
             ShowMessagePanel(
                 "تم إنشاء الحساب",
-                "تم حجز اسم المستخدم وربطه بالحساب. أُرسلت رسالة تأكيد إلى بريدك الإلكتروني، وتم حفظ أسئلة الأمان للاسترداد.",
+                "تم إنشاء الحساب وحفظ أسئلة الأمان. يمكنك الآن متابعة خطوات الأمان والتوثيق من داخل التطبيق.",
                 "العودة لتسجيل الدخول",
                 ShowLogin);
         }
         catch (Exception ex)
         {
             SetRegisterError(ex.Message);
+        }
+        finally
+        {
+            if (!activated && !string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(reservationToken))
+                await usernameRegistry.ReleaseAsync(username, reservationToken);
         }
     }
 
@@ -475,7 +520,7 @@ public sealed class PremiumAuthPage : ContentPage
 
         ValidateUsername(username);
 
-        if (!usernameAvailable || !string.Equals(checkedUsername, username, StringComparison.Ordinal))
+        if (!usernameAvailable || !string.Equals(checkedUsername, username, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("يجب التأكد أولاً من أن اسم المستخدم متاح.");
 
         if (string.IsNullOrWhiteSpace(nickname) || nickname.Length > 40)
@@ -582,7 +627,12 @@ public sealed class PremiumAuthPage : ContentPage
                         privacyCheckBox?.IsChecked == true &&
                         termsCheckBox?.IsChecked == true &&
                         credentialsCheckBox?.IsChecked == true;
-        bool enabled = consents && usernameAvailable;
+        bool sameVerifiedUsername = usernameAvailable &&
+                                    string.Equals(
+                                        checkedUsername,
+                                        registerUsernameEntry?.Text?.Trim(),
+                                        StringComparison.OrdinalIgnoreCase);
+        bool enabled = consents && sameVerifiedUsername;
         saveAccountButton.IsEnabled = enabled;
         saveAccountButton.Opacity = enabled ? 1 : 0.45;
     }
