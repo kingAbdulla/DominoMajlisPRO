@@ -7,10 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type SecurityQuestionPayload = {
-  question?: string;
-  answer?: string;
-};
+type SecurityQuestionPayload = { question?: string; answer?: string };
+type SecurityAnswerPayload = { question_id?: string; answer?: string };
 
 type RequestBody = {
   action?: string;
@@ -19,55 +17,34 @@ type RequestBody = {
   otp?: string;
   new_password?: string;
   questions?: SecurityQuestionPayload[];
+  answers?: SecurityAnswerPayload[];
+  challenge_token?: string;
+  reset_token?: string;
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    if (req.method !== "POST") {
-      console.warn("account-recovery:invalid_method", req.method);
-      return json({ success: false, message: "Method not allowed" }, 405);
-    }
+    if (req.method !== "POST") return json({ success: false, message: "Method not allowed" }, 405);
 
     const body = await req.json() as RequestBody;
     const action = normalize(body.action);
     const username = normalize(body.username);
     const email = normalizeEmail(body.email);
 
-    console.log("account-recovery:request", {
-      action,
-      username,
-      emailDomain: email.includes("@") ? email.split("@")[1] : "invalid",
-    });
-
     if (!username || !email) {
-      console.warn("account-recovery:missing_identity_fields");
       return json({ success: false, message: "اسم المستخدم والبريد الإلكتروني مطلوبان." }, 400);
     }
 
-    const supabaseUrl = mustEnv("SUPABASE_URL");
-    const serviceRoleKey = mustEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
+    const admin = createClient(mustEnv("SUPABASE_URL"), mustEnv("SUPABASE_SERVICE_ROLE_KEY"), {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
     const user = await findUserByUsernameAndEmail(admin, username, email);
     if (!user) {
-      console.warn("account-recovery:user_not_found_or_metadata_mismatch", {
-        username,
-        emailDomain: email.includes("@") ? email.split("@")[1] : "invalid",
-      });
-      return json({ success: true, message: "إذا كانت البيانات صحيحة فسيتم تنفيذ طلب الاسترداد." });
+      return json({ success: false, message: "تعذر التحقق من هوية الحساب." }, 400);
     }
-
-    console.log("account-recovery:user_verified", {
-      username,
-      userId: user.id,
-      emailConfirmed: Boolean(user.email_confirmed_at),
-    });
 
     if (action === "register_security_questions") {
       const normalizedQuestions = normalizeQuestions(body.questions);
@@ -89,171 +66,180 @@ serve(async (req) => {
         .from("account_security_questions")
         .upsert(rows, { onConflict: "username,email,question" });
 
-      if (error) {
-        console.error("account-recovery:security_questions_upsert_failed", error);
-        return json({ success: false, message: `تعذر حفظ أسئلة الأمان: ${error.code ?? "NO_CODE"} - ${error.message ?? "NO_MESSAGE"}` }, 500);
-      }
-
+      if (error) return json({ success: false, message: `تعذر حفظ أسئلة الأمان: ${error.message}` }, 500);
       return json({ success: true, message: "تم حفظ أسئلة الأمان بنجاح." });
     }
 
-    if (action === "verify_security_questions_reset") {
-      const newPassword = body.new_password ?? "";
-      if (!isStrongPassword(newPassword)) {
-        console.warn("account-recovery:weak_new_password", { username });
-        return json({ success: false, message: "كلمة المرور الجديدة لا تطابق شروط القوة." }, 400);
+    if (action === "get_security_questions") {
+      const { data: questions, error } = await admin
+        .from("account_security_questions")
+        .select("id, question")
+        .eq("user_id", user.id)
+        .eq("username", username)
+        .eq("email", email)
+        .order("created_at", { ascending: true });
+
+      if (error) return json({ success: false, message: `تعذر تحميل أسئلة الأمان: ${error.message}` }, 500);
+      if (!questions || questions.length !== 3) {
+        return json({ success: false, message: "لا توجد 3 أسئلة أمان مسجلة لهذا الحساب." }, 400);
       }
 
-      const normalizedQuestions = normalizeQuestions(body.questions);
-      if (normalizedQuestions.length !== 3) {
-        return json({ success: false, message: "اختر 3 أسئلة أمان وأدخل إجاباتها." }, 400);
+      const challengeToken = randomToken();
+      const challengeHash = await sha256(challengeToken);
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+      await admin
+        .from("account_recovery_challenges")
+        .update({ consumed_at: new Date().toISOString() })
+        .eq("user_id", user.id)
+        .is("consumed_at", null);
+
+      const { error: insertError } = await admin
+        .from("account_recovery_challenges")
+        .insert({
+          user_id: user.id,
+          username,
+          email,
+          challenge_token_hash: challengeHash,
+          expires_at: expiresAt,
+        });
+
+      if (insertError) return json({ success: false, message: `تعذر بدء التحقق: ${insertError.message}` }, 500);
+
+      return json({
+        success: true,
+        message: "تم تحميل أسئلة الأمان المسجلة.",
+        challenge_token: challengeToken,
+        questions: questions.map((item: any) => ({ id: item.id, question: item.question })),
+      });
+    }
+
+    if (action === "verify_security_answers") {
+      const challengeToken = body.challenge_token?.trim() ?? "";
+      const answers = normalizeAnswers(body.answers);
+      if (!challengeToken || answers.length !== 3) {
+        return json({ success: false, message: "بيانات التحقق غير مكتملة." }, 400);
       }
+
+      const challengeHash = await sha256(challengeToken);
+      const { data: challenges, error } = await admin
+        .from("account_recovery_challenges")
+        .select("id, user_id, attempts, max_attempts, expires_at, consumed_at")
+        .eq("challenge_token_hash", challengeHash)
+        .eq("username", username)
+        .eq("email", email)
+        .limit(1);
+
+      if (error) return json({ success: false, message: "تعذر التحقق من الجلسة الأمنية." }, 500);
+      const challenge = challenges?.[0];
+      if (!challenge || challenge.consumed_at || new Date(challenge.expires_at).getTime() < Date.now()) {
+        return json({ success: false, message: "انتهت جلسة التحقق. ابدأ من جديد." }, 400);
+      }
+      if ((challenge.attempts ?? 0) >= (challenge.max_attempts ?? 5)) {
+        return json({ success: false, message: "تم تجاوز عدد المحاولات المسموح." }, 429);
+      }
+
+      const ids = answers.map((item) => item.questionId);
+      const { data: stored, error: storedError } = await admin
+        .from("account_security_questions")
+        .select("id, question, answer_hash")
+        .eq("user_id", user.id)
+        .in("id", ids);
+
+      if (storedError) return json({ success: false, message: "تعذر التحقق من الإجابات." }, 500);
 
       const pepper = mustEnv("ACCOUNT_RECOVERY_OTP_PEPPER");
-      const expectedHashes = await Promise.all(normalizedQuestions.map((item) =>
-        sha256(`${username}:${email}:${item.question}:${item.answer}:${pepper}`)));
+      const storedMap = new Map((stored ?? []).map((row: any) => [row.id, row]));
+      let allMatch = storedMap.size === 3;
 
-      const { data: stored, error } = await admin
-        .from("account_security_questions")
-        .select("question, answer_hash")
+      for (const answer of answers) {
+        const row: any = storedMap.get(answer.questionId);
+        if (!row) { allMatch = false; break; }
+        const hash = await sha256(`${username}:${email}:${normalize(row.question)}:${answer.answer}:${pepper}`);
+        if (hash !== row.answer_hash) { allMatch = false; break; }
+      }
+
+      if (!allMatch) {
+        await admin.from("account_recovery_challenges")
+          .update({ attempts: (challenge.attempts ?? 0) + 1 })
+          .eq("id", challenge.id);
+        return json({ success: false, message: "إحدى إجابات أسئلة الأمان غير صحيحة." }, 400);
+      }
+
+      const resetToken = randomToken();
+      const resetHash = await sha256(resetToken);
+      await admin.from("account_recovery_challenges")
+        .update({ reset_token_hash: resetHash, verified_at: new Date().toISOString() })
+        .eq("id", challenge.id);
+
+      return json({ success: true, message: "تم التحقق من الهوية بنجاح.", reset_token: resetToken });
+    }
+
+    if (action === "reset_password_with_security_token") {
+      const resetToken = body.reset_token?.trim() ?? "";
+      const newPassword = body.new_password ?? "";
+      if (!resetToken || !isStrongPassword(newPassword)) {
+        return json({ success: false, message: "رمز إعادة التعيين أو كلمة المرور الجديدة غير صالح." }, 400);
+      }
+
+      const resetHash = await sha256(resetToken);
+      const { data: challenges, error } = await admin
+        .from("account_recovery_challenges")
+        .select("id, user_id, expires_at, verified_at, consumed_at")
+        .eq("reset_token_hash", resetHash)
         .eq("username", username)
-        .eq("email", email);
+        .eq("email", email)
+        .limit(1);
 
-      if (error) {
-        console.error("account-recovery:security_questions_lookup_failed", error);
-        return json({ success: false, message: `تعذر التحقق من أسئلة الأمان: ${error.code ?? "NO_CODE"} - ${error.message ?? "NO_MESSAGE"}` }, 500);
+      if (error) return json({ success: false, message: "تعذر التحقق من رمز إعادة التعيين." }, 500);
+      const challenge = challenges?.[0];
+      if (!challenge || !challenge.verified_at || challenge.consumed_at || new Date(challenge.expires_at).getTime() < Date.now()) {
+        return json({ success: false, message: "انتهت صلاحية التحقق. ابدأ عملية الاسترداد من جديد." }, 400);
       }
 
-      const storedMap = new Map<string, string>();
-      for (const row of stored ?? []) {
-        storedMap.set(normalize(row.question), row.answer_hash ?? "");
-      }
+      const { error: updateError } = await admin.auth.admin.updateUserById(user.id, { password: newPassword });
+      if (updateError) return json({ success: false, message: `تعذر تحديث كلمة المرور: ${updateError.message}` }, 500);
 
-      const allMatch = normalizedQuestions.every((item, index) =>
-        storedMap.get(item.question) === expectedHashes[index]);
+      const now = new Date().toISOString();
+      await admin.from("account_recovery_challenges").update({ consumed_at: now }).eq("id", challenge.id);
+      await admin.from("account_recovery_otps").update({ consumed_at: now }).eq("username", username).eq("email", email).is("consumed_at", null);
 
-      if (!allMatch || storedMap.size < 3) {
-        console.warn("account-recovery:security_questions_mismatch", { username });
-        return json({ success: false, message: "أسئلة الأمان أو إجاباتها غير صحيحة." }, 400);
-      }
-
-      const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
-        password: newPassword,
-      });
-
-      if (updateError) {
-        console.error("account-recovery:security_password_update_failed", updateError);
-        return json({ success: false, message: `تعذر تحديث كلمة المرور: ${updateError.message ?? "NO_MESSAGE"}` }, 500);
-      }
-
-      console.log("account-recovery:security_questions_password_reset_success", { username, userId: user.id });
-      return json({ success: true, message: "تم تحديث كلمة المرور بنجاح عبر أسئلة الأمان." });
+      return json({ success: true, message: "تم تحديث كلمة المرور بنجاح. سجّل الدخول بكلمة المرور الجديدة." });
     }
 
     if (action === "request_email_otp") {
       const otp = generateOtp();
       const otpHash = await sha256(`${username}:${email}:${otp}:${mustEnv("ACCOUNT_RECOVERY_OTP_PEPPER")}`);
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-
-      const { error: insertError } = await admin
-        .from("account_recovery_otps")
-        .insert({
-          username,
-          email,
-          otp_hash: otpHash,
-          purpose: "password_reset",
-          expires_at: expiresAt,
-        });
-
-      if (insertError) {
-        console.error("account-recovery:otp_insert_failed", insertError);
-        return json({ success: false, message: `تعذر إنشاء رمز الاسترداد: ${insertError.code ?? "NO_CODE"} - ${insertError.message ?? "NO_MESSAGE"}` }, 500);
-      }
-
+      const { error } = await admin.from("account_recovery_otps").insert({ username, email, otp_hash: otpHash, purpose: "password_reset", expires_at: expiresAt });
+      if (error) return json({ success: false, message: `تعذر إنشاء رمز الاسترداد: ${error.message}` }, 500);
       const emailResult = await sendOtpEmail(email, username, otp);
-      if (!emailResult.success) {
-        return json({ success: false, message: emailResult.message }, 500);
-      }
-
-      console.log("account-recovery:otp_email_sent", { username });
+      if (!emailResult.success) return json({ success: false, message: emailResult.message }, 500);
       return json({ success: true, message: "تم إرسال رمز التحقق إلى البريد الإلكتروني." });
     }
 
     if (action === "verify_email_otp_reset") {
       const otp = normalize(body.otp);
       const newPassword = body.new_password ?? "";
-
-      if (!isStrongPassword(newPassword)) {
-        console.warn("account-recovery:weak_new_password", { username });
-        return json({ success: false, message: "كلمة المرور الجديدة لا تطابق شروط القوة." }, 400);
-      }
-
-      if (!otp || otp.length !== 6) {
-        console.warn("account-recovery:invalid_otp_format", { username });
-        return json({ success: false, message: "رمز التحقق غير صالح." }, 400);
-      }
+      if (!isStrongPassword(newPassword) || otp.length !== 6) return json({ success: false, message: "رمز التحقق أو كلمة المرور الجديدة غير صالح." }, 400);
 
       const otpHash = await sha256(`${username}:${email}:${otp}:${mustEnv("ACCOUNT_RECOVERY_OTP_PEPPER")}`);
-      const { data: rows, error } = await admin
-        .from("account_recovery_otps")
+      const { data: rows, error } = await admin.from("account_recovery_otps")
         .select("id, attempts, max_attempts, expires_at, consumed_at")
-        .eq("username", username)
-        .eq("email", email)
-        .eq("otp_hash", otpHash)
-        .eq("purpose", "password_reset")
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (error) {
-        console.error("account-recovery:otp_lookup_failed", error);
-        return json({ success: false, message: `تعذر التحقق من الرمز: ${error.code ?? "NO_CODE"} - ${error.message ?? "NO_MESSAGE"}` }, 500);
-      }
-
+        .eq("username", username).eq("email", email).eq("otp_hash", otpHash)
+        .eq("purpose", "password_reset").order("created_at", { ascending: false }).limit(1);
+      if (error) return json({ success: false, message: "تعذر التحقق من الرمز." }, 500);
       const row = rows?.[0];
-      if (!row) {
-        console.warn("account-recovery:otp_not_found", { username });
-        return json({ success: false, message: "رمز التحقق غير صحيح." }, 400);
-      }
+      if (!row || row.consumed_at || new Date(row.expires_at).getTime() < Date.now()) return json({ success: false, message: "رمز التحقق غير صالح أو منتهي." }, 400);
+      if ((row.attempts ?? 0) >= (row.max_attempts ?? 5)) return json({ success: false, message: "تم تجاوز عدد المحاولات المسموح." }, 429);
 
-      if (row.consumed_at) {
-        console.warn("account-recovery:otp_already_consumed", { username });
-        return json({ success: false, message: "تم استخدام هذا الرمز مسبقاً." }, 400);
-      }
-
-      if (new Date(row.expires_at).getTime() < Date.now()) {
-        console.warn("account-recovery:otp_expired", { username });
-        return json({ success: false, message: "انتهت صلاحية رمز التحقق." }, 400);
-      }
-
-      if ((row.attempts ?? 0) >= (row.max_attempts ?? 5)) {
-        console.warn("account-recovery:otp_attempts_exceeded", { username });
-        return json({ success: false, message: "تم تجاوز عدد المحاولات المسموح." }, 429);
-      }
-
-      await admin
-        .from("account_recovery_otps")
-        .update({ attempts: (row.attempts ?? 0) + 1 })
-        .eq("id", row.id);
-
-      const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
-        password: newPassword,
-      });
-
-      if (updateError) {
-        console.error("account-recovery:password_update_failed", updateError);
-        return json({ success: false, message: `تعذر تحديث كلمة المرور: ${updateError.message ?? "NO_MESSAGE"}` }, 500);
-      }
-
-      await admin
-        .from("account_recovery_otps")
-        .update({ consumed_at: new Date().toISOString() })
-        .eq("id", row.id);
-
-      console.log("account-recovery:password_reset_success", { username, userId: user.id });
+      await admin.from("account_recovery_otps").update({ attempts: (row.attempts ?? 0) + 1 }).eq("id", row.id);
+      const { error: updateError } = await admin.auth.admin.updateUserById(user.id, { password: newPassword });
+      if (updateError) return json({ success: false, message: `تعذر تحديث كلمة المرور: ${updateError.message}` }, 500);
+      await admin.from("account_recovery_otps").update({ consumed_at: new Date().toISOString() }).eq("username", username).eq("email", email).is("consumed_at", null);
       return json({ success: true, message: "تم تحديث كلمة المرور بنجاح." });
     }
 
-    console.warn("account-recovery:unknown_action", { action });
     return json({ success: false, message: "أمر غير معروف." }, 400);
   } catch (err) {
     console.error("account-recovery:unhandled_error", err);
@@ -263,110 +249,65 @@ serve(async (req) => {
 
 async function findUserByUsernameAndEmail(admin: any, username: string, email: string) {
   let page = 1;
-  const perPage = 200;
-
   while (page <= 20) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
     if (error) throw error;
-
-    console.log("account-recovery:scan_users_page", {
-      page,
-      count: data?.users?.length ?? 0,
-    });
-
     const user = data?.users?.find((item: any) => {
       const metadataUsername = normalize(item?.user_metadata?.username);
       const metadataNickname = normalize(item?.user_metadata?.nickname);
       const metadataDisplayName = normalize(item?.user_metadata?.display_name);
-      const itemEmail = normalizeEmail(item?.email);
-      const identityMatches =
-        metadataUsername === username ||
-        metadataNickname === username ||
-        metadataDisplayName === username;
-
-      return identityMatches && itemEmail === email;
+      return (metadataUsername === username || metadataNickname === username || metadataDisplayName === username) && normalizeEmail(item?.email) === email;
     });
-
-    if (user) {
-      console.log("account-recovery:identity_match", {
-        matchedUsername: Boolean(normalize(user?.user_metadata?.username) === username),
-        matchedNickname: Boolean(normalize(user?.user_metadata?.nickname) === username),
-        matchedDisplayName: Boolean(normalize(user?.user_metadata?.display_name) === username),
-      });
-      return user;
-    }
-
-    if (!data?.users || data.users.length < perPage) return null;
+    if (user) return user;
+    if (!data?.users || data.users.length < 200) return null;
     page++;
   }
-
   return null;
 }
 
 async function sendOtpEmail(email: string, username: string, otp: string) {
   const resendApiKey = Deno.env.get("RESEND_API_KEY")?.trim() ?? "";
   const fromEmail = Deno.env.get("ACCOUNT_RECOVERY_FROM_EMAIL")?.trim() ?? "";
-
-  console.log("account-recovery:email_config", {
-    hasResendApiKey: Boolean(resendApiKey),
-    fromEmail,
-  });
-
-  if (!resendApiKey || !fromEmail) {
-    console.warn("account-recovery:email_secrets_missing");
-    console.log(`Account recovery OTP for ${username}/${email}: ${otp}`);
-    return { success: false, message: "إعدادات البريد غير مكتملة: RESEND_API_KEY أو ACCOUNT_RECOVERY_FROM_EMAIL غير موجود." };
-  }
+  if (!resendApiKey || !fromEmail) return { success: false, message: "إعدادات البريد غير مكتملة." };
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: {
-      "Authorization": `Bearer ${resendApiKey}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Authorization": `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: fromEmail,
       to: email,
       subject: "Domino Majlis PRO - رمز استعادة الحساب",
-      html: `
-        <div dir="rtl" style="font-family:Arial,sans-serif;background:#050505;color:#fff;padding:24px;border-radius:16px">
-          <h2 style="color:#D4AF37">Domino Majlis PRO</h2>
-          <p>رمز استعادة الحساب الخاص بك هو:</p>
-          <div style="font-size:28px;font-weight:bold;letter-spacing:6px;color:#D4AF37">${otp}</div>
-          <p>ينتهي الرمز خلال 10 دقائق. لا تشارك هذا الرمز مع أي شخص.</p>
-        </div>
-      `,
+      html: `<div dir="rtl" style="font-family:Arial;background:#050505;color:#fff;padding:24px;border-radius:16px"><h2 style="color:#D4AF37">Domino Majlis PRO</h2><p>رمز استعادة الحساب:</p><div style="font-size:28px;font-weight:bold;letter-spacing:6px;color:#D4AF37">${otp}</div><p>ينتهي خلال 10 دقائق.</p></div>`,
     }),
   });
-
-  if (!response.ok) {
-    const text = await response.text();
-    console.error("account-recovery:resend_failed", {
-      status: response.status,
-      body: text,
-    });
-    return { success: false, message: `فشل إرسال البريد عبر Resend: ${response.status} - ${text}` };
-  }
-
-  const text = await response.text();
-  console.log("account-recovery:resend_success", text);
+  if (!response.ok) return { success: false, message: `فشل إرسال البريد عبر Resend: ${response.status} - ${await response.text()}` };
   return { success: true, message: "تم الإرسال." };
 }
 
-function normalizeQuestions(questions?: SecurityQuestionPayload[]) {
-  const items = (questions ?? [])
-    .map((item) => ({
-      question: normalize(item.question),
-      answer: normalizeSecurityAnswer(item.answer),
-    }))
-    .filter((item) => item.question.length > 0 && item.answer.length >= 3);
-
-  const unique = new Map<string, { question: string; answer: string }>();
-  for (const item of items) {
-    if (!unique.has(item.question)) unique.set(item.question, item);
+function normalizeQuestions(items?: SecurityQuestionPayload[]) {
+  const map = new Map<string, { question: string; answer: string }>();
+  for (const item of items ?? []) {
+    const question = normalize(item.question);
+    const answer = normalizeSecurityAnswer(item.answer);
+    if (question && answer.length >= 3 && !map.has(question)) map.set(question, { question, answer });
   }
+  return Array.from(map.values()).slice(0, 3);
+}
 
-  return Array.from(unique.values()).slice(0, 3);
+function normalizeAnswers(items?: SecurityAnswerPayload[]) {
+  const map = new Map<string, { questionId: string; answer: string }>();
+  for (const item of items ?? []) {
+    const questionId = (item.question_id ?? "").trim();
+    const answer = normalizeSecurityAnswer(item.answer);
+    if (questionId && answer.length >= 3 && !map.has(questionId)) map.set(questionId, { questionId, answer });
+  }
+  return Array.from(map.values()).slice(0, 3);
+}
+
+function randomToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function generateOtp() {
@@ -376,52 +317,17 @@ function generateOtp() {
 }
 
 async function sha256(value: string) {
-  const data = new TextEncoder().encode(value);
-  const hash = await crypto.subtle.digest("SHA-256", data);
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function isStrongPassword(password: string) {
-  return password.length >= 8 &&
-    /[a-z]/.test(password) &&
-    /[A-Z]/.test(password) &&
-    /\d/.test(password) &&
-    /[^a-zA-Z0-9]/.test(password);
+  return password.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[^a-zA-Z0-9]/.test(password);
 }
 
-function normalize(value?: string) {
-  return (value ?? "").trim().toLowerCase();
-}
-
-function normalizeEmail(value?: string) {
-  return (value ?? "").trim().toLowerCase();
-}
-
-function normalizeSecurityAnswer(value?: string) {
-  return normalize(value).replace(/\s+/g, " ");
-}
-
-function mustEnv(name: string) {
-  const value = Deno.env.get(name)?.trim();
-  if (!value) throw new Error(`Missing env ${name}`);
-  return value;
-}
-
-function errorMessage(err: unknown) {
-  if (err instanceof Error) return err.message;
-  try {
-    return JSON.stringify(err);
-  } catch {
-    return String(err);
-  }
-}
-
-function json(payload: unknown, status = 200) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "application/json; charset=utf-8",
-    },
-  });
-}
+function normalize(value?: string) { return (value ?? "").trim().toLowerCase(); }
+function normalizeEmail(value?: string) { return (value ?? "").trim().toLowerCase(); }
+function normalizeSecurityAnswer(value?: string) { return normalize(value).replace(/\s+/g, " "); }
+function mustEnv(name: string) { const value = Deno.env.get(name)?.trim(); if (!value) throw new Error(`Missing env ${name}`); return value; }
+function errorMessage(err: unknown) { return err instanceof Error ? err.message : String(err); }
+function json(payload: unknown, status = 200) { return new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } }); }
