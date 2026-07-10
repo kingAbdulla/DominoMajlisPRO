@@ -6,17 +6,8 @@ namespace DominoMajlisPRO.Pages;
 
 public sealed class AccountRecoveryPage : ContentPage
 {
-    static readonly string[] SecurityQuestions =
-    {
-        "ما اسم أول مقهى لعبت فيه الدومينو؟",
-        "ما اسم أقرب صديق دومينو لديك؟",
-        "ما المدينة التي بدأت فيها لعب الدومينو؟",
-        "ما اسم أول فريق دومينو لعبت معه؟",
-        "ما الكلمة السرية التي تختارها للتذكير؟"
-    };
-
     readonly VerticalStackLayout contentHost;
-    readonly SupabaseRecoveryOtpService otpService = new();
+    readonly SupabaseRecoveryOtpService recoveryService = new();
 
     Entry? usernameEntry;
     Entry? emailEntry;
@@ -24,12 +15,6 @@ public sealed class AccountRecoveryPage : ContentPage
     Entry? recoveryCodeEntry;
     Entry? newPasswordEntry;
     Entry? confirmPasswordEntry;
-    Picker? securityQuestion1Picker;
-    Picker? securityQuestion2Picker;
-    Picker? securityQuestion3Picker;
-    Entry? securityAnswer1Entry;
-    Entry? securityAnswer2Entry;
-    Entry? securityAnswer3Entry;
     Label? errorLabel;
 
     public AccountRecoveryPage()
@@ -88,7 +73,7 @@ public sealed class AccountRecoveryPage : ContentPage
                 Info("اختر طريقة الاستعادة المناسبة لحسابك."),
                 PrimaryButton("الاستعادة عبر رمز البريد الإلكتروني", ShowEmailOtpRequest),
                 SecondaryButton("الاستعادة عبر Recovery Code", ShowRecoveryCodeReset),
-                SecondaryButton("الاستعادة عبر أسئلة الأمان", ShowSecurityQuestionsReset),
+                SecondaryButton("الاستعادة عبر أسئلة الأمان", ShowSecurityIdentityStep),
                 GhostButton("الرجوع", async () => await Navigation.PopAsync())
             }
         }));
@@ -107,7 +92,7 @@ public sealed class AccountRecoveryPage : ContentPage
             Spacing = 12,
             Children =
             {
-                Info("سيتم إرسال رمز تحقق مكوّن من 6 أرقام إلى البريد المرتبط بنفس اسم المستخدم."),
+                Info("سيتم إرسال رمز تحقق مكوّن من 6 أرقام إلى البريد المرتبط بالحساب."),
                 usernameEntry,
                 emailEntry,
                 errorLabel,
@@ -125,14 +110,9 @@ public sealed class AccountRecoveryPage : ContentPage
         SetInlineError(errorLabel, "");
         string username = usernameEntry.Text?.Trim() ?? "";
         string email = emailEntry.Text?.Trim() ?? "";
+        if (!ValidateIdentity(username, email, errorLabel)) return;
 
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(email))
-        {
-            SetInlineError(errorLabel, "أدخل اسم المستخدم والبريد الإلكتروني.");
-            return;
-        }
-
-        var result = await otpService.RequestEmailOtpAsync(username, email);
+        var result = await recoveryService.RequestEmailOtpAsync(username, email);
         if (!result.Success)
         {
             SetInlineError(errorLabel, result.Message);
@@ -142,7 +122,7 @@ public sealed class AccountRecoveryPage : ContentPage
         ShowEmailOtpReset(username, email, result.Message);
     }
 
-    void ShowEmailOtpReset(string username, string email, string serverMessage)
+    void ShowEmailOtpReset(string username, string email, string message)
     {
         contentHost.Children.Clear();
         otpEntry = EntryField("رمز التحقق 6 أرقام", keyboard: Keyboard.Numeric);
@@ -156,11 +136,11 @@ public sealed class AccountRecoveryPage : ContentPage
             Spacing = 12,
             Children =
             {
-                Info(serverMessage),
+                Info(message),
                 otpEntry,
                 newPasswordEntry,
                 confirmPasswordEntry,
-                Info("بعد نجاح التحقق سيتم حفظ كلمة المرور الجديدة على الخادم لهذا الحساب فقط."),
+                Info(PremiumAccountAuthService.PasswordPolicyText),
                 errorLabel,
                 PrimaryButton("حفظ كلمة المرور الجديدة", async () => await VerifyOtpAndResetAsync(username, email)),
                 GhostButton("الرجوع", ShowEmailOtpRequest)
@@ -174,22 +154,23 @@ public sealed class AccountRecoveryPage : ContentPage
             return;
 
         SetInlineError(errorLabel, "");
-        string otp = otpEntry.Text?.Trim() ?? "";
         string password = newPasswordEntry.Text ?? "";
-        string confirm = confirmPasswordEntry.Text ?? "";
+        if (!ValidateNewPassword(password, confirmPasswordEntry.Text ?? "", errorLabel)) return;
 
-        if (!ValidateNewPassword(password, confirm, errorLabel))
-            return;
+        var result = await recoveryService.VerifyEmailOtpAndResetPasswordAsync(
+            username,
+            email,
+            otpEntry.Text?.Trim() ?? "",
+            password);
 
-        var result = await otpService.VerifyEmailOtpAndResetPasswordAsync(username, email, otp, password);
         if (!result.Success)
         {
             SetInlineError(errorLabel, result.Message);
             return;
         }
 
-        await WriteRecoveryAuditAsync(username, "Email OTP", "تمت إعادة تعيين كلمة المرور بعد التحقق من رمز البريد الإلكتروني.");
-        ShowMessage("تم تحديث كلمة المرور", "يمكنك الآن تسجيل الدخول باسم المستخدم وكلمة المرور الجديدة.");
+        await AuditRecoveryAsync("Email OTP", username, email);
+        ShowSuccess();
     }
 
     void ShowRecoveryCodeReset()
@@ -207,7 +188,7 @@ public sealed class AccountRecoveryPage : ContentPage
             Spacing = 12,
             Children =
             {
-                Info("أدخل اسم المستخدم ورمز الاسترداد المحفوظ. بعد النجاح سيتم توليد Recovery Code جديد وإلغاء القديم."),
+                Info("أدخل اسم المستخدم ورمز الاسترداد المحفوظ."),
                 usernameEntry,
                 recoveryCodeEntry,
                 newPasswordEntry,
@@ -228,7 +209,6 @@ public sealed class AccountRecoveryPage : ContentPage
         string username = usernameEntry.Text?.Trim() ?? "";
         string recoveryCode = recoveryCodeEntry.Text?.Trim() ?? "";
         string password = newPasswordEntry.Text ?? "";
-        string confirm = confirmPasswordEntry.Text ?? "";
 
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(recoveryCode))
         {
@@ -236,8 +216,7 @@ public sealed class AccountRecoveryPage : ContentPage
             return;
         }
 
-        if (!ValidateNewPassword(password, confirm, errorLabel))
-            return;
+        if (!ValidateNewPassword(password, confirmPasswordEntry.Text ?? "", errorLabel)) return;
 
         try
         {
@@ -245,12 +224,12 @@ public sealed class AccountRecoveryPage : ContentPage
                 username,
                 recoveryCode,
                 password,
-                confirm);
+                confirmPasswordEntry.Text ?? "");
 
-            await WriteRecoveryAuditAsync(username, "Recovery Code", "تمت إعادة تعيين كلمة المرور وتدوير رمز الاسترداد المحلي.");
+            await AuditRecoveryAsync("Recovery Code", username, "Local credential");
             ShowMessage(
                 "تم تحديث كلمة المرور",
-                "تم تحديث كلمة المرور بنجاح. احفظ Recovery Code الجديد الآن:\n\n" + result.NewRecoveryCode);
+                "احفظ Recovery Code الجديد الآن:\n\n" + result.NewRecoveryCode);
         }
         catch (Exception ex)
         {
@@ -258,121 +237,181 @@ public sealed class AccountRecoveryPage : ContentPage
         }
     }
 
-    void ShowSecurityQuestionsReset()
+    void ShowSecurityIdentityStep()
     {
         contentHost.Children.Clear();
         usernameEntry = EntryField("Username اسم المستخدم");
         emailEntry = EntryField("البريد الإلكتروني المسجل", keyboard: Keyboard.Email);
-        securityQuestion1Picker = PickerField("سؤال الأمان الأول", SecurityQuestions);
-        securityQuestion2Picker = PickerField("سؤال الأمان الثاني", SecurityQuestions);
-        securityQuestion3Picker = PickerField("سؤال الأمان الثالث", SecurityQuestions);
-        securityAnswer1Entry = EntryField("إجابة السؤال الأول", isPassword: true);
-        securityAnswer2Entry = EntryField("إجابة السؤال الثاني", isPassword: true);
-        securityAnswer3Entry = EntryField("إجابة السؤال الثالث", isPassword: true);
-        newPasswordEntry = EntryField("كلمة المرور الجديدة", isPassword: true);
-        confirmPasswordEntry = EntryField("تأكيد كلمة المرور الجديدة", isPassword: true);
         errorLabel = ErrorLabel();
+
+        contentHost.Children.Add(Title("التحقق بأسئلة الأمان"));
+        contentHost.Children.Add(CreatePanel(new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
+            {
+                StepBadge("المرحلة 1 من 3", "تأكيد هوية الحساب"),
+                Info("أدخل اسم المستخدم والبريد المسجل لتحميل أسئلة الأمان الأصلية من الخادم."),
+                usernameEntry,
+                emailEntry,
+                errorLabel,
+                PrimaryButton("التالي", async () => await BeginSecurityRecoveryAsync()),
+                GhostButton("الرجوع", ShowOptions)
+            }
+        }));
+    }
+
+    async Task BeginSecurityRecoveryAsync()
+    {
+        if (usernameEntry == null || emailEntry == null || errorLabel == null) return;
+
+        SetInlineError(errorLabel, "");
+        string username = usernameEntry.Text?.Trim() ?? "";
+        string email = emailEntry.Text?.Trim() ?? "";
+        if (!ValidateIdentity(username, email, errorLabel)) return;
+
+        var result = await recoveryService.BeginSecurityQuestionsRecoveryAsync(username, email);
+        if (!result.Success || result.Questions.Count != 3 || string.IsNullOrWhiteSpace(result.ChallengeToken))
+        {
+            SetInlineError(errorLabel, result.Message);
+            return;
+        }
+
+        ShowSecurityAnswersStep(username, email, result.ChallengeToken, result.Questions);
+    }
+
+    void ShowSecurityAnswersStep(
+        string username,
+        string email,
+        string challengeToken,
+        IReadOnlyList<SupabaseRecoveryOtpService.SecurityQuestionItem> questions)
+    {
+        contentHost.Children.Clear();
+        errorLabel = ErrorLabel();
+
+        var answerEntries = questions.Select((_, index) =>
+            EntryField($"إجابة السؤال {index + 1}", isPassword: true)).ToArray();
+
+        var stack = new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
+            {
+                StepBadge("المرحلة 2 من 3", "الإجابة عن الأسئلة المسجلة"),
+                Info("الأسئلة معروضة كما سجلتها سابقًا ولا يمكن تغييرها.")
+            }
+        };
+
+        for (int i = 0; i < questions.Count; i++)
+        {
+            stack.Children.Add(QuestionCard(i + 1, questions[i].Question));
+            stack.Children.Add(answerEntries[i]);
+        }
+
+        stack.Children.Add(errorLabel);
+        stack.Children.Add(PrimaryButton("تحقق من الإجابات", async () =>
+            await VerifySecurityAnswersAsync(username, email, challengeToken, questions, answerEntries)));
+        stack.Children.Add(GhostButton("البدء من جديد", ShowSecurityIdentityStep));
 
         contentHost.Children.Add(Title("أسئلة الأمان"));
         contentHost.Children.Add(CreatePanel(new ScrollView
         {
             MaximumHeightRequest = 620,
-            Content = new VerticalStackLayout
+            Content = stack
+        }));
+    }
+
+    async Task VerifySecurityAnswersAsync(
+        string username,
+        string email,
+        string challengeToken,
+        IReadOnlyList<SupabaseRecoveryOtpService.SecurityQuestionItem> questions,
+        IReadOnlyList<Entry> entries)
+    {
+        if (errorLabel == null) return;
+        SetInlineError(errorLabel, "");
+
+        var answers = questions.Select((question, index) =>
+            (question.Id, entries[index].Text?.Trim() ?? "")).ToArray();
+
+        if (answers.Any(item => item.Item2.Length < 3))
+        {
+            SetInlineError(errorLabel, "أدخل إجابة واضحة لكل سؤال، لا تقل عن 3 أحرف.");
+            return;
+        }
+
+        var result = await recoveryService.VerifySecurityAnswersAsync(username, email, challengeToken, answers);
+        if (!result.Success || string.IsNullOrWhiteSpace(result.ResetToken))
+        {
+            SetInlineError(errorLabel, result.Message);
+            return;
+        }
+
+        ShowSecurityPasswordStep(username, email, result.ResetToken);
+    }
+
+    void ShowSecurityPasswordStep(string username, string email, string resetToken)
+    {
+        contentHost.Children.Clear();
+        newPasswordEntry = EntryField("كلمة المرور الجديدة", isPassword: true);
+        confirmPasswordEntry = EntryField("تأكيد كلمة المرور الجديدة", isPassword: true);
+        errorLabel = ErrorLabel();
+
+        contentHost.Children.Add(Title("إعادة تعيين كلمة المرور"));
+        contentHost.Children.Add(CreatePanel(new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
             {
-                Spacing = 12,
-                Children =
-                {
-                    Info("اختر نفس أسئلة الأمان الثلاثة التي سجلتها ثم أدخل إجاباتها. عند التحقق تُحفظ كلمة المرور الجديدة مباشرة."),
-                    usernameEntry,
-                    emailEntry,
-                    securityQuestion1Picker,
-                    securityAnswer1Entry,
-                    securityQuestion2Picker,
-                    securityAnswer2Entry,
-                    securityQuestion3Picker,
-                    securityAnswer3Entry,
-                    newPasswordEntry,
-                    confirmPasswordEntry,
-                    errorLabel,
-                    PrimaryButton("تحقق وإعادة تعيين كلمة المرور", async () => await ResetWithSecurityQuestionsAsync()),
-                    GhostButton("الرجوع", ShowOptions)
-                }
+                StepBadge("المرحلة 3 من 3", "حماية الحساب بكلمة مرور جديدة"),
+                Info("تم التحقق من إجاباتك. أنشئ كلمة مرور قوية جديدة."),
+                newPasswordEntry,
+                confirmPasswordEntry,
+                Info(PremiumAccountAuthService.PasswordPolicyText),
+                errorLabel,
+                PrimaryButton("حفظ كلمة المرور الجديدة", async () =>
+                    await ResetWithSecurityTokenAsync(username, email, resetToken)),
+                GhostButton("إلغاء", ShowOptions)
             }
         }));
     }
 
-    async Task ResetWithSecurityQuestionsAsync()
+    async Task ResetWithSecurityTokenAsync(string username, string email, string resetToken)
     {
-        if (errorLabel == null || usernameEntry == null || emailEntry == null ||
-            securityQuestion1Picker == null || securityQuestion2Picker == null || securityQuestion3Picker == null ||
-            securityAnswer1Entry == null || securityAnswer2Entry == null || securityAnswer3Entry == null ||
-            newPasswordEntry == null || confirmPasswordEntry == null)
-            return;
+        if (newPasswordEntry == null || confirmPasswordEntry == null || errorLabel == null) return;
 
         SetInlineError(errorLabel, "");
-        string username = usernameEntry.Text?.Trim() ?? "";
-        string email = emailEntry.Text?.Trim() ?? "";
         string password = newPasswordEntry.Text ?? "";
-        string confirm = confirmPasswordEntry.Text ?? "";
+        if (!ValidateNewPassword(password, confirmPasswordEntry.Text ?? "", errorLabel)) return;
 
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(email))
-        {
-            SetInlineError(errorLabel, "أدخل اسم المستخدم والبريد الإلكتروني.");
-            return;
-        }
+        var result = await recoveryService.ResetPasswordWithSecurityTokenAsync(
+            username,
+            email,
+            resetToken,
+            password);
 
-        var questions = BuildSecurityQuestionAnswers();
-        if (questions.Count != 3)
-        {
-            SetInlineError(errorLabel, "اختر 3 أسئلة مختلفة وأدخل إجابة لكل سؤال.");
-            return;
-        }
-
-        if (!ValidateNewPassword(password, confirm, errorLabel))
-            return;
-
-        var result = await otpService.VerifySecurityQuestionsAndResetPasswordAsync(username, email, questions, password);
         if (!result.Success)
         {
             SetInlineError(errorLabel, result.Message);
             return;
         }
 
-        await WriteRecoveryAuditAsync(username, "Security Questions", "تمت إعادة تعيين كلمة المرور بعد التحقق من أسئلة الأمان الثلاثة.");
-        ShowMessage("تم تحديث كلمة المرور", "تمت إعادة تعيين كلمة المرور عبر أسئلة الأمان. يمكنك الآن تسجيل الدخول باسم المستخدم وكلمة المرور الجديدة.");
+        await AuditRecoveryAsync("Security Questions", username, email);
+        ShowSuccess();
     }
 
-    static async Task WriteRecoveryAuditAsync(string username, string method, string details)
-    {
-        try
-        {
-            await SecurityLogService.AddAsync(
-                "Account Recovery",
-                "Password Reset",
-                $"Username: {username}\nRecovery Method: {method}\n{details}",
-                "Warning",
-                true);
-        }
-        catch
-        {
-            // نجاح تغيير كلمة المرور لا يُلغى إذا تعذر حفظ سجل التدقيق المحلي.
-        }
-    }
+    void ShowSuccess() => ShowMessage(
+        "تم تأمين الحساب",
+        "تم تحديث كلمة المرور وإبطال رموز الاسترداد السابقة. سجّل الدخول باسم المستخدم وكلمة المرور الجديدة.");
 
-    List<(string Question, string Answer)> BuildSecurityQuestionAnswers()
+    async Task AuditRecoveryAsync(string method, string username, string identity)
     {
-        var items = new List<(string Question, string Answer)>
-        {
-            (securityQuestion1Picker?.SelectedItem?.ToString() ?? "", securityAnswer1Entry?.Text ?? ""),
-            (securityQuestion2Picker?.SelectedItem?.ToString() ?? "", securityAnswer2Entry?.Text ?? ""),
-            (securityQuestion3Picker?.SelectedItem?.ToString() ?? "", securityAnswer3Entry?.Text ?? "")
-        };
-
-        return items
-            .Where(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer))
-            .GroupBy(item => item.Question, StringComparer.Ordinal)
-            .Select(group => group.First())
-            .ToList();
+        await SecurityLogService.AddAsync(
+            "Account Recovery",
+            "Password Reset Success",
+            $"Method: {method}\nUsername: {username}\nIdentity: {identity}\nTimestamp UTC: {DateTime.UtcNow:O}",
+            "Warning",
+            true);
     }
 
     void ShowMessage(string title, string message)
@@ -391,6 +430,23 @@ public sealed class AccountRecoveryPage : ContentPage
         }));
     }
 
+    static bool ValidateIdentity(string username, string email, Label label)
+    {
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(email))
+        {
+            SetInlineError(label, "أدخل اسم المستخدم والبريد الإلكتروني.");
+            return false;
+        }
+
+        if (!email.Contains('@', StringComparison.Ordinal))
+        {
+            SetInlineError(label, "البريد الإلكتروني غير صالح.");
+            return false;
+        }
+
+        return true;
+    }
+
     static bool ValidateNewPassword(string password, string confirm, Label label)
     {
         if (!string.Equals(password, confirm, StringComparison.Ordinal))
@@ -399,42 +455,50 @@ public sealed class AccountRecoveryPage : ContentPage
             return false;
         }
 
-        if (!IsStrongPassword(password))
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 8 ||
+            !password.Any(char.IsUpper) || !password.Any(char.IsLower) ||
+            !password.Any(char.IsDigit) || !password.Any(ch => !char.IsLetterOrDigit(ch)))
         {
-            SetInlineError(label, "كلمة السر يجب أن تكون 8 أحرف على الأقل وتحتوي على حرف كبير، حرف صغير، رقم، ورمز.");
+            SetInlineError(label, PremiumAccountAuthService.PasswordPolicyText);
             return false;
         }
 
         return true;
     }
 
-    static bool IsStrongPassword(string password)
+    static Border StepBadge(string step, string title) => new()
     {
-        if (string.IsNullOrWhiteSpace(password) || password.Length < 8)
-            return false;
-
-        return password.Any(char.IsUpper) &&
-               password.Any(char.IsLower) &&
-               password.Any(char.IsDigit) &&
-               password.Any(ch => !char.IsLetterOrDigit(ch));
-    }
-
-    static Picker PickerField(string title, params string[] items)
-    {
-        var picker = new Picker
+        Stroke = Color.FromArgb("#8A6A1D"),
+        StrokeThickness = 1,
+        BackgroundColor = Color.FromArgb("#241B08"),
+        Padding = new Thickness(12, 9),
+        StrokeShape = new RoundRectangle { CornerRadius = 16 },
+        Content = new VerticalStackLayout
         {
-            Title = title,
+            Spacing = 2,
+            Children =
+            {
+                new Label { Text = step, TextColor = Color.FromArgb("#D4AF37"), FontSize = 11, HorizontalTextAlignment = TextAlignment.Center },
+                new Label { Text = title, TextColor = Colors.White, FontSize = 14, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center }
+            }
+        }
+    };
+
+    static Border QuestionCard(int number, string question) => new()
+    {
+        Stroke = Color.FromArgb("#4F3C13"),
+        BackgroundColor = Color.FromArgb("#151515"),
+        Padding = 12,
+        StrokeShape = new RoundRectangle { CornerRadius = 16 },
+        Content = new Label
+        {
+            Text = $"{number}. {question}",
             TextColor = Colors.White,
-            TitleColor = Color.FromArgb("#AFAFAF"),
-            BackgroundColor = Color.FromArgb("#111111"),
-            HorizontalTextAlignment = TextAlignment.End
-        };
-
-        foreach (var item in items)
-            picker.Items.Add(item);
-
-        return picker;
-    }
+            FontSize = 14,
+            HorizontalTextAlignment = TextAlignment.End,
+            LineBreakMode = LineBreakMode.WordWrap
+        }
+    };
 
     static Label Title(string text) => new()
     {
