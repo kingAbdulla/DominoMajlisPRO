@@ -30,8 +30,6 @@
     </ContentPage.Resources>
 
     <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="{OnIdiom Phone='5,5,5,4', Tablet='10'}" RowSpacing="7">
-
-        <!-- Fixed AAA header -->
         <Grid Grid.Row="0" ColumnDefinitions="42,*,42" ColumnSpacing="4" FlowDirection="LeftToRight" HeightRequest="54">
             <Border WidthRequest="42" HeightRequest="48" BackgroundColor="Transparent" Stroke="Transparent" StrokeThickness="0" Padding="0" VerticalOptions="Center">
                 <Border.GestureRecognizers>
@@ -39,7 +37,6 @@
                 </Border.GestureRecognizers>
                 <Image Source="back_gold.png" WidthRequest="28" HeightRequest="28" HorizontalOptions="Center" VerticalOptions="Center" />
             </Border>
-
             <Grid Grid.Column="1" ColumnDefinitions="1.12*,0.9*,1.08*" ColumnSpacing="0" HorizontalOptions="Fill" VerticalOptions="Fill" FlowDirection="RightToLeft">
                 <Border Grid.Column="0" Style="{StaticResource HeaderShell}" StrokeShape="RoundRectangle 0,22,22,0" Padding="5,4">
                     <Grid RowDefinitions="Auto,Auto" RowSpacing="1" HorizontalOptions="Fill" VerticalOptions="Center">
@@ -66,13 +63,11 @@
                     </Grid>
                 </Border>
             </Grid>
-
             <Button x:Name="MenuButton" Grid.Column="2" Text="☰" Clicked="OnMenuClicked" WidthRequest="42" HeightRequest="48" FontSize="21" Padding="0" BackgroundColor="#080B0A" BorderColor="#D4A62C" BorderWidth="1.2" TextColor="#FFD447" CornerRadius="14" />
         </Grid>
 
         <Label x:Name="RulesLabel" Grid.Row="0" IsVisible="False" />
 
-        <!-- Fixed hero area: no scrolling required during play -->
         <Grid Grid.Row="1" ColumnDefinitions="*,44,*" ColumnSpacing="0" HeightRequest="{OnIdiom Phone=248, Tablet=360}" FlowDirection="LeftToRight">
             <Border x:Name="Team1Card" Grid.Column="0" Padding="6" BackgroundColor="#100815" Stroke="#C95DFF" StrokeThickness="1.4" StrokeShape="RoundRectangle 16" HorizontalOptions="Fill" VerticalOptions="Fill">
                 <Grid RowDefinitions="62,Auto,Auto,Auto,Auto,Auto,*" RowSpacing="1">
@@ -172,7 +167,6 @@
             </Border>
         </Grid>
 
-        <!-- Fixed compact keypad -->
         <Border Grid.Row="2" Padding="8,6" BackgroundColor="#090B0A" Stroke="#D4A62C" StrokeThickness="1.2" StrokeShape="RoundRectangle 16">
             <Grid RowDefinitions="Auto,*" RowSpacing="5">
                 <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="6">
@@ -194,12 +188,11 @@
                     <Button Text="9" Grid.Row="2" Grid.Column="2" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
                     <Button Text="✖" Grid.Row="3" Grid.Column="0" Clicked="OnClearKeypadClicked" BackgroundColor="#210E0B" BorderColor="#B84325" BorderWidth="1" CornerRadius="9" TextColor="#FF6B56" HeightRequest="42" MinimumHeightRequest="42" Padding="0" FontSize="23" FontAttributes="Bold" />
                     <Button Text="0" Grid.Row="3" Grid.Column="1" Clicked="OnKeypadClicked" Style="{StaticResource KeyButton}" />
-                    <Button Text="مسح" Grid.Row="3" Grid.Column="2" Clicked="OnDeleteDigitClicked" BackgroundColor="#D8A51F" TextColor="#221400" CornerRadius="9" HeightRequest="42" MinimumHeightRequest="42" Padding="0" FontSize="17" FontAttributes="Bold" MaxLines="1" />
+                    <Button Text="مسح" Grid.Row="3" Grid.Column="2" Clicked="OnDeleteDigitClicked" BackgroundColor="#D8A51F" TextColor="#221400" CornerRadius="9" HeightRequest="42" MinimumHeightRequest="42" Padding="0" FontSize="17" FontAttributes="Bold" />
                 </Grid>
             </Grid>
         </Border>
 
-        <!-- Only secondary information scrolls -->
         <ScrollView Grid.Row="3" VerticalScrollBarVisibility="Default">
             <VerticalStackLayout Spacing="8" Padding="0,1,0,10">
                 <Border BackgroundColor="#080B0A" Stroke="#A36F16" StrokeThickness="1.1" StrokeShape="RoundRectangle 16" Padding="8">
