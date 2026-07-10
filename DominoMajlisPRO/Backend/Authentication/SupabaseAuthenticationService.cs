@@ -333,10 +333,11 @@ public sealed class SupabaseAuthenticationService
         return JsonSerializer.Deserialize<SupabaseAuthResponse>(json, JsonOptions);
     }
 
-    static async Task<SupabaseUserResponse?> ReadUserResponseAsync(HttpResponseMessage response)
+    static async Task<SupabaseAuthUser?> ReadUserResponseAsync(HttpResponseMessage response)
     {
         string json = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<SupabaseUserResponse>(json, JsonOptions);
+        var result = JsonSerializer.Deserialize<SupabaseAuthUserResponse>(json, JsonOptions);
+        return result?.ToUser();
     }
 
     static SupabaseAuthenticationSession? ToSession(
