@@ -40,7 +40,7 @@ serve(async (req) => {
         success: true,
         available,
         username: validation.display,
-        message: available ? "✓ اسم المستخدم متاح." : "✕ اسم المستخدم محجوز، اختر اسماً آخر.",
+        message: available ? "✓ اسم المستخدم متاح." : "✕ اسم المستخدم مستخدم بالفعل.",
       });
     }
 
@@ -54,7 +54,7 @@ serve(async (req) => {
             success: true,
             available: true,
             username: validation.display,
-            message: "✓ تم توليد اسم مستخدم متاح.",
+            message: "✓ اسم المستخدم متاح.",
           });
         }
       }
@@ -84,7 +84,7 @@ serve(async (req) => {
           return json({ success: false, available: false, message: "اسم المستخدم حُجز للتو بواسطة مستخدم آخر. اختر اسماً آخر." }, 409);
         }
         console.error("username-registry:reserve_failed", error);
-        return json({ success: false, available: false, message: `تعذر حجز اسم المستخدم: ${error.message}` }, 500);
+        return json({ success: false, available: false, message: "تعذر إكمال إنشاء الحساب حالياً." }, 500);
       }
 
       return json({
@@ -94,8 +94,29 @@ serve(async (req) => {
         reservation_id: data.id,
         reservation_token: reservationToken,
         reserved_until: reservedUntil,
-        message: "تم تأمين اسم المستخدم أثناء إكمال إنشاء الحساب.",
+        message: "تم تأمين الاسم أثناء تنفيذ إنشاء الحساب.",
       });
+    }
+
+    if (action === "release") {
+      const validation = validateUsername(body.username ?? "");
+      if (!validation.valid) return json({ success: false, message: validation.message }, 400);
+
+      const reservationToken = (body.reservation_token ?? "").trim();
+      if (!reservationToken) return json({ success: false, message: "رمز الحجز مفقود." }, 400);
+
+      const { error } = await admin.from("username_registry")
+        .update({ status: "released", reserved_until: null, updated_at: new Date().toISOString() })
+        .eq("normalized_username", validation.normalized)
+        .eq("reservation_token", reservationToken)
+        .eq("status", "reserved");
+
+      if (error) {
+        console.error("username-registry:release_failed", error);
+        return json({ success: false, message: "تعذر تحرير اسم المستخدم." }, 500);
+      }
+
+      return json({ success: true, available: true, username: validation.display, message: "تم تحرير اسم المستخدم." });
     }
 
     if (action === "activate") {
@@ -114,10 +135,10 @@ serve(async (req) => {
 
       if (lookupError) throw lookupError;
       if (!reservation || reservation.reservation_token !== reservationToken) {
-        return json({ success: false, message: "تعذر التحقق من حجز اسم المستخدم." }, 409);
+        return json({ success: false, message: "تعذر التحقق من اسم المستخدم." }, 409);
       }
       if (reservation.status === "reserved" && new Date(reservation.reserved_until).getTime() < Date.now()) {
-        return json({ success: false, message: "انتهت مدة حجز اسم المستخدم. أعد المحاولة." }, 409);
+        return json({ success: false, message: "انتهت مهلة إنشاء الحساب. أعد المحاولة." }, 409);
       }
 
       const { error } = await admin.from("username_registry").update({
@@ -131,10 +152,10 @@ serve(async (req) => {
 
       if (error) {
         console.error("username-registry:activate_failed", error);
-        return json({ success: false, message: `تعذر ربط اسم المستخدم بهوية اللاعب: ${error.message}` }, 500);
+        return json({ success: false, message: "تعذر ربط اسم المستخدم بالحساب." }, 500);
       }
 
-      return json({ success: true, username: validation.display, message: "تم ربط اسم المستخدم بهوية اللاعب." });
+      return json({ success: true, username: validation.display, message: "تم ربط اسم المستخدم بالحساب." });
     }
 
     return json({ success: false, message: "أمر غير معروف." }, 400);
