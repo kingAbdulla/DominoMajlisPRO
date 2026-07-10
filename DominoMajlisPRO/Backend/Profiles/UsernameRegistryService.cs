@@ -1,96 +1,111 @@
-using System.Text;
-using System.Text.Json;
-using DominoMajlisPRO.Backend.Configuration;
+using DominoMajlisPRO.Backend.Authentication;
 
 namespace DominoMajlisPRO.Backend.Profiles;
 
+/// <summary>
+/// Compatibility facade for the registration UI.
+/// Username availability and creation now use account-identity as the single
+/// source of truth, preventing partial reservations in a separate registry.
+/// </summary>
 public sealed class UsernameRegistryService
 {
-    sealed class RegistryResponse
+    readonly SupabaseAccountIdentityService identityService = new();
+
+    public async Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> CheckAsync(
+        string username)
     {
-        public bool Success { get; set; }
-        public bool Available { get; set; }
-        public string Username { get; set; } = "";
-        public string ReservationToken { get; set; } = "";
-        public string Message { get; set; } = "";
+        var result = await identityService.CheckUsernameAsync(username);
+        return (
+            result.Success,
+            result.Available,
+            string.IsNullOrWhiteSpace(result.Username) ? username.Trim() : result.Username,
+            "",
+            NormalizeAvailabilityMessage(result.Message, result.Available));
     }
 
-    static readonly JsonSerializerOptions JsonOptions = new()
+    public async Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> SuggestAsync(
+        string baseName)
     {
-        PropertyNameCaseInsensitive = true
-    };
+        var result = await identityService.SuggestUsernameAsync(baseName);
+        return (
+            result.Success,
+            result.Success && result.Available,
+            result.Username,
+            "",
+            result.Success
+                ? "✓ تم توليد اسم مستخدم متاح."
+                : result.Message);
+    }
 
-    readonly HttpClient httpClient = new();
+    /// <summary>
+    /// The account-identity Edge Function performs the real atomic username
+    /// claim while creating the Supabase account. No early server reservation
+    /// is created here.
+    /// </summary>
+    public async Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> ReserveAsync(
+        string username)
+    {
+        var check = await identityService.CheckUsernameAsync(username);
+        if (!check.Success || !check.Available)
+        {
+            return (
+                false,
+                false,
+                username.Trim(),
+                "",
+                NormalizeAvailabilityMessage(check.Message, false));
+        }
 
-    public Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> CheckAsync(string username) =>
-        SendAsync(new { action = "check", username = username.Trim() });
+        return (
+            true,
+            true,
+            username.Trim(),
+            "atomic-account-identity",
+            "✓ اسم المستخدم متاح وجاهز لإنشاء الحساب.");
+    }
 
-    public Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> SuggestAsync(string baseName) =>
-        SendAsync(new { action = "suggest", base_name = baseName.Trim() });
-
-    public Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> ReserveAsync(string username) =>
-        SendAsync(new { action = "reserve", username = username.Trim() });
-
+    /// <summary>
+    /// Activation is already completed atomically by account-identity during
+    /// RegisterAccountAsync. This method remains for compatibility with the UI
+    /// pipeline and must not create a second username record.
+    /// </summary>
     public Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> ActivateAsync(
         string username,
         string reservationToken,
         string supabaseUserId,
         string applicationUserId,
         string playerId) =>
-        SendAsync(new
-        {
-            action = "activate",
-            username = username.Trim(),
-            reservation_token = reservationToken.Trim(),
-            supabase_user_id = supabaseUserId.Trim(),
-            application_user_id = applicationUserId.Trim(),
-            player_id = playerId.Trim()
-        });
+        Task.FromResult((
+            true,
+            true,
+            username.Trim(),
+            reservationToken,
+            "تم ربط اسم المستخدم بالحساب."));
 
     public Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> ReleaseAsync(
         string username,
         string reservationToken) =>
-        SendAsync(new
-        {
-            action = "release",
-            username = username.Trim(),
-            reservation_token = reservationToken.Trim()
-        });
+        Task.FromResult((
+            true,
+            true,
+            username.Trim(),
+            "",
+            "لا يوجد حجز وسيط يحتاج إلى تحرير."));
 
-    async Task<(bool Success, bool Available, string Username, string ReservationToken, string Message)> SendAsync(object body)
+    static string NormalizeAvailabilityMessage(string message, bool available)
     {
-        if (!SupabaseBackendConfiguration.IsConfigured)
-            return (false, false, "", "", "Supabase غير مهيأ داخل التطبيق.");
+        if (available)
+            return "✓ اسم المستخدم متاح.";
 
-        var request = new HttpRequestMessage(
-            HttpMethod.Post,
-            SupabaseBackendConfiguration.ProjectUrl.TrimEnd('/') + "/functions/v1/username-registry");
+        if (string.IsNullOrWhiteSpace(message))
+            return "✕ اسم المستخدم مستخدم بالفعل.";
 
-        request.Headers.Add("apikey", SupabaseBackendConfiguration.PublishableKey);
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
-            "Bearer",
-            SupabaseBackendConfiguration.PublishableKey);
-        request.Content = new StringContent(
-            JsonSerializer.Serialize(body),
-            Encoding.UTF8,
-            "application/json");
-
-        try
+        if (message.Contains("محجوز", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("مستخدم", StringComparison.OrdinalIgnoreCase))
         {
-            using var response = await httpClient.SendAsync(request);
-            string json = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<RegistryResponse>(json, JsonOptions);
+            return "✕ اسم المستخدم مستخدم بالفعل.";
+        }
 
-            return (
-                response.IsSuccessStatusCode && result?.Success == true,
-                result?.Available == true,
-                result?.Username ?? "",
-                result?.ReservationToken ?? "",
-                result?.Message ?? "تعذر تنفيذ عملية اسم المستخدم.");
-        }
-        catch
-        {
-            return (false, false, "", "", "تعذر الاتصال بخدمة أسماء المستخدمين.");
-        }
+        return message;
     }
 }
