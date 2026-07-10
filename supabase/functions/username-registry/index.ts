@@ -40,7 +40,7 @@ serve(async (req) => {
         success: true,
         available,
         username: validation.display,
-        message: available ? "اسم المستخدم متاح." : "اسم المستخدم محجوز، اختر اسماً آخر.",
+        message: available ? "✓ اسم المستخدم متاح." : "✕ اسم المستخدم محجوز، اختر اسماً آخر.",
       });
     }
 
@@ -50,7 +50,12 @@ serve(async (req) => {
       for (const candidate of candidates) {
         const validation = validateUsername(candidate);
         if (validation.valid && await isAvailable(admin, validation.normalized)) {
-          return json({ success: true, available: true, username: validation.display, message: "تم إنشاء اسم مستخدم متاح." });
+          return json({
+            success: true,
+            available: true,
+            username: validation.display,
+            message: "✓ تم توليد اسم مستخدم متاح.",
+          });
         }
       }
       return json({ success: false, available: false, message: "تعذر إنشاء اسم متاح حالياً. حاول مرة أخرى." }, 409);
@@ -76,7 +81,7 @@ serve(async (req) => {
 
       if (error) {
         if (error.code === "23505") {
-          return json({ success: false, available: false, message: "اسم المستخدم محجوز، اختر اسماً آخر." }, 409);
+          return json({ success: false, available: false, message: "اسم المستخدم حُجز للتو بواسطة مستخدم آخر. اختر اسماً آخر." }, 409);
         }
         console.error("username-registry:reserve_failed", error);
         return json({ success: false, available: false, message: `تعذر حجز اسم المستخدم: ${error.message}` }, 500);
@@ -89,7 +94,7 @@ serve(async (req) => {
         reservation_id: data.id,
         reservation_token: reservationToken,
         reserved_until: reservedUntil,
-        message: "تم حجز اسم المستخدم لمدة 15 دقيقة.",
+        message: "تم تأمين اسم المستخدم أثناء إكمال إنشاء الحساب.",
       });
     }
 
@@ -171,20 +176,26 @@ function validateUsername(value: string) {
 
 function sanitizeBase(value: string) {
   const cleaned = value.trim().replace(/\s+/g, "").replace(/[^\p{L}\p{N}._-]/gu, "");
-  return (cleaned || "player").slice(0, 20);
+  return (cleaned || "player").slice(0, 18);
 }
 
 function buildCandidates(base: string) {
   const year = new Date().getUTCFullYear();
-  const random = () => crypto.getRandomValues(new Uint32Array(1))[0] % 10000;
+  const random2 = () => 10 + crypto.getRandomValues(new Uint32Array(1))[0] % 90;
+  const random3 = () => 100 + crypto.getRandomValues(new Uint32Array(1))[0] % 900;
+  const random4 = () => 1000 + crypto.getRandomValues(new Uint32Array(1))[0] % 9000;
+
   return [
     base,
-    `${base}_${random()}`,
-    `${base}.${random()}`,
-    `${base}-${year}`,
-    `${base}_${String(random()).padStart(4, "0")}`,
-    `${base}.pro${random()}`,
-    `${base}_x${random()}`,
+    `${base}${random2()}`,
+    `${base}_${random2()}`,
+    `${base}.${random2()}`,
+    `${base}${random3()}`,
+    `${base}_${year}`,
+    `${base}.pro`,
+    `${base}_x${random2()}`,
+    `${base}-${random3()}`,
+    `${base}_${random4()}`,
   ];
 }
 
