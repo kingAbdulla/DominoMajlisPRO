@@ -1,0 +1,41 @@
+name: MAUI Cloud Sync CI
+
+on:
+  push:
+    branches:
+      - agent/web-preview-foundation
+    paths:
+      - DominoMajlisPRO/Cloud/**
+      - DominoMajlisPRO/Services/PlayerProfileService.cs
+      - DominoMajlisPRO/Services/TeamProfileService.cs
+      - DominoMajlisPRO/Services/GameService.cs
+      - DominoMajlisPRO/MauiProgram.cs
+      - DominoMajlisPRO/DominoMajlisPRO.csproj
+      - .github/workflows/maui-cloud-sync-ci.yml
+  pull_request:
+    paths:
+      - DominoMajlisPRO/Cloud/**
+      - DominoMajlisPRO/Services/PlayerProfileService.cs
+      - DominoMajlisPRO/Services/TeamProfileService.cs
+      - DominoMajlisPRO/Services/GameService.cs
+      - DominoMajlisPRO/MauiProgram.cs
+      - DominoMajlisPRO/DominoMajlisPRO.csproj
+  workflow_dispatch:
+
+jobs:
+  android-build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Install MAUI workload
+        run: dotnet workload install maui-android
+      - name: Restore Android target
+        run: dotnet restore DominoMajlisPRO/DominoMajlisPRO.csproj -p:TargetFramework=net10.0-android
+      - name: Build Android target
+        run: dotnet build DominoMajlisPRO/DominoMajlisPRO.csproj -c Debug -f net10.0-android --no-restore
