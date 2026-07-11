@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using DominoMajlisPRO.Cloud;
 using DominoMajlisPRO.Models;
 
 namespace DominoMajlisPRO.Services;
@@ -64,8 +65,13 @@ public static class TeamProfileService
         await File.WriteAllTextAsync(
             filePath,
             json);
+
+        await CloudSyncRuntime.TryUpsertManyAsync(
+            CloudResources.Teams,
+            teams,
+            team => team.TeamId);
     }
-    // Helper method
+
     public static async Task<TeamProfileModel?> GetTeamAsync(
     string teamName)
     {
@@ -75,15 +81,14 @@ public static class TeamProfileService
         var teams =
             await LoadTeamsAsync();
 
-        // Prefer matching by TeamId when the provided identifier looks like an ID
         var byId = teams.FirstOrDefault(x => string.Equals(x.TeamId, teamName.Trim(), StringComparison.OrdinalIgnoreCase));
         if (byId != null)
             return byId;
 
-        // Fallback to matching by TeamName for legacy data
         return teams.FirstOrDefault(
             x => string.Equals(x.TeamName, teamName.Trim(), StringComparison.OrdinalIgnoreCase));
     }
+
     public static async Task<TeamProfileModel?> GetTeamByIdAsync(
     string teamId)
     {
@@ -96,6 +101,7 @@ public static class TeamProfileService
         return teams.FirstOrDefault(
             x => x.TeamId == teamId);
     }
+
     public static async Task<TeamProfileModel?> GetTeamByPlayerIdAsync(
     string playerId)
     {
