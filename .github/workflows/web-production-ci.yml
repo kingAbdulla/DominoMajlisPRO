@@ -1,0 +1,33 @@
+name: Web Production CI
+
+on:
+  push:
+    branches:
+      - feature/web-production-full
+    paths:
+      - 'WebProduction/**'
+      - '.github/workflows/web-production-ci.yml'
+  pull_request:
+    paths:
+      - 'WebProduction/**'
+      - '.github/workflows/web-production-ci.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate JavaScript syntax
+        run: node --check WebProduction/app.js
+      - name: Validate required production files
+        shell: bash
+        run: |
+          test -s WebProduction/index.html
+          test -s WebProduction/styles.css
+          test -s WebProduction/app.js
+          grep -q 'Domino Majlis PRO' WebProduction/index.html
+          grep -q '/api/preview/login' WebProduction/app.js
+          grep -q '/api/preview/me/teams' WebProduction/app.js
