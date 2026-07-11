@@ -1,0 +1,26 @@
+name: Web Preview API CI
+
+on:
+  push:
+    branches:
+      - agent/web-preview-foundation
+    paths:
+      - DominoMajlisPRO.Api/**
+      - .github/workflows/web-preview-api-ci.yml
+  pull_request:
+    paths:
+      - DominoMajlisPRO.Api/**
+      - .github/workflows/web-preview-api-ci.yml
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - run: dotnet restore DominoMajlisPRO.Api/DominoMajlisPRO.Api.csproj
+      - run: dotnet build DominoMajlisPRO.Api/DominoMajlisPRO.Api.csproj -c Release --no-restore
+      - run: docker build -f DominoMajlisPRO.Api/Dockerfile -t domino-majlis-preview-api .
