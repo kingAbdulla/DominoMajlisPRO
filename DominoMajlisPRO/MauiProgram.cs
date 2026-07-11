@@ -1,4 +1,5 @@
 ﻿using DominoMajlisPRO.Cloud;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace DominoMajlisPRO
@@ -38,7 +39,9 @@ namespace DominoMajlisPRO
             builder.Logging.AddDebug();
 #endif
 
-            return builder.Build();
+            var app = builder.Build();
+            CloudSyncRuntime.Configure(app.Services.GetRequiredService<CloudApiClient>());
+            return app;
         }
     }
 }
