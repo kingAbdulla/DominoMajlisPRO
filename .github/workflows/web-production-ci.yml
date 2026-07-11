@@ -22,7 +22,7 @@ jobs:
           node-version: '24'
       - name: Validate JavaScript syntax
         run: node --check WebProduction/app.js
-      - name: Validate required production files
+      - name: Validate required production files and routes
         shell: bash
         run: |
           test -s WebProduction/index.html
@@ -31,3 +31,8 @@ jobs:
           grep -q 'Domino Majlis PRO' WebProduction/index.html
           grep -q '/api/preview/login' WebProduction/app.js
           grep -q '/api/preview/me/teams' WebProduction/app.js
+          grep -q '/api/v1/players' WebProduction/app.js
+          grep -q '/api/v1/matches' WebProduction/app.js
+          grep -q '/api/v1/rankings' WebProduction/app.js
+          grep -q 'function updateStats' WebProduction/app.js
+          grep -q 'function rankingsView' WebProduction/app.js
