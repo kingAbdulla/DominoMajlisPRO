@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin.Services;
 
@@ -19,13 +19,14 @@ public static class StoreAdminService
             CreateSection("emblem-backgrounds", "خلفيات الشعارات", "خلفيات هوية شعارات الفرق", "▧", StoreCardTemplateType.ProductCard, 7),
             CreateSection("team-colors", "ألوان الفرق", "ألوان هوية الفرق", "◈", StoreCardTemplateType.ProductCard, 8),
             CreateSection("effects", "التأثيرات", "مؤثرات العرض والزينة", "✧", StoreCardTemplateType.ProductCard, 9),
-            CreateSection("frames", "الإطارات", "إطارات هوية اللاعب", "▢", StoreCardTemplateType.ProductCard, 10),
-            CreateSection("titles", "الألقاب", "ألقاب هوية اللاعب", "T", StoreCardTemplateType.ProductCard, 11),
-            CreateSection("bundles", "الحزم", "مجموعات المنتجات والعروض", "▰", StoreCardTemplateType.ProductCard, 12),
-            CreateSection("currency-pricing", "العملات والأسعار", "الجواهر والعملات وقواعد التسعير", "◆", StoreCardTemplateType.CurrencyPricing, 13),
-            CreateSection("product-cards", "بطاقات المنتجات", "إدارة بطاقات المنتجات المنشورة", "▤", StoreCardTemplateType.ProductCard, 14),
-            CreateSection("category-cards", "بطاقات الفئات", "إدارة بطاقات تصفح الفئات", "▦", StoreCardTemplateType.CategoryCard, 15),
-            CreateSection("store-settings", "إعدادات المتجر", "إعدادات النشر والظهور العامة", "⚙", StoreCardTemplateType.StoreSettings, 16)
+            CreateSection("typography", "تأثيرات الأسماء والخطوط", "اسم اللاعب واسم الفريق وإطاراتهما", "Aa", StoreCardTemplateType.ProductCard, 10),
+            CreateSection("frames", "الإطارات", "إطارات هوية اللاعب المنشورة فقط", "▢", StoreCardTemplateType.ProductCard, 11),
+            CreateSection("titles", "الألقاب", "ألقاب هوية اللاعب", "T", StoreCardTemplateType.ProductCard, 12),
+            CreateSection("bundles", "الحزم", "مجموعات المنتجات والعروض", "▰", StoreCardTemplateType.ProductCard, 13),
+            CreateSection("currency-pricing", "العملات والأسعار", "الجواهر والعملات وقواعد التسعير", "◆", StoreCardTemplateType.CurrencyPricing, 14),
+            CreateSection("product-cards", "بطاقات المنتجات", "إدارة بطاقات المنتجات المنشورة", "▤", StoreCardTemplateType.ProductCard, 15),
+            CreateSection("category-cards", "بطاقات الفئات", "إدارة بطاقات تصفح الفئات", "▦", StoreCardTemplateType.CategoryCard, 16),
+            CreateSection("store-settings", "إعدادات المتجر", "إعدادات النشر والظهور العامة", "⚙", StoreCardTemplateType.StoreSettings, 17)
         };
     }
 
