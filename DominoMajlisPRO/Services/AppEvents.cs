@@ -1,4 +1,4 @@
-﻿namespace DominoMajlisPRO.Services;
+namespace DominoMajlisPRO.Services;
 
 public static class AppEvents
 {
@@ -28,12 +28,12 @@ public static class AppEvents
         });
     }
 
-    static void SafeRaise(Action<string>? action, string playerId)
+    static void SafeRaise(Action<string>? action, string value)
     {
         if (action == null)
             return;
 
-        MainThread.BeginInvokeOnMainThread(() => action.Invoke(playerId));
+        MainThread.BeginInvokeOnMainThread(() => action.Invoke(value));
     }
 
     public static void RaiseStoreEconomyChanged(string playerId)
@@ -105,6 +105,65 @@ public static class AppEvents
         SafeRaise(TeamsChanged);
     }
 
+    /// <summary>
+    /// Compatibility bridge for inventory-aware store services. Inventory
+    /// mutations affect the player's store state and identity surfaces, but do
+    /// not imply that the wallet balance changed.
+    /// </summary>
+    public static void RaiseInventoryChanged(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+
+        SafeRaise(StoreProgressChanged, playerId);
+        SafeRaise(StoreEconomyChanged, playerId);
+        SafeRaise(PlayerProfileChanged);
+        SafeRaise(DataChanged);
+    }
+
+    /// <summary>
+    /// Raises the existing player-facing events after an equipped visual effect
+    /// or player-name effect changes.
+    /// </summary>
+    public static void RaisePlayerEffectChanged(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+
+        SafeRaise(StoreProgressChanged, playerId);
+        SafeRaise(PlayerProfileChanged);
+        SafeRaise(DataChanged);
+    }
+
+    /// <summary>
+    /// Raises the existing player identity refresh path after avatars,
+    /// backgrounds, frames, titles, or player-name frames are equipped.
+    /// </summary>
+    public static void RaisePlayerIdentityChanged(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+
+        SafeRaise(StoreProgressChanged, playerId);
+        SafeRaise(PlayerProfileChanged);
+        SafeRaise(DataChanged);
+    }
+
+    /// <summary>
+    /// Raises the canonical team identity refresh path for emblems, colors,
+    /// backgrounds, team-name effects, and team-name frames.
+    /// </summary>
+    public static void RaiseTeamIdentityChanged(string teamId)
+    {
+        if (string.IsNullOrWhiteSpace(teamId))
+            return;
+
+        SafeRaise(TeamAssetsChanged, teamId);
+        SafeRaise(TeamsChanged);
+        SafeRaise(RankingsChanged);
+        SafeRaise(DataChanged);
+    }
+
     public static void RaiseDataChanged()
     {
         SafeRaise(DataChanged);
@@ -142,4 +201,3 @@ public static class AppEvents
         RaiseRankingsChanged();
     }
 }
-
