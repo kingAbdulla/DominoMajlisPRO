@@ -135,6 +135,7 @@ public partial class GalleryPage : ContentPage
         switch (e.Action)
         {
             case StoreQuickAction.WheelOfFortune:
+                await Navigation.PushAsync(new WheelOfFortunePage());
                 break;
 
             case StoreQuickAction.DailyOffers:

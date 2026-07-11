@@ -29,6 +29,7 @@ public class QuickActionsView : ContentView
 
         var cards = new List<View>
         {
+            CreateActionCard("🎡", "عجلة الحظ", "فرصتك للربح", StoreQuickAction.WheelOfFortune),
             CreateActionCard("🎁", "العروض اليومية", "خصومات كل يوم", StoreQuickAction.DailyOffers),
             CreateActionCard("💎", "اشحن الآن", "احصل على المزيد", StoreQuickAction.TopUp)
         };

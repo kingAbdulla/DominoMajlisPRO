@@ -16,7 +16,7 @@ public static class PlayerInventoryService
         ValidatePlayerId(playerId);
         var applicationUserId = await CurrentApplicationUserIdAsync();
         return (await LoadAsync())
-            .Where(x => Same(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId))
+            .Where(x => BelongsToCurrentApplication(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId))
             .OrderByDescending(x => x.PurchasedAt)
             .ToList();
     }
@@ -28,7 +28,7 @@ public static class PlayerInventoryService
     {
         ValidateIdentity(playerId, assetId);
         var applicationUserId = await CurrentApplicationUserIdAsync();
-        return (await LoadAsync()).Any(x => Same(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId) && Same(x.AssetId, assetId) && IsActiveOwned(x));
+        return (await LoadAsync()).Any(x => BelongsToCurrentApplication(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId) && Same(x.AssetId, assetId) && IsActiveOwned(x));
     }
 
     public static Task<bool> IsOwned(string playerId, string assetId) => IsOwnedAsync(playerId, assetId);
@@ -75,7 +75,20 @@ public static class PlayerInventoryService
         try
         {
             var records = await LoadAsync();
-            if (records.Any(x => Same(x.ApplicationUserId, owned.ApplicationUserId) && Same(x.PlayerId, owned.PlayerId) && Same(x.AssetId, owned.AssetId))) return false;
+            var existing = records.FirstOrDefault(x =>
+                Same(x.PlayerId, owned.PlayerId) &&
+                Same(x.AssetId, owned.AssetId) &&
+                BelongsToCurrentApplication(x.ApplicationUserId, owned.ApplicationUserId));
+            if (existing != null)
+            {
+                if (string.IsNullOrWhiteSpace(existing.ApplicationUserId) &&
+                    !string.IsNullOrWhiteSpace(owned.ApplicationUserId))
+                {
+                    existing.ApplicationUserId = owned.ApplicationUserId;
+                    await SaveAsync(records);
+                }
+                return false;
+            }
             records.Add(owned);
             await SaveAsync(records);
             return true;
@@ -96,17 +109,21 @@ public static class PlayerInventoryService
         try
         {
             var records = await LoadAsync();
-            var target = records.FirstOrDefault(x => Same(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId) && Same(x.AssetId, assetId) && IsActiveOwned(x));
+            var target = records.FirstOrDefault(x => BelongsToCurrentApplication(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId) && Same(x.AssetId, assetId) && IsActiveOwned(x));
             if (target == null) return false;
+            if (string.IsNullOrWhiteSpace(target.ApplicationUserId))
+                target.ApplicationUserId = applicationUserId;
             if (target.StoreTypeId == UnknownStoreType && !string.IsNullOrWhiteSpace(requestedStoreType))
             {
                 target.StoreTypeId = NormalizeStoreType(requestedStoreType);
                 target.AssetType = target.StoreTypeId;
             }
-            foreach (var x in records.Where(x => Same(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId) && string.Equals(x.StoreTypeId, target.StoreTypeId, StringComparison.OrdinalIgnoreCase)))
+            foreach (var x in records.Where(x => BelongsToCurrentApplication(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId) && string.Equals(x.StoreTypeId, target.StoreTypeId, StringComparison.OrdinalIgnoreCase)))
             {
                 x.IsEquipped = false;
                 x.EquippedAt = null;
+                if (string.IsNullOrWhiteSpace(x.ApplicationUserId))
+                    x.ApplicationUserId = applicationUserId;
             }
             target.IsEquipped = true;
             target.EquippedAt = DateTime.UtcNow;
@@ -125,8 +142,10 @@ public static class PlayerInventoryService
         try
         {
             var records = await LoadAsync();
-            var target = records.FirstOrDefault(x => Same(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId) && Same(x.AssetId, assetId));
+            var target = records.FirstOrDefault(x => BelongsToCurrentApplication(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId) && Same(x.AssetId, assetId));
             if (target == null || !target.IsEquipped) return false;
+            if (string.IsNullOrWhiteSpace(target.ApplicationUserId))
+                target.ApplicationUserId = applicationUserId;
             target.IsEquipped = false;
             target.EquippedAt = null;
             await SaveAsync(records);
@@ -143,7 +162,7 @@ public static class PlayerInventoryService
         ValidatePlayerId(playerId);
         var applicationUserId = await CurrentApplicationUserIdAsync();
         var storeTypeId = itemType.ToString();
-        return (await LoadAsync()).FirstOrDefault(x => Same(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId) && string.Equals(x.StoreTypeId, storeTypeId, StringComparison.OrdinalIgnoreCase) && x.IsEquipped && IsActiveOwned(x));
+        return (await LoadAsync()).FirstOrDefault(x => BelongsToCurrentApplication(x.ApplicationUserId, applicationUserId) && Same(x.PlayerId, playerId) && string.Equals(x.StoreTypeId, storeTypeId, StringComparison.OrdinalIgnoreCase) && x.IsEquipped && IsActiveOwned(x));
     }
 
     private static async Task<List<PlayerOwnedStoreItem>> LoadAsync()
@@ -203,6 +222,9 @@ public static class PlayerInventoryService
 
     private static bool IsActiveOwned(PlayerOwnedStoreItem item) => item.IsOwned && !item.IsExpired;
     private static bool Same(string? left, string? right) => string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+    private static bool BelongsToCurrentApplication(string? itemApplicationUserId, string currentApplicationUserId) =>
+        string.IsNullOrWhiteSpace(itemApplicationUserId) ||
+        Same(itemApplicationUserId, currentApplicationUserId);
     private static string OwnershipKey(PlayerOwnedStoreItem item) => $"{item.ApplicationUserId}|{item.PlayerId}|{item.AssetId}";
     private static string EquippedTypeKey(PlayerOwnedStoreItem item) => $"{item.ApplicationUserId}|{item.PlayerId}|{item.StoreTypeId}";
     private static string NormalizeStoreType(string? value) => string.IsNullOrWhiteSpace(value) ? UnknownStoreType : value.Trim();

@@ -11,8 +11,23 @@ public sealed class StoreSettingsManagerPage : ContentPage
     private readonly Switch _newArrivals = new();
     private readonly Switch _limitedOffers = new();
     private readonly Switch _categories = new();
-    private readonly Entry _pageSize = new() { Keyboard = Keyboard.Numeric };
-    private readonly Label _status = new() { HorizontalTextAlignment = TextAlignment.End };
+    private readonly Entry _pageSize = new()
+    {
+        Keyboard = Keyboard.Numeric,
+        HorizontalTextAlignment = TextAlignment.End,
+        FontFamily = "Tajawal-Regular"
+    };
+
+    private readonly Label _status = new()
+    {
+        HorizontalTextAlignment = TextAlignment.End,
+        FontFamily = "Tajawal-Regular"
+    };
+
+    private readonly List<Label> _labels = new();
+    private readonly List<Border> _cards = new();
+    private Button _backButton = null!;
+    private Button _saveButton = null!;
     private StoreRuntimeConfiguration _configuration = new();
 
     public StoreSettingsManagerPage()
@@ -33,14 +48,31 @@ public sealed class StoreSettingsManagerPage : ContentPage
         _limitedOffers.IsToggled = _configuration.ShowLimitedOffers;
         _categories.IsToggled = _configuration.ShowBrowseCategories;
         _pageSize.Text = _configuration.PageSize.ToString();
+        ApplyTheme();
     }
 
     private void BuildPage()
     {
-        var back = new Button { Text = "‹", WidthRequest = 42, HeightRequest = 42 };
-        back.Clicked += async (_, _) => await Navigation.PopAsync();
-        var save = new Button { Text = "حفظ ونشر الإعدادات" };
-        save.Clicked += async (_, _) => await SaveAsync();
+        _backButton = new Button
+        {
+            Text = "‹",
+            WidthRequest = 42,
+            HeightRequest = 42,
+            CornerRadius = 14,
+            FontSize = 24
+        };
+        _backButton.Clicked += async (_, _) => await Navigation.PopAsync();
+
+        _saveButton = new Button
+        {
+            Text = "حفظ ونشر الإعدادات",
+            HeightRequest = 46,
+            CornerRadius = 12,
+            FontFamily = "Tajawal-Regular",
+            FontAttributes = FontAttributes.Bold
+        };
+        _saveButton.Clicked += async (_, _) => await SaveAsync();
+
         Content = new ScrollView
         {
             Content = new VerticalStackLayout
@@ -49,16 +81,16 @@ public sealed class StoreSettingsManagerPage : ContentPage
                 Spacing = 14,
                 Children =
                 {
-                    back,
-                    new Label { Text = "إعدادات المتجر", FontSize = 25, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.End },
+                    _backButton,
+                    TextLabel("إعدادات المتجر", 25, true),
                     Row("تشغيل المتجر", _storeEnabled),
                     Row("إظهار وصل حديثاً", _newArrivals),
                     Row("إظهار العروض المحدودة", _limitedOffers),
                     Row("إظهار بطاقات الفئات", _categories),
-                    new Label { Text = "عدد العناصر في الصفحة", HorizontalTextAlignment = TextAlignment.End },
+                    TextLabel("عدد العناصر في الصفحة", 13, false),
                     _pageSize,
                     _status,
-                    save
+                    _saveButton
                 }
             }
         };
@@ -76,31 +108,76 @@ public sealed class StoreSettingsManagerPage : ContentPage
         _status.Text = "تم حفظ الإعدادات ونشرها فوراً";
     }
 
-    private static View Row(string text, Switch toggle)
+    private View Row(string text, Switch toggle)
     {
         var grid = new Grid
         {
+            ColumnSpacing = 10,
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
                 new ColumnDefinition(GridLength.Auto)
             }
         };
-        grid.Add(new Label
-        {
-            Text = text,
-            VerticalTextAlignment = TextAlignment.Center,
-            HorizontalTextAlignment = TextAlignment.End
-        }, 0);
+        grid.Add(TextLabel(text, 13, false), 0);
         grid.Add(toggle, 1);
-        return grid;
+
+        var card = new Border
+        {
+            StrokeThickness = 1,
+            Padding = new Thickness(12, 10),
+            StrokeShape = new RoundRectangle { CornerRadius = 14 },
+            Content = grid
+        };
+        _cards.Add(card);
+        return card;
     }
 
     private void ApplyTheme()
     {
         var theme = GalleryThemeEngine.Current;
         Background = theme.Background;
+        foreach (var label in _labels)
+            label.TextColor = theme.TextPrimary;
+        foreach (var card in _cards)
+        {
+            card.Background = theme.CardBackground;
+            card.Stroke = theme.Stroke;
+        }
+
+        if (_backButton != null)
+        {
+            _backButton.BackgroundColor = Colors.Transparent;
+            _backButton.BorderColor = theme.Stroke;
+            _backButton.TextColor = theme.Gold;
+        }
+
+        if (_saveButton != null)
+        {
+            _saveButton.BackgroundColor = theme.Accent;
+            _saveButton.TextColor = Colors.Black;
+        }
+
+        _pageSize.BackgroundColor = Colors.Transparent;
         _pageSize.TextColor = theme.TextPrimary;
+        _pageSize.PlaceholderColor = theme.TextMuted;
         _status.TextColor = theme.Gold;
+    }
+
+    private Label TextLabel(string text, double size, bool bold)
+    {
+        var label = new Label
+        {
+            Text = text,
+            FontFamily = "Tajawal-Regular",
+            FontSize = size,
+            FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None,
+            HorizontalTextAlignment = TextAlignment.End,
+            VerticalTextAlignment = TextAlignment.Center,
+            MaxLines = 2,
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+        _labels.Add(label);
+        return label;
     }
 }

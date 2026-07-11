@@ -86,9 +86,7 @@ public static class TeamAssetPayloadCatalog
     {
         var id = Normalize(teamAssetId);
 
-        return SameId(id, "emblem-background-transparent") ||
-               SameId(id, "emblem-background-gold") ||
-               SameId(id, "emblem-background-dark");
+        return SameId(id, "emblem-background-transparent");
     }
 
     private static IReadOnlyDictionary<string, TeamAssetPayloadModel> BuildPayloads()

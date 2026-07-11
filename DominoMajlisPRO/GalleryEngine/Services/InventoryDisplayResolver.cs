@@ -61,6 +61,10 @@ public static class InventoryDisplayResolver
                 catalog,
                 productReferences)));
 
+        items = items
+            .Where(item => item.HasCatalogDisplayMetadata)
+            .ToList();
+
         var supportedCatalog = catalog
             .Where(item =>
                 IsProgressType(item.AssetType) &&

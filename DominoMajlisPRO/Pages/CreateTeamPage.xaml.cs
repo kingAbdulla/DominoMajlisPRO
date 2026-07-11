@@ -520,6 +520,11 @@ public partial class CreateTeamPage : ContentPage
                     var catalogAsset = StoreAssetCatalogService.Resolve(
                         catalog, item.TeamAssetId, effectiveTypeId);
 
+                    var isDefaultAsset = string.Equals(item.Source, "Default", StringComparison.OrdinalIgnoreCase) ||
+                                         TeamAssetPayloadCatalog.IsDefaultTeamAsset(item.TeamAssetId);
+                    if (!isDefaultAsset && catalogAsset?.HasDisplayMetadata != true)
+                        continue;
+
                     var displayName = catalogAsset?.DisplayName ?? (payload == null
                         ? StoreAssetCatalogService.IncompleteDisplayName
                         : !string.IsNullOrWhiteSpace(payload.ArabicDisplayName)
@@ -1090,9 +1095,9 @@ public partial class CreateTeamPage : ContentPage
 
     async Task UpdatePreviewAvatarsAsync()
     {
-        var player1 = _selectedPlayer1 ?? await ResolvePlayerFromEntryAsync(Player1Entry.Text);
+        var player1 = await ResolvePreviewPlayerAsync(1, Player1Entry.Text);
         var player2 = isTeamMode
-            ? _selectedPlayer2 ?? await ResolvePlayerFromEntryAsync(Player2Entry.Text)
+            ? await ResolvePreviewPlayerAsync(2, Player2Entry.Text)
             : null;
 
         PreviewPlayer1Avatar.Source = player1 == null
@@ -1102,6 +1107,21 @@ public partial class CreateTeamPage : ContentPage
         PreviewPlayer2Avatar.Source = player2 == null
             ? InventoryDisplayResolver.ResolveImageSource("player_card.png")
             : PlayerProfileService.GetPlayerImageSource(player2);
+    }
+
+    async Task<PlayerProfileModel?> ResolvePreviewPlayerAsync(int slot, string? text)
+    {
+        var selected = slot == 2 ? _selectedPlayer2 : _selectedPlayer1;
+        var value = text?.Trim() ?? string.Empty;
+        if (selected != null &&
+            (string.IsNullOrWhiteSpace(value) ||
+             string.Equals(selected.PlayerId, value, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(selected.PlayerName?.Trim(), value, StringComparison.OrdinalIgnoreCase)))
+        {
+            return selected;
+        }
+
+        return await ResolvePlayerFromEntryAsync(value);
     }
 
     async Task<PlayerProfileModel?> ResolvePlayerFromEntryAsync(string? text)

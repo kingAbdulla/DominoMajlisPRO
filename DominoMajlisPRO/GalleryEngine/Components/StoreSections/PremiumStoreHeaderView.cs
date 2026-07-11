@@ -477,9 +477,10 @@ public class PremiumStoreHeaderView : ContentView
     private async Task RefreshStoreIdentityAsync()
     {
         var identity = await HonorIdentityService.LoadAsync();
+        var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
         _seasonButton.IsVisible = identity.IsActivated && identity.Role == HonorRoleType.Developer;
 
-        if (string.IsNullOrWhiteSpace(identity.PlayerId))
+        if (owner.IsGhost || !owner.HasPlayerProfile || string.IsNullOrWhiteSpace(owner.PlayerId))
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -495,9 +496,10 @@ public class PremiumStoreHeaderView : ContentView
             return;
         }
 
-        var wallet = await PlayerStoreIdentityService.GetWalletAsync(identity.PlayerId);
-        var progress = await PlayerStoreIdentityService.GetCollectionProgressAsync(identity.PlayerId);
-        var profile = await PlayerProfileService.GetPlayerByIdAsync(identity.PlayerId);
+        var playerId = owner.PlayerId.Trim();
+        var wallet = await PlayerStoreIdentityService.GetWalletAsync(playerId);
+        var progress = await PlayerStoreIdentityService.GetCollectionProgressAsync(playerId);
+        var profile = await PlayerProfileService.GetPlayerByIdAsync(playerId);
         var ratio = progress.TotalPublished == 0 ? 0 : progress.TotalOwned / (double)progress.TotalPublished;
         MainThread.BeginInvokeOnMainThread(() =>
         {
