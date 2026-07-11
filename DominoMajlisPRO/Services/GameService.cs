@@ -70,7 +70,7 @@ public static class GameService
 
         await CloudSyncRuntime.TryUpsertAsync(
             CloudResources.Matches,
-            match.MatchId,
+            match.MatchId.ToString("D"),
             match);
     }
 
@@ -103,7 +103,7 @@ public static class GameService
 
         await CloudSyncRuntime.TryDeleteAsync(
             CloudResources.Matches,
-            match.MatchId);
+            match.MatchId.ToString("D"));
     }
 
     public static async Task DeleteAllMatches()
@@ -116,11 +116,11 @@ public static class GameService
 
         foreach (var match in matches)
         {
-            if (!string.IsNullOrWhiteSpace(match.MatchId))
+            if (match.MatchId != Guid.Empty)
             {
                 await CloudSyncRuntime.TryDeleteAsync(
                     CloudResources.Matches,
-                    match.MatchId);
+                    match.MatchId.ToString("D"));
             }
         }
     }
