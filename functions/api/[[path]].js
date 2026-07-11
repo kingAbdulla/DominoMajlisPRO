@@ -15,6 +15,7 @@ export async function onRequest(context) {
   if (!env.DB) return json({ message: 'قاعدة بيانات D1 غير مرتبطة بالمشروع بعد.' }, 503);
 
   try {
+    await ensureSchema(env.DB);
     if (method === 'POST' && path === 'preview/register') return await register(request, env.DB);
     if (method === 'POST' && path === 'preview/login') return await login(request, env.DB);
     if (method === 'POST' && path === 'preview/logout') return await logout(request, env.DB);
@@ -25,6 +26,36 @@ export async function onRequest(context) {
     console.error(error);
     return json({ message: 'حدث خطأ داخلي في السيرفر التجريبي.' }, 500);
   }
+}
+
+async function ensureSchema(db) {
+  await db.batch([
+    db.prepare(`CREATE TABLE IF NOT EXISTS preview_users (
+      application_user_id TEXT PRIMARY KEY,
+      player_id TEXT NOT NULL UNIQUE,
+      username TEXT NOT NULL,
+      username_norm TEXT NOT NULL UNIQUE,
+      password_salt TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS preview_sessions (
+      token TEXT PRIMARY KEY,
+      application_user_id TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS ix_preview_sessions_user
+      ON preview_sessions(application_user_id)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS preview_teams (
+      team_id TEXT PRIMARY KEY,
+      application_user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS ix_preview_teams_user
+      ON preview_teams(application_user_id, created_at)`)
+  ]);
 }
 
 async function register(request, db) {
@@ -43,7 +74,7 @@ async function register(request, db) {
   const now = new Date().toISOString();
   await db.prepare(`INSERT INTO preview_users
     (application_user_id, player_id, username, username_norm, password_salt, password_hash, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)`)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`) 
     .bind(applicationUserId, playerId, username, username.toLowerCase(), toBase64(salt), toBase64(hash), now).run();
 
   return createSession(db, { applicationUserId, playerId, displayName: username });
