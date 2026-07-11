@@ -166,6 +166,14 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
             return StoreProductPreviewKind.Frame;
         }
 
+        if (canonicalType is nameof(StoreProductAssetType.PlayerNameEffect) or
+            nameof(StoreProductAssetType.TeamNameEffect) or
+            nameof(StoreProductAssetType.PlayerNameFrame) or
+            nameof(StoreProductAssetType.TeamNameFrame))
+        {
+            return StoreProductPreviewKind.NameTypography;
+        }
+
         return string.Equals(
             canonicalType,
             StoreProductAssetType.Effect.ToString(),

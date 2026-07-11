@@ -2,6 +2,8 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Services;
+using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 
@@ -23,39 +25,69 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
 
     public new void Bind(List<GalleryItem> items) { _ = items; _ = RefreshAsync(); }
     public void SetVisibleItemCount(int count) { _visibleItemCount = Math.Max(0, count); BuildTappableCards(_availableItems.Take(_visibleItemCount).ToList()); }
-    private void OnCmsLoaded(object? sender, EventArgs e) { LimitedOffersAdminService.PublishedChanged -= OnPublishedChanged; LimitedOffersAdminService.PublishedChanged += OnPublishedChanged; _ = RefreshAsync(); }
-    private void OnCmsUnloaded(object? sender, EventArgs e) => LimitedOffersAdminService.PublishedChanged -= OnPublishedChanged;
+    private void OnCmsLoaded(object? sender, EventArgs e)
+    {
+        LimitedOffersAdminService.PublishedChanged -= OnPublishedChanged;
+        LimitedOffersAdminService.PublishedChanged += OnPublishedChanged;
+        AppEvents.StoreEconomyChanged -= OnStoreEconomyChanged;
+        AppEvents.StoreEconomyChanged += OnStoreEconomyChanged;
+        _ = RefreshAsync();
+    }
+
+    private void OnCmsUnloaded(object? sender, EventArgs e)
+    {
+        LimitedOffersAdminService.PublishedChanged -= OnPublishedChanged;
+        AppEvents.StoreEconomyChanged -= OnStoreEconomyChanged;
+    }
+
     private void OnPublishedChanged() => _ = RefreshAsync();
+    private void OnStoreEconomyChanged(string playerId) => _ = RefreshAsync();
 
     private async Task RefreshAsync()
     {
-        var offers = await StoreAssetQueryService.LoadActiveOffersAsync();
-        var items = new List<LimitedOfferCard>(offers.Count);
-        foreach (var record in offers)
+        try
         {
-            var productId = string.IsNullOrWhiteSpace(record.ProductId) ? record.Id.Trim() : record.ProductId.Trim();
-            var assetId = LimitedOffersAdminService.GetAssetId(record).Trim();
-            var storeTypeId =
-                await StoreInventoryRouteResolver.ResolveStoreTypeIdAsync(
+            var offers = await StoreAssetQueryService.LoadActiveOffersAsync();
+            var items = new List<LimitedOfferCard>(offers.Count);
+            foreach (var record in offers)
+            {
+                var productId = string.IsNullOrWhiteSpace(record.ProductId) ? record.Id.Trim() : record.ProductId.Trim();
+                var assetId = LimitedOffersAdminService.GetAssetId(record).Trim();
+                var storeTypeId =
+                    await StoreInventoryRouteResolver.ResolveStoreTypeIdAsync(
+                        assetId,
+                        record.StoreTypeId);
+                var isFree = record.DiscountPrice == 0 ||
+                    record.CurrencyType == LimitedOfferCurrencyType.Free;
+                items.Add(new LimitedOfferCard(
+                    ToGalleryItem(record),
+                    productId,
                     assetId,
-                    record.StoreTypeId);
-            var isFree = record.DiscountPrice == 0 ||
-                record.CurrencyType == LimitedOfferCurrencyType.Free;
-            items.Add(new LimitedOfferCard(
-                ToGalleryItem(record),
-                productId,
-                assetId,
-                storeTypeId,
-                record.DiscountPrice,
-                isFree,
-                record.CurrencyType.ToString()));
+                    storeTypeId,
+                    record.DiscountPrice,
+                    isFree,
+                    record.CurrencyType.ToString(),
+                    record.StartsAt,
+                    record.EndsAt));
+            }
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _availableItems = items;
+                AvailableItemCountChanged?.Invoke(this, items.Count);
+                BuildTappableCards(items.Take(_visibleItemCount).ToList());
+            });
         }
-        MainThread.BeginInvokeOnMainThread(() =>
+        catch
         {
-            _availableItems = items;
-            AvailableItemCountChanged?.Invoke(this, items.Count);
-            BuildTappableCards(items.Take(_visibleItemCount).ToList());
-        });
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _availableItems = Array.Empty<LimitedOfferCard>();
+                AvailableItemCountChanged?.Invoke(this, 0);
+                BuildEmptyState(
+                    "تعذر تحميل العروض اليومية",
+                    "يرجى المحاولة مرة أخرى بعد قليل.");
+            });
+        }
     }
 
     private void AttachShowAllTap()
@@ -80,6 +112,14 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
         for (var row = 0; row < Math.Ceiling(items.Count / 3d); row++)
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
+        if (items.Count == 0)
+        {
+            BuildEmptyState(
+                "لا توجد عروض يومية حالياً",
+                "ستظهر هنا العروض الجديدة فور نشرها.");
+            return;
+        }
+
         for (var index = 0; index < items.Count; index++)
         {
             var cardItem = items[index];
@@ -88,6 +128,64 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
             AttachCardTap(card, () => OpenActionSheet(cardItem));
             grid.Add(card, index % 3, index / 3);
         }
+    }
+
+    private void BuildEmptyState(string title, string message)
+    {
+        if (Content is not VerticalStackLayout section ||
+            section.Children.Count < 2 ||
+            section.Children[1] is not Grid grid)
+        {
+            return;
+        }
+
+        grid.Children.Clear();
+        grid.RowDefinitions.Clear();
+        grid.ColumnDefinitions.Clear();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var theme = GalleryThemeEngine.Current;
+        var panel = new Border
+        {
+            Padding = new Thickness(18, 22),
+            Background = theme.CardBackground,
+            Stroke = theme.Stroke,
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = 18 },
+            Content = new VerticalStackLayout
+            {
+                Spacing = 6,
+                HorizontalOptions = LayoutOptions.Fill,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "🎁",
+                        FontSize = 30,
+                        HorizontalTextAlignment = TextAlignment.Center
+                    },
+                    new Label
+                    {
+                        Text = title,
+                        FontFamily = "Tajawal-Regular",
+                        FontSize = 16,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = theme.TextPrimary,
+                        HorizontalTextAlignment = TextAlignment.Center
+                    },
+                    new Label
+                    {
+                        Text = message,
+                        FontFamily = "Tajawal-Regular",
+                        FontSize = 12,
+                        TextColor = theme.TextMuted,
+                        HorizontalTextAlignment = TextAlignment.Center
+                    }
+                }
+            }
+        };
+        grid.Add(panel, 0, 0);
     }
 
     private void OpenActionSheet(LimitedOfferCard card)
@@ -105,34 +203,17 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
             "غير مملوك",
             "اقتناء",
             true,
-            () => Task.CompletedTask,
-            () => Task.CompletedTask,
-            previewKind: ResolvePreviewKind(card.StoreTypeId, card.AssetId, item.Name, item.Description),
+            RefreshAsync,
+            RefreshAsync,
+            previewKind: ResolvePreviewKind(card.StoreTypeId),
             inventoryAssetId: card.AssetId,
             inventoryStoreTypeId: card.StoreTypeId,
             inventoryIsFree: isFree,
             inventoryProductId: card.ProductId,
             inventoryPrice: card.Price,
-            inventoryCurrencyMetadata: card.CurrencyMetadata);
-    }
-
-    private static StoreProductPreviewKind ResolvePreviewKind(
-        string storeTypeId,
-        string assetId,
-        string name,
-        string description)
-    {
-        var canonical = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
-        if (string.Equals(canonical, "Effect", StringComparison.OrdinalIgnoreCase))
-            return StoreProductPreviewKind.Effect;
-
-        var key = $"{storeTypeId} {assetId} {name} {description}".ToLowerInvariant();
-        return key.Contains("effect") ||
-               key.Contains("effact") ||
-               key.Contains("تأثير") ||
-               key.Contains("تاثير")
-            ? StoreProductPreviewKind.Effect
-            : StoreProductPreviewKind.Generic;
+            inventoryCurrencyMetadata: card.CurrencyMetadata,
+            inventoryAvailableFrom: card.StartsAt,
+            inventoryAvailableUntil: card.EndsAt);
     }
 
     private static void AttachCardTap(PremiumGalleryCard card, Action action)
@@ -146,6 +227,39 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
             rootTap.Tapped += (_, _) => action();
             root.GestureRecognizers.Add(rootTap);
         }
+    }
+
+    private static StoreProductPreviewKind ResolvePreviewKind(
+        string storeTypeId)
+    {
+        var canonicalType =
+            StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
+        if (string.Equals(
+                canonicalType,
+                StoreProductAssetType.Frame.ToString(),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return StoreProductPreviewKind.Frame;
+        }
+
+        if (canonicalType is nameof(StoreProductAssetType.PlayerNameEffect) or
+            nameof(StoreProductAssetType.TeamNameEffect) or
+            nameof(StoreProductAssetType.PlayerNameFrame) or
+            nameof(StoreProductAssetType.TeamNameFrame))
+        {
+            return StoreProductPreviewKind.NameTypography;
+        }
+
+        return string.Equals(
+            canonicalType,
+            StoreProductAssetType.Effect.ToString(),
+            StringComparison.OrdinalIgnoreCase)
+                || string.Equals(
+                    canonicalType,
+                    StoreProductAssetType.TeamEffect.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
+                ? StoreProductPreviewKind.Effect
+                : StoreProductPreviewKind.Generic;
     }
 
     private static GalleryItem ToGalleryItem(LimitedOfferRecord record) => new()
@@ -163,6 +277,7 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
         string StoreTypeId,
         int Price,
         bool IsFree,
-        string CurrencyMetadata);
+        string CurrencyMetadata,
+        DateTime StartsAt,
+        DateTime EndsAt);
 }
-

@@ -1,4 +1,6 @@
 using Microsoft.Maui.Controls.Shapes;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Services;
 
 using DominoMajlisPRO.GalleryEngine.Models;
@@ -84,8 +86,8 @@ internal sealed class StoreProductPreviewOverlay : Grid
         header.Add(title, 1, 0);
         header.Add(new BoxView { WidthRequest = 42, Opacity = 0 }, 2, 0);
 
-        var previewTitle = Label(14, Gold, true, TextAlignment.Center);
-        previewTitle.Text = "معاينة المنتج";
+        var temporary = Label(14, Gold, true, TextAlignment.Center);
+        temporary.Text = "👁 تجربة مؤقتة";
         var zoomIn = Button("تكبير", Color.FromArgb("#211B10"), Primary);
         zoomIn.Clicked += (_, _) => SetScale(Math.Min(1.6, _visualScale + 0.15));
         var zoomOut = Button("تصغير", Color.FromArgb("#211B10"), Primary);
@@ -104,7 +106,7 @@ internal sealed class StoreProductPreviewOverlay : Grid
         var content = new VerticalStackLayout
         {
             Spacing = 10,
-            Children = { header, previewTitle, _visualHost, _name, _rarityBadge, _description, _priceState, controls, dismiss }
+            Children = { header, temporary, _visualHost, _name, _rarityBadge, _description, _priceState, controls, dismiss }
         };
         _panel = new Border
         {
@@ -213,10 +215,32 @@ internal sealed class StoreProductPreviewOverlay : Grid
             StoreProductPreviewKind.Frame => FrameVisual(image, request.Accent),
             StoreProductPreviewKind.Badge => IdentityVisual(image, request),
             StoreProductPreviewKind.Season => BackgroundVisual(image, request),
+            StoreProductPreviewKind.NameTypography when request.Effect != null =>
+                NameTypographyVisual(request, request.Effect),
             StoreProductPreviewKind.Effect when request.Effect != null =>
                 EffectVisual(image, request.Effect, request.Accent),
             _ => PreviewCard(image, request.Accent)
         };
+    }
+
+    private static View NameTypographyVisual(
+        StoreProductPreviewRequest request,
+        CatalogAssetDisplay effect)
+    {
+        var preset = effect.TypographyPreset;
+        if (effect.AssetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect)
+            preset.FrameStylePreset = "None";
+
+        var plate = new IdentityPlateView
+        {
+            HeightRequest = 70,
+            MaximumWidthRequest = 420,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+        plate.Bind(request.Name, preset);
+        return PreviewCard(plate, request.Accent);
     }
 
     private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent)

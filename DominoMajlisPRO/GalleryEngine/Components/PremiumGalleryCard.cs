@@ -17,6 +17,7 @@ public class PremiumGalleryCard : ContentView
     private readonly Label _currencyIcon;
     private readonly Grid _contentGrid;
     private IdentityEffectView? _effectView;
+    private IdentityPlateView? _identityPlate;
 
     public PremiumGalleryCard()
     {
@@ -198,12 +199,12 @@ public class PremiumGalleryCard : ContentView
                 : "جديد";
 
         _ = ApplyDynamicBackgroundAsync(imageName);
-        _ = ApplyEffectPreviewAsync(item.Id);
+        _ = ApplyEffectPreviewAsync(item.Id, _name.Text);
 
         ApplyResponsive();
     }
 
-    private async Task ApplyEffectPreviewAsync(string assetId)
+    private async Task ApplyEffectPreviewAsync(string assetId, string displayText)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
         MainThread.BeginInvokeOnMainThread(() =>
@@ -214,6 +215,31 @@ public class PremiumGalleryCard : ContentView
                 _contentGrid.Children.Remove(_effectView);
                 _effectView = null;
             }
+            if (_identityPlate != null)
+            {
+                _contentGrid.Children.Remove(_identityPlate);
+                _identityPlate = null;
+            }
+
+            if (asset?.AssetType is StoreProductAssetType.PlayerNameEffect or
+                StoreProductAssetType.TeamNameEffect or
+                StoreProductAssetType.PlayerNameFrame or
+                StoreProductAssetType.TeamNameFrame)
+            {
+                _image.IsVisible = false;
+                _identityPlate = new IdentityPlateView
+                {
+                    HeightRequest = 40,
+                    Margin = new Thickness(10, 0),
+                    HorizontalOptions = LayoutOptions.Fill,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                _identityPlate.Bind(displayText, PresetForNameAsset(asset));
+                _contentGrid.Add(_identityPlate, 0, 0);
+                return;
+            }
+
+            _image.IsVisible = true;
             if (asset?.AssetType is not (StoreProductAssetType.Effect or
                 StoreProductAssetType.TeamEffect))
                 return;
@@ -230,6 +256,16 @@ public class PremiumGalleryCard : ContentView
             _effectView.VerticalOptions = LayoutOptions.Center;
             _contentGrid.Add(_effectView, 0, 0);
         });
+    }
+
+    private static TypographyIdentityPreset PresetForNameAsset(
+        CatalogAssetDisplay asset)
+    {
+        var preset = asset.TypographyPreset;
+        if (asset.AssetType is StoreProductAssetType.PlayerNameEffect or
+            StoreProductAssetType.TeamNameEffect)
+            preset.FrameStylePreset = "None";
+        return preset.Normalized();
     }
 
     public void Bind(GalleryItem item, object? theme)

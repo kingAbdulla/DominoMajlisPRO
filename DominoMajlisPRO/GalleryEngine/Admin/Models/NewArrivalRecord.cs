@@ -40,6 +40,18 @@ public sealed class NewArrivalRecord
     public float EffectScale { get; set; } = 1;
     public float EffectSpeed { get; set; } = 1;
     public float EffectIntensity { get; set; } = 1;
+    public DominoMajlisPRO.GalleryEngine.Models.TypographyIdentityPreset TypographyPreset { get; set; } =
+        DominoMajlisPRO.GalleryEngine.Models.TypographyIdentityPreset.CreateDefault();
+    public string Rarity { get; set; } = string.Empty;
+    public string LivingVisualScope { get; set; } = string.Empty;
+    public string LivingVisualKind { get; set; } = string.Empty;
+    public string LivingPackageId { get; set; } = string.Empty;
+    public string LivingPackageManifestPath { get; set; } = string.Empty;
+    public string LivingPackagePath { get; set; } = string.Empty;
+    public string PreferredBackend { get; set; } = string.Empty;
+    public string FallbackPolicy { get; set; } = string.Empty;
+    public string LivingVisualVersion { get; set; } = string.Empty;
+    public string LivingPackageVersion { get; set; } = string.Empty;
     public string EquipTarget { get; set; } = string.Empty;
     public List<string> BundleAssetIds { get; set; } = new();
     public int DiscountPercent { get; set; }

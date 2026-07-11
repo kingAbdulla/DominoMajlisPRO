@@ -1,3 +1,5 @@
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Pages;
@@ -14,6 +16,7 @@ internal enum StoreProductPreviewKind
     Frame,
     Badge,
     Effect,
+    NameTypography,
     Season
 }
 
@@ -140,7 +143,7 @@ internal sealed class StoreProductActionSheet : Grid
         _wallet.IsVisible = false;
 
         _previewMessage = CreateLabel(11, MutedText);
-        _previewMessage.Text = "معاينة المنتج";
+        _previewMessage.Text = "تجربة مؤقتة";
         _previewMessage.HorizontalTextAlignment = TextAlignment.Center;
         _previewMessage.IsVisible = false;
 
@@ -310,7 +313,8 @@ internal sealed class StoreProductActionSheet : Grid
         _inventoryContext = CreateInventoryContext(price);
         _teamAssetPayload = TeamAssetPayloadCatalog.Resolve(inventoryAssetId);
         _effectAsset = null;
-        if (_previewKind == StoreProductPreviewKind.Effect &&
+        if ((_previewKind == StoreProductPreviewKind.Effect ||
+             _previewKind == StoreProductPreviewKind.NameTypography) &&
             !string.IsNullOrWhiteSpace(inventoryAssetId))
             _ = LoadEffectPreviewAsync(inventoryAssetId);
         _previewMessage.IsVisible = false;
@@ -613,6 +617,16 @@ internal sealed class StoreProductActionSheet : Grid
         _preview.IsEnabled = false;
         try
         {
+            if (_effectAsset == null &&
+                (_previewKind is StoreProductPreviewKind.Effect or
+                    StoreProductPreviewKind.NameTypography) &&
+                !string.IsNullOrWhiteSpace(_inventoryAssetId))
+            {
+                _effectAsset = await StoreAssetCatalogService.ResolveAsync(
+                    _inventoryAssetId,
+                    null);
+            }
+
             _previewOverlay.Show(new StoreProductPreviewRequest(
                 _imagePath,
                 _name.Text ?? string.Empty,
@@ -664,6 +678,13 @@ internal sealed class StoreProductActionSheet : Grid
                 _image.Aspect = Aspect.AspectFill;
                 break;
 
+            case StoreProductPreviewKind.NameTypography:
+                _previewSurface.HeightRequest = 120;
+                _previewSurface.Background = new SolidColorBrush(Color.FromArgb("#10000000"));
+                _previewSurface.StrokeShape = new RoundRectangle { CornerRadius = 20 };
+                _image.Aspect = Aspect.AspectFit;
+                break;
+
             default:
                 _previewSurface.HeightRequest = 230;
                 _previewSurface.Background = new SolidColorBrush(Color.FromArgb("#241B0C"));
@@ -679,13 +700,38 @@ internal sealed class StoreProductActionSheet : Grid
     private async Task LoadEffectPreviewAsync(string assetId)
     {
         var asset = await StoreAssetCatalogService.ResolveAsync(assetId, null);
-        if (asset == null || !IsVisible || _previewKind != StoreProductPreviewKind.Effect)
+        if (asset == null ||
+            !IsVisible ||
+            _previewKind is not (StoreProductPreviewKind.Effect or
+                StoreProductPreviewKind.NameTypography))
             return;
         _effectAsset = asset;
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (!IsVisible || _previewKind != StoreProductPreviewKind.Effect)
+            if (!IsVisible ||
+                _previewKind is not (StoreProductPreviewKind.Effect or
+                    StoreProductPreviewKind.NameTypography))
                 return;
+            if (_previewKind == StoreProductPreviewKind.NameTypography)
+            {
+                var preset = asset.TypographyPreset;
+                if (asset.AssetType is StoreProductAssetType.PlayerNameEffect or
+                    StoreProductAssetType.TeamNameEffect)
+                    preset.FrameStylePreset = "None";
+                var plate = new IdentityPlateView
+                {
+                    HeightRequest = 64,
+                    MaximumWidthRequest = 420,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                plate.Bind(_name.Text ?? asset.DisplayName, preset);
+                _previewSurface.HeightRequest = 120;
+                _previewSurface.Padding = 8;
+                _previewSurface.Content = plate;
+                return;
+            }
+
             var emblem = new Image
             {
                 Source = InventoryDisplayResolver.ResolveImageSource(

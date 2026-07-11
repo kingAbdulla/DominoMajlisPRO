@@ -6,6 +6,8 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class StoreAssetCatalogService
 {
+    public const string LivingProductionDefaultEmblemAssetId = "team-emblem-living-production-default";
+
     public const string IncompleteDisplayName = "عنصر غير مكتمل البيانات";
 
     public static async Task<IReadOnlyList<CatalogAssetDisplay>> LoadAsync()
@@ -54,7 +56,8 @@ public static class StoreAssetCatalogService
                 item.EffectOpacity,
                 item.EffectScale,
                 item.EffectSpeed,
-                item.EffectIntensity));
+                item.EffectIntensity,
+                item.TypographyPreset));
         }
         assets.AddRange(avatarsTask.Result.Select(item => Create(
             item.Id,
@@ -185,7 +188,8 @@ public static class StoreAssetCatalogService
         float effectOpacity = 1,
         float effectScale = 1,
         float effectSpeed = 1,
-        float effectIntensity = 1) =>
+        float effectIntensity = 1,
+        TypographyIdentityPreset? typographyPreset = null) =>
         new(
             assetId.Trim(),
             assetType,
@@ -214,7 +218,8 @@ public static class StoreAssetCatalogService
             effectOpacity,
             effectScale,
             effectSpeed,
-            effectIntensity);
+            effectIntensity,
+            typographyPreset);
 
     private static StoreProductAssetType TeamType(string typeId) =>
         Same(typeId, TeamAssetTypes.Emblem.TeamAssetTypeId)
