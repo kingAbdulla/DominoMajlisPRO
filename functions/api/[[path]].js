@@ -1,3 +1,6 @@
+const API_BUILD = 'auth-pbkdf2-100000-v2';
+const PBKDF2_ITERATIONS = 100000;
+
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
   headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
@@ -9,7 +12,7 @@ export async function onRequest(context) {
   const method = request.method.toUpperCase();
 
   if (method === 'GET' && path === 'health') {
-    return json({ service: 'DominoMajlisPRO.Cloudflare', status: 'healthy', database: Boolean(env.DB), utc: new Date().toISOString() });
+    return json({ service: 'DominoMajlisPRO.Cloudflare', status: 'healthy', database: Boolean(env.DB), build: API_BUILD, utc: new Date().toISOString() });
   }
   if (!env.DB) return json({ message: 'قاعدة بيانات D1 غير مرتبطة بالمشروع بعد.' }, 503);
 
@@ -27,8 +30,8 @@ export async function onRequest(context) {
     if (method === 'POST' && path === 'preview/me/teams') return await createTeam(request, env.DB);
     return json({ message: 'المسار غير موجود.' }, 404);
   } catch (error) {
-    console.error(error);
-    return json({ message: 'حدث خطأ داخلي في السيرفر التجريبي.' }, 500);
+    console.error(`${API_BUILD}:`, error);
+    return json({ message: 'حدث خطأ داخلي في السيرفر التجريبي.', build: API_BUILD }, 500);
   }
 }
 
@@ -184,7 +187,7 @@ async function createSession(db, user, deviceId) {
       (refresh_token, application_user_id, device_id, expires_at, created_at, revoked_at)
       VALUES (?, ?, ?, ?, ?, NULL)`).bind(refreshToken, user.applicationUserId, deviceId, refreshExpiresAt, now.toISOString())
   ]);
-  return json({ accessToken: token, refreshToken, expiresAt, refreshExpiresAt, user });
+  return json({ accessToken: token, refreshToken, expiresAt, refreshExpiresAt, user, build: API_BUILD });
 }
 
 async function resolveUser(request, db) {
@@ -220,7 +223,7 @@ async function audit(db, userId, eventType, ip, deviceId, details) {
 
 async function passwordHash(password, salt) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 100000 }, key, 256);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: PBKDF2_ITERATIONS }, key, 256);
   return new Uint8Array(bits);
 }
 function timingSafeEqual(a, b) { if (a.length !== b.length) return false; let value = 0; for (let i = 0; i < a.length; i++) value |= a[i] ^ b[i]; return value === 0; }
