@@ -8,6 +8,7 @@ var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<stri
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 builder.Services.AddSingleton<PreviewStore>();
+builder.Services.AddSingleton<PreviewSessionService>();
 
 var app = builder.Build();
 app.UseCors();
@@ -17,44 +18,108 @@ app.MapGet("/api/health", () => Results.Ok(new
     service = "DominoMajlisPRO.Api",
     status = "healthy",
     persistence = "json-file",
+    authentication = "bearer-preview-token",
     utc = DateTimeOffset.UtcNow
 }));
 
-app.MapPost("/api/preview/register", async (RegisterRequest request, PreviewStore store) =>
+app.MapPost("/api/preview/register", async (RegisterRequest request, PreviewStore store, PreviewSessionService sessions) =>
 {
     var username = request.Username?.Trim() ?? string.Empty;
     if (username.Length < 3 || string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
         return Results.BadRequest(new { message = "اسم المستخدم يجب أن يكون 3 أحرف على الأقل وكلمة المرور 8 أحرف على الأقل." });
 
-    var result = await store.RegisterAsync(username, request.Password);
-    return result is null
+    var user = await store.RegisterAsync(username, request.Password);
+    return user is null
         ? Results.Conflict(new { message = "اسم المستخدم مستخدم بالفعل." })
-        : Results.Ok(result);
+        : Results.Ok(sessions.Create(user));
 });
 
-app.MapPost("/api/preview/login", async (LoginRequest request, PreviewStore store) =>
+app.MapPost("/api/preview/login", async (LoginRequest request, PreviewStore store, PreviewSessionService sessions) =>
 {
-    var session = await store.LoginAsync(request.Username?.Trim() ?? string.Empty, request.Password ?? string.Empty);
-    return session is null
+    var user = await store.ValidateCredentialsAsync(request.Username?.Trim() ?? string.Empty, request.Password ?? string.Empty);
+    return user is null
+        ? Results.Json(new { message = "بيانات الدخول غير صحيحة." }, statusCode: StatusCodes.Status401Unauthorized)
+        : Results.Ok(sessions.Create(user));
+});
+
+app.MapPost("/api/preview/logout", (HttpRequest request, PreviewSessionService sessions) =>
+{
+    var token = PreviewSessionService.ReadBearerToken(request);
+    if (token is null) return Results.Unauthorized();
+    sessions.Revoke(token);
+    return Results.NoContent();
+});
+
+app.MapGet("/api/preview/me/teams", async (HttpRequest request, PreviewSessionService sessions, PreviewStore store) =>
+{
+    var user = sessions.Resolve(request);
+    return user is null
         ? Results.Unauthorized()
-        : Results.Ok(session);
+        : Results.Ok(await store.GetTeamsAsync(user.ApplicationUserId));
 });
 
-app.MapGet("/api/preview/users/{applicationUserId}/teams", async (string applicationUserId, PreviewStore store) =>
-    Results.Ok(await store.GetTeamsAsync(applicationUserId)));
-
-app.MapPost("/api/preview/users/{applicationUserId}/teams", async (string applicationUserId, CreateTeamRequest request, PreviewStore store) =>
+app.MapPost("/api/preview/me/teams", async (HttpRequest request, CreateTeamRequest body, PreviewSessionService sessions, PreviewStore store) =>
 {
-    if (string.IsNullOrWhiteSpace(request.Name))
+    var user = sessions.Resolve(request);
+    if (user is null) return Results.Unauthorized();
+    if (string.IsNullOrWhiteSpace(body.Name))
         return Results.BadRequest(new { message = "اسم الفريق مطلوب." });
 
-    var team = await store.CreateTeamAsync(applicationUserId, request.Name.Trim());
-    return team is null
-        ? Results.NotFound(new { message = "الحساب التجريبي غير موجود." })
-        : Results.Created($"/api/preview/users/{applicationUserId}/teams/{team.TeamId}", team);
+    var team = await store.CreateTeamAsync(user.ApplicationUserId, body.Name.Trim());
+    return Results.Created($"/api/preview/me/teams/{team.TeamId}", team);
 });
 
 app.Run();
+
+sealed class PreviewSessionService
+{
+    private readonly Dictionary<string, PreviewSession> _sessions = new(StringComparer.Ordinal);
+    private readonly object _gate = new();
+    private static readonly TimeSpan Lifetime = TimeSpan.FromHours(12);
+
+    public SessionResponse Create(PreviewUser user)
+    {
+        var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        lock (_gate)
+        {
+            RemoveExpiredUnsafe();
+            _sessions[token] = new PreviewSession(user, DateTimeOffset.UtcNow.Add(Lifetime));
+        }
+        return new SessionResponse(token, DateTimeOffset.UtcNow.Add(Lifetime), user);
+    }
+
+    public PreviewUser? Resolve(HttpRequest request)
+    {
+        var token = ReadBearerToken(request);
+        if (token is null) return null;
+        lock (_gate)
+        {
+            RemoveExpiredUnsafe();
+            return _sessions.TryGetValue(token, out var session) ? session.User : null;
+        }
+    }
+
+    public void Revoke(string token)
+    {
+        lock (_gate) _sessions.Remove(token);
+    }
+
+    public static string? ReadBearerToken(HttpRequest request)
+    {
+        var value = request.Headers.Authorization.ToString();
+        const string prefix = "Bearer ";
+        return value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? value[prefix.Length..].Trim()
+            : null;
+    }
+
+    private void RemoveExpiredUnsafe()
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var token in _sessions.Where(x => x.Value.ExpiresAt <= now).Select(x => x.Key).ToList())
+            _sessions.Remove(token);
+    }
+}
 
 sealed class PreviewStore
 {
@@ -71,7 +136,7 @@ sealed class PreviewStore
         _filePath = Path.Combine(dataDirectory, "preview-store.json");
     }
 
-    public async Task<SessionResponse?> RegisterAsync(string username, string password)
+    public async Task<PreviewUser?> RegisterAsync(string username, string password)
     {
         await _gate.WaitAsync();
         try
@@ -90,12 +155,12 @@ sealed class PreviewStore
                 Convert.ToBase64String(hash));
             state.Users.Add(user);
             await SaveAsync(state);
-            return CreateSession(user);
+            return ToPreviewUser(user);
         }
         finally { _gate.Release(); }
     }
 
-    public async Task<SessionResponse?> LoginAsync(string username, string password)
+    public async Task<PreviewUser?> ValidateCredentialsAsync(string username, string password)
     {
         await _gate.WaitAsync();
         try
@@ -106,7 +171,7 @@ sealed class PreviewStore
             var salt = Convert.FromBase64String(user.PasswordSalt);
             var expected = Convert.FromBase64String(user.PasswordHash);
             var actual = Rfc2898DeriveBytes.Pbkdf2(password, salt, 120_000, HashAlgorithmName.SHA256, 32);
-            return CryptographicOperations.FixedTimeEquals(expected, actual) ? CreateSession(user) : null;
+            return CryptographicOperations.FixedTimeEquals(expected, actual) ? ToPreviewUser(user) : null;
         }
         finally { _gate.Release(); }
     }
@@ -123,13 +188,12 @@ sealed class PreviewStore
         finally { _gate.Release(); }
     }
 
-    public async Task<PreviewTeam?> CreateTeamAsync(string applicationUserId, string name)
+    public async Task<PreviewTeam> CreateTeamAsync(string applicationUserId, string name)
     {
         await _gate.WaitAsync();
         try
         {
             var state = await LoadAsync();
-            if (!state.Users.Any(x => x.ApplicationUserId == applicationUserId)) return null;
             var stored = new StoredTeam($"TEAM-{Guid.NewGuid():N}".ToUpperInvariant(), applicationUserId, name, DateTimeOffset.UtcNow);
             state.Teams.Add(stored);
             await SaveAsync(state);
@@ -153,9 +217,8 @@ sealed class PreviewStore
         File.Move(temp, _filePath, true);
     }
 
-    private static SessionResponse CreateSession(StoredUser user) => new(
-        Convert.ToHexString(RandomNumberGenerator.GetBytes(32)),
-        new PreviewUser(user.ApplicationUserId, user.PlayerId, user.Username));
+    private static PreviewUser ToPreviewUser(StoredUser user) =>
+        new(user.ApplicationUserId, user.PlayerId, user.Username);
 }
 
 sealed class StoreState
@@ -171,4 +234,5 @@ record StoredUser(string ApplicationUserId, string PlayerId, string Username, st
 record StoredTeam(string TeamId, string ApplicationUserId, string Name, DateTimeOffset CreatedAt);
 record PreviewUser(string ApplicationUserId, string PlayerId, string DisplayName);
 record PreviewTeam(string TeamId, string Name, DateTimeOffset CreatedAt);
-record SessionResponse(string AccessToken, PreviewUser User);
+record PreviewSession(PreviewUser User, DateTimeOffset ExpiresAt);
+record SessionResponse(string AccessToken, DateTimeOffset ExpiresAt, PreviewUser User);
