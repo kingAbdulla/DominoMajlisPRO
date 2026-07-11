@@ -14,8 +14,8 @@ public partial class GamePage
             return;
         }
 
-        // The first four children are the header, hero cards, keypad and the
-        // previous rounds-only ScrollView. Overlays must remain direct children
+        // The first four visible regions are the header, hero cards, keypad and
+        // the previous rounds-only ScrollView. Overlays remain direct children
         // of the root Grid so they continue covering the full page.
         if (root.Children.Count < 6)
             return;
@@ -32,6 +32,7 @@ public partial class GamePage
         root.Children.Remove(hero);
         root.Children.Remove(keypad);
         root.Children.Remove(roundsScroll);
+        roundsScroll.Content = null;
 
         Grid.SetRow(header, 0);
         Grid.SetRow(hero, 0);
