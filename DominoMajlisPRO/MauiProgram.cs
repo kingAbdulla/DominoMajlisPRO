@@ -28,12 +28,17 @@ namespace DominoMajlisPRO
             var cloudOptions = new CloudApiOptions();
             builder.Services.AddSingleton(cloudOptions);
             builder.Services.AddSingleton<CloudSessionStore>();
-            builder.Services.AddHttpClient<CloudApiClient>(client =>
+            builder.Services.AddSingleton(_ =>
             {
-                client.BaseAddress = new Uri(cloudOptions.BaseUrl, UriKind.Absolute);
-                client.Timeout = cloudOptions.Timeout;
+                var client = new HttpClient
+                {
+                    BaseAddress = new Uri(cloudOptions.BaseUrl, UriKind.Absolute),
+                    Timeout = cloudOptions.Timeout
+                };
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("DominoMajlisPRO/1.0");
+                return client;
             });
+            builder.Services.AddSingleton<CloudApiClient>();
 
 #if DEBUG
             builder.Logging.AddDebug();
