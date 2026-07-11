@@ -194,7 +194,7 @@ public class PremiumStoreHeaderView : ContentView
 
         actionRow.Add(_seasonButton, 0, 0);
         actionRow.Add(new BoxView { Opacity = 0 }, 1, 0);
-        actionRow.Add(_cartButton, 2, 0);
+        _cartButton.IsVisible = false;
 
         return new VerticalStackLayout
         {
@@ -249,10 +249,7 @@ public class PremiumStoreHeaderView : ContentView
 
         AddTap(grid, () =>
         {
-            if (CartRequested is not null)
-                CartRequested.Invoke(this, EventArgs.Empty);
-            else
-                _ = ShowCartPlaceholderAsync();
+            CartRequested?.Invoke(this, EventArgs.Empty);
         });
 
         return grid;
@@ -476,12 +473,6 @@ public class PremiumStoreHeaderView : ContentView
     private void OnStoreEconomyChanged(string playerId) => _ = RefreshStoreIdentityAsync();
     private void OnPlayerProfileChanged() => _ = RefreshStoreIdentityAsync();
     private void OnCollectiblesChanged() => _ = RefreshStoreIdentityAsync();
-
-    private static Task ShowCartPlaceholderAsync()
-    {
-        var page = Shell.Current?.CurrentPage ?? Application.Current?.Windows.FirstOrDefault()?.Page;
-        return page?.DisplayAlert("سلة المشتريات", "سلة المشتريات فارغة حالياً", "حسناً") ?? Task.CompletedTask;
-    }
 
     private async Task RefreshStoreIdentityAsync()
     {

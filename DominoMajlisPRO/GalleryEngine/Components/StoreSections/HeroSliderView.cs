@@ -14,8 +14,8 @@ public class HeroSliderView : ContentView
     private readonly Border _root;
     private readonly CarouselView _carousel;
     private readonly IndicatorView _indicator;
-    private readonly Border _testButton;
-    private Label _testButtonLabel = null!;
+    private readonly Border _developerButton;
+    private Label _developerButtonLabel = null!;
     private readonly List<HeroSlide> _slides;
     private bool _timerStarted;
 
@@ -45,7 +45,7 @@ public class HeroSliderView : ContentView
 
         _carousel.IndicatorView = _indicator;
 
-        _testButton = CreateTemporaryTestButton();
+        _developerButton = CreateDeveloperAdminButton();
 
         var root = new Grid
         {
@@ -53,7 +53,7 @@ public class HeroSliderView : ContentView
             {
                 _carousel,
                 _indicator,
-                _testButton
+                _developerButton
             }
         };
 
@@ -124,9 +124,9 @@ public class HeroSliderView : ContentView
             _carousel.Position = 0;
         });
     }
-    private Border CreateTemporaryTestButton()
+    private Border CreateDeveloperAdminButton()
     {
-        _testButtonLabel = new Label
+        _developerButtonLabel = new Label
         {
             Text = "+",
             FontSize = 24,
@@ -149,7 +149,7 @@ public class HeroSliderView : ContentView
             StrokeShape = new RoundRectangle { CornerRadius = 13 },
             Background = GalleryThemeEngine.Current.CardBackground,
             IsVisible = false,
-            Content = _testButtonLabel
+            Content = _developerButtonLabel
         };
 
         var tap = new TapGestureRecognizer();
@@ -179,7 +179,7 @@ public class HeroSliderView : ContentView
     {
         var isDeveloper = await IsDeveloperAsync();
         await MainThread.InvokeOnMainThreadAsync(() =>
-            _testButton.IsVisible = isDeveloper);
+            _developerButton.IsVisible = isDeveloper);
     }
 
     private static async Task<bool> IsDeveloperAsync()
@@ -194,52 +194,6 @@ public class HeroSliderView : ContentView
         return role == HonorRoleType.Developer;
     }
 
-
-    private async Task PickTemporarySeasonImageAsync()
-    {
-        try
-        {
-            var result = await FilePicker.Default.PickAsync(new PickOptions
-            {
-                PickerTitle = "اختر صورة موسم للتجربة",
-                FileTypes = FilePickerFileType.Images
-            });
-
-            if (result == null)
-                return;
-
-            var localPath = result.FullPath;
-
-            if (string.IsNullOrWhiteSpace(localPath))
-            {
-                await using var stream = await result.OpenReadAsync();
-
-                var fileName = $"season_test_{DateTime.Now:yyyyMMdd_HHmmss}.png";
-                localPath = global::System.IO.Path.Combine(FileSystem.CacheDirectory, fileName);
-                await using var output = File.OpenWrite(localPath);
-                await stream.CopyToAsync(output);
-            }
-
-            var slide = _slides[0];
-
-            slide.Badge = "تجربة موسم";
-            slide.Title = "موسم جديد";
-            slide.Subtitle = "اختبار اللون التلقائي";
-            slide.Description = "تم توليد الخلفية من الصورة المختارة.";
-            slide.Image = localPath;
-
-            _carousel.ItemsSource = null;
-            _carousel.ItemsSource = _slides;
-            _carousel.Position = 0;
-        }
-        catch
-        {
-            await Application.Current!.MainPage!.DisplayAlert(
-                "تنبيه",
-                "تعذر اختيار الصورة للتجربة.",
-                "حسنًا");
-        }
-    }
 
     private void OnLoaded(object? sender, EventArgs e)
     {
@@ -303,16 +257,16 @@ public class HeroSliderView : ContentView
         _indicator.IndicatorColor = theme.Stroke;
         _indicator.SelectedIndicatorColor = theme.Gold;
 
-        _testButton.Background = theme.CardBackground;
-        _testButton.Stroke = theme.Accent;
-        _testButton.Shadow = new Shadow
+        _developerButton.Background = theme.CardBackground;
+        _developerButton.Stroke = theme.Accent;
+        _developerButton.Shadow = new Shadow
         {
             Brush = new SolidColorBrush(theme.Glow),
             Radius = 10,
             Opacity = 0.22f,
             Offset = new Point(0, 2)
         };
-        _testButtonLabel.TextColor = theme.Gold;
+        _developerButtonLabel.TextColor = theme.Gold;
     }
 
     private static View CreateSlide()

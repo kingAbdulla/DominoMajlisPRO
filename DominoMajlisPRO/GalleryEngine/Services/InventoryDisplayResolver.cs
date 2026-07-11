@@ -62,7 +62,11 @@ public static class InventoryDisplayResolver
                 productReferences)));
 
         var supportedCatalog = catalog
-            .Where(item => IsProgressType(item.AssetType))
+            .Where(item =>
+                IsProgressType(item.AssetType) &&
+                !TeamAssetPayloadCatalog.IsDefaultTeamAsset(item.AssetId) &&
+                (item.OwnerScope == StoreProductOwnerScope.Player ||
+                 item.ProductIds.Count > 0))
             .ToList();
         var typeIds = supportedCatalog
             .Select(item => item.AssetType.ToString())

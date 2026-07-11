@@ -19,7 +19,7 @@ public class QuickActionsView : ContentView
             RowSpacing = 8
         };
 
-        var columns = DeviceInfo.Idiom == DeviceIdiom.Phone ? 2 : 4;
+        var columns = 2;
 
         for (int i = 0; i < columns; i++)
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
@@ -30,8 +30,6 @@ public class QuickActionsView : ContentView
         var cards = new List<View>
         {
             CreateActionCard("🎁", "العروض اليومية", "خصومات كل يوم", StoreQuickAction.DailyOffers),
-            CreateActionCard("🎡", "عجلة الحظ", "فرصتك للربح", StoreQuickAction.WheelOfFortune),
-            CreateActionCard("🎫", "بطاقة الموسم", "جوائز حصرية", StoreQuickAction.SeasonPass),
             CreateActionCard("💎", "اشحن الآن", "احصل على المزيد", StoreQuickAction.TopUp)
         };
 

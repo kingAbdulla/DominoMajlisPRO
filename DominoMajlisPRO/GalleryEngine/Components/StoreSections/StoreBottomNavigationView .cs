@@ -35,15 +35,13 @@ public class StoreBottomNavigationView : ContentView
             {
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star }
             }
         };
 
         grid.Children.Add(CreateNavItem("🛍️", "المتجر", StoreBottomTab.Store, 0));
-        grid.Children.Add(CreateNavItem("🎁", "مكافآت", StoreBottomTab.Rewards, 1));
-        grid.Children.Add(CreateNavItem("🏷️", "العروض", StoreBottomTab.Offers, 2));
-        grid.Children.Add(CreateNavItem("👤", "حسابي", StoreBottomTab.Account, 3));
+        grid.Children.Add(CreateNavItem("🏷️", "العروض", StoreBottomTab.Offers, 1));
+        grid.Children.Add(CreateNavItem("👤", "حسابي", StoreBottomTab.Account, 2));
 
         _root = new Border
         {

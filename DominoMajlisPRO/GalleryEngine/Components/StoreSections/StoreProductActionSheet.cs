@@ -140,7 +140,7 @@ internal sealed class StoreProductActionSheet : Grid
         _wallet.IsVisible = false;
 
         _previewMessage = CreateLabel(11, MutedText);
-        _previewMessage.Text = "تجربة مؤقتة";
+        _previewMessage.Text = "معاينة المنتج";
         _previewMessage.HorizontalTextAlignment = TextAlignment.Center;
         _previewMessage.IsVisible = false;
 

@@ -14,9 +14,12 @@ public static class TeamAssetInventoryService
     public static async Task<IReadOnlyList<TeamOwnedAssetItem>> GetInventoryForTeamAsync(string teamId)
     {
         ValidateTeamId(teamId);
+        var appUserId = (await ApplicationUserService.EnsureCurrentSessionAsync()).ApplicationUserId ?? string.Empty;
 
         var purchasedItems = (await LoadAsync())
-            .Where(item => SameId(item.TeamId, teamId))
+            .Where(item =>
+                SameId(item.ApplicationUserId, appUserId) &&
+                SameId(item.TeamId, teamId))
             .ToList();
 
         var defaultItems = CreateDefaultAssets(teamId).ToList();
@@ -34,11 +37,13 @@ public static class TeamAssetInventoryService
     public static async Task<bool> IsOwnedAsync(string teamId, string teamAssetId)
     {
         ValidateIdentity(teamId, teamAssetId);
+        var appUserId = (await ApplicationUserService.EnsureCurrentSessionAsync()).ApplicationUserId ?? string.Empty;
 
         if (TeamAssetPayloadCatalog.IsDefaultTeamAsset(teamAssetId))
             return true;
 
         return (await LoadAsync()).Any(item =>
+            SameId(item.ApplicationUserId, appUserId) &&
             SameLegacyOwnership(item, teamId, teamAssetId) && item.IsOwned);
     }
 
@@ -48,6 +53,7 @@ public static class TeamAssetInventoryService
         string teamAssetTypeId)
     {
         ValidateIdentity(teamId, teamAssetId, teamAssetTypeId);
+        var appUserId = (await ApplicationUserService.EnsureCurrentSessionAsync()).ApplicationUserId ?? string.Empty;
 
         if (TeamAssetPayloadCatalog.IsDefaultTeamAsset(teamAssetId))
         {
@@ -58,6 +64,7 @@ public static class TeamAssetInventoryService
         }
 
         return (await LoadAsync()).Any(item =>
+            SameId(item.ApplicationUserId, appUserId) &&
             SameOwnership(item, teamId, teamAssetId, teamAssetTypeId) &&
             item.IsOwned);
     }
@@ -108,7 +115,9 @@ public static class TeamAssetInventoryService
             if (legacyRecord != null)
             {
                 legacyRecord.TeamAssetTypeId = teamAssetTypeId.Trim();
-                legacyRecord.ApplicationUserId = legacyRecord.ApplicationUserId?.Trim() ?? appUserId;
+                legacyRecord.ApplicationUserId = string.IsNullOrWhiteSpace(legacyRecord.ApplicationUserId)
+                    ? appUserId
+                    : legacyRecord.ApplicationUserId.Trim();
                 await SaveAsync(records);
                 migratedLegacyType = true;
             }
@@ -169,6 +178,7 @@ public static class TeamAssetInventoryService
         string teamAssetTypeId)
     {
         ValidateIdentity(teamId, teamAssetId, teamAssetTypeId);
+        var appUserId = (await ApplicationUserService.EnsureCurrentSessionAsync()).ApplicationUserId ?? string.Empty;
 
         if (!await IsOwnedAsync(teamId, teamAssetId, teamAssetTypeId))
             return false;
@@ -182,6 +192,7 @@ public static class TeamAssetInventoryService
             var records = await LoadAsync();
 
             foreach (var item in records.Where(item =>
+                         SameId(item.ApplicationUserId, appUserId) &&
                          SameId(item.TeamId, teamId) &&
                          SameId(item.TeamAssetTypeId, teamAssetTypeId)))
             {
@@ -193,6 +204,7 @@ public static class TeamAssetInventoryService
             }
 
             var target = records.FirstOrDefault(item =>
+                SameId(item.ApplicationUserId, appUserId) &&
                 SameOwnership(
                     item,
                     teamId,
@@ -204,6 +216,7 @@ public static class TeamAssetInventoryService
                 target = new TeamOwnedAssetItem
                 {
                     TeamInventoryItemId = Guid.NewGuid().ToString(),
+                    ApplicationUserId = appUserId,
                     TeamId = teamId.Trim(),
                     TeamAssetId = teamAssetId.Trim(),
                     TeamAssetTypeId = teamAssetTypeId.Trim(),
@@ -250,6 +263,7 @@ public static class TeamAssetInventoryService
     public static async Task<bool> UnequipAsync(string teamId, string teamAssetId)
     {
         ValidateIdentity(teamId, teamAssetId);
+        var appUserId = (await ApplicationUserService.EnsureCurrentSessionAsync()).ApplicationUserId ?? string.Empty;
 
         var changed = false;
 
@@ -260,6 +274,7 @@ public static class TeamAssetInventoryService
             var records = await LoadAsync();
 
             var target = records.FirstOrDefault(item =>
+                SameId(item.ApplicationUserId, appUserId) &&
                 SameLegacyOwnership(item, teamId, teamAssetId));
 
             if (target == null || !target.IsEquipped)

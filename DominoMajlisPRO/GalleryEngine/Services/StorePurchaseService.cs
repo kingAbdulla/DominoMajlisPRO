@@ -12,20 +12,20 @@ public static class StorePurchaseService
 
     public static async Task<StorePurchaseResult> PurchaseAsync(string playerId, string itemId, StoreItemType itemType)
     {
-        if (string.IsNullOrWhiteSpace(playerId)) return Failure("PlayerId is required.", playerId, itemId, itemType);
-        if (string.IsNullOrWhiteSpace(itemId)) return Failure("ItemId is required.", playerId, itemId, itemType);
+        if (string.IsNullOrWhiteSpace(playerId)) return Failure("يجب اختيار لاعب قبل الشراء.", playerId, itemId, itemType);
+        if (string.IsNullOrWhiteSpace(itemId)) return Failure("معرف العنصر غير صالح.", playerId, itemId, itemType);
 
         await PurchaseGate.WaitAsync();
         try
         {
             var item = await ResolvePublishedItemAsync(itemId, itemType);
-            if (item == null) return Failure("Item is not published or does not exist.", playerId, itemId, itemType);
+            if (item == null) return Failure("العنصر غير منشور أو غير موجود.", playerId, itemId, itemType);
             if (await PlayerInventoryService.IsOwnedAsync(playerId, itemId, itemType))
-                return Failure("Item is already owned.", playerId, itemId, itemType, item.CurrencyType, item.Price);
+                return Failure("العنصر مملوك بالفعل.", playerId, itemId, itemType, item.CurrencyType, item.Price);
 
             var debit = await PlayerWalletService.TryDebitAsync(playerId, item.CurrencyType, item.Price);
             if (!debit.Success)
-                return Failure("Insufficient wallet balance.", playerId, itemId, itemType, item.CurrencyType, item.Price, debit.Wallet);
+                return Failure("الرصيد غير كافٍ.", playerId, itemId, itemType, item.CurrencyType, item.Price, debit.Wallet);
 
             var purchase = new StorePurchaseRecord
             {
@@ -53,7 +53,7 @@ public static class StorePurchaseService
 
             var added = await PlayerInventoryService.AddOwnedAsync(owned);
 
-            if (!added) return Failure("Item is already owned.", playerId, itemId, itemType, item.CurrencyType, item.Price, debit.Wallet);
+            if (!added) return Failure("العنصر مملوك بالفعل.", playerId, itemId, itemType, item.CurrencyType, item.Price, debit.Wallet);
 
             var purchases = await LoadAsync();
             purchases.Add(purchase);
@@ -63,7 +63,7 @@ public static class StorePurchaseService
             return new StorePurchaseResult
             {
                 IsSuccess = true,
-                Message = item.Price == 0 ? "Item acquired." : "Purchase completed.",
+                Message = item.Price == 0 ? "تم اقتناء العنصر." : "تم الشراء بنجاح.",
                 PlayerId = playerId,
                 ItemId = itemId,
                 ItemType = itemType,

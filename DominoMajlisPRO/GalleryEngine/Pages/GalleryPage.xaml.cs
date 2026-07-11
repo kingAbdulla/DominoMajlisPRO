@@ -2,6 +2,8 @@
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.GalleryEngine.Components.StoreSections;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin;
+using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
@@ -16,7 +18,6 @@ public partial class GalleryPage : ContentPage
     private GalleryCatalog? _catalog;
     private GallerySeason? _season;
     private List<GalleryItem> _items = new();
-    private int _seasonSwitchIndex;
     private AvatarsSectionView? _avatarsSection;
     private BackgroundsSectionView? _backgroundsSection;
     private NewArrivalsSectionView? _newArrivalsFullSection;
@@ -35,12 +36,16 @@ public partial class GalleryPage : ContentPage
     {
         _catalog = GalleryService.GetCatalog();
 
-        var currentSeason = GalleryService.GetCurrentSeason();
+        var currentSeason = await StoreAssetQueryService.LoadCurrentSeasonAsync();
 
         if (currentSeason == null)
+        {
+            ShowNoPublishedSeason();
+            BindSections();
             return;
+        }
 
-        await ApplySeasonAsync(currentSeason);
+        await ApplySeasonAsync(ToGallerySeason(currentSeason));
     }
 
     public async Task SwitchSeasonAsync(GallerySeason season)
@@ -76,17 +81,46 @@ public partial class GalleryPage : ContentPage
         _catalog ??= GalleryService.GetCatalog();
         _season = season;
 
-        _items = _catalog?.Items
-            .Where(x => x.SeasonId == _season.Id)
-            .ToList() ?? new List<GalleryItem>();
+        _items = new List<GalleryItem>();
 
         var seasonImage = GetSeasonThemeImage();
 
         var theme = await GalleryThemeEngine.BuildThemeFromSeasonImageAsync(seasonImage);
         Background = theme.Background;
 
+        HeroSlider.IsVisible = true;
+        SeasonEmptyCard.IsVisible = false;
         HeroSlider.BindSeason(_season);
         BindSections();
+    }
+
+    private void ShowNoPublishedSeason()
+    {
+        _season = null;
+        _items = new List<GalleryItem>();
+        Background = GalleryThemeEngine.Current.Background;
+        HeroSlider.IsVisible = false;
+        SeasonEmptyCard.IsVisible = true;
+        SeasonEmptyLabel.Text = "لم يتم نشر موسم حالياً";
+    }
+
+    private static GallerySeason ToGallerySeason(CurrentSeasonRecord record)
+    {
+        var identity = CurrentSeasonAdminService.GetIdentity(record);
+        return new GallerySeason
+        {
+            Id = string.IsNullOrWhiteSpace(identity) ? record.Id : identity,
+            Title = record.Title,
+            Subtitle = record.Subtitle,
+            Description = record.Description,
+            ButtonText = string.IsNullOrWhiteSpace(record.ButtonText)
+                ? "عرض التفاصيل"
+                : record.ButtonText.Trim(),
+            BackgroundImage = record.ImagePath,
+            CharacterImage = record.ImagePath,
+            StartDate = record.StartsAt ?? DateTime.Now,
+            EndDate = record.EndsAt ?? DateTime.Now.AddDays(30)
+        };
     }
 
     private void BindSections()
@@ -101,7 +135,6 @@ public partial class GalleryPage : ContentPage
         switch (e.Action)
         {
             case StoreQuickAction.WheelOfFortune:
-                await ShowPlaceholderAsync("عجلة الحظ", "ميزة عجلة الحظ قيد التجهيز");
                 break;
 
             case StoreQuickAction.DailyOffers:
@@ -114,41 +147,8 @@ public partial class GalleryPage : ContentPage
                 break;
 
             case StoreQuickAction.SeasonPass:
-                await ShowPlaceholderAsync("بطاقة الموسم", "بطاقة الموسم قيد التجهيز");
                 break;
         }
-    }
-
-    private async Task ShowWalletPlaceholderAsync()
-    {
-        var wallet = await PlayerStoreIdentityService.GetDeviceWalletAsync();
-        var balance = wallet == null
-            ? null
-            : $"🪙 العملات: {wallet.Coins}     💎 الجواهر: {wallet.Gems}";
-
-        await ShowPlaceholderAsync("المحفظة", "خيارات الشحن قيد التجهيز", balance);
-    }
-
-    private async Task ShowPlaceholderAsync(string title, string message, string? balance = null)
-    {
-        PlaceholderTitleLabel.Text = title;
-        PlaceholderMessageLabel.Text = message;
-        PlaceholderBalanceLabel.Text = balance ?? string.Empty;
-        PlaceholderBalanceLabel.IsVisible = !string.IsNullOrWhiteSpace(balance);
-        PlaceholderOverlay.IsVisible = true;
-        PlaceholderOverlay.Opacity = 0;
-        await PlaceholderOverlay.FadeToAsync(1, 120);
-    }
-
-    private async void OnClosePlaceholderClicked(object? sender, EventArgs e)
-    {
-        await PlaceholderOverlay.FadeToAsync(0, 100);
-        PlaceholderOverlay.IsVisible = false;
-    }
-
-    private void OnPlaceholderBackdropTapped(object? sender, TappedEventArgs e)
-    {
-        // The premium overlay is modal; only its explicit close button dismisses it.
     }
 
     private async void OnBottomTabRequested(object? sender, StoreBottomTabRequestedEventArgs e)
@@ -168,7 +168,6 @@ public partial class GalleryPage : ContentPage
                 break;
 
             case StoreBottomTab.Rewards:
-                await ShowPlaceholderAsync("المكافآت", "قسم المكافآت قيد التجهيز");
                 break;
 
             case StoreBottomTab.Account:
@@ -185,44 +184,9 @@ public partial class GalleryPage : ContentPage
         }
         catch (InvalidOperationException)
         {
-            await ShowStoreIdentityPlaceholderAsync();
+            await Shell.Current.Navigation.PushAsync(new PlayerProfilesPage());
         }
     }
-
-    private async Task ShowStoreIdentityPlaceholderAsync()
-    {
-        var identity = await HonorIdentityService.LoadAsync();
-        var playerName = "غير محدد";
-        var role = ResolveRoleLabel(identity.Role);
-        var coins = 0;
-        var gems = 0;
-        var progressText = "0 / 0   0%";
-
-        if (!string.IsNullOrWhiteSpace(identity.PlayerId))
-        {
-            var profile = await PlayerProfileService.GetPlayerByIdAsync(identity.PlayerId);
-            var wallet = await PlayerStoreIdentityService.GetWalletAsync(identity.PlayerId);
-            var progress = await PlayerStoreIdentityService.GetCollectionProgressAsync(identity.PlayerId);
-            playerName = string.IsNullOrWhiteSpace(profile?.PlayerName) ? "غير محدد" : profile.PlayerName;
-            coins = wallet.Coins;
-            gems = wallet.Gems;
-            var percent = progress.TotalPublished == 0
-                ? 0
-                : (int)Math.Round(progress.TotalOwned * 100d / progress.TotalPublished);
-            progressText = $"{progress.TotalOwned} / {progress.TotalPublished}   {percent}%";
-        }
-
-        var details = $"{playerName}\n{role}\n🪙 {coins:N0}     💎 {gems:N0}\nالمقتنيات: {progressText}";
-        await ShowPlaceholderAsync("حسابي", "صفحة الحساب قيد الربط", details);
-    }
-
-    private static string ResolveRoleLabel(HonorRoleType role) => role switch
-    {
-        HonorRoleType.Developer => "مطور",
-        HonorRoleType.Founder => "مؤسس",
-        HonorRoleType.Honor => "عضو شرف",
-        _ => "لاعب"
-    };
 
     private async void OnCategorySelected(object? sender, StoreCategorySelectedEventArgs e)
     {
@@ -324,7 +288,7 @@ public partial class GalleryPage : ContentPage
             default:
                 SelectedSectionHost.Content = null;
                 SelectedSectionHost.IsVisible = false;
-                ShowSectionMessage($"قسم {GetCategoryName(view)} قيد التجهيز");
+                ShowSectionMessage(StoreNavigationState.EmptyStateMessage);
                 break;
         }
     }
@@ -450,15 +414,11 @@ public partial class GalleryPage : ContentPage
         _ => string.Empty
     };
 
-    private async void OnSeasonSwitchTestClicked(object? sender, EventArgs e)
+    private async void OnSeasonSwitchRequested(object? sender, EventArgs e)
     {
-        await SwitchToNextSeasonForTestAsync();
+        await Navigation.PushAsync(new CurrentSeasonEditorPage());
     }
 
-    private async void OnCartRequested(object? sender, EventArgs e)
-    {
-        await Navigation.PushAsync(new StoreCartPage());
-    }
     private async void OnCoinsRequested(object? sender, EventArgs e)
     {
         await RechargeNavigationService.OpenAsync(Navigation);
@@ -472,36 +432,6 @@ public partial class GalleryPage : ContentPage
     private async void OnIdentityRequested(object? sender, EventArgs e)
     {
         await OpenAccountAsync();
-    }
-
-    // TEMP DEV: Season switch test control. Remove before production.
-    private async Task SwitchToNextSeasonForTestAsync()
-    {
-        _catalog ??= GalleryService.GetCatalog();
-
-        var seasons = _catalog
-            .Seasons
-            .Where(x => !string.IsNullOrWhiteSpace(x.Id))
-            .ToList();
-
-        if (seasons.Count <= 1)
-        {
-            await DisplayAlert(
-                "تنبيه",
-                "لا توجد مواسم أخرى للتجربة",
-                "حسنًا");
-
-            return;
-        }
-
-        var currentIndex = seasons.FindIndex(x => x.Id == _season?.Id);
-
-        _seasonSwitchIndex =
-            currentIndex >= 0
-                ? (currentIndex + 1) % seasons.Count
-                : (_seasonSwitchIndex + 1) % seasons.Count;
-
-        await SwitchSeasonAsync(seasons[_seasonSwitchIndex]);
     }
 
     private string GetSeasonThemeImage()

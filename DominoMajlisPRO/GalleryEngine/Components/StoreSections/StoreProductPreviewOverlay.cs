@@ -84,8 +84,8 @@ internal sealed class StoreProductPreviewOverlay : Grid
         header.Add(title, 1, 0);
         header.Add(new BoxView { WidthRequest = 42, Opacity = 0 }, 2, 0);
 
-        var temporary = Label(14, Gold, true, TextAlignment.Center);
-        temporary.Text = "👁 تجربة مؤقتة";
+        var previewTitle = Label(14, Gold, true, TextAlignment.Center);
+        previewTitle.Text = "معاينة المنتج";
         var zoomIn = Button("تكبير", Color.FromArgb("#211B10"), Primary);
         zoomIn.Clicked += (_, _) => SetScale(Math.Min(1.6, _visualScale + 0.15));
         var zoomOut = Button("تصغير", Color.FromArgb("#211B10"), Primary);
@@ -104,7 +104,7 @@ internal sealed class StoreProductPreviewOverlay : Grid
         var content = new VerticalStackLayout
         {
             Spacing = 10,
-            Children = { header, temporary, _visualHost, _name, _rarityBadge, _description, _priceState, controls, dismiss }
+            Children = { header, previewTitle, _visualHost, _name, _rarityBadge, _description, _priceState, controls, dismiss }
         };
         _panel = new Border
         {

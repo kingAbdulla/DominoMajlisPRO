@@ -19,8 +19,7 @@
 
                 <sections:PremiumStoreHeaderView
                     x:Name="StoreHeader"
-                    SeasonSwitchRequested="OnSeasonSwitchTestClicked"
-                    CartRequested="OnCartRequested"
+                    SeasonSwitchRequested="OnSeasonSwitchRequested"
                     CoinsRequested="OnCoinsRequested"
                     GemsRequested="OnGemsRequested"
                     IdentityRequested="OnIdentityRequested" />
@@ -30,6 +29,26 @@
                     Spacing="12">
                     <sections:HeroSliderView
                         x:Name="HeroSlider" />
+
+                    <Border
+                        x:Name="SeasonEmptyCard"
+                        IsVisible="False"
+                        Padding="20"
+                        Background="#15120D"
+                        Stroke="#B98A3A"
+                        StrokeThickness="1">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <Label
+                            x:Name="SeasonEmptyLabel"
+                            Text="لم يتم نشر موسم حالياً"
+                            FontFamily="Tajawal-Regular"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            TextColor="#E7C979"
+                            HorizontalTextAlignment="Center" />
+                    </Border>
 
                     <sections:QuickActionsView
                         x:Name="QuickActions"
@@ -110,71 +129,6 @@
             x:Name="BottomNavigation"
             TabRequested="OnBottomTabRequested"
             Grid.Row="1" />
-
-        <Grid
-            x:Name="PlaceholderOverlay"
-            Grid.RowSpan="2"
-            ZIndex="100"
-            IsVisible="False"
-            Opacity="0"
-            Padding="18"
-            BackgroundColor="#D9000000"
-            InputTransparent="False"
-            CascadeInputTransparent="False"
-            FlowDirection="RightToLeft">
-
-            <Grid.GestureRecognizers>
-                <TapGestureRecognizer Tapped="OnPlaceholderBackdropTapped" />
-            </Grid.GestureRecognizers>
-
-            <Border
-                VerticalOptions="Center"
-                HorizontalOptions="Fill"
-                MaximumWidthRequest="520"
-                Padding="22"
-                Background="#0D0B08"
-                Stroke="#C89B45"
-                StrokeThickness="1.2">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="22" />
-                </Border.StrokeShape>
-
-                <VerticalStackLayout Spacing="14">
-                    <Label
-                        x:Name="PlaceholderTitleLabel"
-                        FontFamily="Tajawal-Regular"
-                        FontSize="21"
-                        FontAttributes="Bold"
-                        TextColor="#E7C979"
-                        HorizontalTextAlignment="Center" />
-
-                    <Label
-                        x:Name="PlaceholderBalanceLabel"
-                        IsVisible="False"
-                        FontFamily="Tajawal-Regular"
-                        FontSize="15"
-                        TextColor="#F3E5BD"
-                        HorizontalTextAlignment="Center" />
-
-                    <Label
-                        x:Name="PlaceholderMessageLabel"
-                        FontFamily="Tajawal-Regular"
-                        FontSize="15"
-                        TextColor="#D8D0C2"
-                        HorizontalTextAlignment="Center" />
-
-                    <Button
-                        Text="إغلاق"
-                        Clicked="OnClosePlaceholderClicked"
-                        FontFamily="Tajawal-Regular"
-                        FontAttributes="Bold"
-                        TextColor="#090806"
-                        BackgroundColor="#D4AF5A"
-                        CornerRadius="16"
-                        HeightRequest="46" />
-                </VerticalStackLayout>
-            </Border>
-        </Grid>
 
     </Grid>
 
