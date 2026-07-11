@@ -11,6 +11,8 @@ builder.Services.AddSingleton<PreviewStore>();
 builder.Services.AddSingleton<PreviewSessionService>();
 
 var app = builder.Build();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseCors();
 
 app.MapGet("/api/health", () => Results.Ok(new
@@ -19,6 +21,7 @@ app.MapGet("/api/health", () => Results.Ok(new
     status = "healthy",
     persistence = "json-file",
     authentication = "bearer-preview-token",
+    webPreview = "same-origin",
     utc = DateTimeOffset.UtcNow
 }));
 
