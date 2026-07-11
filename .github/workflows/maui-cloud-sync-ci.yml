@@ -20,6 +20,7 @@ on:
       - DominoMajlisPRO/Services/GameService.cs
       - DominoMajlisPRO/MauiProgram.cs
       - DominoMajlisPRO/DominoMajlisPRO.csproj
+      - .github/workflows/maui-cloud-sync-ci.yml
   workflow_dispatch:
 
 jobs:
@@ -38,4 +39,26 @@ jobs:
       - name: Restore Android target
         run: dotnet restore DominoMajlisPRO/DominoMajlisPRO.csproj -p:TargetFramework=net10.0-android
       - name: Build Android target
-        run: dotnet build DominoMajlisPRO/DominoMajlisPRO.csproj -c Debug -f net10.0-android --no-restore
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          dotnet build DominoMajlisPRO/DominoMajlisPRO.csproj -c Debug -f net10.0-android --no-restore -v:minimal 2>&1 | Tee-Object -FilePath build.log
+          $exitCode = $LASTEXITCODE
+          $errors = Select-String -Path build.log -Pattern 'error (CS|MSB|XA|NETSDK)[0-9]+' -CaseSensitive:$false
+          Add-Content $env:GITHUB_STEP_SUMMARY '## Android build diagnostics'
+          if ($errors) {
+            Add-Content $env:GITHUB_STEP_SUMMARY '```text'
+            $errors | ForEach-Object { Add-Content $env:GITHUB_STEP_SUMMARY $_.Line }
+            Add-Content $env:GITHUB_STEP_SUMMARY '```'
+          } else {
+            Add-Content $env:GITHUB_STEP_SUMMARY 'No compiler error lines were matched; inspect the Build Android target log.'
+          }
+          exit $exitCode
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maui-android-build-log
+          path: build.log
+          if-no-files-found: ignore
+          retention-days: 3
