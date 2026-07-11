@@ -12,7 +12,9 @@ public sealed record CloudUser(
 
 public sealed record CloudAuthResponse(
     string AccessToken,
+    string RefreshToken,
     DateTimeOffset ExpiresAt,
+    DateTimeOffset RefreshExpiresAt,
     CloudUser User);
 
 public sealed record CloudSyncRecord<T>(
@@ -25,12 +27,7 @@ public sealed record CloudSyncRecord<T>(
 
 public sealed class CloudApiException : Exception
 {
-    public CloudApiException(HttpStatusCode statusCode, string message)
-        : base(message)
-    {
-        StatusCode = statusCode;
-    }
-
+    public CloudApiException(HttpStatusCode statusCode, string message) : base(message) => StatusCode = statusCode;
     public HttpStatusCode StatusCode { get; }
 }
 
@@ -43,11 +40,17 @@ public sealed class CloudApiClient
 
     private readonly HttpClient _httpClient;
     private readonly CloudSessionStore _sessionStore;
+    private readonly CloudDeviceIdentity _deviceIdentity;
+    private readonly SemaphoreSlim _refreshGate = new(1, 1);
 
-    public CloudApiClient(HttpClient httpClient, CloudSessionStore sessionStore)
+    public CloudApiClient(
+        HttpClient httpClient,
+        CloudSessionStore sessionStore,
+        CloudDeviceIdentity deviceIdentity)
     {
         _httpClient = httpClient;
         _sessionStore = sessionStore;
+        _deviceIdentity = deviceIdentity;
     }
 
     public async Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default)
@@ -57,26 +60,16 @@ public sealed class CloudApiClient
             using var response = await _httpClient.GetAsync("api/health", cancellationToken);
             return response.IsSuccessStatusCode;
         }
-        catch (HttpRequestException)
-        {
-            return false;
-        }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             return false;
         }
     }
 
-    public Task<CloudSession> RegisterAsync(
-        string username,
-        string password,
-        CancellationToken cancellationToken = default) =>
+    public Task<CloudSession> RegisterAsync(string username, string password, CancellationToken cancellationToken = default) =>
         AuthenticateAsync("api/preview/register", username, password, cancellationToken);
 
-    public Task<CloudSession> LoginAsync(
-        string username,
-        string password,
-        CancellationToken cancellationToken = default) =>
+    public Task<CloudSession> LoginAsync(string username, string password, CancellationToken cancellationToken = default) =>
         AuthenticateAsync("api/preview/login", username, password, cancellationToken);
 
     public async Task LogoutAsync(CancellationToken cancellationToken = default)
@@ -86,7 +79,7 @@ public sealed class CloudApiClient
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, "api/preview/logout");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
-
+            request.Headers.TryAddWithoutValidation("x-device-id", session.DeviceId);
             try
             {
                 using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -95,10 +88,8 @@ public sealed class CloudApiClient
             }
             catch (HttpRequestException)
             {
-                // Local logout must still succeed when the device is offline.
             }
         }
-
         await _sessionStore.ClearAsync(cancellationToken);
     }
 
@@ -120,15 +111,10 @@ public sealed class CloudApiClient
         using var request = await CreateAuthorizedRequestAsync(HttpMethod.Get, path, null, cancellationToken);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
-
-        return await response.Content.ReadFromJsonAsync<List<CloudSyncRecord<T>>>(JsonOptions, cancellationToken)
-            ?? [];
+        return await response.Content.ReadFromJsonAsync<List<CloudSyncRecord<T>>>(JsonOptions, cancellationToken) ?? [];
     }
 
-    public async Task<CloudSyncRecord<T>?> GetAsync<T>(
-        string resource,
-        string recordId,
-        CancellationToken cancellationToken = default)
+    public async Task<CloudSyncRecord<T>?> GetAsync<T>(string resource, string recordId, CancellationToken cancellationToken = default)
     {
         using var request = await CreateAuthorizedRequestAsync(
             HttpMethod.Get,
@@ -136,10 +122,8 @@ public sealed class CloudApiClient
             null,
             cancellationToken);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-
         if (response.StatusCode == HttpStatusCode.NotFound)
             return null;
-
         await EnsureSuccessAsync(response, cancellationToken);
         return await response.Content.ReadFromJsonAsync<CloudSyncRecord<T>>(JsonOptions, cancellationToken);
     }
@@ -150,16 +134,14 @@ public sealed class CloudApiClient
         T payload,
         CancellationToken cancellationToken = default)
     {
-        var body = new { recordId, payload };
         using var request = await CreateAuthorizedRequestAsync(
             HttpMethod.Post,
             $"api/v1/{NormalizeResource(resource)}",
-            body,
+            new { recordId, payload },
             cancellationToken);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
-
-        return (await response.Content.ReadFromJsonAsync<CloudSyncRecord<T>>(JsonOptions, cancellationToken))
+        return await response.Content.ReadFromJsonAsync<CloudSyncRecord<T>>(JsonOptions, cancellationToken)
             ?? throw new CloudApiException(response.StatusCode, "Cloud API returned an empty response.");
     }
 
@@ -169,23 +151,18 @@ public sealed class CloudApiClient
         T payload,
         CancellationToken cancellationToken = default)
     {
-        var body = new { payload };
         using var request = await CreateAuthorizedRequestAsync(
             HttpMethod.Put,
             $"api/v1/{NormalizeResource(resource)}/{Uri.EscapeDataString(recordId)}",
-            body,
+            new { payload },
             cancellationToken);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
-
-        return (await response.Content.ReadFromJsonAsync<CloudSyncRecord<T>>(JsonOptions, cancellationToken))
+        return await response.Content.ReadFromJsonAsync<CloudSyncRecord<T>>(JsonOptions, cancellationToken)
             ?? throw new CloudApiException(response.StatusCode, "Cloud API returned an empty response.");
     }
 
-    public async Task DeleteAsync(
-        string resource,
-        string recordId,
-        CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string resource, string recordId, CancellationToken cancellationToken = default)
     {
         using var request = await CreateAuthorizedRequestAsync(
             HttpMethod.Delete,
@@ -193,10 +170,8 @@ public sealed class CloudApiClient
             null,
             cancellationToken);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-
         if (response.StatusCode == HttpStatusCode.NotFound)
             return;
-
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
@@ -206,22 +181,64 @@ public sealed class CloudApiClient
         string password,
         CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.PostAsJsonAsync(
-            path,
-            new { username = username.Trim(), password },
-            JsonOptions,
-            cancellationToken);
+        string deviceId = await _deviceIdentity.GetAsync(cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Post, path)
+        {
+            Content = JsonContent.Create(new { username = username.Trim(), password, deviceId }, options: JsonOptions)
+        };
+        request.Headers.TryAddWithoutValidation("x-device-id", deviceId);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
-
         var result = await response.Content.ReadFromJsonAsync<CloudAuthResponse>(JsonOptions, cancellationToken)
             ?? throw new CloudApiException(response.StatusCode, "Cloud API returned an empty authentication response.");
+        return await SaveSessionAsync(result, deviceId, cancellationToken);
+    }
 
+    private async Task<CloudSession> RefreshAsync(CloudSession session, CancellationToken cancellationToken)
+    {
+        await _refreshGate.WaitAsync(cancellationToken);
+        try
+        {
+            var latest = await _sessionStore.LoadAsync(cancellationToken)
+                ?? throw new CloudApiException(HttpStatusCode.Unauthorized, "No active cloud session is available.");
+            if (!latest.IsAccessExpired)
+                return latest;
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "api/preview/refresh")
+            {
+                Content = JsonContent.Create(new { refreshToken = latest.RefreshToken, deviceId = latest.DeviceId }, options: JsonOptions)
+            };
+            request.Headers.TryAddWithoutValidation("x-device-id", latest.DeviceId);
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                await _sessionStore.ClearAsync(cancellationToken);
+                await ThrowApiExceptionAsync(response, cancellationToken);
+            }
+            var result = await response.Content.ReadFromJsonAsync<CloudAuthResponse>(JsonOptions, cancellationToken)
+                ?? throw new CloudApiException(response.StatusCode, "Cloud API returned an empty refresh response.");
+            return await SaveSessionAsync(result, latest.DeviceId, cancellationToken);
+        }
+        finally
+        {
+            _refreshGate.Release();
+        }
+    }
+
+    private async Task<CloudSession> SaveSessionAsync(
+        CloudAuthResponse result,
+        string deviceId,
+        CancellationToken cancellationToken)
+    {
         var session = new CloudSession(
             result.AccessToken,
+            result.RefreshToken,
             result.ExpiresAt,
+            result.RefreshExpiresAt,
             result.User.ApplicationUserId,
             result.User.PlayerId,
-            result.User.DisplayName);
+            result.User.DisplayName,
+            deviceId);
         await _sessionStore.SaveAsync(session, cancellationToken);
         return session;
     }
@@ -234,9 +251,12 @@ public sealed class CloudApiClient
     {
         var session = await _sessionStore.LoadAsync(cancellationToken)
             ?? throw new CloudApiException(HttpStatusCode.Unauthorized, "No active cloud session is available.");
+        if (session.IsAccessExpired)
+            session = await RefreshAsync(session, cancellationToken);
 
         var request = new HttpRequestMessage(method, path);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        request.Headers.TryAddWithoutValidation("x-device-id", session.DeviceId);
         if (body is not null)
             request.Content = JsonContent.Create(body, options: JsonOptions);
         return request;
@@ -246,16 +266,12 @@ public sealed class CloudApiClient
     {
         if (response.IsSuccessStatusCode)
             return;
-
         if (response.StatusCode == HttpStatusCode.Unauthorized)
             await _sessionStore.ClearAsync(cancellationToken);
-
         await ThrowApiExceptionAsync(response, cancellationToken);
     }
 
-    private static async Task ThrowApiExceptionAsync(
-        HttpResponseMessage response,
-        CancellationToken cancellationToken)
+    private static async Task ThrowApiExceptionAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         string message = response.ReasonPhrase ?? "Cloud API request failed.";
         try
@@ -267,7 +283,6 @@ public sealed class CloudApiClient
         catch (JsonException)
         {
         }
-
         throw new CloudApiException(response.StatusCode, message);
     }
 
@@ -275,7 +290,6 @@ public sealed class CloudApiClient
     {
         if (string.IsNullOrWhiteSpace(resource))
             throw new ArgumentException("Resource name is required.", nameof(resource));
-
         return resource.Trim().ToLowerInvariant();
     }
 }
