@@ -14,13 +14,31 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-smoke-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
-      - run: dotnet restore DominoMajlisPRO.Api/DominoMajlisPRO.Api.csproj
-      - run: dotnet build DominoMajlisPRO.Api/DominoMajlisPRO.Api.csproj -c Release --no-restore
-      - run: docker build -f DominoMajlisPRO.Api/Dockerfile -t domino-majlis-preview-api .
+      - name: Restore
+        run: dotnet restore DominoMajlisPRO.Api/DominoMajlisPRO.Api.csproj
+      - name: Build
+        run: dotnet build DominoMajlisPRO.Api/DominoMajlisPRO.Api.csproj -c Release --no-restore
+      - name: Build container
+        run: docker build -f DominoMajlisPRO.Api/Dockerfile -t domino-majlis-preview-api .
+      - name: Start container
+        run: docker run -d --rm --name domino-preview-api -p 8080:8080 domino-majlis-preview-api
+      - name: Wait for health
+        run: |
+          for i in {1..30}; do
+            curl --fail --silent http://127.0.0.1:8080/api/health && exit 0
+            sleep 1
+          done
+          docker logs domino-preview-api
+          exit 1
+      - name: Run API smoke test
+        run: bash DominoMajlisPRO.Api/smoke-test.sh http://127.0.0.1:8080
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs domino-preview-api || true
