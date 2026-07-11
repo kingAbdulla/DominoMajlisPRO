@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Net;
 
 namespace DominoMajlisPRO.Cloud;
 
@@ -31,7 +30,7 @@ public static class CloudSyncRuntime
             await _client.UpsertAsync(resource, recordId.Trim(), payload, cancellationToken);
             return true;
         }
-        catch (CloudApiException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.ServiceUnavailable)
+        catch (CloudApiException)
         {
             return false;
         }
@@ -83,7 +82,7 @@ public static class CloudSyncRuntime
             await _client.DeleteAsync(resource, recordId.Trim(), cancellationToken);
             return true;
         }
-        catch (CloudApiException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.ServiceUnavailable)
+        catch (CloudApiException)
         {
             return false;
         }
