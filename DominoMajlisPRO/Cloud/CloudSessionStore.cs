@@ -4,12 +4,16 @@ namespace DominoMajlisPRO.Cloud;
 
 public sealed record CloudSession(
     string AccessToken,
+    string RefreshToken,
     DateTimeOffset ExpiresAt,
+    DateTimeOffset RefreshExpiresAt,
     string ApplicationUserId,
     string PlayerId,
-    string DisplayName)
+    string DisplayName,
+    string DeviceId)
 {
-    public bool IsExpired => ExpiresAt <= DateTimeOffset.UtcNow;
+    public bool IsAccessExpired => ExpiresAt <= DateTimeOffset.UtcNow.AddMinutes(1);
+    public bool IsRefreshExpired => RefreshExpiresAt <= DateTimeOffset.UtcNow;
 }
 
 public sealed class CloudSessionStore
@@ -18,7 +22,8 @@ public sealed class CloudSessionStore
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
     {
-        WriteIndented = true
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true
     };
 
     private static string SessionFilePath =>
@@ -38,7 +43,7 @@ public sealed class CloudSessionStore
                 _jsonOptions,
                 cancellationToken);
 
-            if (session is null || session.IsExpired)
+            if (session is null || session.IsRefreshExpired)
             {
                 DeleteUnsafe();
                 return null;
