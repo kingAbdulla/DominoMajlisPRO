@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using DominoMajlisPRO.Cloud;
 using DominoMajlisPRO.Models;
 
 namespace DominoMajlisPRO.Services;
@@ -9,10 +10,6 @@ public static class GameService
         Path.Combine(
             FileSystem.AppDataDirectory,
             "matches.json");
-
-    // =========================
-    // تحميل المباريات
-    // =========================
 
     public static async Task<List<SavedMatch>> LoadMatchesAsync()
     {
@@ -27,7 +24,7 @@ public static class GameService
             if (string.IsNullOrWhiteSpace(json))
                 return new List<SavedMatch>();
 
-            return System.Text.Json.JsonSerializer
+            return JsonSerializer
                 .Deserialize<List<SavedMatch>>(json)
                 ?? new List<SavedMatch>();
         }
@@ -37,27 +34,15 @@ public static class GameService
         }
     }
 
-    // =========================
-    // حفظ أو تحديث مباراة
-    // =========================
-
     public static async Task SaveMatchAsync(
         SavedMatch match)
     {
         List<SavedMatch> matches =
             await LoadMatchesAsync();
 
-        // =========================
-        // البحث عن نفس المباراة
-        // =========================
-
         SavedMatch? existingMatch =
             matches.FirstOrDefault(x =>
                 x.MatchId == match.MatchId);
-
-        // =========================
-        // تحديث المباراة الحالية
-        // =========================
 
         if (existingMatch != null)
         {
@@ -66,11 +51,6 @@ public static class GameService
 
             matches[index] = match;
         }
-
-        // =========================
-        // إضافة مباراة جديدة
-        // =========================
-
         else
         {
             matches.Insert(0, match);
@@ -87,11 +67,12 @@ public static class GameService
         await File.WriteAllTextAsync(
             filePath,
             json);
-    }
 
-    // =========================
-    // حذف مباراة
-    // =========================
+        await CloudSyncRuntime.TryUpsertAsync(
+            CloudResources.Matches,
+            match.MatchId,
+            match);
+    }
 
     public static async Task DeleteMatchAsync(
         SavedMatch match)
@@ -119,25 +100,33 @@ public static class GameService
         await File.WriteAllTextAsync(
             filePath,
             json);
-    }
 
-    // =========================
-    // حذف جميع المباريات
-    // =========================
+        await CloudSyncRuntime.TryDeleteAsync(
+            CloudResources.Matches,
+            match.MatchId);
+    }
 
     public static async Task DeleteAllMatches()
     {
+        var matches = await LoadMatchesAsync();
+
         await File.WriteAllTextAsync(
             filePath,
             "[]");
+
+        foreach (var match in matches)
+        {
+            if (!string.IsNullOrWhiteSpace(match.MatchId))
+            {
+                await CloudSyncRuntime.TryDeleteAsync(
+                    CloudResources.Matches,
+                    match.MatchId);
+            }
+        }
     }
 
-    // =========================
-    // تحميل آخر مباراة غير منتهية
-    // =========================
-
     public static async Task<SavedMatch?>
-        GetLastUnfinishedMatchAsync()
+    GetLastUnfinishedMatchAsync()
     {
         List<SavedMatch> matches =
             await LoadMatchesAsync();
