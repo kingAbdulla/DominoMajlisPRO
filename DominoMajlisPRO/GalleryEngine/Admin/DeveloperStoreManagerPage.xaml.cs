@@ -1,4 +1,4 @@
-﻿using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -216,6 +216,12 @@ public partial class DeveloperStoreManagerPage : ContentPage
             return;
         }
 
+        if (section.Id == "typography")
+        {
+            await Navigation.PushAsync(new TypographyManagerPage());
+            return;
+        }
+
         if (section.Id == "frames")
         {
             await Navigation.PushAsync(new FramesManagerPage());
@@ -263,6 +269,7 @@ public partial class DeveloperStoreManagerPage : ContentPage
             "سيتم بناء هذا القسم في المرحلة التالية",
             "حسناً");
     }
+
     private async void OnBackTapped(object? sender, TappedEventArgs e)
     {
         if (Navigation.NavigationStack.Count > 1)
@@ -317,7 +324,3 @@ public partial class DeveloperStoreManagerPage : ContentPage
         Label SubtitleLabel,
         Label MetaLabel);
 }
-
-
-
-
