@@ -1,19 +1,15 @@
 services:
   - type: web
-    name: domino-majlis-pro-preview-api
+    name: domino-majlis-pro-preview
     runtime: docker
+    plan: free
     dockerfilePath: ./DominoMajlisPRO.Api/Dockerfile
     dockerContext: .
     branch: agent/web-preview-foundation
     healthCheckPath: /api/health
+    autoDeploy: true
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: DataDirectory
-        value: /var/data
-      - key: AllowedOrigins__0
-        value: https://kingabdulla.github.io
-    disk:
-      name: preview-data
-      mountPath: /var/data
-      sizeGB: 1
+        value: /tmp/domino-majlis-preview-data
