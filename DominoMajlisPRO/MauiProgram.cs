@@ -28,6 +28,7 @@ namespace DominoMajlisPRO
             var cloudOptions = new CloudApiOptions();
             builder.Services.AddSingleton(cloudOptions);
             builder.Services.AddSingleton<CloudSessionStore>();
+            builder.Services.AddSingleton<CloudDeviceIdentity>();
             builder.Services.AddSingleton<CloudSyncStateStore>();
             builder.Services.AddSingleton(_ =>
             {
