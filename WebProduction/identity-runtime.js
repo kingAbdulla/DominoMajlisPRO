@@ -1,0 +1,27 @@
+(function(){
+  'use strict';
+  const SESSION_KEY='dmp_prod_session',DEVICE_KEY='dmp_prod_device_id';
+  let catalog=[],identities=[],teams=[],manifest=null,refreshing=false;
+  const session=()=>{try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null')}catch{return null}};
+  const headers=()=>session()?.accessToken?{'Authorization':`Bearer ${session().accessToken}`,'X-Device-Id':localStorage.getItem(DEVICE_KEY)||''}:{};
+  const unwrap=row=>row?.payload??row;
+  async function resource(name){const r=await fetch(`${location.origin}/api/v1/${name}?includeDeleted=false`,{headers:headers()});if(!r.ok)return[];return(await r.json().catch(()=>[])).map(unwrap).filter(Boolean)}
+  async function loadManifest(){if(manifest)return manifest;manifest=await fetch('./assets/asset-manifest.json').then(r=>r.ok?r.json():null).catch(()=>null);return manifest}
+  function assetUrl(item){const raw=String(item?.previewAsset||item?.imagePath||item?.assetPath||item?.thumbnailPath||'').trim();if(!raw)return'';if(window.DominoGalleryUI?.assetUrl)return window.DominoGalleryUI.assetUrl(raw);if(/^https?:\/\//i.test(raw)||raw.startsWith('data:'))return raw;const key=raw.replaceAll('\\','/').replace(/^\.\//,'').replace(/^\/+/,''),entry=manifest?.byAlias?.[key]||manifest?.byAlias?.[key.split('/').pop()];return entry?.webPath||`/assets/${key.split('/').pop()}`}
+  const itemFor=id=>catalog.find(x=>String(x.assetId||x.itemId||x.id)===String(id));
+  const identityFor=(type,targetId,scope)=>identities.find(x=>String(x.storeTypeId||x.itemType)===type&&(scope==='Team'?String(x.teamId||x.targetId)===String(targetId):String(x.ownerScope||'Player')!=='Team'&&String(x.playerId||x.targetId)===String(targetId)));
+  function setImage(container,item,kind){const src=assetUrl(item);if(!container||!src)return;container.classList.add(`identity-${kind}`);container.style.setProperty('--identity-image',`url("${src.replaceAll('"','%22')}")`);if(kind==='avatar'||kind==='emblem'){container.innerHTML=`<img class="identity-image" src="${src}" alt="" onerror="this.remove()">`}}
+  function playerId(){return String(session()?.user?.playerId||'')}
+  function applyPlayer(){const pid=playerId();if(!pid)return;const avatar=itemFor(identityFor('Avatar',pid,'Player')?.assetId),background=itemFor(identityFor('ProfileBackground',pid,'Player')?.assetId),frame=itemFor(identityFor('Frame',pid,'Player')?.assetId),effect=itemFor(identityFor('Effect',pid,'Player')?.assetId);document.querySelectorAll('.topbar .avatar-button,.profile-hero .avatar-button').forEach(el=>{if(avatar)setImage(el,avatar,'avatar');if(frame)el.classList.add('identity-frame');if(effect)el.classList.add('identity-effect')});const profile=document.querySelector('.profile-hero');if(profile&&background){profile.classList.add('identity-background');profile.style.setProperty('--identity-image',`url("${assetUrl(background)}")`)}}
+  function teamIdentity(teamId,type){return itemFor(identityFor(type,teamId,'Team')?.assetId)}
+  function applyTeamElement(el,teamId){if(!el||!teamId)return;const emblem=teamIdentity(teamId,'TeamLivingEmblem')||teamIdentity(teamId,'Emblem'),background=teamIdentity(teamId,'EmblemBackground'),color=teamIdentity(teamId,'TeamColor'),effect=teamIdentity(teamId,'TeamEffect'),banner=teamIdentity(teamId,'TeamBanner');const emblemHost=el.querySelector('.emblem')||el.querySelector('.score-team');if(emblem)setImage(emblemHost,emblem,'emblem');if(background){el.classList.add('identity-team-background');el.style.setProperty('--team-background',`url("${assetUrl(background)}")`)}const hex=color?.colorHex||color?.hex||color?.value||color?.primaryColor;if(hex)el.style.setProperty('--team-color',String(hex));if(effect)el.classList.add('identity-team-effect');if(banner){el.classList.add('identity-team-banner');el.style.setProperty('--team-banner',`url("${assetUrl(banner)}")`)}}
+  function applyTeams(){document.querySelectorAll('[data-edit-team]').forEach(button=>applyTeamElement(button.closest('.list-item'),button.dataset.editTeam));for(const team of teams){const name=String(team.teamName||team.name||'').trim();if(!name)continue;document.querySelectorAll('.ranking-row,.hall-row,.match-history').forEach(el=>{if(el.textContent.includes(name))applyTeamElement(el,String(team.teamId))})}try{const match=JSON.parse(localStorage.getItem('dmp_prod_active_match')||'null');if(match){const scoreTeams=document.querySelectorAll('.score-board .score-team');applyTeamElement(scoreTeams[0],match.team1Id);applyTeamElement(scoreTeams[1],match.team2Id)}}catch{}}
+  async function refresh(){if(refreshing||!session())return;refreshing=true;try{await loadManifest();[catalog,identities,teams]=await Promise.all([resource('store-items'),resource('visual-identities'),resource('teams')]);apply()}finally{refreshing=false}}
+  function apply(){applyPlayer();applyTeams()}
+  const observer=new MutationObserver(()=>requestAnimationFrame(apply));observer.observe(document.documentElement,{subtree:true,childList:true});
+  document.addEventListener('domino:identity-changed',()=>refresh());
+  window.addEventListener('storage',e=>{if(e.key===SESSION_KEY)refresh()});
+  setInterval(refresh,60000);
+  window.DominoIdentityRuntime={refresh,apply};
+  refresh();
+})();
