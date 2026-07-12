@@ -34,5 +34,16 @@ jobs:
           grep -q '/api/v1/players' WebProduction/app.js
           grep -q '/api/v1/matches' WebProduction/app.js
           grep -q '/api/v1/rankings' WebProduction/app.js
-          grep -q 'function updateStats' WebProduction/app.js
+          grep -q 'function updateStatsAfterMatch' WebProduction/app.js
           grep -q 'function rankingsView' WebProduction/app.js
+          grep -q 'function seasonInfo' WebProduction/app.js
+          grep -q 'function seasonView' WebProduction/app.js
+          grep -q 'function statisticsView' WebProduction/app.js
+          grep -q 'function badgesForTeam' WebProduction/app.js
+          grep -q 'function badgesView' WebProduction/app.js
+          grep -q 'function hallEligible' WebProduction/app.js
+          grep -q 'function hallView' WebProduction/app.js
+          grep -q 'Hall of Fame' WebProduction/app.js
+          grep -q 'badge-grid' WebProduction/styles.css
+          grep -q 'season-card' WebProduction/styles.css
+          grep -q 'hall-row' WebProduction/styles.css
