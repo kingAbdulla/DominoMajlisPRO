@@ -1,0 +1,146 @@
+(function(){
+  'use strict';
+
+  const SESSION_KEY='dmp_prod_session';
+  const DEVICE_KEY='dmp_prod_device_id';
+  let domain=null;
+  let playerId='';
+  let wallet=null;
+  let catalog=[];
+  let inventory=[];
+  let activeView='store';
+  let busy=false;
+
+  function session(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null')}catch{return null}}
+  function deviceId(){return localStorage.getItem(DEVICE_KEY)||''}
+  function headers(){const token=session()?.accessToken;return token?{'Authorization':`Bearer ${token}`,'X-Device-Id':deviceId()}:{} }
+  function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+  function unwrap(row){return row?.payload??row}
+
+  async function api(path,options={}){
+    const response=await fetch(`${location.origin}${path}`,{...options,headers:{'Content-Type':'application/json',...headers(),...(options.headers||{})}});
+    const payload=response.status===204?null:await response.json().catch(()=>null);
+    if(!response.ok)throw new Error(payload?.message||'تعذر تنفيذ عملية المتجر.');
+    return payload;
+  }
+  async function loadResource(name){return (await api(`/api/v1/${name}?includeDeleted=false`).catch(()=>[])).map(unwrap).filter(Boolean)}
+  async function putResource(name,id,payload){return api(`/api/v1/${name}/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify({payload})})}
+
+  async function resolvePlayerId(){
+    const current=session()?.user||{};
+    if(current.playerId)return String(current.playerId);
+    const players=await loadResource('players');
+    return String(players[0]?.playerId||'');
+  }
+
+  async function initialize(){
+    if(!window.DominoStoreDomain)throw new Error('تعذر تحميل نظام المتجر.');
+    domain=window.DominoStoreDomain.create({api,putResource,loadResource});
+    playerId=await resolvePlayerId();
+    if(!playerId)throw new Error('أنشئ ملف لاعب أولًا لاستخدام المتجر.');
+    await refreshData();
+  }
+
+  async function refreshData(){
+    [wallet,catalog,inventory]=await Promise.all([
+      domain.getWallet(playerId),domain.loadCatalog(),domain.getInventory(playerId)
+    ]);
+    updateWalletChips();
+  }
+
+  function updateWalletChips(){
+    const chips=document.querySelectorAll('.wallet-chip strong');
+    if(chips[0])chips[0].textContent=String(wallet?.coins||0);
+    if(chips[1])chips[1].textContent=String(wallet?.gems||0);
+  }
+
+  function owned(assetId){return inventory.find(x=>x.assetId===assetId)}
+  function typeLabel(type){return ({Avatar:'صورة شخصية',ProfileBackground:'خلفية ملف',Frame:'إطار',Effect:'تأثير لاعب',Title:'لقب',Badge:'شارة',Emblem:'شعار فريق',EmblemBackground:'خلفية شعار',TeamColor:'لون فريق',TeamBanner:'راية فريق',TeamEffect:'تأثير فريق',TeamLivingEmblem:'شعار حي'})[type]||type}
+  function priceHtml(item){
+    if(item.isFree)return '<span class="store-price free">مجاني</span>';
+    const values=[];
+    if(item.coinPrice)values.push(`🪙 ${item.coinPrice}`);
+    if(item.gemPrice)values.push(`💎 ${item.gemPrice}`);
+    return `<span class="store-price">${values.join(' · ')}</span>`;
+  }
+
+  function productCard(item){
+    const entry=owned(item.assetId);
+    const action=entry?(entry.isEquipped?'مجهز':'تجهيز'):'شراء';
+    const actionClass=entry?.isEquipped?'secondary equipped':'primary';
+    return `<article class="store-product">
+      <div class="store-preview">${item.previewAsset?`<img src="${escapeHtml(item.previewAsset)}" alt="">`:'✦'}</div>
+      <div class="store-product-body"><small>${escapeHtml(typeLabel(item.itemType))}</small><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description||'عنصر هوية بصرية لـ Domino Majlis PRO')}</p>${priceHtml(item)}</div>
+      <button class="${actionClass} store-action" data-store-action="${entry?'equip':'acquire'}" data-asset-id="${escapeHtml(item.assetId)}" ${entry?.isEquipped?'disabled':''}>${action}</button>
+    </article>`;
+  }
+
+  function inventoryCard(entry){
+    const item=catalog.find(x=>x.assetId===entry.assetId)||{assetId:entry.assetId,title:entry.assetId,itemType:entry.itemType,description:''};
+    return `<article class="store-product inventory-product">
+      <div class="store-preview">✦</div>
+      <div class="store-product-body"><small>${escapeHtml(typeLabel(entry.itemType))}</small><h3>${escapeHtml(item.title)}</h3><p>${entry.isEquipped?'هذا العنصر مجهز حاليًا.':'العنصر مملوك وجاهز للتجهيز.'}</p></div>
+      <button class="${entry.isEquipped?'secondary equipped':'primary'} store-action" data-store-action="equip" data-asset-id="${escapeHtml(entry.assetId)}" ${entry.isEquipped?'disabled':''}>${entry.isEquipped?'مجهز':'تجهيز'}</button>
+    </article>`;
+  }
+
+  function shell(content){
+    return `<h1 class="page-title">${activeView==='store'?'المتجر':'مخزوني'}</h1>
+      <p class="page-subtitle">${activeView==='store'?'اقتناء وتجهيز عناصر الهوية البصرية الرسمية.':'جميع العناصر المملوكة للحساب الحالي.'}</p>
+      <section class="card store-wallet"><div><small>العملات</small><b>🪙 ${wallet?.coins||0}</b></div><div><small>الجواهر</small><b>💎 ${wallet?.gems||0}</b></div></section>
+      <div class="store-tabs"><button class="${activeView==='store'?'primary':'secondary'}" data-store-view="store">المتجر</button><button class="${activeView==='inventory'?'primary':'secondary'}" data-store-view="inventory">مخزوني (${inventory.length})</button></div>
+      <p id="storeMessage" class="message"></p>${content}`;
+  }
+
+  function render(){
+    const main=document.querySelector('main');
+    if(!main)return;
+    const content=activeView==='store'
+      ? `<section class="store-grid">${catalog.length?catalog.map(productCard).join(''):'<div class="card"><p class="muted">لا توجد عناصر منشورة في كتالوج المتجر حاليًا.</p></div>'}</section>`
+      : `<section class="store-grid">${inventory.length?inventory.map(inventoryCard).join(''):'<div class="card"><p class="muted">لا توجد عناصر في المخزون بعد.</p></div>'}</section>`;
+    main.innerHTML=shell(content);
+    bind();
+  }
+
+  function message(text,isError=false){const el=document.getElementById('storeMessage');if(el){el.textContent=text;el.classList.toggle('success-message',!isError)}}
+
+  async function perform(action,assetId){
+    if(busy)return;busy=true;
+    const item=catalog.find(x=>x.assetId===assetId)||(()=>{const e=inventory.find(x=>x.assetId===assetId);return e?{assetId:e.assetId,itemId:e.assetId,itemType:e.itemType,storeTypeId:e.itemType,title:e.assetId,coinPrice:0,gemPrice:0,isFree:true}:null})();
+    if(!item){message('تعذر العثور على العنصر.',true);busy=false;return}
+    message(action==='acquire'?'جارٍ تنفيذ عملية الاقتناء...':'جارٍ تجهيز العنصر...');
+    try{
+      if(action==='acquire')await domain.acquire(playerId,item);
+      else await domain.equip(playerId,item);
+      await refreshData();
+      render();
+      message(action==='acquire'?'تمت إضافة العنصر إلى مخزونك.':'تم تجهيز العنصر بنجاح.');
+    }catch(error){message(error.message||'تعذر تنفيذ العملية.',true)}finally{busy=false}
+  }
+
+  function bind(){
+    document.querySelectorAll('[data-store-view]').forEach(button=>button.onclick=()=>{activeView=button.dataset.storeView;render()});
+    document.querySelectorAll('[data-store-action]').forEach(button=>button.onclick=()=>perform(button.dataset.storeAction,button.dataset.assetId));
+  }
+
+  async function open(view='store'){
+    activeView=view;
+    const main=document.querySelector('main');
+    if(main)main.innerHTML='<section class="card"><p class="muted">جارٍ تحميل المتجر...</p></section>';
+    try{await initialize();render()}catch(error){if(main)main.innerHTML=`<h1 class="page-title">المتجر</h1><section class="card"><p class="message">${escapeHtml(error.message)}</p></section>`}
+  }
+
+  document.addEventListener('click',event=>{
+    const route=event.target.closest('[data-route]')?.dataset.route;
+    if(route==='store'){setTimeout(()=>open('store'),0)}
+  },true);
+
+  const observer=new MutationObserver(()=>{
+    const title=document.querySelector('main .page-title')?.textContent?.trim();
+    if(title==='المتجر'&&!document.querySelector('.store-tabs'))open('store');
+    if(wallet)updateWalletChips();
+  });
+  observer.observe(document.documentElement,{subtree:true,childList:true});
+
+  window.DominoStoreUI={open,refresh:refreshData};
+})();
