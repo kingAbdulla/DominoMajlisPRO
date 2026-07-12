@@ -8,6 +8,7 @@
   let category='All';
   let query='';
   let loading=false;
+  let assetAliases={};
 
   function session(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null')}catch{return null}}
   function deviceId(){return localStorage.getItem(DEVICE_KEY)||''}
@@ -23,20 +24,29 @@
     return {...v,assetId,itemType:type,title:String(v.title||v.name||assetId),description:String(v.description||''),collection:String(v.collectionId||v.collection||'Default'),rarity:String(v.rarity||'Common'),tag:String(v.tag||v.badge||''),isPublished:v.isPublished!==false&&String(v.publishState||'Published').toLowerCase()!=='draft'&&String(v.publishState||'Published').toLowerCase()!=='hidden',previewAsset:String(v.previewAsset||v.imagePath||v.assetPath||v.thumbnailPath||'')};
   }
 
-  function assetUrl(path){
-    const value=String(path||'').trim();
+  async function loadManifest(){
+    try{
+      const response=await fetch('/assets/asset-manifest.json',{cache:'no-cache'});
+      const manifest=response.ok?await response.json():null;
+      assetAliases=manifest?.aliases||{};
+    }catch{assetAliases={}}
+  }
+
+  function assetUrl(pathValue){
+    const value=String(pathValue||'').trim();
     if(!value)return '';
     if(/^https?:\/\//i.test(value)||value.startsWith('data:')||value.startsWith('blob:'))return value;
-    const clean=value.replaceAll('\\','/').replace(/^\.\//,'').replace(/^\/+/,'');
+    const clean=value.replaceAll('\\','/').replace(/^\.\//,'').replace(/^\/+/, '');
+    const basename=clean.split('/').pop();
+    const candidates=[clean,clean.toLowerCase(),basename,basename?.toLowerCase()].filter(Boolean);
+    for(const key of candidates)if(assetAliases[key])return assetAliases[key];
     if(clean.startsWith('WebProduction/'))return `/${clean}`;
     if(clean.startsWith('assets/'))return `/${clean}`;
-    if(clean.includes('/Resources/Images/'))return `/assets/${clean.split('/Resources/Images/').pop()}`;
-    if(clean.includes('Resources/Images/'))return `/assets/${clean.split('Resources/Images/').pop()}`;
-    return `/assets/${clean.split('/').pop()}`;
+    return `/assets/maui-images/${basename}`;
   }
 
   async function load(){
-    const rows=await api('/api/v1/store-items?includeDeleted=false').catch(()=>[]);
+    const [rows]=await Promise.all([api('/api/v1/store-items?includeDeleted=false').catch(()=>[]),loadManifest()]);
     items=(rows||[]).map(normalize).filter(x=>x.assetId&&x.isPublished);
   }
 
@@ -66,5 +76,5 @@
   document.addEventListener('click',event=>{const route=event.target.closest('[data-route]')?.dataset.route;if(route==='gallery')setTimeout(open,0)},true);
   const observer=new MutationObserver(()=>{const title=document.querySelector('main .page-title')?.textContent?.trim();if(title==='المعرض'&&!document.querySelector('.gallery-toolbar'))open()});
   observer.observe(document.documentElement,{subtree:true,childList:true});
-  window.DominoGalleryUI={open,assetUrl};
+  window.DominoGalleryUI={open,assetUrl,loadManifest};
 })();
