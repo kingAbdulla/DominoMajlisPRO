@@ -24,6 +24,8 @@ jobs:
         run: |
           node --check WebProduction/store-domain.js
           node --check WebProduction/store-ui.js
+          node --check WebProduction/gallery-ui.js
+          node --check WebProduction/gallery-nav.js
           node --check WebProduction/app.js
       - name: Validate required production files and routes
         shell: bash
@@ -31,13 +33,19 @@ jobs:
           test -s WebProduction/index.html
           test -s WebProduction/styles.css
           test -s WebProduction/store.css
+          test -s WebProduction/gallery.css
           test -s WebProduction/store-domain.js
           test -s WebProduction/store-ui.js
+          test -s WebProduction/gallery-ui.js
+          test -s WebProduction/gallery-nav.js
           test -s WebProduction/app.js
           grep -q 'Domino Majlis PRO' WebProduction/index.html
           grep -q 'store-domain.js' WebProduction/index.html
           grep -q 'store-ui.js' WebProduction/index.html
+          grep -q 'gallery-ui.js' WebProduction/index.html
+          grep -q 'gallery-nav.js' WebProduction/index.html
           grep -q 'store.css' WebProduction/index.html
+          grep -q 'gallery.css' WebProduction/index.html
           grep -q '/api/preview/login' WebProduction/app.js
           grep -q '/api/preview/me/teams' WebProduction/app.js
           grep -q '/api/v1/players' WebProduction/app.js
@@ -68,3 +76,10 @@ jobs:
           grep -q 'DominoStoreUI' WebProduction/store-ui.js
           grep -q 'store-grid' WebProduction/store.css
           grep -q 'store-wallet' WebProduction/store.css
+          grep -q '/api/v1/store-items' WebProduction/gallery-ui.js
+          grep -q 'function assetUrl' WebProduction/gallery-ui.js
+          grep -q 'function categories' WebProduction/gallery-ui.js
+          grep -q 'function card' WebProduction/gallery-ui.js
+          grep -q 'DominoGalleryUI' WebProduction/gallery-ui.js
+          grep -q 'gallery-grid' WebProduction/gallery.css
+          grep -q 'gallery-preview' WebProduction/gallery.css
