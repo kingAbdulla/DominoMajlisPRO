@@ -3,13 +3,15 @@ name: Web Production CI
 on:
   push:
     branches:
-      - feature/web-production-full
+      - agent/web-preview-foundation
     paths:
       - 'WebProduction/**'
       - 'DominoMajlisPRO/Resources/Images/**'
       - 'DominoMajlisPRO/GalleryEngine/Assets/**'
       - '.github/workflows/web-production-ci.yml'
   pull_request:
+    branches:
+      - agent/web-preview-foundation
     paths:
       - 'WebProduction/**'
       - 'DominoMajlisPRO/Resources/Images/**'
@@ -36,6 +38,8 @@ jobs:
           node --check WebProduction/gallery-nav.js
           node --check WebProduction/identity-runtime.js
           node --check WebProduction/app.js
+          node --check WebProduction/sw.js
+          node --check 'WebProduction/functions/api/[[path]].js'
       - name: Validate generated asset manifest
         shell: bash
         run: |
@@ -56,6 +60,8 @@ jobs:
           test -s WebProduction/gallery-nav.js
           test -s WebProduction/identity-runtime.js
           test -s WebProduction/app.js
+          test -s WebProduction/sw.js
+          test -s 'WebProduction/functions/api/[[path]].js'
           grep -q 'Domino Majlis PRO' WebProduction/index.html
           grep -q 'store-domain.js' WebProduction/index.html
           grep -q 'store-ui.js' WebProduction/index.html
@@ -107,3 +113,5 @@ jobs:
           grep -q 'DominoIdentityRuntime' WebProduction/identity-runtime.js
           grep -q 'identity-frame' WebProduction/identity.css
           grep -q 'identity-team-effect' WebProduction/identity.css
+          grep -q "const PBKDF2_ITERATIONS = 100000" 'WebProduction/functions/api/[[path]].js'
+          grep -q "auth-pbkdf2-100000-v2" 'WebProduction/functions/api/[[path]].js'
