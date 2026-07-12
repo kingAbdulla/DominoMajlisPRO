@@ -34,6 +34,7 @@ jobs:
           node --check WebProduction/store-ui.js
           node --check WebProduction/gallery-ui.js
           node --check WebProduction/gallery-nav.js
+          node --check WebProduction/identity-runtime.js
           node --check WebProduction/app.js
       - name: Validate generated asset manifest
         shell: bash
@@ -48,18 +49,20 @@ jobs:
           test -s WebProduction/styles.css
           test -s WebProduction/store.css
           test -s WebProduction/gallery.css
+          test -s WebProduction/identity.css
           test -s WebProduction/store-domain.js
           test -s WebProduction/store-ui.js
           test -s WebProduction/gallery-ui.js
           test -s WebProduction/gallery-nav.js
+          test -s WebProduction/identity-runtime.js
           test -s WebProduction/app.js
           grep -q 'Domino Majlis PRO' WebProduction/index.html
           grep -q 'store-domain.js' WebProduction/index.html
           grep -q 'store-ui.js' WebProduction/index.html
           grep -q 'gallery-ui.js' WebProduction/index.html
           grep -q 'gallery-nav.js' WebProduction/index.html
-          grep -q 'store.css' WebProduction/index.html
-          grep -q 'gallery.css' WebProduction/index.html
+          grep -q 'identity-runtime.js' WebProduction/index.html
+          grep -q 'identity.css' WebProduction/index.html
           grep -q '/api/preview/login' WebProduction/app.js
           grep -q '/api/preview/me/teams' WebProduction/app.js
           grep -q '/api/v1/players' WebProduction/app.js
@@ -81,11 +84,14 @@ jobs:
           grep -q "catalog:'store-items'" WebProduction/store-domain.js
           grep -q "wallets:'wallets'" WebProduction/store-domain.js
           grep -q "inventory:'inventory'" WebProduction/store-domain.js
+          grep -q 'TEAM_TYPES' WebProduction/store-domain.js
           grep -q 'async function acquire' WebProduction/store-domain.js
           grep -q 'async function equip' WebProduction/store-domain.js
+          grep -q 'getIdentities' WebProduction/store-domain.js
           grep -q 'window.DominoStoreDomain' WebProduction/store-domain.js
           grep -q 'function productCard' WebProduction/store-ui.js
           grep -q 'function inventoryCard' WebProduction/store-ui.js
+          grep -q 'storeTeamTarget' WebProduction/store-ui.js
           grep -q 'data-store-action' WebProduction/store-ui.js
           grep -q 'DominoStoreUI' WebProduction/store-ui.js
           grep -q 'store-grid' WebProduction/store.css
@@ -95,3 +101,9 @@ jobs:
           grep -q 'function assetUrl' WebProduction/gallery-ui.js
           grep -q 'DominoGalleryUI' WebProduction/gallery-ui.js
           grep -q 'gallery-grid' WebProduction/gallery.css
+          grep -q 'visual-identities' WebProduction/identity-runtime.js
+          grep -q 'function applyPlayer' WebProduction/identity-runtime.js
+          grep -q 'function applyTeams' WebProduction/identity-runtime.js
+          grep -q 'DominoIdentityRuntime' WebProduction/identity-runtime.js
+          grep -q 'identity-frame' WebProduction/identity.css
+          grep -q 'identity-team-effect' WebProduction/identity.css
