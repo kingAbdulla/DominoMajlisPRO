@@ -21,14 +21,18 @@ jobs:
         with:
           node-version: '24'
       - name: Validate JavaScript syntax
-        run: node --check WebProduction/app.js
+        run: |
+          node --check WebProduction/store-domain.js
+          node --check WebProduction/app.js
       - name: Validate required production files and routes
         shell: bash
         run: |
           test -s WebProduction/index.html
           test -s WebProduction/styles.css
+          test -s WebProduction/store-domain.js
           test -s WebProduction/app.js
           grep -q 'Domino Majlis PRO' WebProduction/index.html
+          grep -q 'store-domain.js' WebProduction/index.html
           grep -q '/api/preview/login' WebProduction/app.js
           grep -q '/api/preview/me/teams' WebProduction/app.js
           grep -q '/api/v1/players' WebProduction/app.js
@@ -47,3 +51,9 @@ jobs:
           grep -q 'badge-grid' WebProduction/styles.css
           grep -q 'season-card' WebProduction/styles.css
           grep -q 'hall-row' WebProduction/styles.css
+          grep -q "catalog:'store-items'" WebProduction/store-domain.js
+          grep -q "wallets:'wallets'" WebProduction/store-domain.js
+          grep -q "inventory:'inventory'" WebProduction/store-domain.js
+          grep -q 'async function acquire' WebProduction/store-domain.js
+          grep -q 'async function equip' WebProduction/store-domain.js
+          grep -q 'window.DominoStoreDomain' WebProduction/store-domain.js
