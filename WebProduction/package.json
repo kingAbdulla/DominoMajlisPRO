@@ -1,0 +1,9 @@
+{
+  "name": "domino-majlis-pro-web-production",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ./scripts/sync-assets.mjs",
+    "check": "node --check ./app.js && node --check ./store-domain.js && node --check ./store-ui.js && node --check ./gallery-ui.js && node --check ./gallery-nav.js"
+  }
+}
