@@ -6,10 +6,14 @@ on:
       - feature/web-production-full
     paths:
       - 'WebProduction/**'
+      - 'DominoMajlisPRO/Resources/Images/**'
+      - 'DominoMajlisPRO/GalleryEngine/Assets/**'
       - '.github/workflows/web-production-ci.yml'
   pull_request:
     paths:
       - 'WebProduction/**'
+      - 'DominoMajlisPRO/Resources/Images/**'
+      - 'DominoMajlisPRO/GalleryEngine/Assets/**'
       - '.github/workflows/web-production-ci.yml'
 
 jobs:
@@ -20,17 +24,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Build web asset bundle
+        working-directory: WebProduction
+        run: npm run build
       - name: Validate JavaScript syntax
         run: |
+          node --check WebProduction/scripts/sync-assets.mjs
           node --check WebProduction/store-domain.js
           node --check WebProduction/store-ui.js
           node --check WebProduction/gallery-ui.js
           node --check WebProduction/gallery-nav.js
           node --check WebProduction/app.js
+      - name: Validate generated asset manifest
+        shell: bash
+        run: |
+          test -s WebProduction/assets/asset-manifest.json
+          node -e "const m=require('./WebProduction/assets/asset-manifest.json'); if(!m.count) throw new Error('No web assets were generated'); console.log('Generated assets:',m.count)"
       - name: Validate required production files and routes
         shell: bash
         run: |
           test -s WebProduction/index.html
+          test -s WebProduction/package.json
           test -s WebProduction/styles.css
           test -s WebProduction/store.css
           test -s WebProduction/gallery.css
@@ -77,9 +91,7 @@ jobs:
           grep -q 'store-grid' WebProduction/store.css
           grep -q 'store-wallet' WebProduction/store.css
           grep -q '/api/v1/store-items' WebProduction/gallery-ui.js
+          grep -q 'function loadManifest' WebProduction/gallery-ui.js
           grep -q 'function assetUrl' WebProduction/gallery-ui.js
-          grep -q 'function categories' WebProduction/gallery-ui.js
-          grep -q 'function card' WebProduction/gallery-ui.js
           grep -q 'DominoGalleryUI' WebProduction/gallery-ui.js
           grep -q 'gallery-grid' WebProduction/gallery.css
-          grep -q 'gallery-preview' WebProduction/gallery.css
