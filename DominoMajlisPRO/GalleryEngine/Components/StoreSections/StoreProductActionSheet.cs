@@ -285,8 +285,8 @@ internal sealed class StoreProductActionSheet : Grid
         AttachToPage(owner);
         ResetPreviewVisuals();
 
-        _image.Source =
-            InventoryDisplayResolver.ResolveImageSource(imagePath);
+        _image.Source = InventoryDisplayResolver.ResolveOptionalImageSource(imagePath);
+        _image.IsVisible = _image.Source != null;
         _imagePath = imagePath;
         _name.Text = name;
         _rarity.Text = string.IsNullOrWhiteSpace(rarity) ? "COMMON" : rarity.ToUpperInvariant();
@@ -734,9 +734,7 @@ internal sealed class StoreProductActionSheet : Grid
 
             var emblem = new Image
             {
-                Source = InventoryDisplayResolver.ResolveImageSource(
-                    string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
-                    "shield_3d.png"),
+                Source = InventoryDisplayResolver.ResolveOptionalImageSource(asset.PreviewImage),
                 WidthRequest = 126,
                 HeightRequest = 126,
                 HorizontalOptions = LayoutOptions.Center,

@@ -202,12 +202,11 @@ internal sealed class StoreProductPreviewOverlay : Grid
     {
         var image = new Image
         {
-            Source =
-                InventoryDisplayResolver.ResolveImageSource(
-                    request.ImagePath),
+            Source = InventoryDisplayResolver.ResolveOptionalImageSource(request.ImagePath),
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
         };
+        image.IsVisible = image.Source != null;
         return request.Kind switch
         {
             StoreProductPreviewKind.Avatar => AvatarVisual(image, request.Accent),
@@ -245,9 +244,8 @@ internal sealed class StoreProductPreviewOverlay : Grid
 
     private static View EffectVisual(Image image, CatalogAssetDisplay effect, Color accent)
     {
-        image.Source = InventoryDisplayResolver.ResolveImageSource(
-            string.IsNullOrWhiteSpace(effect.PreviewImage) ? "shield_3d.png" : effect.PreviewImage,
-            "shield_3d.png");
+        image.Source = InventoryDisplayResolver.ResolveOptionalImageSource(effect.PreviewImage);
+        image.IsVisible = image.Source != null;
         image.WidthRequest = 190;
         image.HeightRequest = 190;
         image.HorizontalOptions = LayoutOptions.Center;

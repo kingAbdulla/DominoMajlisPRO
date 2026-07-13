@@ -39,6 +39,9 @@
 		<AndroidKeyStore>false</AndroidKeyStore>
 		<AndroidUseAapt2>true</AndroidUseAapt2>
 		<AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
+		<DebugSymbols>true</DebugSymbols>
+		<DebugType>portable</DebugType>
+		<AndroidIncludeDebugSymbols>true</AndroidIncludeDebugSymbols>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -69,7 +72,6 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.8" />
 		<PackageReference Include="PdfSharpCore" Version="1.3.67" />
 		<PackageReference Include="QRCoder" Version="1.6.0" />
-		<PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>

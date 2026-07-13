@@ -7,6 +7,7 @@ public static class BackgroundsAdminService
 {
     private const string FileName = "gallery_backgrounds_admin.json";
     public static event Action? PublishedChanged;
+    public static void NotifyPublishedChanged() => PublishedChanged?.Invoke();
 
     public static async Task<BackgroundRecord> SaveDraftAsync(BackgroundRecord record)
     {

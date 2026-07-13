@@ -174,14 +174,8 @@ public class PremiumGalleryCard : ContentView
         if (item == null)
             return;
 
-        var imageName = string.IsNullOrWhiteSpace(item.Image)
-            ? "gallery_lion.png"
-            : item.Image;
-
-        _image.Source =
-            InventoryDisplayResolver.ResolveImageSource(
-                imageName,
-                "gallery_lion.png");
+        _image.Source = InventoryDisplayResolver.ResolveOptionalImageSource(item.Image);
+        _image.IsVisible = _image.Source != null;
 
         _name.Text = string.IsNullOrWhiteSpace(item.Name)
             ? "عنصر المتجر"
@@ -198,7 +192,7 @@ public class PremiumGalleryCard : ContentView
                 ? "جديد"
                 : "جديد";
 
-        _ = ApplyDynamicBackgroundAsync(imageName);
+        _ = ApplyDynamicBackgroundAsync(item.Image);
         _ = ApplyEffectPreviewAsync(item.Id, _name.Text);
 
         ApplyResponsive();
@@ -239,14 +233,12 @@ public class PremiumGalleryCard : ContentView
                 return;
             }
 
-            _image.IsVisible = true;
             if (asset?.AssetType is not (StoreProductAssetType.Effect or
                 StoreProductAssetType.TeamEffect))
                 return;
 
-            _image.Source = InventoryDisplayResolver.ResolveImageSource(
-                string.IsNullOrWhiteSpace(asset.PreviewImage) ? "shield_3d.png" : asset.PreviewImage,
-                "shield_3d.png");
+            _image.Source = InventoryDisplayResolver.ResolveOptionalImageSource(asset.PreviewImage);
+            _image.IsVisible = _image.Source != null;
             _image.WidthRequest = 72;
             _image.HeightRequest = 72;
             _effectView = IdentityEffectRenderer.Create(asset, 1.22, lightweight: true);

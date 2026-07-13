@@ -147,6 +147,12 @@ public static class LimitedOffersAdminService
 
     public static Task DeletePublished(string assetId) => DeletePublishedAsync(assetId);
 
+    public static async Task DeleteAllRecordsAsync()
+    {
+        await SaveRecordsAsync(Array.Empty<LimitedOfferRecord>());
+        PublishedChanged?.Invoke();
+    }
+
     public static async Task<LimitedOfferRecord?> CreateDraftFromPublishedAsync(string assetId)
     {
         var records = await LoadRecordsAsync();

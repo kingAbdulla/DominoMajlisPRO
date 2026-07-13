@@ -18,15 +18,19 @@ public static class StoreManagerAssetTypeScopes
                 StoreProductAssetType.PlayerNameFrame,
                 StoreProductAssetType.TeamNameFrame),
 
+            ["typography"] = Set(
+                StoreProductAssetType.PlayerNameEffect,
+                StoreProductAssetType.TeamNameEffect,
+                StoreProductAssetType.PlayerNameFrame,
+                StoreProductAssetType.TeamNameFrame),
+
             ["effects"] = Set(
                 StoreProductAssetType.Effect,
                 StoreProductAssetType.TeamEffect),
 
             ["frames"] = Set(StoreProductAssetType.Frame),
 
-            ["emblems"] = Set(
-                StoreProductAssetType.Emblem,
-                StoreProductAssetType.TeamLivingEmblem),
+            ["emblems"] = Set(StoreProductAssetType.Emblem),
 
             ["emblem-backgrounds"] = Set(StoreProductAssetType.EmblemBackground),
             ["team-colors"] = Set(StoreProductAssetType.TeamColor),

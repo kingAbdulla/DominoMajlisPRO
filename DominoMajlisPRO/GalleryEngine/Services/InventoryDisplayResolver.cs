@@ -140,7 +140,7 @@ public static class InventoryDisplayResolver
             typeId,
             hasMetadata ? asset!.DisplayName : StoreAssetCatalogService.IncompleteDisplayName,
             hasMetadata ? asset!.ArabicDisplayName : string.Empty,
-            hasMetadata ? ResolveImagePath(asset!.PreviewImage) : FallbackImage,
+            hasMetadata ? ResolveImagePath(asset!.PreviewImage, string.Empty) : string.Empty,
             asset?.ColorHex ?? string.Empty,
             true,
             isEquipped,

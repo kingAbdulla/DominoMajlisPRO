@@ -16,6 +16,7 @@ public static class CurrentSeasonAdminService
     };
 
     public static event Action<CurrentSeasonRecord?>? PublishedChanged;
+    public static void NotifyPublishedChanged() => PublishedChanged?.Invoke(null);
 
     public static async Task<IReadOnlyList<CurrentSeasonRecord>> LoadAllAsync() =>
         await LoadRecordsAsync();
@@ -178,6 +179,12 @@ public static class CurrentSeasonAdminService
     }
 
     public static Task DeleteDraft(string id) => DeleteDraftAsync(id);
+
+    public static async Task DeleteAllRecordsAsync()
+    {
+        await SaveRecordsAsync(Array.Empty<CurrentSeasonRecord>());
+        PublishedChanged?.Invoke(null);
+    }
 
     public static bool ValidateForPublish(CurrentSeasonRecord record) =>
         ValidateForPublish(record, out _);

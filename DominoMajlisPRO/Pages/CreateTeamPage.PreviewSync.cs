@@ -1,6 +1,7 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.Pages;
@@ -9,6 +10,7 @@ public partial class CreateTeamPage
 {
     private bool _previewSyncHooked;
     private bool _teamEffectVisualSyncRunning;
+    private int _nameTypographySyncVersion;
 
     protected override void OnHandlerChanged()
     {
@@ -18,7 +20,6 @@ public partial class CreateTeamPage
             return;
 
         _previewSyncHooked = true;
-
         TeamNameEntry.TextChanged += OnPreviewIdentityTextChanged;
         Player1Entry.TextChanged += OnPreviewIdentityTextChanged;
         Player2Entry.TextChanged += OnPreviewIdentityTextChanged;
@@ -44,6 +45,7 @@ public partial class CreateTeamPage
     private void RefreshCreateTeamVisualPipeline()
     {
         UpdatePreviewIdentityLabelsSafely();
+        _ = ApplyPreviewNameTypographyAsync();
         _ = UpdatePreviewAvatarsAsync();
         _ = SyncTeamEffectChoicesAndPreviewAsync();
     }
@@ -59,7 +61,6 @@ public partial class CreateTeamPage
             var player1 = string.IsNullOrWhiteSpace(Player1Entry.Text)
                 ? "اللاعب الأول"
                 : Player1Entry.Text.Trim();
-
             var player2 = string.IsNullOrWhiteSpace(Player2Entry.Text)
                 ? "اللاعب الثاني"
                 : Player2Entry.Text.Trim();
@@ -68,15 +69,89 @@ public partial class CreateTeamPage
             PreviewPlayer2.Text = isTeamMode ? player2 : string.Empty;
             PreviewPlayer2.IsVisible = isTeamMode;
             PreviewPlayer2Host.IsVisible = isTeamMode;
-
             PreviewMode.Text = isTeamMode ? "فريق" : "فردي";
             SaveButtonText.Text = IsEditMode ? "تعديل الفريق" : "إنشاء الفريق";
             RefreshValidationPanel();
         }
         catch
         {
-            // Preview text sync is visual-only and must never block CreateTeamPage.
+            // Visual sync must never block CreateTeam editing.
         }
+    }
+
+    private async Task ApplyPreviewNameTypographyAsync()
+    {
+        var version = Interlocked.Increment(ref _nameTypographySyncVersion);
+        try
+        {
+            var teamTask = TeamNameTypographyResolver.ResolveAsync(CurrentTeam?.TeamId);
+            var player1Task = ResolvePreviewPlayerNameTypographyAsync(Player1Entry.Text);
+            var player2Task = isTeamMode
+                ? ResolvePreviewPlayerNameTypographyAsync(Player2Entry.Text)
+                : Task.FromResult<NameTypographyIdentity?>(null);
+
+            await Task.WhenAll(teamTask, player1Task, player2Task);
+            if (version != _nameTypographySyncVersion)
+                return;
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                ApplyTypographyToLabel(PreviewTeamName, teamTask.Result, 28, Color.FromArgb("#F2C46D"), true);
+                ApplyTypographyToLabel(PreviewPlayer1, player1Task.Result, 13, Colors.White, false);
+                ApplyTypographyToLabel(PreviewPlayer2, player2Task.Result, 13, Colors.White, false);
+            });
+        }
+        catch
+        {
+            // Typography is visual-only here; saving and validation stay independent.
+        }
+    }
+
+    private static async Task<NameTypographyIdentity?> ResolvePreviewPlayerNameTypographyAsync(string? text)
+    {
+        var player = await ResolvePlayerFromPreviewTextAsync(text);
+        return string.IsNullOrWhiteSpace(player?.PlayerId)
+            ? null
+            : await PlayerNameTypographyResolver.ResolveAsync(player.PlayerId);
+    }
+
+    private static async Task<PlayerProfileModel?> ResolvePlayerFromPreviewTextAsync(string? text)
+    {
+        var value = text?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var byId = await PlayerProfileService.GetPlayerByIdAsync(value);
+        if (byId != null)
+            return byId;
+
+        return await PlayerProfileService.GetPlayerByNameAsync(value);
+    }
+
+    private static void ApplyTypographyToLabel(
+        Label label,
+        NameTypographyIdentity? identity,
+        double fallbackFontSize,
+        Color fallbackColor,
+        bool bold)
+    {
+        label.FontFamily = "Tajawal-Regular";
+        label.FontSize = fallbackFontSize;
+        label.FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None;
+        label.TextColor = fallbackColor;
+        label.Opacity = 1;
+
+        var preset = identity?.ResolvePreset();
+        if (preset == null)
+            return;
+
+        var normalized = preset.Normalized();
+        label.FontFamily = string.IsNullOrWhiteSpace(normalized.FontFamily)
+            ? "Tajawal-Regular"
+            : normalized.FontFamily;
+        label.FontSize = Math.Clamp(normalized.FontSize * normalized.Scale, 11, bold ? 30 : 18);
+        label.TextColor = Color.FromArgb(normalized.PrimaryColor);
+        label.Opacity = normalized.Opacity;
     }
 
     private async Task SyncTeamEffectChoicesAndPreviewAsync()
@@ -174,20 +249,8 @@ public partial class CreateTeamPage
 
         async Task AddPlayerIdFromEntryAsync(string? text)
         {
-            var value = text?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(value))
-                return;
-
-            var byId = await PlayerProfileService.GetPlayerByIdAsync(value);
-            if (byId != null)
-            {
-                AddId(byId.PlayerId);
-                return;
-            }
-
-            var byName = await PlayerProfileService.GetPlayerByNameAsync(value);
-            if (byName != null)
-                AddId(byName.PlayerId);
+            var player = await ResolvePlayerFromPreviewTextAsync(text);
+            AddId(player?.PlayerId);
         }
 
         void AddId(string? id)
@@ -208,13 +271,8 @@ public partial class CreateTeamPage
             return null;
 
         var canonicalTypeId = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
-
         if (string.Equals(canonicalTypeId, StoreProductAssetType.TeamEffect.ToString(), StringComparison.OrdinalIgnoreCase))
-        {
-            var teamTyped = StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.TeamEffect.ToString());
-            if (teamTyped != null)
-                return teamTyped;
-        }
+            return StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.TeamEffect.ToString());
 
         var legacy = StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.Effect.ToString());
         if (legacy == null)

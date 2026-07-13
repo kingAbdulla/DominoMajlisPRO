@@ -265,7 +265,7 @@ public sealed class TypographyManagerPage : ContentPage
 
     private async Task SelectRecordAsync(bool published)
     {
-        var allowed = StoreManagerAssetTypeScopes.ForSection("name-effects");
+        var allowed = Canonical.StoreManagerAssetTypeScopes.ForSection("name-effects");
         var records = (published
                 ? await NewArrivalsAdminService.LoadManagedAsync()
                 : await NewArrivalsAdminService.LoadAllDraftsAsync())

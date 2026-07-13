@@ -10,6 +10,7 @@ public static class StoreCategoriesAdminService
     private const string FileName = "gallery_store_categories_admin.json";
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
     public static event Action? PublishedChanged;
+    public static void NotifyPublishedChanged() => PublishedChanged?.Invoke();
 
     public static async Task<StoreCategoryRecord> SaveDraftAsync(StoreCategoryRecord record)
     {

@@ -21,7 +21,6 @@ public partial class DeveloperStoreManagerPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-
         GalleryThemeEngine.ThemeChanged -= OnThemeChanged;
         GalleryThemeEngine.ThemeChanged += OnThemeChanged;
         ApplyTheme();
@@ -45,7 +44,6 @@ public partial class DeveloperStoreManagerPage : ContentPage
     private View CreateSectionCard(StoreAdminSection section)
     {
         var theme = GalleryThemeEngine.Current;
-
         var iconLabel = new Label
         {
             Text = section.Icon,
@@ -93,12 +91,7 @@ public partial class DeveloperStoreManagerPage : ContentPage
         {
             Spacing = 2,
             VerticalOptions = LayoutOptions.Center,
-            Children =
-            {
-                titleLabel,
-                subtitleLabel,
-                metaLabel
-            }
+            Children = { titleLabel, subtitleLabel, metaLabel }
         };
 
         var grid = new Grid
@@ -111,7 +104,6 @@ public partial class DeveloperStoreManagerPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Star }
             }
         };
-
         grid.Add(iconLabel, 0, 0);
         grid.Add(textStack, 1, 0);
 
@@ -122,7 +114,10 @@ public partial class DeveloperStoreManagerPage : ContentPage
             StrokeShape = new RoundRectangle { CornerRadius = 16 },
             Background = theme.CardBackground,
             Stroke = theme.Stroke,
-            Content = grid
+            Content = grid,
+            WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 170 : 220,
+            MinimumHeightRequest = 92,
+            Margin = new Thickness(0, 0, 0, 10)
         };
 
         card.GestureRecognizers.Add(new TapGestureRecognizer
@@ -130,12 +125,7 @@ public partial class DeveloperStoreManagerPage : ContentPage
             Command = new Command(async () => await OpenSectionAsync(section))
         });
 
-        card.WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 170 : 220;
-        card.MinimumHeightRequest = 92;
-        card.Margin = new Thickness(0, 0, 0, 10);
-
         _cardTargets.Add(new AdminSectionCardTarget(card, iconLabel, titleLabel, subtitleLabel, metaLabel));
-
         return card;
     }
 
@@ -150,124 +140,69 @@ public partial class DeveloperStoreManagerPage : ContentPage
 
     private async Task OpenSectionAsync(StoreAdminSection section)
     {
-        if (section.Id == "inventory-audit")
+        switch (section.Id)
         {
-            await Navigation.PushAsync(new InventoryAuditPage());
-            return;
+            case "inventory-audit":
+                await Navigation.PushAsync(new InventoryAuditPage());
+                return;
+            case "current-season":
+                await Navigation.PushAsync(new CurrentSeasonEditorPage());
+                return;
+            case "new-arrivals":
+                await Navigation.PushAsync(new NewArrivalsEditorPage());
+                return;
+            case "limited-offers":
+                await Navigation.PushAsync(new LimitedOffersEditorPage());
+                return;
+            case "categories":
+                await Navigation.PushAsync(new StoreCategoriesEditorPage());
+                return;
+            case "avatars":
+                await Navigation.PushAsync(new AvatarsEditorPage());
+                return;
+            case "backgrounds":
+                await Navigation.PushAsync(new BackgroundsEditorPage());
+                return;
+            case "emblems":
+                await Navigation.PushAsync(new EmblemsManagerPage());
+                return;
+            case "emblem-backgrounds":
+                await Navigation.PushAsync(new EmblemBackgroundsManagerPage());
+                return;
+            case "team-colors":
+                await Navigation.PushAsync(new TeamColorsManagerPage());
+                return;
+            case "effects":
+                await Navigation.PushAsync(new EffectsManagerPage());
+                return;
+            case "typography":
+            case "name-effects":
+                await Navigation.PushAsync(new TypographyManagerPage());
+                return;
+            case "frames":
+                await Navigation.PushAsync(new FramesManagerPage());
+                return;
+            case "titles":
+                await Navigation.PushAsync(new TitlesManagerPage());
+                return;
+            case "bundles":
+                await Navigation.PushAsync(new BundlesManagerPage());
+                return;
+            case "currency-pricing":
+                await Navigation.PushAsync(new CurrencyPricingManagerPage());
+                return;
+            case "product-cards":
+                await Navigation.PushAsync(new NewArrivalsEditorPage());
+                return;
+            case "category-cards":
+                await Navigation.PushAsync(new StoreCategoriesEditorPage());
+                return;
+            case "store-settings":
+                await Navigation.PushAsync(new StoreSettingsManagerPage());
+                return;
         }
 
-        if (section.Id == "current-season")
-        {
-            await Navigation.PushAsync(new CurrentSeasonEditorPage());
-            return;
-        }
-
-        if (section.Id == "new-arrivals")
-        {
-            await Navigation.PushAsync(new NewArrivalsEditorPage());
-            return;
-        }
-
-        if (section.Id == "limited-offers")
-        {
-            await Navigation.PushAsync(new LimitedOffersEditorPage());
-            return;
-        }
-
-        if (section.Id == "categories")
-        {
-            await Navigation.PushAsync(new StoreCategoriesEditorPage());
-            return;
-        }
-
-        if (section.Id == "avatars")
-        {
-            await Navigation.PushAsync(new AvatarsEditorPage());
-            return;
-        }
-
-        if (section.Id == "backgrounds")
-        {
-            await Navigation.PushAsync(new BackgroundsEditorPage());
-            return;
-        }
-
-        if (section.Id == "emblems")
-        {
-            await Navigation.PushAsync(new EmblemsManagerPage());
-            return;
-        }
-
-        if (section.Id == "emblem-backgrounds")
-        {
-            await Navigation.PushAsync(new EmblemBackgroundsManagerPage());
-            return;
-        }
-
-        if (section.Id == "team-colors")
-        {
-            await Navigation.PushAsync(new TeamColorsManagerPage());
-            return;
-        }
-
-        if (section.Id == "effects")
-        {
-            await Navigation.PushAsync(new EffectsManagerPage());
-            return;
-        }
-
-        if (section.Id == "typography")
-        {
-            await Navigation.PushAsync(new TypographyManagerPage());
-            return;
-        }
-
-        if (section.Id == "frames")
-        {
-            await Navigation.PushAsync(new FramesManagerPage());
-            return;
-        }
-
-        if (section.Id == "titles")
-        {
-            await Navigation.PushAsync(new TitlesManagerPage());
-            return;
-        }
-
-        if (section.Id == "bundles")
-        {
-            await Navigation.PushAsync(new BundlesManagerPage());
-            return;
-        }
-
-        if (section.Id == "currency-pricing")
-        {
-            await Navigation.PushAsync(new CurrencyPricingManagerPage());
-            return;
-        }
-
-        if (section.Id == "product-cards")
-        {
-            await Navigation.PushAsync(new NewArrivalsEditorPage());
-            return;
-        }
-
-        if (section.Id == "category-cards")
-        {
-            await Navigation.PushAsync(new StoreCategoriesEditorPage());
-            return;
-        }
-
-        if (section.Id == "store-settings")
-        {
-            await Navigation.PushAsync(new StoreSettingsManagerPage());
-            return;
-        }
-
-        await DisplayAlert(
-            section.Title,
-            "سيتم بناء هذا القسم في المرحلة التالية",
-            "حسناً");
+        await DisplayAlert(section.Title, "سيتم بناء هذا القسم في المرحلة التالية", "حسناً");
     }
 
     private async void OnBackTapped(object? sender, TappedEventArgs e)

@@ -7,6 +7,7 @@ public static class AvatarsAdminService
 {
     private const string FileName = "gallery_avatars_admin.json";
     public static event Action? PublishedChanged;
+    public static void NotifyPublishedChanged() => PublishedChanged?.Invoke();
 
     public static async Task<AvatarRecord> SaveDraftAsync(AvatarRecord record)
     {

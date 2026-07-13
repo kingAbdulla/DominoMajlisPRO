@@ -99,9 +99,10 @@ public partial class GalleryPage : ContentPage
         _season = null;
         _items = new List<GalleryItem>();
         Background = GalleryThemeEngine.Current.Background;
-        HeroSlider.IsVisible = false;
-        SeasonEmptyCard.IsVisible = true;
-        SeasonEmptyLabel.Text = "لم يتم نشر موسم حالياً";
+        // The empty hero is the permanent developer entry surface. Store resets
+        // clear published slides, never the developer-only manager button.
+        HeroSlider.IsVisible = true;
+        SeasonEmptyCard.IsVisible = false;
     }
 
     private static GallerySeason ToGallerySeason(CurrentSeasonRecord record)

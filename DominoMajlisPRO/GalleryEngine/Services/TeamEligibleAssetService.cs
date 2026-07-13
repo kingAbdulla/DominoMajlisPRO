@@ -8,7 +8,17 @@ public static class TeamEligibleAssetService
     private static readonly HashSet<string> TeamTypes =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            "Emblem", "TeamColor", "EmblemBackground", "TeamEffect"
+            "Emblem",
+            "TeamColor",
+            "EmblemBackground",
+            "TeamEffect",
+            "TeamNameEffect",
+            "TeamNameFrame",
+            "PlayerNameEffect",
+            "PlayerNameFrame",
+            "Frame",
+            "ProfileBackground",
+            "Effect"
         };
 
     public static Task<IReadOnlyList<TeamOwnedAssetItem>> GetEligibleAsync(

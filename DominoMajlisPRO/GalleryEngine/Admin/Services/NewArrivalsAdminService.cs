@@ -161,6 +161,12 @@ public static class NewArrivalsAdminService
 
     public static Task DeletePublished(string assetId) => DeletePublishedAsync(assetId);
 
+    public static async Task DeleteAllRecordsAsync()
+    {
+        await SaveRecordsAsync(Array.Empty<NewArrivalRecord>());
+        PublishedChanged?.Invoke();
+    }
+
     public static async Task<NewArrivalRecord?> CreateDraftFromPublishedAsync(string assetId)
     {
         var records = await LoadRecordsAsync();
