@@ -74,7 +74,7 @@ internal static class GamePageRankLiveSyncBootstrap
     {
         MainThread.BeginInvokeOnMainThread(async () =>
         {
-            var gamePage = FindActiveGamePage(Application.Current?.MainPage);
+            var gamePage = FindActiveGamePage(Application.Current?.Windows.FirstOrDefault()?.Page);
             if (gamePage != null)
                 await gamePage.RefreshRankProgressFromStoreAsync(force);
         });

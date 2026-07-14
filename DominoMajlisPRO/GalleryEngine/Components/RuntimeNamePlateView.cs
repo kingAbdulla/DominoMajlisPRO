@@ -1,4 +1,6 @@
+using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Components;
 
@@ -28,9 +30,19 @@ public sealed class RuntimeNamePlateView : ContentView
             "Team",
             propertyChanged: (bindable, _, _) => ((RuntimeNamePlateView)bindable).Refresh());
 
+    public static readonly BindableProperty RenderingContextProperty =
+        BindableProperty.Create(
+            nameof(RenderingContext),
+            typeof(NameSurfaceRenderingContext),
+            typeof(RuntimeNamePlateView),
+            NameSurfaceRenderingContext.TeamProfile,
+            propertyChanged: (bindable, _, value) =>
+                ((RuntimeNamePlateView)bindable)._plate.RenderingContext = (NameSurfaceRenderingContext)value);
+
     private readonly Label _fallback;
     private readonly IdentityPlateView _plate;
     private int _version;
+    private bool _eventsHooked;
 
     public RuntimeNamePlateView()
     {
@@ -57,6 +69,12 @@ public sealed class RuntimeNamePlateView : ContentView
         {
             Children = { _fallback, _plate }
         };
+        Loaded += (_, _) =>
+        {
+            HookEvents();
+            Refresh();
+        };
+        Unloaded += (_, _) => UnhookEvents();
     }
 
     public string OwnerId
@@ -77,12 +95,51 @@ public sealed class RuntimeNamePlateView : ContentView
         set => SetValue(OwnerKindProperty, value);
     }
 
+    public NameSurfaceRenderingContext RenderingContext
+    {
+        get => (NameSurfaceRenderingContext)GetValue(RenderingContextProperty);
+        set => SetValue(RenderingContextProperty, value);
+    }
+
     protected override void OnParentSet()
     {
         base.OnParentSet();
         if (Parent != null)
             Refresh();
     }
+
+    private void HookEvents()
+    {
+        if (_eventsHooked)
+            return;
+        _eventsHooked = true;
+        AppEvents.StoreProgressChanged += OnPlayerIdentityChanged;
+        AppEvents.TeamAssetsChanged += OnTeamIdentityChanged;
+    }
+
+    private void UnhookEvents()
+    {
+        if (!_eventsHooked)
+            return;
+        _eventsHooked = false;
+        AppEvents.StoreProgressChanged -= OnPlayerIdentityChanged;
+        AppEvents.TeamAssetsChanged -= OnTeamIdentityChanged;
+    }
+
+    private void OnPlayerIdentityChanged(string playerId)
+    {
+        if (string.Equals(OwnerKind, "Player", StringComparison.OrdinalIgnoreCase) && SameOwner(playerId))
+            Refresh();
+    }
+
+    private void OnTeamIdentityChanged(string teamId)
+    {
+        if (string.Equals(OwnerKind, "Team", StringComparison.OrdinalIgnoreCase) && SameOwner(teamId))
+            Refresh();
+    }
+
+    private bool SameOwner(string ownerId) =>
+        string.Equals(OwnerId?.Trim(), ownerId?.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private void Refresh()
     {

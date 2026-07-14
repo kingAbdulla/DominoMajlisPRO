@@ -43,7 +43,8 @@ public static class TeamEligibleAssetService
             var session = await DominoMajlisPRO.Services.ApplicationUserService.EnsureCurrentSessionAsync();
             var appUserId = session.ApplicationUserId ?? string.Empty;
             result.AddRange(owned
-                .Where(item => IsTeamType(item.StoreTypeId))
+                .Where(item => IsTeamType(item.StoreTypeId) &&
+                               !RemovedStoreAssetPolicy.IsRemoved(item.AssetId))
                 .Select(item => new TeamOwnedAssetItem
                 {
                     TeamInventoryItemId = item.InventoryItemId,
@@ -62,6 +63,7 @@ public static class TeamEligibleAssetService
 
 
         return result
+            .Where(item => !RemovedStoreAssetPolicy.IsRemoved(item.TeamAssetId))
             .GroupBy(
                 item => $"{StoreAssetCatalogService.CanonicalTypeId(item.TeamAssetTypeId)}\u001F{item.TeamAssetId}",
                 StringComparer.OrdinalIgnoreCase)

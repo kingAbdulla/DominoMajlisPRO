@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:shapes="clr-namespace:Microsoft.Maui.Controls.Shapes;assembly=Microsoft.Maui.Controls"
+    xmlns:galleryComponents="clr-namespace:DominoMajlisPRO.GalleryEngine.Components"
     x:Class="DominoMajlisPRO.MainPage"
     BackgroundColor="#050505"
     NavigationPage.HasNavigationBar="False">
@@ -1211,6 +1212,7 @@ Margin="0,5,0,0">
     LineBreakMode="TailTruncation"
     MaxLines="1"
     HorizontalTextAlignment="Start"/>
+                                        <galleryComponents:RuntimeNamePlateView x:Name="PreviewTeam1NamePlate" RenderingContext="MainPage" Grid.Column="0" OwnerKind="Team" IsVisible="False" HeightRequest="42"/>
 
                                         <Label
             Grid.Column="1"
@@ -1396,6 +1398,7 @@ Aspect="AspectFit"/>
     LineBreakMode="TailTruncation"
     MaxLines="1"
     HorizontalTextAlignment="Start"/>
+                                        <galleryComponents:RuntimeNamePlateView x:Name="PreviewTeam2NamePlate" RenderingContext="MainPage" Grid.Column="0" OwnerKind="Team" IsVisible="False" HeightRequest="42"/>
 
                                         <Label
             Grid.Column="1"
@@ -1752,20 +1755,10 @@ Aspect="AspectFit"/>
                                     Grid.Column="1"
                                     Spacing="2">
 
-                                            <Label
-                                        Text="{Binding TeamName}"
-                                        TextColor="Gold"
-                                        FontSize="18"
-                                        FontAttributes="Bold"/>
+                                            <galleryComponents:RuntimeNamePlateView RenderingContext="MainPage" OwnerKind="Team" OwnerId="{Binding TeamId}" DisplayText="{Binding TeamName}" HeightRequest="38"/>
 
-                                            <Label
-                                        Text="{Binding Player1}"
-                                        TextColor="White"
-                                        FontSize="14"/>
-                                            <Label
-Text="{Binding Player2}"
-TextColor="White"
-FontSize="14"/>
+                                            <galleryComponents:RuntimeNamePlateView RenderingContext="MainPage" OwnerKind="Player" OwnerId="{Binding Player1Id}" DisplayText="{Binding Player1}" HeightRequest="28"/>
+                                            <galleryComponents:RuntimeNamePlateView RenderingContext="MainPage" OwnerKind="Player" OwnerId="{Binding Player2Id}" DisplayText="{Binding Player2}" HeightRequest="28"/>
 
                                         </VerticalStackLayout>
 

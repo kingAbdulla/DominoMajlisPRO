@@ -730,7 +730,7 @@ public partial class PlayerRankingsPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         playerCell.Children.Add(BuildAvatar(entry, 38));
-        playerCell.Children.Add(PlayerNameSurface(entry.DisplayName, 30));
+        playerCell.Children.Add(PlayerNameSurface(entry.PlayerId, entry.DisplayName, 30));
         Grid.SetColumn(playerCell, 1);
         grid.Children.Add(playerCell);
 
@@ -803,7 +803,7 @@ public partial class PlayerRankingsPage : ContentPage
             Spacing = 4,
             VerticalOptions = LayoutOptions.Center
         };
-        middle.Children.Add(PlayerNameSurface(entry.DisplayName, 32));
+        middle.Children.Add(PlayerNameSurface(entry.PlayerId, entry.DisplayName, 32));
         var rank = PlayerRankService.Calculate(entry.XP);
         middle.Children.Add(new Label
         {
@@ -863,18 +863,17 @@ public partial class PlayerRankingsPage : ContentPage
         };
     }
 
-    static View PlayerNameSurface(string displayName, double height)
+    static View PlayerNameSurface(string playerId, string displayName, double height)
     {
-        return new Label
+        return new GalleryEngine.Components.RuntimeNamePlateView
         {
-            Text = displayName,
-            TextColor = Colors.White,
-            FontSize = DeviceInfo.Idiom == DeviceIdiom.Phone ? 12 : 14,
-            FontAttributes = FontAttributes.Bold,
+            OwnerId = playerId,
+            OwnerKind = "Player",
+            DisplayText = displayName,
+            RenderingContext = GalleryEngine.Models.NameSurfaceRenderingContext.Rankings,
             HeightRequest = height,
-            MaxLines = 1,
-            LineBreakMode = LineBreakMode.TailTruncation,
-            VerticalTextAlignment = TextAlignment.Center
+            MinimumWidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 88 : 120,
+            HorizontalOptions = LayoutOptions.Fill
         };
     }
 

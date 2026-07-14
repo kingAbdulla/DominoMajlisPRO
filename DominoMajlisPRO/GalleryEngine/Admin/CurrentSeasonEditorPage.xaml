@@ -188,7 +188,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
                     <Button Text="حفظ كمسودة" Clicked="OnSaveDraftClicked" />
                     <Button x:Name="PublishButton" Grid.Column="1" Text="نشر" Clicked="OnPublishClicked" />
                     <Button Grid.Row="1" Text="إلغاء" Clicked="OnCancelTapped" />
@@ -196,6 +196,7 @@
                     <Button x:Name="SaveChangesButton" Grid.Row="2" Text="حفظ التعديل" IsVisible="False" Clicked="OnSaveChangesClicked" />
                     <Button Grid.Row="2" Grid.Column="1" Text="المواسم المنشورة" Clicked="OnOpenPublishedSeasonsClicked" />
                     <Button Grid.Row="3" Grid.ColumnSpan="2" Text="موسم جديد" Clicked="OnNewSeasonClicked" />
+                    <Button Grid.Row="4" Grid.ColumnSpan="2" Text="إدارة قصة الموسم والتحديات والجوائز" Clicked="OnOpenSeasonContentClicked" />
                 </Grid>
 
             </VerticalStackLayout>

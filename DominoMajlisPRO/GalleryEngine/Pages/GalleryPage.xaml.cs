@@ -15,7 +15,6 @@ public partial class GalleryPage : ContentPage
 {
     public Components.StoreSections.StoreNavigationState StoreNavigation { get; } = new();
 
-    private GalleryCatalog? _catalog;
     private GallerySeason? _season;
     private List<GalleryItem> _items = new();
     private AvatarsSectionView? _avatarsSection;
@@ -34,8 +33,6 @@ public partial class GalleryPage : ContentPage
 
     private async Task LoadPageAsync()
     {
-        _catalog = GalleryService.GetCatalog();
-
         var currentSeason = await StoreAssetQueryService.LoadCurrentSeasonAsync();
 
         if (currentSeason == null)
@@ -64,21 +61,22 @@ public partial class GalleryPage : ContentPage
         if (string.IsNullOrWhiteSpace(seasonId))
             return;
 
-        _catalog ??= GalleryService.GetCatalog();
-
-        var season = _catalog
-            .Seasons
-            .FirstOrDefault(x => x.Id == seasonId);
-
-        if (season == null)
+        var record = await StoreAssetQueryService.LoadCurrentSeasonAsync();
+        if (record == null)
             return;
 
-        await SwitchSeasonAsync(season);
+        var identity = CurrentSeasonAdminService.GetIdentity(record);
+        if (!string.Equals(record.Id, seasonId, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(identity, seasonId, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        await SwitchSeasonAsync(ToGallerySeason(record));
     }
 
     private async Task ApplySeasonAsync(GallerySeason season)
     {
-        _catalog ??= GalleryService.GetCatalog();
         _season = season;
 
         _items = new List<GalleryItem>();
@@ -126,9 +124,9 @@ public partial class GalleryPage : ContentPage
 
     private void BindSections()
     {
-        NewArrivalsSection.Bind(Normalize(_items.Where(x => x.IsNew).Take(6).ToList(), 6));
-        LimitedOffersSection.Bind(Normalize(_items.Where(x => x.IsLimited).Take(6).ToList(), 6));
-        BrowseCategoriesSection.Bind(Normalize(_items.Take(6).ToList(), 6));
+        NewArrivalsSection.Bind(new List<GalleryItem>());
+        LimitedOffersSection.Bind(new List<GalleryItem>());
+        BrowseCategoriesSection.Bind(new List<GalleryItem>());
     }
 
     private async void OnQuickActionRequested(object? sender, StoreQuickActionEventArgs e)
@@ -149,6 +147,7 @@ public partial class GalleryPage : ContentPage
                 break;
 
             case StoreQuickAction.SeasonPass:
+                await Navigation.PushAsync(new SeasonPage());
                 break;
         }
     }
@@ -230,9 +229,6 @@ public partial class GalleryPage : ContentPage
         {
             await SectionContentRoot.FadeToAsync(0, 80);
             SectionContentRoot.IsVisible = false;
-            NewArrivalsSection.IsVisible = true;
-            LimitedOffersSection.IsVisible = true;
-            BrowseCategoriesSection.IsVisible = true;
             HomeTopContent.IsVisible = true;
             HomeContent.IsVisible = true;
             HomeTopContent.Opacity = 0;
@@ -462,25 +458,6 @@ public partial class GalleryPage : ContentPage
             }
         }
 
-        var firstItemImage = _items
-            .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.Image))
-            ?.Image;
-
-        return string.IsNullOrWhiteSpace(firstItemImage)
-            ? "gallery_lion.png"
-            : firstItemImage;
-    }
-
-    private List<GalleryItem> Normalize(List<GalleryItem> source, int count)
-    {
-        var result = source.ToList();
-        var fallback = _items.FirstOrDefault();
-
-        while (result.Count < count && fallback != null)
-        {
-            result.Add(fallback);
-        }
-
-        return result.Take(count).ToList();
+        return string.Empty;
     }
 }

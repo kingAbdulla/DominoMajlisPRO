@@ -73,6 +73,7 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 _availableItems = items;
+                IsVisible = items.Count > 0;
                 AvailableItemCountChanged?.Invoke(this, items.Count);
                 BuildTappableCards(items.Take(_visibleItemCount).ToList());
             });
@@ -82,10 +83,9 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 _availableItems = Array.Empty<LimitedOfferCard>();
+                IsVisible = false;
                 AvailableItemCountChanged?.Invoke(this, 0);
-                BuildEmptyState(
-                    "تعذر تحميل العروض اليومية",
-                    "يرجى المحاولة مرة أخرى بعد قليل.");
+                BuildTappableCards(Array.Empty<LimitedOfferCard>());
             });
         }
     }
@@ -113,12 +113,7 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         if (items.Count == 0)
-        {
-            BuildEmptyState(
-                "لا توجد عروض يومية حالياً",
-                "ستظهر هنا العروض الجديدة فور نشرها.");
             return;
-        }
 
         for (var index = 0; index < items.Count; index++)
         {
@@ -128,64 +123,6 @@ public class LimitedOffersSectionView : StoreProductsSectionBase
             AttachCardTap(card, () => OpenActionSheet(cardItem));
             grid.Add(card, index % 3, index / 3);
         }
-    }
-
-    private void BuildEmptyState(string title, string message)
-    {
-        if (Content is not VerticalStackLayout section ||
-            section.Children.Count < 2 ||
-            section.Children[1] is not Grid grid)
-        {
-            return;
-        }
-
-        grid.Children.Clear();
-        grid.RowDefinitions.Clear();
-        grid.ColumnDefinitions.Clear();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-        var theme = GalleryThemeEngine.Current;
-        var panel = new Border
-        {
-            Padding = new Thickness(18, 22),
-            Background = theme.CardBackground,
-            Stroke = theme.Stroke,
-            StrokeThickness = 1,
-            StrokeShape = new RoundRectangle { CornerRadius = 18 },
-            Content = new VerticalStackLayout
-            {
-                Spacing = 6,
-                HorizontalOptions = LayoutOptions.Fill,
-                Children =
-                {
-                    new Label
-                    {
-                        Text = "🎁",
-                        FontSize = 30,
-                        HorizontalTextAlignment = TextAlignment.Center
-                    },
-                    new Label
-                    {
-                        Text = title,
-                        FontFamily = "Tajawal-Regular",
-                        FontSize = 16,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = theme.TextPrimary,
-                        HorizontalTextAlignment = TextAlignment.Center
-                    },
-                    new Label
-                    {
-                        Text = message,
-                        FontFamily = "Tajawal-Regular",
-                        FontSize = 12,
-                        TextColor = theme.TextMuted,
-                        HorizontalTextAlignment = TextAlignment.Center
-                    }
-                }
-            }
-        };
-        grid.Add(panel, 0, 0);
     }
 
     private void OpenActionSheet(LimitedOfferCard card)

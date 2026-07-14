@@ -26,13 +26,10 @@ public partial class CreateTeamPage
         TeamEffectCarousel.SelectionChanged += OnTeamEffectVisualSelectionChanged;
 
         Dispatcher.Dispatch(RefreshCreateTeamVisualPipeline);
-
-        var runs = 0;
-        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(250), () =>
+        Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(300), () =>
         {
-            runs++;
-            RefreshCreateTeamVisualPipeline();
-            return Handler != null && runs < 16;
+            if (Handler != null)
+                RefreshCreateTeamVisualPipeline();
         });
     }
 
@@ -48,6 +45,7 @@ public partial class CreateTeamPage
         _ = ApplyPreviewNameTypographyAsync();
         _ = UpdatePreviewAvatarsAsync();
         _ = SyncTeamEffectChoicesAndPreviewAsync();
+        _ = SyncOwnedCosmeticChoicesAsync();
     }
 
     private void UpdatePreviewIdentityLabelsSafely()
@@ -90,7 +88,7 @@ public partial class CreateTeamPage
                 ? ResolvePreviewPlayerNameTypographyAsync(Player2Entry.Text)
                 : Task.FromResult<NameTypographyIdentity?>(null);
 
-            await Task.WhenAll(teamTask, player1Task, player2Task);
+            await Task.WhenAll(new Task[] { teamTask, player1Task, player2Task });
             if (version != _nameTypographySyncVersion)
                 return;
 
@@ -99,12 +97,26 @@ public partial class CreateTeamPage
                 ApplyTypographyToLabel(PreviewTeamName, teamTask.Result, 28, Color.FromArgb("#F2C46D"), true);
                 ApplyTypographyToLabel(PreviewPlayer1, player1Task.Result, 13, Colors.White, false);
                 ApplyTypographyToLabel(PreviewPlayer2, player2Task.Result, 13, Colors.White, false);
+                BindPreviewPlate(PreviewTeamNamePlate, PreviewTeamName, teamTask.Result);
+                BindPreviewPlate(PreviewPlayer1NamePlate, PreviewPlayer1, player1Task.Result);
+                BindPreviewPlate(PreviewPlayer2NamePlate, PreviewPlayer2, player2Task.Result);
             });
         }
         catch
         {
             // Typography is visual-only here; saving and validation stay independent.
         }
+    }
+
+    private static void BindPreviewPlate(
+        GalleryEngine.Components.IdentityPlateView plate,
+        Label fallback,
+        NameTypographyIdentity? identity)
+    {
+        var hasVisual = identity?.HasVisual == true;
+        plate.Bind(fallback.Text, identity?.ResolvePreset());
+        plate.IsVisible = hasVisual;
+        fallback.IsVisible = !hasVisual;
     }
 
     private static async Task<NameTypographyIdentity?> ResolvePreviewPlayerNameTypographyAsync(string? text)
@@ -234,16 +246,16 @@ public partial class CreateTeamPage
     private async Task<IReadOnlyList<string>> ResolveCurrentTeamEffectOwnerIdsAsync()
     {
         var result = new List<string>();
-        await AddPlayerIdFromEntryAsync(Player1Entry.Text);
-        if (isTeamMode)
-            await AddPlayerIdFromEntryAsync(Player2Entry.Text);
-
         if (CurrentTeam != null)
         {
             AddId(CurrentTeam.Player1Id);
             if (isTeamMode)
                 AddId(CurrentTeam.Player2Id);
         }
+
+        await AddPlayerIdFromEntryAsync(Player1Entry.Text);
+        if (isTeamMode)
+            await AddPlayerIdFromEntryAsync(Player2Entry.Text);
 
         return result;
 
@@ -260,6 +272,7 @@ public partial class CreateTeamPage
             if (!result.Contains(id.Trim(), StringComparer.OrdinalIgnoreCase))
                 result.Add(id.Trim());
         }
+
     }
 
     private static CatalogAssetDisplay? ResolveTeamEffectFromCatalogForCreateTeam(

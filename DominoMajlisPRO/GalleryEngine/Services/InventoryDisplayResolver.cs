@@ -28,12 +28,14 @@ public static class InventoryDisplayResolver
         var productReferences = productReferencesTask.Result;
         var items = new List<ResolvedInventoryDisplay>();
         items.AddRange(playerInventoryTask.Result
-            .Where(item => item.IsOwned && !item.IsExpired)
+            .Where(item => item.IsOwned && !item.IsExpired &&
+                           !RemovedStoreAssetPolicy.IsRemoved(item.AssetId))
             .GroupBy(item => $"{StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId)}\u001F{item.AssetId}", StringComparer.OrdinalIgnoreCase)
             .Select(group => group.OrderByDescending(item => item.IsEquipped).ThenByDescending(item => item.PurchasedAt).First())
             .Select(item => ResolvePlayer(item, catalog, productReferences)));
         items.AddRange(teamInventoryTask.Result
-            .Where(item => item.IsOwned)
+            .Where(item => item.IsOwned &&
+                           !RemovedStoreAssetPolicy.IsRemoved(item.TeamAssetId))
             .GroupBy(item => $"{StoreAssetCatalogService.CanonicalTypeId(item.TeamAssetTypeId)}\u001F{item.TeamAssetId}", StringComparer.OrdinalIgnoreCase)
             .Select(group => group.OrderByDescending(item => item.IsEquipped).ThenByDescending(item => item.AcquiredAt).First())
             .Select(item => ResolveTeam(item, catalog, productReferences)));
@@ -195,6 +197,8 @@ public static class InventoryDisplayResolver
     public static string? ResolveOptionalImagePath(string? imagePath)
     {
         if (string.IsNullOrWhiteSpace(imagePath))
+            return null;
+        if (RemovedStoreAssetPolicy.IsRemoved(imagePath))
             return null;
         var path = imagePath.Trim();
         if (File.Exists(path))

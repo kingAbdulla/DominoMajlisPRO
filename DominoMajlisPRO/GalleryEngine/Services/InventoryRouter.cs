@@ -127,9 +127,9 @@ public static class InventoryRouter
         if (assetType == StoreProductAssetType.EmblemBackground)
             return TeamRoute(canonicalTypeId, InventoryEquipTarget.EmblemBackground);
         if (assetType == StoreProductAssetType.TeamNameEffect)
-            return TeamRoute(canonicalTypeId, InventoryEquipTarget.TeamNameEffect);
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamNameEffect, false);
         if (assetType == StoreProductAssetType.TeamNameFrame)
-            return TeamRoute(canonicalTypeId, InventoryEquipTarget.TeamNameFrame);
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamNameFrame, false);
         if (assetType == StoreProductAssetType.Avatar)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Avatar, true);
         if (assetType == StoreProductAssetType.ProfileBackground)
@@ -146,7 +146,7 @@ public static class InventoryRouter
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamEffect, false);
         if (assetType == StoreProductAssetType.Title)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Title, true);
-        if (assetType is StoreProductAssetType.Badge or StoreProductAssetType.SeasonReward)
+        if (assetType is StoreProductAssetType.Badge or StoreProductAssetType.SeasonReward or StoreProductAssetType.Bundle)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.None, false);
 
         return new InventoryRoute(

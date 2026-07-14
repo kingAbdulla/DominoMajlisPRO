@@ -41,8 +41,6 @@ public class CategoriesSectionView : ContentView
             FlowDirection = FlowDirection.RightToLeft
         };
 
-        AddDefaultChips();
-
         scroll.Content = _chips;
         root.Children.Add(scroll);
 
@@ -252,7 +250,9 @@ public class CategoriesSectionView : ContentView
         {
             _chips.Children.Clear();
             _chipTargets.Clear();
-            AddDefaultChips();
+            IsVisible = mapped.Count > 0;
+            if (mapped.Count > 0)
+                _chips.Children.Add(CreateChip("الكل", StoreView.Home, _selectedView == StoreView.Home));
             foreach (var item in mapped)
             {
                 if (_chipTargets.Any(target => target.View == item.View!.Value))
@@ -262,13 +262,6 @@ public class CategoriesSectionView : ContentView
             }
             ApplyTheme();
         });
-    }
-
-    private void AddDefaultChips()
-    {
-        _chips.Children.Add(CreateChip("الكل", StoreView.Home, _selectedView == StoreView.Home));
-        foreach (var type in StoreTypeRegistry.DefaultCategoryTypes)
-            _chips.Children.Add(CreateChip(type.ArabicName, type.TargetView, _selectedView == type.TargetView));
     }
 
     private void OnThemeChanged(object? sender, GalleryTheme theme)

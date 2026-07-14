@@ -234,6 +234,7 @@ internal sealed class StoreProductPreviewOverlay : Grid
         var plate = new IdentityPlateView
         {
             HeightRequest = 70,
+            RenderingContext = NameSurfaceRenderingContext.Store,
             MaximumWidthRequest = 420,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center

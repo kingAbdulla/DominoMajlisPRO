@@ -328,9 +328,9 @@ public partial class CreateTeamPage : ContentPage
         DialogSheet.TranslationY = 18;
 
         await Task.WhenAll(
-            DialogOverlay.FadeTo(1, 160, Easing.CubicOut),
-            DialogSheet.ScaleTo(1, 210, Easing.CubicOut),
-            DialogSheet.TranslateTo(0, 0, 210, Easing.CubicOut));
+            DialogOverlay.FadeToAsync(1, 160, Easing.CubicOut),
+            DialogSheet.ScaleToAsync(1, 210, Easing.CubicOut),
+            DialogSheet.TranslateToAsync(0, 0, 210, Easing.CubicOut));
 
         return await _dialogCompletionSource.Task;
     }
@@ -354,8 +354,8 @@ public partial class CreateTeamPage : ContentPage
             return;
 
         await Task.WhenAll(
-            DialogOverlay.FadeTo(0, 120, Easing.CubicIn),
-            DialogSheet.ScaleTo(0.94, 120, Easing.CubicIn));
+            DialogOverlay.FadeToAsync(0, 120, Easing.CubicIn),
+            DialogSheet.ScaleToAsync(0.94, 120, Easing.CubicIn));
 
         DialogOverlay.IsVisible = false;
         completion.TrySetResult(result);
@@ -460,11 +460,27 @@ public partial class CreateTeamPage : ContentPage
                     }
                 }
 
+                var resolvedPlayer1Id = ResolveEligibleOwnerId(
+                    player1, p1Text, ownerTeam?.Player1Id, ownerTeam?.Player1);
+                var resolvedPlayer2Id = isTeamMode
+                    ? ResolveEligibleOwnerId(player2, Player2Entry.Text, ownerTeam?.Player2Id, ownerTeam?.Player2)
+                    : null;
+                if (ownerTeam != null)
+                {
+                    resolvedPlayer1Id = string.IsNullOrWhiteSpace(resolvedPlayer1Id)
+                        ? ownerTeam.Player1Id
+                        : resolvedPlayer1Id;
+                    resolvedPlayer2Id = isTeamMode && string.IsNullOrWhiteSpace(resolvedPlayer2Id)
+                        ? ownerTeam.Player2Id
+                        : resolvedPlayer2Id;
+                }
+
+                var selectedTeamId = ownerTeam?.TeamId;
+
                 var inventory = (await TeamEligibleAssetService.GetEligibleAsync(
-                        ownerTeam?.TeamId,
-                        player1?.PlayerId ?? ownerTeam?.Player1Id,
-                        player2?.PlayerId ??
-                        (isTeamMode ? ownerTeam?.Player2Id : null)))
+                        selectedTeamId,
+                        resolvedPlayer1Id,
+                        resolvedPlayer2Id))
                     .Where(item => item.IsOwned || item.Source == "Default")
                     .ToList();
 
@@ -478,8 +494,8 @@ public partial class CreateTeamPage : ContentPage
 
                 var teamEffectOwnerIds = new[]
                     {
-                        player1?.PlayerId ?? ownerTeam?.Player1Id,
-                        player2?.PlayerId ?? (isTeamMode ? ownerTeam?.Player2Id : null)
+                        resolvedPlayer1Id,
+                        resolvedPlayer2Id
                     }
                     .Where(id => !string.IsNullOrWhiteSpace(id))
                     .Select(id => id!.Trim())
@@ -568,10 +584,15 @@ public partial class CreateTeamPage : ContentPage
                 var newColors = colorItems.ToList();
                 var newBackgrounds = backgroundItems.ToList();
                 var newBackgroundCarouselItems = backgroundCarouselItems.ToList();
-                var newTeamEffects = ownedTeamEffects
+                var ownedDistinctTeamEffects = ownedTeamEffects
                     .GroupBy(item => $"{item.AssetId}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
                     .Select(group => group.First())
                     .ToList();
+                var newTeamEffects = ownedDistinctTeamEffects.Count == 0
+                    ? new List<TeamEffectCarouselItem>()
+                    : new[] { new TeamEffectCarouselItem(string.Empty, "بدون تأثير", null) }
+                        .Concat(ownedDistinctTeamEffects)
+                        .ToList();
 
                 // Suppress selection handlers while we replace ItemsSource.
                 bool prevSuppress = _suppressSelectionHandlers;
@@ -828,8 +849,8 @@ public partial class CreateTeamPage : ContentPage
         TeamCard.Stroke = Color.FromArgb("#404040");
         TeamCard.BackgroundColor = Color.FromArgb("#151515");
 
-        SingleCard.ScaleTo(1.05, 150);
-        TeamCard.ScaleTo(1.00, 150);
+        _ = SingleCard.ScaleToAsync(1.05, 150);
+        _ = TeamCard.ScaleToAsync(1.00, 150);
         RefreshValidationPanel();
     }
 
@@ -850,8 +871,8 @@ public partial class CreateTeamPage : ContentPage
         SingleCard.Stroke = Color.FromArgb("#404040");
         SingleCard.BackgroundColor = Color.FromArgb("#151515");
 
-        TeamCard.ScaleTo(1.05, 150);
-        SingleCard.ScaleTo(1.00, 150);
+        _ = TeamCard.ScaleToAsync(1.05, 150);
+        _ = SingleCard.ScaleToAsync(1.00, 150);
         RefreshValidationPanel();
     }
 
@@ -1107,6 +1128,43 @@ public partial class CreateTeamPage : ContentPage
         PreviewPlayer2Avatar.Source = player2 == null
             ? InventoryDisplayResolver.ResolveImageSource("player_card.png")
             : PlayerProfileService.GetPlayerImageSource(player2);
+
+        var player1Identity = player1 == null
+            ? null
+            : await PlayerVisualIdentityResolver.ResolveAsync(player1.PlayerId);
+        var player2Identity = player2 == null
+            ? null
+            : await PlayerVisualIdentityResolver.ResolveAsync(player2.PlayerId);
+
+        ApplyPreviewPlayerFrame(PreviewPlayer1Frame, player1Identity?.Frame);
+        ApplyPreviewPlayerFrame(PreviewPlayer2Frame, player2Identity?.Frame);
+    }
+
+    private static string? ResolveEligibleOwnerId(
+        PlayerProfileModel? resolvedPlayer,
+        string? entryText,
+        string? currentPlayerId,
+        string? currentPlayerName)
+    {
+        if (!string.IsNullOrWhiteSpace(resolvedPlayer?.PlayerId))
+            return resolvedPlayer.PlayerId.Trim();
+
+        var value = entryText?.Trim();
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+        return string.Equals(value, currentPlayerId?.Trim(), StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(value, currentPlayerName?.Trim(), StringComparison.OrdinalIgnoreCase)
+            ? currentPlayerId?.Trim()
+            : null;
+    }
+
+    static void ApplyPreviewPlayerFrame(Image target, CatalogAssetDisplay? frame)
+    {
+        var source = frame == null || RemovedStoreAssetPolicy.IsRemoved(frame.AssetId, frame.PreviewImage)
+            ? null
+            : InventoryDisplayResolver.ResolveOptionalImageSource(frame.PreviewImage);
+        target.Source = source;
+        target.IsVisible = source != null;
     }
 
     async Task<PlayerProfileModel?> ResolvePreviewPlayerAsync(int slot, string? text)
@@ -1364,11 +1422,15 @@ public partial class CreateTeamPage : ContentPage
 
             await TeamProfileService.SaveTeamsAsync(teams);
 
+            await PersistSelectedTeamTypographyAsync(team.TeamId);
+
             RaiseTeamMutationEvents(team.TeamId);
 
             await ShowProAlertAsync("تم", "تم إنشاء الفريق", "ممتاز");
 
             ResetForm();
+
+            await LoadTeamsForSelectionAsync(TeamInlineSearchEntry.Text);
 
             return;
         }
@@ -1439,6 +1501,8 @@ public partial class CreateTeamPage : ContentPage
 
         await TeamProfileService.SaveTeamsAsync(teams);
 
+        await PersistSelectedTeamTypographyAsync(existing.TeamId);
+
         RaiseTeamMutationEvents(existing.TeamId);
 
         await ShowProAlertAsync("تم", "تم تعديل الفريق", "ممتاز");
@@ -1466,7 +1530,7 @@ public partial class CreateTeamPage : ContentPage
         await ShowProAlertAsync("تم", "تم تنظيف الحقول وإعادة الخيارات الافتراضية", "ممتاز");
     }
 
-    void TeamNameChanged(object sender, TextChangedEventArgs e)
+    void TeamNameChanged(object? sender, TextChangedEventArgs e)
     {
         PreviewTeamName.Text =
             string.IsNullOrWhiteSpace(TeamNameEntry.Text)
@@ -1475,7 +1539,7 @@ public partial class CreateTeamPage : ContentPage
         RefreshValidationPanel();
     }
 
-    void TeamPlayersChanged(object sender, TextChangedEventArgs? e)
+    void TeamPlayersChanged(object? sender, TextChangedEventArgs? e)
     {
         if (_suppressTeamPlayersChanged)
             return;
@@ -1613,7 +1677,7 @@ public partial class CreateTeamPage : ContentPage
 
     async Task NavigateWithPolishAsync(Page page)
     {
-        await this.FadeTo(0.88, 90, Easing.CubicOut);
+        await this.FadeToAsync(0.88, 90, Easing.CubicOut);
         await Navigation.PushAsync(page, true);
         Opacity = 1;
     }

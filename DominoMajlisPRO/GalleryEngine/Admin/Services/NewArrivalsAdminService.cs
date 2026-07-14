@@ -136,6 +136,53 @@ public static class NewArrivalsAdminService
 
     public static Task HidePublished(string assetId) => HidePublishedAsync(assetId);
 
+    public static async Task<IReadOnlyList<NewArrivalRecord>> LoadArchivedAsync() =>
+        DistinctLatest((await LoadRecordsAsync()).Where(item => item.Status == NewArrivalStatus.Archived));
+
+    public static async Task<int> ArchiveAllPublishedAsync()
+    {
+        var records = await LoadRecordsAsync();
+        var archived = 0;
+        foreach (var item in records.Where(item => item.Status == NewArrivalStatus.Published))
+        {
+            item.Status = NewArrivalStatus.Archived;
+            item.UpdatedAt = DateTime.UtcNow;
+            archived++;
+        }
+        if (archived > 0)
+        {
+            await SaveRecordsAsync(records);
+            PublishedChanged?.Invoke();
+        }
+        return archived;
+    }
+
+    public static async Task RestoreArchivedAsync(string assetId)
+    {
+        var records = await LoadRecordsAsync();
+        var item = records.FirstOrDefault(record =>
+            record.Status == NewArrivalStatus.Archived && SameAssetId(record, assetId));
+        if (item == null)
+            return;
+        item.Status = NewArrivalStatus.Published;
+        item.UpdatedAt = DateTime.UtcNow;
+        item.PublishedAt ??= DateTime.UtcNow;
+        await SaveRecordsAsync(records);
+        PublishedChanged?.Invoke();
+    }
+
+    public static async Task<int> DeleteAllArchivedAsync()
+    {
+        var records = await LoadRecordsAsync();
+        var removed = records.RemoveAll(item => item.Status == NewArrivalStatus.Archived);
+        if (removed > 0)
+        {
+            await SaveRecordsAsync(records);
+            PublishedChanged?.Invoke();
+        }
+        return removed;
+    }
+
     public static async Task RestorePublishedAsync(string assetId)
     {
         var records = await LoadRecordsAsync();

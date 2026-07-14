@@ -19,10 +19,9 @@ public static class IdentityPlateBinder
             return;
 
         var normalized = preset.Normalized();
-        fallbackLabel.FontFamily = normalized.FontFamily;
-        fallbackLabel.FontSize = Math.Clamp(normalized.FontSize * normalized.Scale, 11, 34);
-        fallbackLabel.TextColor = Color.FromArgb(normalized.PrimaryColor);
-        fallbackLabel.Opacity = normalized.Opacity;
+        plate.Bind(text, normalized);
+        plate.IsVisible = true;
+        fallbackLabel.IsVisible = false;
     }
 
     public static View Create(

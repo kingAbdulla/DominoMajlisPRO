@@ -721,6 +721,7 @@ internal sealed class StoreProductActionSheet : Grid
                 var plate = new IdentityPlateView
                 {
                     HeightRequest = 64,
+                    RenderingContext = NameSurfaceRenderingContext.Store,
                     MaximumWidthRequest = 420,
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center

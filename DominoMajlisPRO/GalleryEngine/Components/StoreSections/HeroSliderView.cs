@@ -164,7 +164,7 @@ public class HeroSliderView : ContentView
             return;
 
         var page = new DeveloperStoreManagerPage();
-        var navigation = Application.Current?.MainPage?.Navigation;
+        var navigation = Application.Current?.Windows.FirstOrDefault()?.Page?.Navigation;
 
         if (navigation != null)
         {
@@ -358,6 +358,13 @@ public class HeroSliderView : ContentView
             },
             Content = buttonLabel
         };
+        var openSeason = new TapGestureRecognizer();
+        openSeason.Tapped += async (_, _) =>
+        {
+            var navigation = Application.Current?.Windows.FirstOrDefault()?.Page?.Navigation ?? Shell.Current.Navigation;
+            await navigation.PushAsync(new DominoMajlisPRO.GalleryEngine.Pages.SeasonPage());
+        };
+        button.GestureRecognizers.Add(openSeason);
 
         var textStack = new VerticalStackLayout
         {

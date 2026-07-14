@@ -5,7 +5,8 @@ public enum LimitedOfferStatus
     Draft = 0,
     Published = 1,
     Hidden = 2,
-    Expired = 3
+    Expired = 3,
+    Archived = 4
 }
 
 public enum LimitedOfferCurrencyType

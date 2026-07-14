@@ -1,17 +1,27 @@
 ﻿using DominoMajlisPRO.Models;
-using DominoMajlisPRO.Backend.Authentication;
+using System.IO.Compression;
 using System.Text.Json;
 
 namespace DominoMajlisPRO.Services;
 
 public static class DataMaintenanceService
 {
+    static readonly HashSet<string> IdentityFileNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "application_users.json",
+        "current_user_session.json",
+        "supabase_account_links.json",
+        "local_account_credentials.json",
+        "developer_lock.json",
+        "honor_identity.json",
+        "special_honor_keys.json",
+        "special_honor_identities.json"
+    };
+
     public static async Task<(string Message, string BackupPath)> FullResetAllAppDataAsync()
     {
         string backupPath =
             await BackupService.CreateDeveloperResetBackupAsync();
-
-        SupabaseTokenStore.Clear();
 
         string appData =
             FileSystem.AppDataDirectory;
@@ -20,6 +30,9 @@ public static class DataMaintenanceService
 
         foreach (string file in Directory.GetFiles(appData, "*.json", SearchOption.TopDirectoryOnly))
         {
+            if (IdentityFileNames.Contains(Path.GetFileName(file)))
+                continue;
+
             File.Delete(file);
             deletedFiles++;
         }
@@ -28,9 +41,91 @@ public static class DataMaintenanceService
             $"تم تصفير بيانات التطبيق بالكامل\n\n" +
             $"تم إنشاء نسخة احتياطية قابلة للمشاركة قبل الحذف:\n{Path.GetFileName(backupPath)}\n\n" +
             $"عدد ملفات البيانات المحذوفة: {deletedFiles}\n\n" +
-            $"سيتم نقلك الآن إلى بوابة الهوية الآمنة.";
+            $"تم الاحتفاظ بهوية المطور وربط الحساب والجلسة الآمنة.";
 
         return (message, backupPath);
+    }
+
+    public static async Task<bool> RecoverIdentityFromLatestResetBackupAsync()
+    {
+        string appData = FileSystem.AppDataDirectory;
+        if (await StartupSessionRouterService.HasActiveRegisteredSessionAsync())
+            return false;
+
+        var backupPaths = Directory
+            .EnumerateFiles(
+                FileSystem.CacheDirectory,
+                "DominoMajlisPRO_Before_Full_Reset_*.zip",
+                SearchOption.TopDirectoryOnly)
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .ToList();
+
+        Directory.CreateDirectory(appData);
+
+        foreach (string backupPath in backupPaths)
+        {
+            try
+            {
+                using ZipArchive archive = ZipFile.OpenRead(backupPath);
+                if (!await HasActiveRegisteredIdentityAsync(archive))
+                    continue;
+
+                bool recovered = false;
+                foreach (ZipArchiveEntry entry in archive.Entries)
+                {
+                    string fileName = Path.GetFileName(entry.FullName);
+                    if (!IdentityFileNames.Contains(fileName))
+                        continue;
+
+                    string targetPath = Path.Combine(appData, fileName);
+                    await using Stream source = entry.Open();
+                    await using FileStream target = File.Create(targetPath);
+                    await source.CopyToAsync(target);
+                    recovered = true;
+                }
+
+                if (recovered)
+                    return true;
+            }
+            catch (InvalidDataException)
+            {
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        return false;
+    }
+
+    static async Task<bool> HasActiveRegisteredIdentityAsync(ZipArchive archive)
+    {
+        var sessionEntry = archive.Entries.FirstOrDefault(entry =>
+            string.Equals(Path.GetFileName(entry.FullName), "current_user_session.json", StringComparison.OrdinalIgnoreCase));
+        var usersEntry = archive.Entries.FirstOrDefault(entry =>
+            string.Equals(Path.GetFileName(entry.FullName), "application_users.json", StringComparison.OrdinalIgnoreCase));
+
+        if (sessionEntry == null || usersEntry == null)
+            return false;
+
+        await using Stream sessionStream = sessionEntry.Open();
+        var session = await JsonSerializer.DeserializeAsync<CurrentUserSessionModel>(sessionStream);
+        if (session == null || session.IsLoggedOut || session.Role == ApplicationUserRole.Ghost)
+            return false;
+
+        string applicationUserId =
+            session.ApplicationUserId?.Trim() ??
+            session.CurrentAccountId?.Trim() ??
+            string.Empty;
+        if (string.IsNullOrWhiteSpace(applicationUserId))
+            return false;
+
+        await using Stream usersStream = usersEntry.Open();
+        var users = await JsonSerializer.DeserializeAsync<List<ApplicationUserModel>>(usersStream) ?? new();
+        return users.Any(user =>
+            string.Equals(user.ApplicationUserId?.Trim(), applicationUserId, StringComparison.OrdinalIgnoreCase) &&
+            user.Role != ApplicationUserRole.Ghost &&
+            !user.IsTemporary);
     }
 
     public static async Task<string> CleanCorruptedDataAsync()

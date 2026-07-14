@@ -1268,6 +1268,8 @@ TextChangedEventArgs e)
                     "";
                 RefPreviewTeam1Logo.Source =
                     PreviewTeam1Logo.Source;
+                PreviewTeam1NamePlate.IsVisible = false;
+                PreviewTeam1NameLabel.IsVisible = true;
             }
             else
             {
@@ -1290,6 +1292,7 @@ TextChangedEventArgs e)
                     ResolveStoredImage(GetLiveEmblem(freshTeam1));
                 RefPreviewTeam1Logo.Source =
                     PreviewTeam1Logo.Source;
+                await BindMainTeamNameAsync(PreviewTeam1NamePlate, PreviewTeam1NameLabel, freshTeam1);
             }
         }
 
@@ -1322,6 +1325,8 @@ TextChangedEventArgs e)
                     "";
                 RefPreviewTeam2Logo.Source =
                     PreviewTeam2Logo.Source;
+                PreviewTeam2NamePlate.IsVisible = false;
+                PreviewTeam2NameLabel.IsVisible = true;
             }
             else
             {
@@ -1344,6 +1349,7 @@ TextChangedEventArgs e)
                     ResolveStoredImage(GetLiveEmblem(freshTeam2));
                 RefPreviewTeam2Logo.Source =
                     PreviewTeam2Logo.Source;
+                await BindMainTeamNameAsync(PreviewTeam2NamePlate, PreviewTeam2NameLabel, freshTeam2);
             }
         }
 
@@ -1504,6 +1510,18 @@ TextChangedEventArgs e)
                 Emblem = ResolveStoredImage(GetLiveEmblem(team))
             })
             .ToList();
+    }
+
+    static async Task BindMainTeamNameAsync(
+        GalleryEngine.Components.RuntimeNamePlateView plate,
+        Label fallback,
+        TeamProfileModel team)
+    {
+        var identity = await TeamNameTypographyResolver.ResolveAsync(team.TeamId);
+        plate.OwnerId = team.TeamId;
+        plate.DisplayText = fallback.Text;
+        plate.IsVisible = identity.HasVisual;
+        fallback.IsVisible = !identity.HasVisual;
     }
 
     string GetLiveEmblem(TeamProfileModel? team)

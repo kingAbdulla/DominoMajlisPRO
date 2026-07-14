@@ -6,6 +6,12 @@ namespace DominoMajlisPRO.GalleryEngine.Admin.Services;
 public static class StoreResetService
 {
     private const string RuntimeConfigurationFile = "gallery_store_runtime_configuration.json";
+    private static readonly HashSet<string> ProtectedLedgerFiles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        RuntimeConfigurationFile,
+        "season_reward_claims.json",
+        "season_archives.json"
+    };
     private static readonly string[] ReferencePropertyNames =
     {
         "AssetId", "ProductId", "RewardAssetId", "FrameAssetId", "EffectAssetId"
@@ -37,7 +43,7 @@ public static class StoreResetService
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             File.Copy(source, destination, overwrite: false);
 
-            if (string.Equals(Path.GetFileName(source), RuntimeConfigurationFile, StringComparison.OrdinalIgnoreCase))
+            if (ProtectedLedgerFiles.Contains(Path.GetFileName(source)))
                 continue;
 
             var counts = await InspectAsync(source, deletedIds);
@@ -53,7 +59,7 @@ public static class StoreResetService
 
         foreach (var source in files)
         {
-            if (!string.Equals(Path.GetFileName(source), RuntimeConfigurationFile, StringComparison.OrdinalIgnoreCase))
+            if (!ProtectedLedgerFiles.Contains(Path.GetFileName(source)))
                 File.Delete(source);
         }
 

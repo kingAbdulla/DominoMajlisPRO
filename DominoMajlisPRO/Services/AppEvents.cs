@@ -13,6 +13,8 @@ public static class AppEvents
     public static event Action<string>? TeamAssetsChanged;
     public static event Action<string>? TeamEffectChanged;
     public static event Action? SeasonChanged;
+    public static event Action<string>? SeasonProgressChanged;
+    public static event Action<string>? SeasonRewardClaimChanged;
     public static event Action? TeamStatsChanged;
     public static event Action<string>? WalletChanged;
     public static event Action<string>? RankRewardGranted;
@@ -60,6 +62,27 @@ public static class AppEvents
     {
         SafeRaise(SeasonChanged);
         SafeRaise(RankingsChanged);
+    }
+
+    public static void RaiseSeasonProgressChanged(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+
+        SafeRaise(SeasonProgressChanged, playerId);
+        SafeRaise(PlayerProfileChanged);
+        SafeRaise(RankingsChanged);
+    }
+
+    public static void RaiseSeasonRewardClaimChanged(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+
+        SafeRaise(SeasonRewardClaimChanged, playerId);
+        RaiseSeasonProgressChanged(playerId);
+        SafeRaise(StoreProgressChanged, playerId);
+        SafeRaise(DataChanged);
     }
 
     public static void RaiseTeamStatsChanged()

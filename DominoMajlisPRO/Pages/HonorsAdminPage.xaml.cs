@@ -373,7 +373,7 @@ public partial class HonorsAdminPage : ContentPage
             });
 
         Application.Current!.MainPage =
-            new NavigationPage(new PremiumAuthPage());
+            new NavigationPage(new MainPage());
     }
 
     async void OnBackImageTapped(object sender, TappedEventArgs e)

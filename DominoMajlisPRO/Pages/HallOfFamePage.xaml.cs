@@ -1,4 +1,5 @@
 using DominoMajlisPRO.GalleryEngine.Models;
+using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
@@ -100,7 +101,7 @@ public partial class HallOfFamePage : ContentPage
         snapshot = await HallOfFameService.LoadAsync(forceRefresh);
         HallContainer.Opacity = 0;
         ClearDynamicSections();
-        RenderHero();
+        await RenderHeroAsync();
         await RenderTeamsAsync();
         if (isDeveloper)
             RenderCandidateCenterButton();
@@ -121,12 +122,14 @@ public partial class HallOfFamePage : ContentPage
         StatsContainer.Children.Clear();
     }
 
-    void RenderHero()
+    async Task RenderHeroAsync()
     {
         SeasonNumberLabel.Text = snapshot.SeasonText;
         var hero = snapshot.HeroTeam;
         if (hero == null)
         {
+            HeroTeamNamePlate.IsVisible = false;
+            HeroTeamNameLabel.IsVisible = true;
             HeroTeamNameLabel.Text = "لا توجد أسطورة";
             HeroSubtitleLabel.Text = "بانتظار عضو مؤكد وفق دستور قاعة الأساطير";
             HeroWinsLabel.Text = "0";
@@ -136,6 +139,11 @@ public partial class HallOfFamePage : ContentPage
         }
 
         HeroTeamNameLabel.Text = hero.DisplayName;
+        var heroTypography = await TeamNameTypographyResolver.ResolveAsync(hero.TeamId);
+        HeroTeamNamePlate.OwnerId = hero.TeamId;
+        HeroTeamNamePlate.DisplayText = hero.DisplayName;
+        HeroTeamNamePlate.IsVisible = heroTypography.HasVisual;
+        HeroTeamNameLabel.IsVisible = !heroTypography.HasVisual;
         HeroSubtitleLabel.Text = "عضو مؤكد في قاعة الأساطير";
         HeroWinsLabel.Text = hero.Wins.ToString("N0");
         HeroWinRateLabel.Text = $"{hero.WinRate:0.#}%";
@@ -285,7 +293,12 @@ public partial class HallOfFamePage : ContentPage
         var layout = new VerticalStackLayout { Spacing = 4, HorizontalOptions = LayoutOptions.Center };
         layout.Children.Add(Label(rank <= 3 ? $"#{rank}" : rank.ToString(), 13, Color.FromArgb(Gold), true));
         layout.Children.Add(avatar);
-        layout.Children.Add(Label(player.DisplayName, DeviceInfo.Idiom == DeviceIdiom.Phone ? 14 : 18, Colors.White, true));
+        layout.Children.Add(IdentityPlateBinder.Create(
+            player.DisplayName,
+            new NameTypographyIdentity(player.PlayerId, identity?.PlayerNameEffect, identity?.PlayerNameFrame),
+            DeviceInfo.Idiom == DeviceIdiom.Phone ? 14 : 18,
+            Colors.White,
+            true));
         layout.Children.Add(Label(identity?.Title?.DisplayName ?? player.Category, 10, Color.FromArgb(Muted)));
         layout.Children.Add(Label($"Legacy {player.Legacy:N0}", 12, Color.FromArgb(Gold), true));
         layout.Children.Add(Label($"دخل القاعة {player.HallEnteredAt:dd/MM/yyyy}", 10, Color.FromArgb(Muted)));

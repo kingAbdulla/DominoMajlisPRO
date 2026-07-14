@@ -1,5 +1,23 @@
 namespace DominoMajlisPRO.GalleryEngine.Models;
 
+public enum NameSurfaceRenderingContext
+{
+    Store,
+    Inventory,
+    DeveloperPreview,
+    CreateTeam,
+    PlayerProfile,
+    TeamProfile,
+    MainPage,
+    GamePage,
+    Rankings,
+    HallOfFame,
+    History,
+    MatchDetails,
+    Certificate,
+    Victory
+}
+
 public sealed class TypographyIdentityPreset
 {
     public string FontFamily { get; set; } = TypographyFontCatalog.DefaultFontFamily;
@@ -9,6 +27,7 @@ public sealed class TypographyIdentityPreset
     public string DepthPreset { get; set; } = "Low";
     public string MotionPreset { get; set; } = "None";
     public string ParticlePreset { get; set; } = "None";
+    public string DistortionPreset { get; set; } = "None";
     public string FrameStylePreset { get; set; } = "None";
     public double FrameThickness { get; set; } = 1.4;
     public string PrimaryColor { get; set; } = "#FFD76A";
@@ -17,6 +36,14 @@ public sealed class TypographyIdentityPreset
     public double Scale { get; set; } = 1;
     public double Speed { get; set; } = 1;
     public double Intensity { get; set; } = 1;
+    public double Metalness { get; set; } = 0.65;
+    public double Roughness { get; set; } = 0.28;
+    public double Specular { get; set; } = 0.72;
+    public double Gloss { get; set; } = 0.62;
+    public double MicroNoise { get; set; } = 0.12;
+    public double Reflection { get; set; } = 0.55;
+    public double Depth { get; set; } = 0.35;
+    public double Brightness { get; set; } = 0.68;
 
     public static TypographyIdentityPreset CreateDefault() => new();
 
@@ -30,6 +57,14 @@ public sealed class TypographyIdentityPreset
         preset.Scale = Math.Clamp(Scale <= 0 ? 1 : Scale, 0.8, 1.35);
         preset.Speed = Math.Clamp(Speed <= 0 ? 1 : Speed, 0.5, 2);
         preset.Intensity = Math.Clamp(Intensity <= 0 ? 1 : Intensity, 0.2, 1.6);
+        preset.Metalness = Clamp01(Metalness);
+        preset.Roughness = Clamp01(Roughness);
+        preset.Specular = Clamp01(Specular);
+        preset.Gloss = Clamp01(Gloss);
+        preset.MicroNoise = Clamp01(MicroNoise);
+        preset.Reflection = Clamp01(Reflection);
+        preset.Depth = Clamp01(Depth);
+        preset.Brightness = Clamp01(Brightness);
         preset.PrimaryColor = ValidColor(PrimaryColor, "#FFD76A");
         preset.SecondaryColor = ValidColor(SecondaryColor, "#2A1B08");
         preset.MaterialPreset = NormalizeToken(MaterialPreset, "SatinGold");
@@ -37,9 +72,12 @@ public sealed class TypographyIdentityPreset
         preset.DepthPreset = NormalizeToken(DepthPreset, "Low");
         preset.MotionPreset = NormalizeToken(MotionPreset, "None");
         preset.ParticlePreset = NormalizeToken(ParticlePreset, "None");
+        preset.DistortionPreset = NormalizeToken(DistortionPreset, "None");
         preset.FrameStylePreset = NormalizeToken(FrameStylePreset, "None");
         return preset;
     }
+
+    private static double Clamp01(double value) => Math.Clamp(value, 0, 1);
 
     private static string NormalizeToken(string? value, string fallback) =>
         string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
@@ -95,15 +133,17 @@ public static class TypographyFontCatalog
 public static class TypographyPresetCatalog
 {
     public static IReadOnlyList<string> Materials { get; } =
-        ["SatinGold", "IvoryInk", "PearlSteel", "EmeraldGlass", "RubyLacquer"];
+        ["SatinGold", "RealMetallicGold", "Obsidian", "CarbonFiber", "Diamond", "Crystal", "Lava", "Ice", "LiquidMetal", "EmeraldGlass", "NeonGlass", "PearlSteel", "RoyalBronze", "AncientStone", "IvoryInk", "RubyLacquer"];
     public static IReadOnlyList<string> Lighting { get; } =
-        ["SoftRim", "TopSheen", "InnerGlow", "LowContrast"];
+        ["SoftRim", "MovingHighlight", "MetallicSweep", "Aurora", "EnergyCore", "FireReflection", "IceReflection", "CosmicReflection", "RoyalShine", "TopSheen", "InnerGlow", "LowContrast"];
     public static IReadOnlyList<string> Depth { get; } =
         ["Flat", "Low", "Medium"];
     public static IReadOnlyList<string> Motion { get; } =
-        ["None", "Breath", "SoftShine"];
+        ["None", "Breath", "SoftShine", "Breathing", "OrganicMotion", "Floating", "EnergyWave", "Heartbeat", "Wind", "MetallicSweep", "HeatDistortion", "ShockPulse", "Gravity", "MagneticDrift", "LiquidMotion"];
     public static IReadOnlyList<string> Particles { get; } =
-        ["None", "Dust", "TinySparks"];
+        ["None", "Dust", "Smoke", "Spark", "Ash", "Fire", "Lightning", "Magic", "Snow", "Leaves", "WaterDrops", "Stars", "Galaxy", "Sand", "Petals", "Runes", "Pixels", "CrystalShards", "Embers", "TinySparks", "FireEmbers", "LightningDust", "IceCrystals", "RoyalGlints", "CosmicMotes"];
+    public static IReadOnlyList<string> Distortions { get; } =
+        ["None", "Heat", "Glass", "Ripple", "Refraction", "Magnetic", "Shockwave", "ChromaticAberration", "GravityLens"];
     public static IReadOnlyList<string> Frames { get; } =
-        ["None", "Plate", "Ribbon", "GemInset", "SoftCapsule"];
+        ["None", "Plate", "Ribbon", "GemInset", "SoftCapsule", "Dragon", "Electric", "Flame", "Crystal", "Royal", "Arabian", "Shadow", "Cyber", "Frozen", "Galaxy"];
 }

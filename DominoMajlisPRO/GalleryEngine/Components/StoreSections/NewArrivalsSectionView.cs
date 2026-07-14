@@ -97,6 +97,7 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
         MainThread.BeginInvokeOnMainThread(() =>
         {
             _availableItems = items;
+            IsVisible = items.Count > 0;
             AvailableItemCountChanged?.Invoke(this, items.Count);
             BuildTappableCards(items.Take(_visibleItemCount).ToList());
         });

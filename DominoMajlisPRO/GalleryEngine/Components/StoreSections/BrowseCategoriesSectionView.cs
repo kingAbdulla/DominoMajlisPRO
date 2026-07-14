@@ -44,11 +44,10 @@ public class BrowseCategoriesSectionView : StoreProductsSectionBase
             .Select(record => new CategoryCard(ToGalleryItem(record), ResolveView(record)))
             .Where(category => category.View != null)
             .ToList();
-        if (categories.Count == 0)
-            categories = CreateDefaultCollections();
         MainThread.BeginInvokeOnMainThread(() =>
         {
             _availableCategories = categories;
+            IsVisible = categories.Count > 0;
             AvailableItemCountChanged?.Invoke(this, categories.Count);
             BuildTappableCards(_showAll ? categories : categories.Take(6).ToList());
         });
@@ -119,27 +118,8 @@ public class BrowseCategoriesSectionView : StoreProductsSectionBase
         Currency = "Free"
     };
 
-    private static List<CategoryCard> CreateDefaultCollections() => StoreTypeRegistry.DefaultCategoryTypes
-        .Select(type => Default(
-            $"default-{type.TypeId.ToLowerInvariant()}",
-            type.ArabicName,
-            $"{type.EnglishName} Collection",
-            DefaultImage(type),
-            type.TargetView))
-        .ToList();
-
     private static StoreView? ResolveView(Admin.Models.StoreCategoryRecord record) =>
         StoreTypeRegistry.Resolve(record.Category, record.NameEn, record.NameAr)?.TargetView;
-
-    private static string DefaultImage(StoreTypeDefinition type) => type.TypeId switch
-    {
-        "Avatar" or "Bundle" => "gallery_lion.png",
-        "Background" or "Effect" => "gallery_dragon.png",
-        _ => "gallery_crown.png"
-    };
-
-    private static CategoryCard Default(string id, string name, string subtitle, string image, StoreView view) =>
-        new(new GalleryItem { Id = id, Name = name, Subtitle = subtitle, Category = subtitle, Image = image, Currency = "Free" }, view);
 
     private sealed record CategoryCard(GalleryItem Item, StoreView? View);
 }

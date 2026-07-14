@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:pages="clr-namespace:DominoMajlisPRO.Pages"
+    xmlns:galleryComponents="clr-namespace:DominoMajlisPRO.GalleryEngine.Components"
     x:Class="DominoMajlisPRO.Pages.CreateTeamPage"
     Title="إنشاء فريق"
     BackgroundColor="#050607"
@@ -152,19 +153,34 @@
                                     <Image x:Name="PreviewTeamEffectOverlay" IsVisible="False" Aspect="AspectFit"/>
                                     <Image x:Name="PreviewEmblem" Source="shield_3d.png" Aspect="AspectFit"/>
                                 </Grid>
-                                <Label x:Name="PreviewTeamName" Text="اسم الفريق" TextColor="#F2C46D" FontSize="28" FontAttributes="Bold" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
-                                <Grid x:Name="PreviewPlayersHost" ColumnDefinitions="*,*" ColumnSpacing="4" HorizontalOptions="Fill" WidthRequest="{OnIdiom Phone=124, Tablet=164}">
-                                    <VerticalStackLayout Spacing="2" WidthRequest="{OnIdiom Phone=58, Tablet=76}" HorizontalOptions="Center">
+                                <Grid HeightRequest="40" HorizontalOptions="Fill">
+                                    <Label x:Name="PreviewTeamName" Text="اسم الفريق" TextColor="#F2C46D" FontSize="28" FontAttributes="Bold" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                    <galleryComponents:IdentityPlateView x:Name="PreviewTeamNamePlate" RenderingContext="CreateTeam" IsVisible="False" HeightRequest="40"/>
+                                </Grid>
+                                <Grid x:Name="PreviewPlayersHost" ColumnDefinitions="*,*" ColumnSpacing="6" HorizontalOptions="Fill" WidthRequest="{OnIdiom Phone=188, Tablet=220}">
+                                    <VerticalStackLayout Spacing="2" WidthRequest="{OnIdiom Phone=90, Tablet=106}" HorizontalOptions="Center">
                                         <Border Stroke="#B8893B" BackgroundColor="#141414" StrokeShape="RoundRectangle 23" HeightRequest="{OnIdiom Phone=46, Tablet=56}" WidthRequest="{OnIdiom Phone=46, Tablet=56}" HorizontalOptions="Center">
-                                            <Image x:Name="PreviewPlayer1Avatar" Source="player_card.png" Aspect="AspectFill"/>
+                                            <Grid>
+                                                <Image x:Name="PreviewPlayer1Avatar" Source="player_card.png" Aspect="AspectFill"/>
+                                                <Image x:Name="PreviewPlayer1Frame" IsVisible="False" Aspect="AspectFit" Scale="1.12" InputTransparent="True"/>
+                                            </Grid>
                                         </Border>
-                                        <Label x:Name="PreviewPlayer1" Text="اللاعب الأول" TextColor="White" FontSize="13" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                        <Grid HeightRequest="26">
+                                            <Label x:Name="PreviewPlayer1" Text="اللاعب الأول" TextColor="White" FontSize="13" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                            <galleryComponents:IdentityPlateView x:Name="PreviewPlayer1NamePlate" RenderingContext="CreateTeam" IsVisible="False" HeightRequest="26"/>
+                                        </Grid>
                                     </VerticalStackLayout>
-                                    <VerticalStackLayout x:Name="PreviewPlayer2Host" Grid.Column="1" Spacing="2" WidthRequest="{OnIdiom Phone=58, Tablet=76}" HorizontalOptions="Center">
+                                    <VerticalStackLayout x:Name="PreviewPlayer2Host" Grid.Column="1" Spacing="2" WidthRequest="{OnIdiom Phone=90, Tablet=106}" HorizontalOptions="Center">
                                         <Border Stroke="#B8893B" BackgroundColor="#141414" StrokeShape="RoundRectangle 23" HeightRequest="{OnIdiom Phone=46, Tablet=56}" WidthRequest="{OnIdiom Phone=46, Tablet=56}" HorizontalOptions="Center">
-                                            <Image x:Name="PreviewPlayer2Avatar" Source="player_card.png" Aspect="AspectFill"/>
+                                            <Grid>
+                                                <Image x:Name="PreviewPlayer2Avatar" Source="player_card.png" Aspect="AspectFill"/>
+                                                <Image x:Name="PreviewPlayer2Frame" IsVisible="False" Aspect="AspectFit" Scale="1.12" InputTransparent="True"/>
+                                            </Grid>
                                         </Border>
-                                        <Label x:Name="PreviewPlayer2" Text="اللاعب الثاني" TextColor="White" FontSize="13" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                        <Grid HeightRequest="26">
+                                            <Label x:Name="PreviewPlayer2" Text="اللاعب الثاني" TextColor="White" FontSize="13" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                            <galleryComponents:IdentityPlateView x:Name="PreviewPlayer2NamePlate" RenderingContext="CreateTeam" IsVisible="False" HeightRequest="26"/>
+                                        </Grid>
                                     </VerticalStackLayout>
                                 </Grid>
                                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
@@ -287,13 +303,45 @@
 
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="12">
-                        <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
-                            <Label Text="الإطارات" TextColor="#F2C46D" HorizontalTextAlignment="Center"/>
-                            <Label Grid.Column="1" Text="تأثيرات الخطوط" TextColor="#F2C46D" HorizontalTextAlignment="Center"/>
-                            <Label Grid.Column="2" Text="الخلفيات" TextColor="#F2C46D" HorizontalTextAlignment="Center"/>
-                            <Label Grid.Column="3" Text="التأثيرات البصرية" TextColor="#F2C46D" HorizontalTextAlignment="Center"/>
+                        <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="5" HeightRequest="44">
+                            <Button x:Name="FramesTab" Text="الإطارات" Clicked="OnFramesTabClicked" TextColor="#F2C46D" BackgroundColor="#1B140A" BorderColor="#8A6326" BorderWidth="1" CornerRadius="9" FontSize="11" Padding="2" LineBreakMode="WordWrap"/>
+                            <Button x:Name="TypographyTab" Grid.Column="1" Text="تأثيرات الخطوط" Clicked="OnTypographyTabClicked" TextColor="#B89551" BackgroundColor="#101214" BorderColor="#49391F" BorderWidth="1" CornerRadius="9" FontSize="11" Padding="2" LineBreakMode="WordWrap"/>
+                            <Button x:Name="BackgroundsTab" Grid.Column="2" Text="الخلفيات" Clicked="OnBackgroundsTabClicked" TextColor="#B89551" BackgroundColor="#101214" BorderColor="#49391F" BorderWidth="1" CornerRadius="9" FontSize="11" Padding="2" LineBreakMode="WordWrap"/>
+                            <Button x:Name="EffectsTab" Grid.Column="3" Text="التأثيرات البصرية" Clicked="OnEffectsTabClicked" TextColor="#B89551" BackgroundColor="#101214" BorderColor="#49391F" BorderWidth="1" CornerRadius="9" FontSize="11" Padding="2" LineBreakMode="WordWrap"/>
                         </Grid>
 
+                        <VerticalStackLayout x:Name="OwnedFramesSection" Spacing="8">
+                            <Label x:Name="FramesEmptyLabel" Text="لا توجد إطارات مملوكة للاعبي هذا الفريق" TextColor="#8E887E" FontSize="11" HorizontalTextAlignment="Center"/>
+                            <CollectionView x:Name="OwnedFramesCarousel" HeightRequest="76" SelectionMode="Single" SelectionChanged="OnOwnedFrameSelectionChanged">
+                                <CollectionView.ItemsLayout><LinearItemsLayout Orientation="Horizontal" ItemSpacing="10" SnapPointsAlignment="Center" SnapPointsType="MandatorySingle"/></CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="pages:OwnedCosmeticChoiceItem">
+                                        <Border WidthRequest="116" HeightRequest="70" Padding="5" Stroke="{Binding AccentColor}" StrokeThickness="1.4" BackgroundColor="#101214" StrokeShape="RoundRectangle 10">
+                                            <Grid>
+                                                <Image Source="{Binding PreviewImageSource}" IsVisible="{Binding IsImageFrame}" Aspect="AspectFit"/>
+                                                <galleryComponents:IdentityPlateView RenderingContext="CreateTeam" DisplayText="{Binding DisplayName}" Preset="{Binding TypographyPreset}" IsVisible="{Binding IsTypographyFrame}" HorizontalOptions="Fill"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout x:Name="OwnedTypographySection" IsVisible="False" Spacing="8">
+                            <Label x:Name="TypographyEmptyLabel" Text="لا توجد تأثيرات خطوط مملوكة للاعبي هذا الفريق" TextColor="#8E887E" FontSize="11" HorizontalTextAlignment="Center"/>
+                            <CollectionView x:Name="OwnedTypographyCarousel" HeightRequest="76" SelectionMode="Single" SelectionChanged="OnOwnedTypographySelectionChanged">
+                                <CollectionView.ItemsLayout><LinearItemsLayout Orientation="Horizontal" ItemSpacing="10" SnapPointsAlignment="Center" SnapPointsType="MandatorySingle"/></CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="pages:OwnedCosmeticChoiceItem">
+                                        <Border WidthRequest="116" HeightRequest="70" Padding="6" Stroke="{Binding AccentColor}" StrokeThickness="1.4" BackgroundColor="#101214" StrokeShape="RoundRectangle 10">
+                                            <galleryComponents:IdentityPlateView RenderingContext="CreateTeam" DisplayText="{Binding DisplayName}" Preset="{Binding TypographyPreset}" IsVisible="{Binding IsTypographyEffect}" HorizontalOptions="Fill"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout x:Name="EmblemBackgroundSection" IsVisible="False" Spacing="8">
                         <Picker x:Name="EmblemBackgroundPicker" Title="خلفية الشعار" ItemDisplayBinding="{Binding DisplayName}" SelectedIndexChanged="OnEmblemBackgroundSelectionChanged" TextColor="#F2C46D" TitleColor="#F2C46D"/>
 
                         <CollectionView x:Name="EmblemBackgroundCarousel" HeightRequest="68" SelectionMode="Single" SelectionChanged="OnEmblemBackgroundCarouselSelectionChanged" ItemsUpdatingScrollMode="KeepScrollOffset">
@@ -316,6 +364,7 @@
                                 </DataTemplate>
                             </CollectionView.ItemTemplate>
                         </CollectionView>
+                        </VerticalStackLayout>
 
                         <VerticalStackLayout x:Name="TeamEffectSection" IsVisible="False" Spacing="8">
                             <Label Text="تأثير الفريق" TextColor="#F2C46D" FontAttributes="Bold" HorizontalTextAlignment="End"/>
@@ -414,22 +463,22 @@
         </Border>
 
         <Grid x:Name="DialogOverlay" Grid.RowSpan="2" IsVisible="False" Opacity="0" BackgroundColor="#B0000000" Padding="22" ZIndex="90">
-            <Border x:Name="DialogSheet" Stroke="#C99539" StrokeThickness="1.4" BackgroundColor="#F00A0B0D" StrokeShape="RoundRectangle 20" Padding="18" HorizontalOptions="Center" VerticalOptions="Center" MaximumWidthRequest="360" Scale="0.92">
+            <Border x:Name="DialogSheet" Stroke="#C99539" StrokeThickness="1.4" BackgroundColor="#F00A0B0D" StrokeShape="RoundRectangle 20" Padding="18" HorizontalOptions="Fill" VerticalOptions="Center" Margin="10" MinimumWidthRequest="280" MaximumWidthRequest="440" Scale="0.92">
                 <VerticalStackLayout Spacing="12">
-                    <Label x:Name="DialogTitleLabel" TextColor="#F2C46D" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="End"/>
-                    <Label x:Name="DialogMessageLabel" TextColor="#F8EAD0" FontSize="13" LineBreakMode="WordWrap" HorizontalTextAlignment="End"/>
+                    <Label x:Name="DialogTitleLabel" TextColor="#F2C46D" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="End" LineBreakMode="WordWrap" MaxLines="3"/>
+                    <Label x:Name="DialogMessageLabel" TextColor="#F8EAD0" FontSize="13" LineBreakMode="WordWrap" HorizontalTextAlignment="End" MaxLines="8"/>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,6,0,0">
                         <Border x:Name="DialogCancelButton" Stroke="#6B4A1E" BackgroundColor="#15110B" StrokeShape="RoundRectangle 12" Padding="10">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnDialogCancelTapped"/>
                             </Border.GestureRecognizers>
-                            <Label x:Name="DialogCancelLabel" Text="إلغاء" TextColor="#D7B66F" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                            <Label x:Name="DialogCancelLabel" Text="إلغاء" TextColor="#D7B66F" FontAttributes="Bold" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
                         </Border>
                         <Border x:Name="DialogOkButton" Grid.Column="1" Stroke="#D6A642" BackgroundColor="#7E5518" StrokeShape="RoundRectangle 12" Padding="10">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnDialogOkTapped"/>
                             </Border.GestureRecognizers>
-                            <Label x:Name="DialogOkLabel" Text="حسناً" TextColor="#FFF4CF" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                            <Label x:Name="DialogOkLabel" Text="حسناً" TextColor="#FFF4CF" FontAttributes="Bold" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
                         </Border>
                     </Grid>
                 </VerticalStackLayout>

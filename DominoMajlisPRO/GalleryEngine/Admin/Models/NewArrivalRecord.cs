@@ -4,7 +4,8 @@ public enum NewArrivalStatus
 {
     Draft = 0,
     Published = 1,
-    Hidden = 2
+    Hidden = 2,
+    Archived = 3
 }
 
 public enum NewArrivalCurrencyType

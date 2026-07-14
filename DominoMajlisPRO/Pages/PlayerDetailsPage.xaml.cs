@@ -279,6 +279,9 @@ public partial class PlayerDetailsPage : ContentPage
         AvatarPreviewImage.Source =
             PlayerProfileService.GetPlayerImageSource(currentPlayer);
         PlayerNameLabel.Text = currentPlayer.PlayerName;
+        PlayerNamePlate.OwnerId = currentPlayer.PlayerId;
+        PlayerNamePlate.DisplayText = currentPlayer.PlayerName;
+        PlayerNamePlate.IsVisible = true;
 
         string identityRole =
             await ResolveIdentityRoleAsync(currentPlayer);

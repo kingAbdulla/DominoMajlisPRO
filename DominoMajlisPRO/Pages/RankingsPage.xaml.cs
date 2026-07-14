@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
+using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Services;
 using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Services;
@@ -300,7 +301,7 @@ public partial class RankingsPage : ContentPage
                 HorizontalOptions = LayoutOptions.Fill,
                 Children =
                 {
-                    Label(champion.Team.TeamName, isPhone ? 18 : 22, "#FFFFFF", true, TextAlignment.Center),
+                    TeamNamePlate(champion.Team.TeamId, champion.Team.TeamName, isPhone ? 38 : 46),
                     players,
                     CenteredRankTitle(champion.Rank, isPhone ? 54 : 64)
                 }
@@ -409,7 +410,7 @@ public partial class RankingsPage : ContentPage
             Children =
             {
                 Label("البطل الحالي", 12, "#F2C46D", true),
-                Label(card.Team.TeamName, 24, "#F8D47B", true),
+                TeamNamePlate(card.Team.TeamId, card.Team.TeamName, 46),
                 Label(card.PlayersText, 12, "#FFFFFF", false),
                 RankTitle(card.Rank, 48),
                 BuildRankProgress(card, true),
@@ -610,9 +611,7 @@ public partial class RankingsPage : ContentPage
             ZIndex = 0
         };
 
-        var teamName = Label(card.Team.TeamName, isChampion ? 17 : 15, "#FFFFFF", false, TextAlignment.Center);
-        teamName.MaxLines = 1;
-        teamName.LineBreakMode = LineBreakMode.TailTruncation;
+        var teamName = TeamNamePlate(card.Team.TeamId, card.Team.TeamName, isChampion ? 38 : 34);
 
         var players = Label(card.PlayersText, 10, "#FFFFFF", false, TextAlignment.Center);
         players.MaxLines = 1;
@@ -791,8 +790,7 @@ public partial class RankingsPage : ContentPage
         }, 1));
 
         // Column 3 : team name + player names (vertical, truncation-safe).
-        var teamName = Label(card.Team.TeamName, 14, "#F6D17D", true);
-        teamName.MaxLines = 1;
+        var teamName = TeamNamePlate(card.Team.TeamId, card.Team.TeamName, 34);
         var players = Label(card.PlayersText, 10, "#D8D0C2", false);
         players.MaxLines = 1;
         grid.Children.Add(SetColumn(new VerticalStackLayout
@@ -832,6 +830,17 @@ public partial class RankingsPage : ContentPage
         row.Content = grid;
         return row;
     }
+
+    static View TeamNamePlate(string teamId, string teamName, double height) =>
+        new RuntimeNamePlateView
+        {
+            OwnerKind = "Team",
+            OwnerId = teamId,
+            DisplayText = teamName,
+            RenderingContext = GalleryEngine.Models.NameSurfaceRenderingContext.Rankings,
+            HeightRequest = height,
+            HorizontalOptions = LayoutOptions.Fill
+        };
 
     // Compact rank column for a leaderboard row: rank emblem + name, XP,
     // and a slim gold progress bar with the percentage inside.

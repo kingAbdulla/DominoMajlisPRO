@@ -88,7 +88,8 @@ public static class StoreAssetCatalogService
             productIds)));
 
         return assets
-            .Where(item => !string.IsNullOrWhiteSpace(item.AssetId))
+            .Where(item => !string.IsNullOrWhiteSpace(item.AssetId) &&
+                           !RemovedStoreAssetPolicy.IsRemoved(item.AssetId, item.PreviewImage))
             .GroupBy(
                 item => $"{item.AssetType}\u001F{item.AssetId}",
                 StringComparer.OrdinalIgnoreCase)
@@ -119,6 +120,44 @@ public static class StoreAssetCatalogService
                 !string.IsNullOrWhiteSpace(item.AssetId))
             .Distinct()
             .ToList();
+    }
+
+    public static async Task<IReadOnlyList<CatalogAssetDisplay>> LoadPublishedRewardAssetsAsync()
+    {
+        var catalogTask = LoadAsync();
+        var avatarsTask = AvatarsAdminService.LoadPublishedAsync();
+        var backgroundsTask = BackgroundsAdminService.LoadPublishedAsync();
+        var arrivalsTask = NewArrivalsAdminService.LoadPublishedAsync();
+        var offersTask = LimitedOffersAdminService.LoadPublishedAsync();
+        await Task.WhenAll(catalogTask, avatarsTask, backgroundsTask, arrivalsTask, offersTask);
+
+        var published = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in avatarsTask.Result)
+            published.Add(AssetKey(StoreProductAssetType.Avatar, item.Id));
+        foreach (var item in backgroundsTask.Result)
+            published.Add(AssetKey(StoreProductAssetType.ProfileBackground, item.Id));
+        foreach (var item in arrivalsTask.Result)
+        {
+            if (StoreProductAssetTypeCatalog.TryResolve(item.StoreTypeId, out var type))
+                published.Add(AssetKey(type, item.AssetId));
+        }
+        foreach (var item in offersTask.Result)
+        {
+            if (StoreProductAssetTypeCatalog.TryResolve(item.StoreTypeId, out var type))
+                published.Add(AssetKey(type, item.AssetId));
+        }
+
+        return catalogTask.Result
+            .Where(item => published.Contains(AssetKey(item.AssetType, item.AssetId)))
+            .ToList();
+    }
+
+    public static async Task<CatalogAssetDisplay?> ResolvePublishedRewardAssetAsync(
+        string? assetId,
+        string? assetType)
+    {
+        var catalog = await LoadPublishedRewardAssetsAsync();
+        return Resolve(catalog, assetId, assetType);
     }
 
     public static async Task<CatalogAssetDisplay?> ResolveAsync(
@@ -244,6 +283,9 @@ public static class StoreAssetCatalogService
 
     private static bool Same(string? left, string? right) =>
         string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private static string AssetKey(StoreProductAssetType type, string? assetId) =>
+        $"{type}\u001F{assetId?.Trim()}";
 
     private sealed record ProductLink(
         string ProductId,

@@ -52,7 +52,7 @@ public class PremiumGalleryCard : ContentView
 
         _image = new Image
         {
-            Source = "gallery_lion.png",
+            IsVisible = false,
             Aspect = Aspect.AspectFit,
             WidthRequest = 90,
             HeightRequest = 90,
@@ -224,6 +224,7 @@ public class PremiumGalleryCard : ContentView
                 _identityPlate = new IdentityPlateView
                 {
                     HeightRequest = 40,
+                    RenderingContext = NameSurfaceRenderingContext.Store,
                     Margin = new Thickness(10, 0),
                     HorizontalOptions = LayoutOptions.Fill,
                     VerticalOptions = LayoutOptions.Center

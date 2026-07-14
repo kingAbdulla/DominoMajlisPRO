@@ -109,6 +109,8 @@ public partial class GamePage : ContentPage
         currentMatch.Team2Player2Id =
             team2Player2Id;
 
+        ApplyPlayerNamePlates();
+
         currentMatch.IsLocalRules =
             isLocalRules;
 
@@ -169,6 +171,7 @@ public partial class GamePage : ContentPage
             match.Team2Name;
         Team2Players.Text =
             match.Team2Players;
+        ApplyPlayerNamePlates();
         Team1Score.Text =
             team1Score.ToString();
         Team2Score.Text =
@@ -673,45 +676,46 @@ public partial class GamePage : ContentPage
                     900,
                     Easing.CubicOut),
 
-                targetLabel.FadeTo(
+                targetLabel.FadeToAsync(
                     0,
                     900));
 
-        var cardPulse =
-            Task.Run(async () =>
+        async Task PulseCardAsync()
+        {
+            try
             {
-                try
-                {
-                    await targetCard.ScaleTo(
-                        1.12,
-                        120,
-                        Easing.CubicOut);
+                await targetCard.ScaleToAsync(
+                    1.12,
+                    120,
+                    Easing.CubicOut);
 
-                    await targetCard.ScaleTo(
-                        1.08,
-                        120,
-                        Easing.CubicIn);
-                }
-                catch { }
-            });
+                await targetCard.ScaleToAsync(
+                    1.08,
+                    120,
+                    Easing.CubicIn);
+            }
+            catch { }
+        }
 
-        var scorePulse =
-            Task.Run(async () =>
+        async Task PulseScoreAsync()
+        {
+            try
             {
-                try
-                {
-                    await targetScore.ScaleTo(
-                        1.20,
-                        120,
-                        Easing.CubicOut);
+                await targetScore.ScaleToAsync(
+                    1.20,
+                    120,
+                    Easing.CubicOut);
 
-                    await targetScore.ScaleTo(
-                        1.00,
-                        120,
-                        Easing.CubicIn);
-                }
-                catch { }
-            });
+                await targetScore.ScaleToAsync(
+                    1.00,
+                    120,
+                    Easing.CubicIn);
+            }
+            catch { }
+        }
+
+        var cardPulse = PulseCardAsync();
+        var scorePulse = PulseScoreAsync();
 
         await Task.WhenAll(
             floatingTask,
@@ -778,6 +782,7 @@ public partial class GamePage : ContentPage
             var rowColor = round.WinnerTeamId == 1
                 ? ParseTeamColor(team1Identity?.TeamColorHex ?? team1Profile?.ColorHex)
                 : ParseTeamColor(team2Identity?.TeamColorHex ?? team2Profile?.ColorHex);
+            var rowTextColor = GetContrastingTextColor(rowColor);
 
             Border row = new()
             {
@@ -800,35 +805,33 @@ public partial class GamePage : ContentPage
                     new ColumnDefinition(new GridLength(1.1, GridUnitType.Star)),
                     new ColumnDefinition(new GridLength(1.1, GridUnitType.Star)),
                     new ColumnDefinition(new GridLength(1.7, GridUnitType.Star)),
-                    new ColumnDefinition(new GridLength(1.1, GridUnitType.Star)),
-                    new ColumnDefinition(new GridLength(1.6, GridUnitType.Star)),
-                    new ColumnDefinition(new GridLength(1.35, GridUnitType.Star))
+                    new ColumnDefinition(new GridLength(1.7, GridUnitType.Star)),
+                    new ColumnDefinition(new GridLength(118))
                 },
                 ColumnSpacing = 4
             };
 
             grid.Add(CreateHistoryCell(round.RoundNumber.ToString(), Colors.Gold, true), 0, 0);
             grid.Add(CreateHistoryCell(FormatRoundElapsed(round.RoundTime), Color.FromArgb("#FFD447"), true), 1, 0);
-            grid.Add(CreateHistoryCell(round.WinnerTeam, rowColor, true), 2, 0);
-            grid.Add(CreateHistoryCell(round.Points.ToString(), rowColor, true), 3, 0);
-            grid.Add(CreateHistoryCell($"{round.Team1NewScore} - {round.Team2NewScore}", Colors.White, true), 4, 0);
+            grid.Add(CreateHistoryBadge(round.WinnerTeam, rowColor, rowTextColor), 2, 0);
+            grid.Add(CreateHistoryCell($"{round.Team1NewScore} - {round.Team2NewScore}", Colors.White, true), 3, 0);
 
             var actions = new Grid
             {
                 ColumnDefinitions =
                 {
-                    new ColumnDefinition(new GridLength(18)),
-                    new ColumnDefinition(new GridLength(18)),
-                    new ColumnDefinition(new GridLength(18))
+                    new ColumnDefinition(new GridLength(36)),
+                    new ColumnDefinition(new GridLength(36)),
+                    new ColumnDefinition(new GridLength(36))
                 },
-                ColumnSpacing = 2,
+                ColumnSpacing = 5,
                 HorizontalOptions = LayoutOptions.Center
             };
 
             actions.Add(CreateRoundActionButton("✎", Color.FromArgb("#2E90FF"), async () => await EditRoundAsync(round)), 0, 0);
             actions.Add(CreateRoundActionButton("⇄", Color.FromArgb("#AA4CFF"), async () => await TransferRoundAsync(round)), 1, 0);
             actions.Add(CreateRoundActionButton("⌫", Color.FromArgb("#FF5A45"), async () => await DeleteRoundAsync(round)), 2, 0);
-            grid.Add(actions, 5, 0);
+            grid.Add(actions, 4, 0);
 
             row.Content = grid;
 
@@ -849,6 +852,58 @@ public partial class GamePage : ContentPage
             MaxLines = 1
         };
 
+    static Border CreateHistoryBadge(string text, Color background, Color foreground) =>
+        new()
+        {
+            BackgroundColor = background,
+            Stroke = foreground.WithAlpha(0.34f),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = 7 },
+            Padding = new Thickness(4, 2),
+            Content = CreateHistoryCell(text, foreground, true)
+        };
+
+    static Color GetContrastingTextColor(Color background)
+    {
+        var luminance = (0.2126 * background.Red) +
+                        (0.7152 * background.Green) +
+                        (0.0722 * background.Blue);
+        return luminance > 0.52 ? Colors.Black : Colors.White;
+    }
+
+    void ApplyPlayerNamePlates()
+    {
+        BindPlayers(
+            Team1Players.Text,
+            currentMatch.Team1Player1Id,
+            currentMatch.Team1Player2Id,
+            Team1Player1NamePlate,
+            Team1Player2NamePlate);
+        BindPlayers(
+            Team2Players.Text,
+            currentMatch.Team2Player1Id,
+            currentMatch.Team2Player2Id,
+            Team2Player1NamePlate,
+            Team2Player2NamePlate);
+
+        static void BindPlayers(
+            string? displayNames,
+            string? firstId,
+            string? secondId,
+            GalleryEngine.Components.RuntimeNamePlateView first,
+            GalleryEngine.Components.RuntimeNamePlateView second)
+        {
+            var names = (displayNames ?? string.Empty)
+                .Split(new[] { "+", "•", "&" }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            first.OwnerId = firstId ?? string.Empty;
+            first.DisplayText = names.ElementAtOrDefault(0) ?? displayNames ?? string.Empty;
+            first.IsVisible = !string.IsNullOrWhiteSpace(first.DisplayText);
+            second.OwnerId = secondId ?? string.Empty;
+            second.DisplayText = names.ElementAtOrDefault(1) ?? string.Empty;
+            second.IsVisible = !string.IsNullOrWhiteSpace(second.DisplayText);
+        }
+    }
+
     string FormatRoundElapsed(DateTime roundTime)
     {
         var elapsed = roundTime - currentMatch.MatchDate;
@@ -865,17 +920,18 @@ public partial class GamePage : ContentPage
         var button = new Button
         {
             Text = text,
-            FontSize = 10,
+            FontSize = 15,
             FontAttributes = FontAttributes.Bold,
             TextColor = color,
             BackgroundColor = Color.FromArgb("#101010"),
             BorderColor = color,
             BorderWidth = 1,
-            CornerRadius = 4,
+            CornerRadius = 7,
             Padding = 0,
-            HeightRequest = 22,
-            WidthRequest = 18,
-            MinimumWidthRequest = 18
+            HeightRequest = 36,
+            WidthRequest = 36,
+            MinimumWidthRequest = 36,
+            MinimumHeightRequest = 36
         };
 
         button.Clicked += async (_, _) => await action();
@@ -1331,8 +1387,8 @@ public partial class GamePage : ContentPage
         MatchDialogOverlay.IsVisible = true;
 
         await Task.WhenAll(
-            MatchDialogCard.ScaleTo(1, 180, Easing.CubicOut),
-            MatchDialogCard.FadeTo(1, 160, Easing.CubicOut));
+            MatchDialogCard.ScaleToAsync(1, 180, Easing.CubicOut),
+            MatchDialogCard.FadeToAsync(1, 160, Easing.CubicOut));
 
         if (showReward)
             _ = PlayVictoryCelebrationAsync();
@@ -1347,17 +1403,17 @@ public partial class GamePage : ContentPage
         MatchDialogRewardCard.Scale = 0.96;
 
         await Task.WhenAll(
-            MatchDialogIcon.ScaleTo(1.18, 180, Easing.CubicOut),
-            MatchDialogIcon.RotateTo(8, 180, Easing.CubicOut),
-            MatchDialogRewardCard.ScaleTo(1.04, 180, Easing.CubicOut));
+            MatchDialogIcon.ScaleToAsync(1.18, 180, Easing.CubicOut),
+            MatchDialogIcon.RotateToAsync(8, 180, Easing.CubicOut),
+            MatchDialogRewardCard.ScaleToAsync(1.04, 180, Easing.CubicOut));
 
         await Task.WhenAll(
-            MatchDialogIcon.ScaleTo(1.0, 160, Easing.CubicInOut),
-            MatchDialogIcon.RotateTo(0, 160, Easing.CubicInOut),
-            MatchDialogRewardCard.ScaleTo(1.0, 160, Easing.CubicInOut));
+            MatchDialogIcon.ScaleToAsync(1.0, 160, Easing.CubicInOut),
+            MatchDialogIcon.RotateToAsync(0, 160, Easing.CubicInOut),
+            MatchDialogRewardCard.ScaleToAsync(1.0, 160, Easing.CubicInOut));
 
-        await MatchDialogRewardLabel.ScaleTo(1.16, 120, Easing.CubicOut);
-        await MatchDialogRewardLabel.ScaleTo(1.0, 120, Easing.CubicIn);
+        await MatchDialogRewardLabel.ScaleToAsync(1.16, 120, Easing.CubicOut);
+        await MatchDialogRewardLabel.ScaleToAsync(1.0, 120, Easing.CubicIn);
     }
 
     Task<bool> ShowConfirmDialogAsync(string title, string message, string primaryText, string secondaryText) =>
@@ -1384,8 +1440,8 @@ public partial class GamePage : ContentPage
             return;
 
         await Task.WhenAll(
-            MatchDialogCard.ScaleTo(0.96, 120, Easing.CubicIn),
-            MatchDialogCard.FadeTo(0, 100, Easing.CubicIn));
+            MatchDialogCard.ScaleToAsync(0.96, 120, Easing.CubicIn),
+            MatchDialogCard.FadeToAsync(0, 100, Easing.CubicIn));
 
         MatchDialogOverlay.IsVisible = false;
         dialogCompletion.TrySetResult(result);
@@ -1507,8 +1563,8 @@ public partial class GamePage : ContentPage
 
         if (team == 1)
         {
-            Team1Card.ScaleTo(1.05, 180);
-            Team2Card.ScaleTo(1.00, 180);
+            _ = Team1Card.ScaleToAsync(1.05, 180);
+            _ = Team2Card.ScaleToAsync(1.00, 180);
 
             Team1Card.BackgroundColor =
                 Color.FromArgb("#1A1A00");
@@ -1533,8 +1589,8 @@ public partial class GamePage : ContentPage
         }
         else
         {
-            Team2Card.ScaleTo(1.05, 180);
-            Team1Card.ScaleTo(1.00, 180);
+            _ = Team2Card.ScaleToAsync(1.05, 180);
+            _ = Team1Card.ScaleToAsync(1.00, 180);
 
             Team2Card.BackgroundColor =
                 Color.FromArgb("#1A1A00");

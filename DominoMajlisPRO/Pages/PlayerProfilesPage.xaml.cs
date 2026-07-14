@@ -139,6 +139,10 @@ public partial class PlayerProfilesPage : ContentPage
             string.IsNullOrWhiteSpace(currentUser.DisplayName)
                 ? role
                 : currentUser.DisplayName;
+        AccountDisplayNamePlate.OwnerId = currentUser.PlayerId ?? string.Empty;
+        AccountDisplayNamePlate.DisplayText = AccountDisplayNameLabel.Text;
+        AccountDisplayNamePlate.IsVisible = !string.IsNullOrWhiteSpace(currentUser.PlayerId);
+        AccountDisplayNameLabel.IsVisible = string.IsNullOrWhiteSpace(currentUser.PlayerId);
         AccountRoleSessionLabel.Text =
             $"{role} • {sessionState}";
         IdentityUserIdLabel.Text =

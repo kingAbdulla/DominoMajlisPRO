@@ -48,9 +48,14 @@ public static class SupabaseAccountLinkService
         var link = state.Links.FirstOrDefault(item =>
             Same(item.Username, username));
 
-        return string.IsNullOrWhiteSpace(link?.Email)
-            ? null
-            : link.Email.Trim();
+        if (!string.IsNullOrWhiteSpace(link?.Email))
+            return link.Email.Trim();
+
+        var storedSession = await SupabaseTokenStore.LoadAsync();
+        return Same(storedSession?.Username, username) &&
+               !string.IsNullOrWhiteSpace(storedSession?.Email)
+            ? storedSession.Email.Trim()
+            : null;
     }
 
     public static async Task<ApplicationUserModel> EnsureLinkedApplicationUserAsync(

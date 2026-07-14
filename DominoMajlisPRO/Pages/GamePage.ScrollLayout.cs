@@ -82,7 +82,7 @@ internal static class GamePageUnifiedScrollBootstrap
 
     static void ApplyToActivePage()
     {
-        var page = FindActiveGamePage(Application.Current?.MainPage);
+        var page = FindActiveGamePage(Application.Current?.Windows.FirstOrDefault()?.Page);
         page?.EnsureUnifiedScrollableLayout();
     }
 

@@ -64,6 +64,7 @@ public sealed class AppStartupPage : ContentPage
 
     static async Task RouteAsync()
     {
+        await DataMaintenanceService.RecoverIdentityFromLatestResetBackupAsync();
         bool hasActiveSession = await StartupSessionRouterService.HasActiveRegisteredSessionAsync();
 
         Application.Current!.MainPage = hasActiveSession

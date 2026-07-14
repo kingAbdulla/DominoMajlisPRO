@@ -30,7 +30,7 @@ public static class PlayerStoreProgressService
             OwnedEffects = Owned(counts, "Effect"),
             OwnedBadges = Owned(counts, "Badge"),
             OwnedEmblems = Owned(counts, "Emblem"),
-            OwnedBundles = 0,
+            OwnedBundles = Owned(counts, "Bundle"),
             ByItemType = counts,
             ByRarity = Array.Empty<StoreProgressCount>(),
             ByCollection = Array.Empty<StoreProgressCount>()

@@ -87,6 +87,15 @@ public partial class CertificatePage : ContentPage
         CertificateTeam2Name.Text =
             match.Team2Name;
 
+        await BindCertificateTeamNameAsync(
+            CertificateTeam1NamePlate,
+            CertificateTeam1Name,
+            match.Team1Id);
+        await BindCertificateTeamNameAsync(
+            CertificateTeam2NamePlate,
+            CertificateTeam2Name,
+            match.Team2Id);
+
         CertificateTeam1Id.Text =
             match.Team1Id;
 
@@ -136,6 +145,18 @@ public partial class CertificatePage : ContentPage
         {
             CertificateQrImage.Source = "qr_gold.png";
         }
+    }
+
+    static async Task BindCertificateTeamNameAsync(
+        GalleryEngine.Components.RuntimeNamePlateView plate,
+        Label fallback,
+        string teamId)
+    {
+        var identity = await TeamNameTypographyResolver.ResolveAsync(teamId);
+        plate.OwnerId = teamId;
+        plate.DisplayText = fallback.Text;
+        plate.IsVisible = identity.HasVisual;
+        fallback.IsVisible = !identity.HasVisual;
     }
     // PDF export. The heavy render/capture/PDF work happens on the hidden
     // CertificatePrintPage (covered by a loading overlay + counter). Here we

@@ -24,6 +24,7 @@ public sealed class TypographyManagerPage : ContentPage
     private readonly Picker _depthPicker = new() { Title = "Depth" };
     private readonly Picker _motionPicker = new() { Title = "Motion" };
     private readonly Picker _particlePicker = new() { Title = "Particles" };
+    private readonly Picker _distortionPicker = new() { Title = "Distortion" };
     private readonly Picker _framePicker = new() { Title = "Frame style" };
     private readonly Slider _thicknessSlider = new() { Minimum = 0.8, Maximum = 4, Value = 1.4 };
     private readonly Entry _primaryColorEntry = new() { Placeholder = "#FFD76A", Text = "#FFD76A" };
@@ -32,8 +33,15 @@ public sealed class TypographyManagerPage : ContentPage
     private readonly Slider _scaleSlider = new() { Minimum = 0.8, Maximum = 1.35, Value = 1 };
     private readonly Slider _speedSlider = new() { Minimum = 0.5, Maximum = 2, Value = 1 };
     private readonly Slider _intensitySlider = new() { Minimum = 0.2, Maximum = 1.6, Value = 1 };
-    private readonly IdentityPlateView _playerPreview = new() { HeightRequest = 44, MaximumWidthRequest = 360 };
-    private readonly IdentityPlateView _teamPreview = new() { HeightRequest = 44, MaximumWidthRequest = 360 };
+    private readonly Slider _metalnessSlider = UnitSlider(0.65);
+    private readonly Slider _roughnessSlider = UnitSlider(0.28);
+    private readonly Slider _specularSlider = UnitSlider(0.72);
+    private readonly Slider _glossSlider = UnitSlider(0.62);
+    private readonly Slider _reflectionSlider = UnitSlider(0.55);
+    private readonly Slider _depthAmountSlider = UnitSlider(0.35);
+    private readonly Slider _brightnessSlider = UnitSlider(0.68);
+    private readonly IdentityPlateView _playerPreview = new() { HeightRequest = 44, MaximumWidthRequest = 360, RenderingContext = NameSurfaceRenderingContext.DeveloperPreview };
+    private readonly IdentityPlateView _teamPreview = new() { HeightRequest = 44, MaximumWidthRequest = 360, RenderingContext = NameSurfaceRenderingContext.DeveloperPreview };
     private readonly Label _validationLabel = new() { TextColor = Color.FromArgb("#FF6B6B"), FontSize = 12, IsVisible = false, HorizontalTextAlignment = TextAlignment.End };
     private NewArrivalRecord? _currentRecord;
     private bool _editingPublished;
@@ -70,6 +78,7 @@ public sealed class TypographyManagerPage : ContentPage
         SetPicker(_depthPicker, TypographyPresetCatalog.Depth);
         SetPicker(_motionPicker, TypographyPresetCatalog.Motion);
         SetPicker(_particlePicker, TypographyPresetCatalog.Particles);
+        SetPicker(_distortionPicker, TypographyPresetCatalog.Distortions);
         SetPicker(_framePicker, TypographyPresetCatalog.Frames);
 
         _assetTypePicker.SelectedIndex = 0;
@@ -82,12 +91,13 @@ public sealed class TypographyManagerPage : ContentPage
         _depthPicker.SelectedIndex = 1;
         _motionPicker.SelectedIndex = 0;
         _particlePicker.SelectedIndex = 0;
+        _distortionPicker.SelectedIndex = 0;
         _framePicker.SelectedIndex = 0;
 
         _assetTypePicker.SelectedIndexChanged += (_, _) => SyncEquipTarget();
-        foreach (var picker in new[] { _fontPicker, _materialPicker, _lightingPicker, _depthPicker, _motionPicker, _particlePicker, _framePicker })
+        foreach (var picker in new[] { _fontPicker, _materialPicker, _lightingPicker, _depthPicker, _motionPicker, _particlePicker, _distortionPicker, _framePicker })
             picker.SelectedIndexChanged += (_, _) => RefreshPreview();
-        foreach (var slider in new[] { _fontSizeSlider, _thicknessSlider, _opacitySlider, _scaleSlider, _speedSlider, _intensitySlider })
+        foreach (var slider in new[] { _fontSizeSlider, _thicknessSlider, _opacitySlider, _scaleSlider, _speedSlider, _intensitySlider, _metalnessSlider, _roughnessSlider, _specularSlider, _glossSlider, _reflectionSlider, _depthAmountSlider, _brightnessSlider })
             slider.ValueChanged += (_, _) => RefreshPreview();
         _primaryColorEntry.TextChanged += (_, _) => RefreshPreview();
         _secondaryColorEntry.TextChanged += (_, _) => RefreshPreview();
@@ -147,6 +157,7 @@ public sealed class TypographyManagerPage : ContentPage
                 _depthPicker,
                 _motionPicker,
                 _particlePicker,
+                _distortionPicker,
                 _framePicker,
                 Labeled("سماكة / كثافة الإطار", _thicknessSlider),
                 Two(_primaryColorEntry, _secondaryColorEntry),
@@ -154,6 +165,13 @@ public sealed class TypographyManagerPage : ContentPage
                 Labeled("الحجم", _scaleSlider),
                 Labeled("السرعة", _speedSlider),
                 Labeled("الكثافة", _intensitySlider),
+                Labeled("المعدنية", _metalnessSlider),
+                Labeled("الخشونة", _roughnessSlider),
+                Labeled("الانعكاس اللامع", _specularSlider),
+                Labeled("اللمعان", _glossSlider),
+                Labeled("الانعكاس", _reflectionSlider),
+                Labeled("العمق", _depthAmountSlider),
+                Labeled("الإضاءة", _brightnessSlider),
                 _validationLabel
             }
         };
@@ -199,7 +217,7 @@ public sealed class TypographyManagerPage : ContentPage
             : await NewArrivalsAdminService.SaveDraftAsync(record);
         _editingPublished = publish;
         _validationLabel.IsVisible = false;
-        await DisplayAlert(Title, publish ? "تم النشر" : "تم حفظ المسودة", "حسناً");
+        await DisplayAlertAsync(Title, publish ? "تم النشر" : "تم حفظ المسودة", "حسناً");
     }
 
     private bool TryBuildRecord(bool publish, out NewArrivalRecord record)
@@ -273,10 +291,10 @@ public sealed class TypographyManagerPage : ContentPage
             .ToList();
         if (records.Count == 0)
         {
-            await DisplayAlert(Title, "لا توجد عناصر.", "حسناً");
+            await DisplayAlertAsync(Title, "لا توجد عناصر.", "حسناً");
             return;
         }
-        var selected = await DisplayActionSheet("اختيار عنصر", "إلغاء", null, records.Select(record => record.Title).ToArray());
+        var selected = await DisplayActionSheetAsync("اختيار عنصر", "إلغاء", null, records.Select(record => record.Title).ToArray());
         var record = records.FirstOrDefault(item => item.Title == selected);
         if (record == null)
             return;
@@ -318,6 +336,7 @@ public sealed class TypographyManagerPage : ContentPage
             DepthPreset = Selected(_depthPicker),
             MotionPreset = Selected(_motionPicker),
             ParticlePreset = Selected(_particlePicker),
+            DistortionPreset = Selected(_distortionPicker),
             FrameStylePreset = frameStyle,
             FrameThickness = _thicknessSlider.Value,
             PrimaryColor = _primaryColorEntry.Text ?? "#FFD76A",
@@ -325,7 +344,14 @@ public sealed class TypographyManagerPage : ContentPage
             Opacity = _opacitySlider.Value,
             Scale = _scaleSlider.Value,
             Speed = _speedSlider.Value,
-            Intensity = _intensitySlider.Value
+            Intensity = _intensitySlider.Value,
+            Metalness = _metalnessSlider.Value,
+            Roughness = _roughnessSlider.Value,
+            Specular = _specularSlider.Value,
+            Gloss = _glossSlider.Value,
+            Reflection = _reflectionSlider.Value,
+            Depth = _depthAmountSlider.Value,
+            Brightness = _brightnessSlider.Value
         }.Normalized();
     }
 
@@ -339,6 +365,7 @@ public sealed class TypographyManagerPage : ContentPage
         Select(_depthPicker, preset.DepthPreset);
         Select(_motionPicker, preset.MotionPreset);
         Select(_particlePicker, preset.ParticlePreset);
+        Select(_distortionPicker, preset.DistortionPreset);
         Select(_framePicker, preset.FrameStylePreset);
         _thicknessSlider.Value = preset.FrameThickness;
         _primaryColorEntry.Text = preset.PrimaryColor;
@@ -347,6 +374,13 @@ public sealed class TypographyManagerPage : ContentPage
         _scaleSlider.Value = preset.Scale;
         _speedSlider.Value = preset.Speed;
         _intensitySlider.Value = preset.Intensity;
+        _metalnessSlider.Value = preset.Metalness;
+        _roughnessSlider.Value = preset.Roughness;
+        _specularSlider.Value = preset.Specular;
+        _glossSlider.Value = preset.Gloss;
+        _reflectionSlider.Value = preset.Reflection;
+        _depthAmountSlider.Value = preset.Depth;
+        _brightnessSlider.Value = preset.Brightness;
         RefreshPreview();
     }
 
@@ -412,7 +446,7 @@ public sealed class TypographyManagerPage : ContentPage
                      _assetTypePicker, _categoryPicker, _currencyPicker,
                      _equipTargetPicker, _fontPicker, _materialPicker,
                      _lightingPicker, _depthPicker, _motionPicker,
-                     _particlePicker, _framePicker
+                     _particlePicker, _distortionPicker, _framePicker
                  })
         {
             picker.TextColor = text;
@@ -446,6 +480,13 @@ public sealed class TypographyManagerPage : ContentPage
             new Label { Text = title, FontFamily = "Tajawal-Regular", FontSize = 11, TextColor = Color.FromArgb("#B8A77D"), HorizontalTextAlignment = TextAlignment.End },
             control
         }
+    };
+
+    private static Slider UnitSlider(double value) => new()
+    {
+        Minimum = 0,
+        Maximum = 1,
+        Value = value
     };
 
     private static Button ActionButton(string text, Func<Task> action)

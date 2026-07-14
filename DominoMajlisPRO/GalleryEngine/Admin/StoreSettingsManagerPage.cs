@@ -16,7 +16,8 @@ public sealed class StoreSettingsManagerPage : ContentPage
     {
         Keyboard = Keyboard.Numeric,
         HorizontalTextAlignment = TextAlignment.End,
-        FontFamily = "Tajawal-Regular"
+        FontFamily = "Tajawal-Regular",
+        IsReadOnly = true
     };
     private readonly Label _status = new()
     {
@@ -30,6 +31,9 @@ public sealed class StoreSettingsManagerPage : ContentPage
     private Button _backButton = null!;
     private Button _saveButton = null!;
     private Button _deleteAllButton = null!;
+    private Button _archiveButton = null!;
+    private Button _archivedItemsButton = null!;
+    private Button _deleteArchivedButton = null!;
     private StoreRuntimeConfiguration _configuration = new();
 
     public StoreSettingsManagerPage()
@@ -44,14 +48,37 @@ public sealed class StoreSettingsManagerPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        NewArrivalsAdminService.PublishedChanged -= OnPublishedContentChanged;
+        LimitedOffersAdminService.PublishedChanged -= OnPublishedContentChanged;
+        AvatarsAdminService.PublishedChanged -= OnPublishedContentChanged;
+        BackgroundsAdminService.PublishedChanged -= OnPublishedContentChanged;
+        StoreCategoriesAdminService.PublishedChanged -= OnPublishedContentChanged;
+        NewArrivalsAdminService.PublishedChanged += OnPublishedContentChanged;
+        LimitedOffersAdminService.PublishedChanged += OnPublishedContentChanged;
+        AvatarsAdminService.PublishedChanged += OnPublishedContentChanged;
+        BackgroundsAdminService.PublishedChanged += OnPublishedContentChanged;
+        StoreCategoriesAdminService.PublishedChanged += OnPublishedContentChanged;
         _configuration = await StoreRuntimeConfigurationService.LoadAsync();
         _storeEnabled.IsToggled = _configuration.IsStoreEnabled;
         _newArrivals.IsToggled = _configuration.ShowNewArrivals;
         _limitedOffers.IsToggled = _configuration.ShowLimitedOffers;
         _categories.IsToggled = _configuration.ShowBrowseCategories;
-        _pageSize.Text = _configuration.PageSize.ToString();
+        await RefreshPublishedCountAsync();
         ApplyTheme();
     }
+
+    protected override void OnDisappearing()
+    {
+        NewArrivalsAdminService.PublishedChanged -= OnPublishedContentChanged;
+        LimitedOffersAdminService.PublishedChanged -= OnPublishedContentChanged;
+        AvatarsAdminService.PublishedChanged -= OnPublishedContentChanged;
+        BackgroundsAdminService.PublishedChanged -= OnPublishedContentChanged;
+        StoreCategoriesAdminService.PublishedChanged -= OnPublishedContentChanged;
+        base.OnDisappearing();
+    }
+
+    private void OnPublishedContentChanged() =>
+        MainThread.BeginInvokeOnMainThread(async () => await RefreshPublishedCountAsync());
 
     private void BuildPage()
     {
@@ -70,6 +97,13 @@ public sealed class StoreSettingsManagerPage : ContentPage
 
         _deleteAllButton = ActionButton("حذف جميع منشورات المتجر");
         _deleteAllButton.Clicked += async (_, _) => await DeleteAllPublishedContentAsync();
+
+        _archiveButton = ActionButton("أرشفة جميع المنشورات الحالية");
+        _archiveButton.Clicked += async (_, _) => await ArchivePublishedContentAsync();
+        _archivedItemsButton = ActionButton("عرض المنشورات المؤرشفة");
+        _archivedItemsButton.Clicked += async (_, _) => await Navigation.PushAsync(new ArchivedStoreItemsPage());
+        _deleteArchivedButton = ActionButton("حذف جميع المنشورات المؤرشفة نهائياً");
+        _deleteArchivedButton.Clicked += async (_, _) => await DeleteArchivedContentAsync();
 
         Content = new ScrollView
         {
@@ -90,6 +124,9 @@ public sealed class StoreSettingsManagerPage : ContentPage
                     _pageSize,
                     _status,
                     _saveButton,
+                    _archiveButton,
+                    _archivedItemsButton,
+                    _deleteArchivedButton,
                     DangerPanel()
                 }
             }
@@ -131,19 +168,60 @@ public sealed class StoreSettingsManagerPage : ContentPage
 
     private async Task SaveAsync()
     {
-        _ = int.TryParse(_pageSize.Text, out var pageSize);
         _configuration.IsStoreEnabled = _storeEnabled.IsToggled;
         _configuration.ShowNewArrivals = _newArrivals.IsToggled;
         _configuration.ShowLimitedOffers = _limitedOffers.IsToggled;
         _configuration.ShowBrowseCategories = _categories.IsToggled;
-        _configuration.PageSize = pageSize <= 0 ? 12 : pageSize;
         await StoreRuntimeConfigurationService.SaveAsync(_configuration);
         _status.Text = "تم حفظ الإعدادات ونشرها فورًا.";
     }
 
+    private async Task RefreshPublishedCountAsync()
+    {
+        var catalog = await StoreAssetCatalogService.LoadAsync();
+        _pageSize.Text = catalog
+            .SelectMany(item => item.ProductIds)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count()
+            .ToString();
+    }
+
+    private async Task ArchivePublishedContentAsync()
+    {
+        var confirmed = await DisplayAlertAsync(
+            "أرشفة المنشورات",
+            "ستختفي المنشورات الحالية من المتجر ويمكن استعادتها لاحقاً. هل تريد المتابعة؟",
+            "أرشفة",
+            "إلغاء");
+        if (!confirmed)
+            return;
+
+        var arrivals = await NewArrivalsAdminService.ArchiveAllPublishedAsync();
+        var offers = await LimitedOffersAdminService.ArchiveAllPublishedAsync();
+        await RefreshPublishedCountAsync();
+        _status.Text = $"تمت أرشفة {arrivals + offers} منشوراً بنجاح.";
+    }
+
+    private async Task DeleteArchivedContentAsync()
+    {
+        var confirmed = await DisplayAlertAsync(
+            "حذف المؤرشف نهائياً",
+            "سيتم حذف جميع المنشورات المؤرشفة نهائياً ولا يمكن التراجع. هل تريد المتابعة؟",
+            "حذف نهائي",
+            "إلغاء");
+        if (!confirmed)
+            return;
+
+        var arrivals = await NewArrivalsAdminService.DeleteAllArchivedAsync();
+        var offers = await LimitedOffersAdminService.DeleteAllArchivedAsync();
+        await RefreshPublishedCountAsync();
+        _status.Text = $"تم حذف {arrivals + offers} منشوراً مؤرشفاً نهائياً.";
+    }
+
     private async Task DeleteAllPublishedContentAsync()
     {
-        var confirm = await DisplayAlert(
+        var confirm = await DisplayAlertAsync(
             "تحذير نهائي",
             "سيتم إنشاء نسخة طوارئ ثم حذف جميع منشورات المتجر ومسوداته وعروضه وفئاته ومحتوى الموسم. لن تُحذف ملفات اللاعبين أو الفرق أو المباريات أو سجلات الملكية. هل تريد المتابعة؟",
             "متابعة",
@@ -243,6 +321,12 @@ public sealed class StoreSettingsManagerPage : ContentPage
         _saveButton.TextColor = Colors.Black;
         _deleteAllButton.BackgroundColor = Color.FromArgb("#6E1717");
         _deleteAllButton.TextColor = Color.FromArgb("#FFE0D2");
+        _archiveButton.BackgroundColor = Color.FromArgb("#4A3512");
+        _archiveButton.TextColor = Color.FromArgb("#FFE7A8");
+        _archivedItemsButton.BackgroundColor = Color.FromArgb("#161A1F");
+        _archivedItemsButton.TextColor = theme.Gold;
+        _deleteArchivedButton.BackgroundColor = Color.FromArgb("#491414");
+        _deleteArchivedButton.TextColor = Color.FromArgb("#FFB8AE");
         _pageSize.BackgroundColor = Colors.Transparent;
         _pageSize.TextColor = theme.TextPrimary;
         _pageSize.PlaceholderColor = theme.TextMuted;

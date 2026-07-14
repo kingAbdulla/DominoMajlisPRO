@@ -143,7 +143,8 @@ public partial class CurrentSeasonEditorPage : ContentPage
             return;
         }
 
-        await CurrentSeasonAdminService.PublishAsync(record);
+        var published = await CurrentSeasonAdminService.PublishAsync(record);
+        await SeasonExperienceService.SyncPublishedStoreSeasonAsync(published);
         ClearFieldsForNewEntry();
         await RefreshPublishedCardAsync();
         ValidationLabel.IsVisible = false;
@@ -163,7 +164,9 @@ public partial class CurrentSeasonEditorPage : ContentPage
             return;
         }
 
-        await CurrentSeasonAdminService.UpdateManagedAsync(record);
+        var updated = await CurrentSeasonAdminService.UpdateManagedAsync(record);
+        if (updated.Status == StoreContentStatus.Published)
+            await SeasonExperienceService.SyncPublishedStoreSeasonAsync(updated);
         ClearFieldsForNewEntry();
         await RefreshPublishedCardAsync();
         ValidationLabel.IsVisible = false;
@@ -173,6 +176,11 @@ public partial class CurrentSeasonEditorPage : ContentPage
     private async void OnOpenDraftsClicked(object? sender, EventArgs e)
     {
         await OpenDraftsSheetAsync();
+    }
+
+    private async void OnOpenSeasonContentClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new SeasonContentAdminPage());
     }
 
     private async Task OpenDraftsSheetAsync()

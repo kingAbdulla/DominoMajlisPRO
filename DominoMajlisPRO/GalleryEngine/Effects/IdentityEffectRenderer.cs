@@ -46,13 +46,16 @@ public sealed class IdentityEffectView : GraphicsView
     private readonly IdentityEffectDrawable _drawable = new();
     private bool _running;
     private long _started;
+    private IDisposable? _clockSubscription;
+    private double _clockEpoch = -1;
+    private int _frame;
 
     public IdentityEffectView()
     {
         Drawable = _drawable;
         InputTransparent = true;
         Loaded += (_, _) => Start();
-        Unloaded += (_, _) => _running = false;
+        Unloaded += (_, _) => Stop();
     }
 
     public string EffectKey { get; private set; } = string.Empty;
@@ -77,7 +80,7 @@ public sealed class IdentityEffectView : GraphicsView
 
     public void Clear()
     {
-        _running = false;
+        Stop();
         EffectKey = string.Empty;
         _drawable.Profile = null;
         _drawable.ElapsedSeconds = 0;
@@ -92,17 +95,31 @@ public sealed class IdentityEffectView : GraphicsView
             return;
 
         _running = true;
-        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(_drawable.Lightweight ? 66 : 33), () =>
-        {
-            if (!_running || _drawable.Profile == null || !IsLoaded)
-                return false;
+        _clockEpoch = -1;
+        _frame = 0;
+        _clockSubscription = SharedAnimationClock.Subscribe(OnAnimationFrame);
+    }
 
-            var elapsed = (Environment.TickCount64 - _started) / 1000f;
-            _drawable.ElapsedSeconds = elapsed;
-            _drawable.Phase = elapsed * _drawable.Profile.Speed;
-            Invalidate();
-            return true;
-        });
+    private void OnAnimationFrame(double elapsed)
+    {
+        if (!_running || _drawable.Profile == null || !IsLoaded)
+        {
+            Stop();
+            return;
+        }
+        if (_clockEpoch < 0) _clockEpoch = elapsed;
+        if (_drawable.Lightweight && (++_frame & 1) == 1) return;
+        var local = (float)(elapsed - _clockEpoch);
+        _drawable.ElapsedSeconds = local;
+        _drawable.Phase = local * _drawable.Profile.Speed;
+        Invalidate();
+    }
+
+    private void Stop()
+    {
+        _running = false;
+        _clockSubscription?.Dispose();
+        _clockSubscription = null;
     }
 }
 
