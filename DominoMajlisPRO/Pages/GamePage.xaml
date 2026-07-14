@@ -71,7 +71,7 @@
 
         <Grid Grid.Row="1" ColumnDefinitions="*,44,*" ColumnSpacing="0" HeightRequest="{OnIdiom Phone=248, Tablet=360}" FlowDirection="LeftToRight">
             <Border x:Name="Team1Card" Grid.Column="0" Padding="6" BackgroundColor="#100815" Stroke="#C95DFF" StrokeThickness="1.4" StrokeShape="RoundRectangle 16" HorizontalOptions="Fill" VerticalOptions="Fill">
-                <Grid RowDefinitions="62,Auto,Auto,Auto,Auto,Auto,*" RowSpacing="1">
+                <Grid RowDefinitions="62,Auto,Auto,Auto,*,Auto,Auto" RowSpacing="1">
                     <Image x:Name="Team1BackgroundImage" Grid.RowSpan="7" Aspect="AspectFill" Opacity="0.20" />
                     <BoxView Grid.RowSpan="7" Opacity="0.70">
                         <BoxView.Background>
@@ -94,12 +94,12 @@
                     <Border Grid.Row="3" Padding="7,1" Margin="0,1" HorizontalOptions="Center" BackgroundColor="#221128" Stroke="#8E36B9" StrokeThickness="1" StrokeShape="RoundRectangle 7" ZIndex="1">
                         <Label x:Name="Team1RankNameLabel" Text="مقدم" TextColor="#F8EAFB" FontSize="9" FontAttributes="Bold" MaxLines="1" LineBreakMode="TailTruncation" />
                     </Border>
-                    <Label x:Name="Team1Score" Grid.Row="4" Text="0" FontSize="{OnIdiom Phone=34, Tablet=62}" FontAttributes="Bold" TextColor="#C95DFF" HorizontalTextAlignment="Center" MaxLines="1" ZIndex="1" />
+                    <Label x:Name="Team1Score" Grid.Row="4" Text="0" FontSize="{OnIdiom Phone=34, Tablet=62}" FontAttributes="Bold" TextColor="#C95DFF" HorizontalTextAlignment="Center" VerticalOptions="Center" MaxLines="1" ZIndex="1" />
                     <Grid Grid.Row="5" RowDefinitions="Auto,Auto" RowSpacing="0" ZIndex="1">
                         <Label x:Name="Team1TargetLabel" Text="الهدف: 151" TextColor="#FFD447" FontSize="10" FontAttributes="Bold" HorizontalTextAlignment="Center" MaxLines="1" />
                         <Label x:Name="Team1XpLabel" Grid.Row="1" Text="0 / 100 XP" TextColor="#FFD447" FontSize="9" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation" />
                     </Grid>
-                    <Grid Grid.Row="6" ColumnDefinitions="26,*,26" ColumnSpacing="2" Padding="0,2,0,0" ZIndex="1" VerticalOptions="End">
+                    <Grid Grid.Row="6" ColumnDefinitions="26,*,26" ColumnSpacing="2" Padding="0,2,0,2" ZIndex="1" VerticalOptions="End">
                         <VerticalStackLayout Spacing="0" WidthRequest="26">
                             <Image x:Name="Team1CurrentRankIcon" Source="unranked.png" WidthRequest="23" HeightRequest="23" />
                             <Label x:Name="Team1CurrentRankLabel" Text="I" FontSize="8" TextColor="#EDE0C2" HorizontalTextAlignment="Center" MaxLines="1" />
@@ -129,7 +129,7 @@
             </Grid>
 
             <Border x:Name="Team2Card" Grid.Column="2" Padding="6" BackgroundColor="#081708" Stroke="#A4FF45" StrokeThickness="1.4" StrokeShape="RoundRectangle 16" HorizontalOptions="Fill" VerticalOptions="Fill">
-                <Grid RowDefinitions="62,Auto,Auto,Auto,Auto,Auto,*" RowSpacing="1">
+                <Grid RowDefinitions="62,Auto,Auto,Auto,*,Auto,Auto" RowSpacing="1">
                     <Image x:Name="Team2BackgroundImage" Grid.RowSpan="7" Aspect="AspectFill" Opacity="0.20" />
                     <BoxView Grid.RowSpan="7" Opacity="0.70">
                         <BoxView.Background>
@@ -152,12 +152,12 @@
                     <Border Grid.Row="3" Padding="7,1" Margin="0,1" HorizontalOptions="Center" BackgroundColor="#122510" Stroke="#63AB32" StrokeThickness="1" StrokeShape="RoundRectangle 7" ZIndex="1">
                         <Label x:Name="Team2RankNameLabel" Text="مقدم" TextColor="#F8FFF0" FontSize="9" FontAttributes="Bold" MaxLines="1" LineBreakMode="TailTruncation" />
                     </Border>
-                    <Label x:Name="Team2Score" Grid.Row="4" Text="0" FontSize="{OnIdiom Phone=34, Tablet=62}" FontAttributes="Bold" TextColor="#A4FF45" HorizontalTextAlignment="Center" MaxLines="1" ZIndex="1" />
+                    <Label x:Name="Team2Score" Grid.Row="4" Text="0" FontSize="{OnIdiom Phone=34, Tablet=62}" FontAttributes="Bold" TextColor="#A4FF45" HorizontalTextAlignment="Center" VerticalOptions="Center" MaxLines="1" ZIndex="1" />
                     <Grid Grid.Row="5" RowDefinitions="Auto,Auto" RowSpacing="0" ZIndex="1">
                         <Label x:Name="Team2TargetLabel" Text="الهدف: 151" TextColor="#FFD447" FontSize="10" FontAttributes="Bold" HorizontalTextAlignment="Center" MaxLines="1" />
                         <Label x:Name="Team2XpLabel" Grid.Row="1" Text="0 / 100 XP" TextColor="#FFD447" FontSize="9" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation" />
                     </Grid>
-                    <Grid Grid.Row="6" ColumnDefinitions="26,*,26" ColumnSpacing="2" Padding="0,2,0,0" ZIndex="1" VerticalOptions="End">
+                    <Grid Grid.Row="6" ColumnDefinitions="26,*,26" ColumnSpacing="2" Padding="0,2,0,2" ZIndex="1" VerticalOptions="End">
                         <VerticalStackLayout Spacing="0" WidthRequest="26">
                             <Image x:Name="Team2CurrentRankIcon" Source="unranked.png" WidthRequest="23" HeightRequest="23" />
                             <Label x:Name="Team2CurrentRankLabel" Text="I" FontSize="8" TextColor="#EDE0C2" HorizontalTextAlignment="Center" MaxLines="1" />
