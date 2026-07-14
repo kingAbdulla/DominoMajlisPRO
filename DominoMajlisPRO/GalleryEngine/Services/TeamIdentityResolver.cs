@@ -131,7 +131,8 @@ public static class TeamIdentityResolver
     private static string? ValidImagePayload(string? value)
     {
         var payload = value?.Trim();
-        if (string.IsNullOrWhiteSpace(payload))
+        if (string.IsNullOrWhiteSpace(payload) ||
+            RemovedStoreAssetPolicy.IsRemoved(payload))
             return null;
 
         if (Uri.TryCreate(payload, UriKind.Absolute, out var uri))

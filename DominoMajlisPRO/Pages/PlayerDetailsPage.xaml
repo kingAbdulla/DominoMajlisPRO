@@ -89,7 +89,7 @@
                             </Grid>
                         </Border>
 
-                        <Grid HeightRequest="{OnIdiom Phone=44, Tablet=54, Desktop=54}">
+                        <Grid HeightRequest="{OnIdiom Phone=54, Tablet=64, Desktop=64}">
                             <Label
                                 x:Name="PlayerNameLabel"
                                 FontSize="{OnIdiom Phone=26, Tablet=34, Desktop=34}"
@@ -98,7 +98,12 @@
                                 MaxLines="1"
                                 LineBreakMode="TailTruncation"
                                 HorizontalTextAlignment="Center"/>
-                            <galleryComponents:RuntimeNamePlateView x:Name="PlayerNamePlate" RenderingContext="PlayerProfile" OwnerKind="Player" IsVisible="False"/>
+                            <galleryComponents:RuntimeNamePlateView
+                                x:Name="PlayerNamePlate"
+                                RenderingContext="PlayerProfile"
+                                OwnerKind="Player"
+                                HeightRequest="{OnIdiom Phone=48, Tablet=58, Desktop=58}"
+                                IsVisible="False"/>
                         </Grid>
 
                         <Border

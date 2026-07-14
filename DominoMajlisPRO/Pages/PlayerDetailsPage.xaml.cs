@@ -282,6 +282,7 @@ public partial class PlayerDetailsPage : ContentPage
         PlayerNamePlate.OwnerId = currentPlayer.PlayerId;
         PlayerNamePlate.DisplayText = currentPlayer.PlayerName;
         PlayerNamePlate.IsVisible = true;
+        PlayerNameLabel.IsVisible = false;
 
         string identityRole =
             await ResolveIdentityRoleAsync(currentPlayer);

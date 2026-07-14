@@ -135,7 +135,7 @@ public static class TypographyPresetCatalog
     public static IReadOnlyList<string> Materials { get; } =
         ["SatinGold", "RealMetallicGold", "Obsidian", "CarbonFiber", "Diamond", "Crystal", "Lava", "Ice", "LiquidMetal", "EmeraldGlass", "NeonGlass", "PearlSteel", "RoyalBronze", "AncientStone", "IvoryInk", "RubyLacquer"];
     public static IReadOnlyList<string> Lighting { get; } =
-        ["SoftRim", "MovingHighlight", "MetallicSweep", "Aurora", "EnergyCore", "FireReflection", "IceReflection", "CosmicReflection", "RoyalShine", "TopSheen", "InnerGlow", "LowContrast"];
+        ["SoftRim", "MovingHighlight", "MetallicSweep", "LightningSweep", "Aurora", "EnergyCore", "FireReflection", "IceReflection", "CosmicReflection", "RoyalShine", "TopSheen", "InnerGlow", "LowContrast"];
     public static IReadOnlyList<string> Depth { get; } =
         ["Flat", "Low", "Medium"];
     public static IReadOnlyList<string> Motion { get; } =

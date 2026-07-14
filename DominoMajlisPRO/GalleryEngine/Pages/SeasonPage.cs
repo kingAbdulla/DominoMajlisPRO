@@ -157,6 +157,16 @@ public sealed class SeasonPage : ContentPage
             stack.Children.Add(TextLabel(chapter.TitleAr, 16, Color.FromArgb("#D6A642"), true));
             stack.Children.Add(TextLabel(chapter.BodyAr, 13, Color.FromArgb("#B8B1A3"), false));
         }
+        var timeline = story.TimelineEntries
+            .OrderBy(item => item.SortOrder)
+            .ThenBy(item => item.OccursAtUtc ?? DateTime.MaxValue)
+            .ToList();
+        if (timeline.Count > 0)
+        {
+            stack.Children.Add(TextLabel("خارطة الموسم", 16, Color.FromArgb("#D6A642"), true));
+            foreach (var entry in timeline)
+                stack.Children.Add(TimelineEntryCard(entry));
+        }
         if (story.Characters.Count > 0)
         {
             stack.Children.Add(TextLabel("الشخصيات", 16, Color.FromArgb("#D6A642"), true));
@@ -170,6 +180,55 @@ public sealed class SeasonPage : ContentPage
                 stack.Children.Add(TextLabel($"{faction.NameAr}: {faction.DescriptionAr}", 13, Color.FromArgb("#D7D0C2"), false));
         }
         return Card(stack, 16);
+    }
+
+    private static View TimelineEntryCard(SeasonStoryTimelineEntry entry)
+    {
+        var title = string.IsNullOrWhiteSpace(entry.TitleAr)
+            ? entry.TitleEn
+            : entry.TitleAr;
+        var body = string.IsNullOrWhiteSpace(entry.BodyAr)
+            ? entry.BodyEn
+            : entry.BodyAr;
+        var date = entry.OccursAtUtc.HasValue
+            ? entry.OccursAtUtc.Value.ToLocalTime().ToString("yyyy/MM/dd")
+            : "مرحلة موسمية";
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 10,
+            Padding = new Thickness(10, 8),
+            BackgroundColor = Color.FromArgb("#10100D")
+        };
+        grid.Add(new Border
+        {
+            WidthRequest = 12,
+            HeightRequest = 12,
+            StrokeShape = new RoundRectangle { CornerRadius = 6 },
+            Stroke = Color.FromArgb("#D6A642"),
+            StrokeThickness = 1,
+            BackgroundColor = Color.FromArgb("#D6A642"),
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+        var text = new VerticalStackLayout { Spacing = 2 };
+        text.Children.Add(TextLabel(title, 14, Color.FromArgb("#F6D06F"), true));
+        text.Children.Add(TextLabel(date, 11, Color.FromArgb("#AFA99B"), false));
+        if (!string.IsNullOrWhiteSpace(body))
+            text.Children.Add(TextLabel(body, 12, Color.FromArgb("#D7D0C2"), false));
+        grid.Add(text, 1, 0);
+
+        return new Border
+        {
+            Content = grid,
+            Stroke = Color.FromArgb("#4C3610"),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = 12 }
+        };
     }
 
     private async Task<View> RewardCardAsync(SeasonRewardRule rule, string? playerId)

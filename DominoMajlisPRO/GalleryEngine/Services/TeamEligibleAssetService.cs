@@ -40,15 +40,13 @@ public static class TeamEligibleAssetService
         foreach (var playerId in playerIds)
         {
             var owned = await PlayerInventoryService.LoadOwnedAsync(playerId);
-            var session = await DominoMajlisPRO.Services.ApplicationUserService.EnsureCurrentSessionAsync();
-            var appUserId = session.ApplicationUserId ?? string.Empty;
             result.AddRange(owned
                 .Where(item => IsTeamType(item.StoreTypeId) &&
                                !RemovedStoreAssetPolicy.IsRemoved(item.AssetId))
                 .Select(item => new TeamOwnedAssetItem
                 {
                     TeamInventoryItemId = item.InventoryItemId,
-                    ApplicationUserId = appUserId,
+                    ApplicationUserId = item.ApplicationUserId?.Trim() ?? string.Empty,
                     TeamId = teamId?.Trim() ?? string.Empty,
                     TeamAssetId = item.AssetId,
                     TeamAssetTypeId =

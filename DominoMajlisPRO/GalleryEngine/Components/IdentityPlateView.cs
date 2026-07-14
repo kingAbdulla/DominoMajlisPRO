@@ -179,12 +179,13 @@ public sealed class IdentityPlateView : ContentView
         _shadow.FontSize = fontSize;
         _highlight.FontSize = fontSize;
         _text.TextColor = materialColor;
-        _highlight.TextColor = ResolveHighlightColor(preset.MaterialPreset);
+        _highlight.TextColor = ResolveHighlightColor(preset.MaterialPreset, preset.LightingPreset);
         _text.Opacity = preset.Opacity;
         _shadow.TranslationY = 0.6 + preset.Depth * 2.4;
         _shadow.Opacity = Math.Clamp(0.18 + preset.Depth * 0.52 + preset.MicroNoise * 0.08, 0.18, 0.72);
-        _highlight.Opacity = Math.Clamp(preset.Reflection * preset.Specular * (1 - preset.Roughness) * 0.58, 0, 0.58);
-        _highlight.TranslationY = -Math.Clamp(0.5 + preset.Gloss * 1.4, 0.5, 1.9);
+        _highlight.Opacity = ResolveHighlightOpacity(preset);
+        _highlight.TranslationY = -Math.Clamp(0.2 + preset.Gloss * 0.55, 0.2, 0.85);
+        _highlight.ScaleX = ResolveLightingScale(preset.LightingPreset);
         _frame.Stroke = Colors.Transparent;
         _frame.StrokeThickness = 0;
         _frame.Background = new SolidColorBrush(Colors.Transparent);
@@ -230,7 +231,7 @@ public sealed class IdentityPlateView : ContentView
         for (var index = 0; index < _particles.Length; index++)
         {
             var particle = _particles[index];
-            particle.Color = primary;
+            particle.Color = ResolveParticleColor(preset.ParticlePreset, primary);
             particle.IsVisible = hasParticles && index < particleBudget;
             particle.Opacity = particle.IsVisible ? 0.2 : 0;
             particle.TranslationY = 0;
@@ -272,7 +273,7 @@ public sealed class IdentityPlateView : ContentView
         _text.TranslationX = 0;
         _shadow.TranslationX = 0;
         _highlight.TranslationX = 0;
-        _highlight.Opacity = Math.Clamp(preset.Reflection * preset.Specular * (1 - preset.Roughness) * 0.58, 0, 0.58);
+        _highlight.Opacity = ResolveHighlightOpacity(preset);
         var motion = preset.MotionPreset;
         if (motion is "SoftShine" or "MetallicSweep" or "EnergyWave" or "Wind")
         {
@@ -311,6 +312,20 @@ public sealed class IdentityPlateView : ContentView
             TranslationY = -Math.Abs(wave) * 0.8 * intensity;
         }
 
+        if (preset.LightingPreset is "MovingHighlight" or "MetallicSweep" or "LightningSweep")
+        {
+            _highlight.TranslationX += Math.Sin(time * 4.8) * 3.2 * intensity;
+        }
+        else if (preset.LightingPreset is "Aurora" or "CosmicReflection")
+        {
+            _highlight.TranslationX += Math.Sin(time * 2.1) * 2.2 * intensity;
+            _highlight.TranslationY += Math.Cos(time * 1.6) * 0.7 * intensity;
+        }
+        else if (preset.LightingPreset is "FireReflection" or "IceReflection")
+        {
+            _highlight.Opacity = Math.Clamp(_highlight.Opacity + Math.Abs(wave) * 0.18, 0, 0.82);
+        }
+
         var distortion = preset.DistortionPreset;
         if (distortion != "None")
         {
@@ -325,8 +340,10 @@ public sealed class IdentityPlateView : ContentView
             var particle = _particles[index];
             if (!particle.IsVisible) continue;
             var phase = (time * 0.58 + index * 0.31) % 1;
-            particle.Opacity = Math.Sin(phase * Math.PI) * 0.78;
-            particle.TranslationY = -phase * (8 + index * 3) * intensity;
+            var particleMotion = ParticleMotionMultiplier(preset.ParticlePreset);
+            particle.Opacity = Math.Sin(phase * Math.PI) * ParticleOpacity(preset.ParticlePreset);
+            particle.TranslationY = -phase * (8 + index * 3) * intensity * particleMotion.Y;
+            particle.TranslationX = Math.Sin((time + index) * particleMotion.XFrequency) * particleMotion.X * intensity;
         }
     }
 
@@ -357,6 +374,7 @@ public sealed class IdentityPlateView : ContentView
         var adjusted = AdjustBrightness(source, brightness);
         return material switch
         {
+            "RealMetallicGold" => Blend(adjusted, Color.FromArgb("#FFE08A"), 0.32),
             "Obsidian" => Blend(adjusted, Color.FromArgb("#17191D"), 0.58),
             "CarbonFiber" => Blend(adjusted, Color.FromArgb("#34373B"), 0.48),
             "Diamond" => Blend(adjusted, Color.FromArgb("#F7FCFF"), 0.52),
@@ -368,17 +386,81 @@ public sealed class IdentityPlateView : ContentView
             "NeonGlass" => Blend(adjusted, Color.FromArgb("#73F4FF"), 0.34),
             "RoyalBronze" => Blend(adjusted, Color.FromArgb("#D48B3A"), 0.36),
             "AncientStone" => Blend(adjusted, Color.FromArgb("#AAA28F"), 0.42),
+            "IvoryInk" => Blend(adjusted, Color.FromArgb("#FFF0CA"), 0.45),
+            "RubyLacquer" => Blend(adjusted, Color.FromArgb("#C6192E"), 0.48),
             _ => adjusted
         };
     }
 
-    private static Color ResolveHighlightColor(string material) => material switch
+    private static Color ResolveHighlightColor(string material, string lighting) => lighting switch
     {
-        "Lava" => Color.FromArgb("#FFD18A"),
-        "Ice" or "Crystal" => Color.FromArgb("#E8FCFF"),
-        "EmeraldGlass" => Color.FromArgb("#B9FFE2"),
-        "Obsidian" or "CarbonFiber" => Color.FromArgb("#AFC0D0"),
-        _ => Colors.White
+        "FireReflection" => Color.FromArgb("#FFB45C"),
+        "IceReflection" => Color.FromArgb("#DDFBFF"),
+        "CosmicReflection" or "Aurora" => Color.FromArgb("#D9B7FF"),
+        "EnergyCore" or "InnerGlow" => Color.FromArgb("#BFFFF6"),
+        "RoyalShine" => Color.FromArgb("#FFE7A0"),
+        _ => material switch
+        {
+            "Lava" => Color.FromArgb("#FFD18A"),
+            "Ice" or "Crystal" => Color.FromArgb("#E8FCFF"),
+            "EmeraldGlass" => Color.FromArgb("#B9FFE2"),
+            "Obsidian" or "CarbonFiber" => Color.FromArgb("#AFC0D0"),
+            _ => Colors.White
+        }
+    };
+
+    private static double ResolveHighlightOpacity(TypographyIdentityPreset preset)
+    {
+        var baseOpacity = preset.Reflection * preset.Specular * (1 - preset.Roughness) * 0.28;
+        var boost = preset.LightingPreset switch
+        {
+            "MovingHighlight" or "MetallicSweep" or "LightningSweep" => 0.08,
+            "EnergyCore" or "InnerGlow" => 0.07,
+            "RoyalShine" or "TopSheen" => 0.06,
+            "LowContrast" => -0.12,
+            _ => 0
+        };
+        return Math.Clamp(baseOpacity + boost, 0, 0.32);
+    }
+
+    private static double ResolveLightingScale(string lighting) => lighting switch
+    {
+        "MovingHighlight" or "MetallicSweep" or "LightningSweep" => 0.52,
+        "EnergyCore" or "InnerGlow" => 1.14,
+        "LowContrast" => 0.76,
+        _ => 1
+    };
+
+    private static Color ResolveParticleColor(string particlePreset, Color primary) => particlePreset switch
+    {
+        "Fire" or "Ash" or "Embers" or "FireEmbers" => Color.FromArgb("#FF8A2A"),
+        "Lightning" or "LightningDust" => Color.FromArgb("#BCEBFF"),
+        "Snow" or "IceCrystals" or "CrystalShards" => Color.FromArgb("#E8FCFF"),
+        "Magic" or "Runes" or "Galaxy" or "CosmicMotes" => Color.FromArgb("#C189FF"),
+        "Leaves" => Color.FromArgb("#74D66B"),
+        "WaterDrops" => Color.FromArgb("#7FD9FF"),
+        "Sand" => Color.FromArgb("#E5C16D"),
+        "Petals" => Color.FromArgb("#FF9FD1"),
+        _ => primary
+    };
+
+    private static double ParticleOpacity(string particlePreset) => particlePreset switch
+    {
+        "Smoke" or "Dust" => 0.42,
+        "Snow" or "Stars" or "Magic" or "Galaxy" => 0.92,
+        "Fire" or "Lightning" or "Embers" or "RoyalGlints" => 0.82,
+        _ => 0.68
+    };
+
+    private static (double X, double Y, double XFrequency) ParticleMotionMultiplier(string particlePreset) => particlePreset switch
+    {
+        "Smoke" => (2.4, 0.58, 1.2),
+        "Fire" or "Embers" or "Ash" => (1.2, 1.35, 3.4),
+        "Lightning" or "LightningDust" => (3.1, 0.9, 8.5),
+        "Snow" or "Petals" or "Leaves" => (2.6, 0.52, 1.8),
+        "Galaxy" or "Stars" or "CosmicMotes" => (2.0, 0.82, 2.6),
+        "WaterDrops" => (0.8, 1.5, 1.4),
+        _ => (1.4, 1, 2.4)
     };
 
     private static Color Blend(Color left, Color right, double amount)
@@ -410,14 +492,31 @@ public sealed class IdentityPlateView : ContentView
                 dirtyRect.Width - inset * 2,
                 dirtyRect.Height - inset * 2);
             var radius = style is "Cyber" or "Electric" ? 7f : Math.Min(13f, rect.Height / 2f);
-            canvas.FillColor = secondary.WithAlpha(0.42f);
+            canvas.FillColor = style switch
+            {
+                "Shadow" => Colors.Black.WithAlpha(0.34f),
+                "Flame" => Blend(secondary, Color.FromArgb("#6D1D08"), 0.55).WithAlpha(0.46f),
+                "Frozen" or "Crystal" => Blend(secondary, Color.FromArgb("#BFEFFF"), 0.42).WithAlpha(0.34f),
+                "Galaxy" => Blend(secondary, Color.FromArgb("#321A68"), 0.58).WithAlpha(0.42f),
+                "Arabian" or "Royal" => Blend(secondary, Color.FromArgb("#7A4F12"), 0.38).WithAlpha(0.46f),
+                _ => secondary.WithAlpha(0.42f)
+            };
             canvas.FillRoundedRectangle(rect, radius);
-            canvas.StrokeColor = primary.WithAlpha((float)Math.Clamp(0.5 + intensity * 0.24, 0.5, 0.92));
+            canvas.StrokeColor = style switch
+            {
+                "Flame" => Color.FromArgb("#FF7A1C"),
+                "Frozen" or "Crystal" => Color.FromArgb("#DDFBFF"),
+                "Galaxy" => Color.FromArgb("#B88CFF"),
+                "Shadow" => Color.FromArgb("#686868"),
+                _ => primary.WithAlpha((float)Math.Clamp(0.5 + intensity * 0.24, 0.5, 0.92))
+            };
             canvas.StrokeSize = (float)Math.Clamp(thickness, 0.8, 4);
             canvas.StrokeDashPattern = style switch
             {
                 "Electric" or "Cyber" => [7, 3, 2, 3],
                 "Frozen" or "Crystal" => [4, 2],
+                "Dragon" or "Arabian" => [10, 3, 2, 3],
+                "Galaxy" => [2, 3],
                 _ => null
             };
             canvas.DrawRoundedRectangle(rect, radius);
@@ -427,6 +526,15 @@ public sealed class IdentityPlateView : ContentView
             canvas.StrokeSize = Math.Max(0.7f, (float)thickness * 0.45f);
             canvas.StrokeColor = Colors.White.WithAlpha(style is "Shadow" ? 0.08f : 0.24f);
             canvas.DrawRoundedRectangle(inner, Math.Max(3, radius - 3));
+
+            if (style is "Dragon" or "Flame" or "Royal" or "Arabian" or "Galaxy")
+            {
+                canvas.StrokeSize = Math.Max(0.7f, (float)thickness * 0.38f);
+                canvas.StrokeColor = primary.WithAlpha(0.38f);
+                var midY = rect.Center.Y;
+                canvas.DrawLine(rect.Left + 8, midY, rect.Left + 24, rect.Top + 5);
+                canvas.DrawLine(rect.Right - 8, midY, rect.Right - 24, rect.Bottom - 5);
+            }
         }
     }
 }

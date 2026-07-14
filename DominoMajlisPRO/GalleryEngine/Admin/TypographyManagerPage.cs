@@ -95,6 +95,7 @@ public sealed class TypographyManagerPage : ContentPage
         _framePicker.SelectedIndex = 0;
 
         _assetTypePicker.SelectedIndexChanged += (_, _) => SyncEquipTarget();
+        _categoryPicker.SelectedIndexChanged += (_, _) => RefreshPreview();
         foreach (var picker in new[] { _fontPicker, _materialPicker, _lightingPicker, _depthPicker, _motionPicker, _particlePicker, _distortionPicker, _framePicker })
             picker.SelectedIndexChanged += (_, _) => RefreshPreview();
         foreach (var slider in new[] { _fontSizeSlider, _thicknessSlider, _opacitySlider, _scaleSlider, _speedSlider, _intensitySlider, _metalnessSlider, _roughnessSlider, _specularSlider, _glossSlider, _reflectionSlider, _depthAmountSlider, _brightnessSlider })
@@ -388,9 +389,17 @@ public sealed class TypographyManagerPage : ContentPage
     {
         var selected = Selected(_assetTypePicker);
         if (selected.StartsWith("Team", StringComparison.Ordinal))
+        {
             Select(_equipTargetPicker, "TeamName");
+            if (!Selected(_categoryPicker).StartsWith("Team", StringComparison.Ordinal))
+                Select(_categoryPicker, selected);
+        }
         else
+        {
             Select(_equipTargetPicker, "PlayerName");
+            if (!Selected(_categoryPicker).StartsWith("Player", StringComparison.Ordinal))
+                Select(_categoryPicker, selected);
+        }
         if (selected is nameof(StoreProductAssetType.PlayerNameEffect) or
             nameof(StoreProductAssetType.TeamNameEffect))
             Select(_framePicker, "None");
@@ -406,15 +415,15 @@ public sealed class TypographyManagerPage : ContentPage
             var title = string.IsNullOrWhiteSpace(_titleEntry.Text)
                 ? "العنوان"
                 : _titleEntry.Text.Trim();
-            var isTeam = type is StoreProductAssetType.TeamNameEffect or
-                StoreProductAssetType.TeamNameFrame;
-            _playerPreview.IsVisible = !isTeam;
-            _teamPreview.IsVisible = isTeam;
-            if (isTeam)
-                _teamPreview.Bind(title, livePreset);
-            else
-                _playerPreview.Bind(title, livePreset);
-            return;
+        var isTeam = type is StoreProductAssetType.TeamNameEffect or
+            StoreProductAssetType.TeamNameFrame;
+        _playerPreview.IsVisible = true;
+        _teamPreview.IsVisible = true;
+        _playerPreview.Opacity = isTeam ? 0.46 : 1;
+        _teamPreview.Opacity = isTeam ? 1 : 0.46;
+        _playerPreview.Bind(isTeam ? "Abdulla" : title, livePreset);
+        _teamPreview.Bind(isTeam ? title : "Alosh Team", livePreset);
+        return;
         }
         var preset = BuildPreset();
         _playerPreview.Bind("اللاعب الذهبي الطويل", preset);
