@@ -22,6 +22,9 @@ public partial class GalleryPage : ContentPage
     private NewArrivalsSectionView? _newArrivalsFullSection;
     private NewArrivalsSectionView? _framesSection;
     private NewArrivalsSectionView? _effectsSection;
+    private NewArrivalsSectionView? _titlesSection;
+    private NewArrivalsSectionView? _badgesSection;
+    private NewArrivalsSectionView? _bundlesSection;
     private LimitedOffersSectionView? _limitedOffersFullSection;
     private BrowseCategoriesSectionView? _browseCategoriesFullSection;
 
@@ -283,6 +286,18 @@ public partial class GalleryPage : ContentPage
                 _effectsSection ??= CreateEffectsSection();
                 SelectedSectionHost.Content = _effectsSection;
                 break;
+            case StoreView.Titles:
+                _titlesSection ??= CreateTitlesSection();
+                SelectedSectionHost.Content = _titlesSection;
+                break;
+            case StoreView.Badges:
+                _badgesSection ??= CreateBadgesSection();
+                SelectedSectionHost.Content = _badgesSection;
+                break;
+            case StoreView.Bundles:
+                _bundlesSection ??= CreateBundlesSection();
+                SelectedSectionHost.Content = _bundlesSection;
+                break;
             default:
                 SelectedSectionHost.Content = null;
                 SelectedSectionHost.IsVisible = false;
@@ -354,6 +369,46 @@ public partial class GalleryPage : ContentPage
         return section;
     }
 
+    private NewArrivalsSectionView CreateTitlesSection()
+    {
+        var section = new NewArrivalsSectionView(
+            "الألقاب",
+            "TITLES",
+            new[] { StoreProductAssetType.Title.ToString() });
+        section.SetVisibleItemCount(StoreNavigationState.PageSize);
+        section.AvailableItemCountChanged += (_, count) =>
+            OnAvailableItemCountChanged(StoreView.Titles, count);
+        return section;
+    }
+
+    private NewArrivalsSectionView CreateBadgesSection()
+    {
+        var section = new NewArrivalsSectionView(
+            "الشارات",
+            "BADGES",
+            new[]
+            {
+                StoreProductAssetType.Badge.ToString(),
+                StoreProductAssetType.Emblem.ToString()
+            });
+        section.SetVisibleItemCount(StoreNavigationState.PageSize);
+        section.AvailableItemCountChanged += (_, count) =>
+            OnAvailableItemCountChanged(StoreView.Badges, count);
+        return section;
+    }
+
+    private NewArrivalsSectionView CreateBundlesSection()
+    {
+        var section = new NewArrivalsSectionView(
+            "الحزم",
+            "BUNDLES",
+            new[] { StoreProductAssetType.Bundle.ToString() });
+        section.SetVisibleItemCount(StoreNavigationState.PageSize);
+        section.AvailableItemCountChanged += (_, count) =>
+            OnAvailableItemCountChanged(StoreView.Bundles, count);
+        return section;
+    }
+
     private void OnAvailableItemCountChanged(StoreView view, int count)
     {
         if (StoreNavigation.CurrentView != view)
@@ -390,6 +445,15 @@ public partial class GalleryPage : ContentPage
                 break;
             case StoreView.Effects:
                 _effectsSection?.SetVisibleItemCount(StoreNavigation.VisibleItemCount);
+                break;
+            case StoreView.Titles:
+                _titlesSection?.SetVisibleItemCount(StoreNavigation.VisibleItemCount);
+                break;
+            case StoreView.Badges:
+                _badgesSection?.SetVisibleItemCount(StoreNavigation.VisibleItemCount);
+                break;
+            case StoreView.Bundles:
+                _bundlesSection?.SetVisibleItemCount(StoreNavigation.VisibleItemCount);
                 break;
         }
 

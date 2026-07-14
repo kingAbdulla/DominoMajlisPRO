@@ -10,14 +10,14 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
     private IReadOnlyList<NewArrivalCard> _availableItems =
         Array.Empty<NewArrivalCard>();
     private readonly StoreProductActionSheet _actionSheet = new();
-    private readonly string? _storeTypeFilter;
+    private readonly IReadOnlyCollection<string>? _storeTypeFilters;
     private int _visibleItemCount = 6;
 
     public event EventHandler? ShowAllRequested;
     public event EventHandler<int>? AvailableItemCountChanged;
 
     public NewArrivalsSectionView()
-        : this("وصل حديثاً", "NEW ARRIVALS", null)
+        : this("وصل حديثاً", "NEW ARRIVALS", (string?)null)
     {
     }
 
@@ -25,9 +25,23 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
         string title,
         string subtitle,
         string? storeTypeFilter)
+        : this(title, subtitle, string.IsNullOrWhiteSpace(storeTypeFilter)
+            ? null
+            : new[] { storeTypeFilter })
+    {
+    }
+
+    public NewArrivalsSectionView(
+        string title,
+        string subtitle,
+        IReadOnlyCollection<string>? storeTypeFilters)
         : base(title, subtitle, "عرض الكل")
     {
-        _storeTypeFilter = storeTypeFilter;
+        _storeTypeFilters = storeTypeFilters is { Count: > 0 }
+            ? storeTypeFilters
+                .Select(StoreAssetCatalogService.CanonicalTypeId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : null;
         AttachShowAllTap();
         Loaded += OnCmsLoaded;
         Unloaded += OnCmsUnloaded;
@@ -65,13 +79,11 @@ public class NewArrivalsSectionView : StoreProductsSectionBase
     private async Task RefreshFromCmsAsync()
     {
         var published = await StoreAssetQueryService.LoadNewArrivalsAsync();
-        var scoped = string.IsNullOrWhiteSpace(_storeTypeFilter)
+        var scoped = _storeTypeFilters == null
             ? published
             : published
-                .Where(record => string.Equals(
-                    StoreAssetCatalogService.CanonicalTypeId(record.StoreTypeId),
-                    _storeTypeFilter,
-                    StringComparison.OrdinalIgnoreCase))
+                .Where(record => _storeTypeFilters.Contains(
+                    StoreAssetCatalogService.CanonicalTypeId(record.StoreTypeId)))
                 .ToList();
         var items = new List<NewArrivalCard>(scoped.Count);
         foreach (var record in scoped)
