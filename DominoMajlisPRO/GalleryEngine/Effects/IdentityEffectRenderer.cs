@@ -62,7 +62,7 @@ public sealed class IdentityEffectView : GraphicsView
 
     public void SetEffect(IdentityEffectRenderProfile profile, double baseScale = 1.18, bool lightweight = false)
     {
-        var key = $"{profile.AssetId}|{profile.PresetId}|{profile.AnimationId}|{profile.PrimaryColor}|{profile.SecondaryColor}|{profile.Scale}|{profile.Speed}|{profile.Intensity}|{baseScale}|{lightweight}";
+        var key = $"{profile.AssetId}|{profile.PresetId}|{profile.AnimationId}|{profile.PrimaryColor}|{profile.SecondaryColor}|{profile.Opacity}|{profile.Scale}|{profile.Speed}|{profile.Intensity}|{profile.Duration}|{baseScale}|{lightweight}";
         if (EffectKey == key)
             return;
 

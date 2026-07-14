@@ -5,12 +5,13 @@ using Microsoft.Maui.Graphics;
 
 namespace DominoMajlisPRO.GalleryEngine.Services;
 
+// Live design preview for the Effects Studio. It renders through the production
+// IdentityEffectView (the same renderer + SharedAnimationClock used on Main/Game/
+// Rankings/Profile pages), so every control change (preset, colors, opacity, scale,
+// speed, intensity, layers, animation) is reflected exactly as it will appear in-app
+// with no separate/approximate preview renderer.
 public sealed class EffectsStudioPreviewView : ContentView
 {
-    const string ProceduralAnimationName = "DominoEffectsStudioProceduralPreview";
-
-    readonly ProceduralEffectDrawable _proceduralDrawable = new();
-
     readonly Label _titleLabel = new()
     {
         Text = "معاينة التأثير",
@@ -35,14 +36,15 @@ public sealed class EffectsStudioPreviewView : ContentView
         HorizontalOptions = LayoutOptions.Center
     };
 
-    readonly GraphicsView _proceduralOverlay;
-
-    readonly Image _effectOverlay = new()
+    readonly IdentityEffectView _effectView = new()
     {
-        WidthRequest = 124,
-        HeightRequest = 124,
-        Aspect = Aspect.AspectFit,
-        InputTransparent = true
+        WidthRequest = 132,
+        HeightRequest = 132,
+        HorizontalOptions = LayoutOptions.Center,
+        VerticalOptions = LayoutOptions.Center,
+        InputTransparent = true,
+        BackgroundColor = Colors.Transparent,
+        IsVisible = false
     };
 
     readonly Label _avatarGlyph = new()
@@ -65,15 +67,6 @@ public sealed class EffectsStudioPreviewView : ContentView
     {
         FlowDirection = FlowDirection.RightToLeft;
 
-        _proceduralOverlay = new GraphicsView
-        {
-            WidthRequest = 124,
-            HeightRequest = 124,
-            Drawable = _proceduralDrawable,
-            InputTransparent = true,
-            IsVisible = false
-        };
-
         var previewGrid = new Grid
         {
             WidthRequest = 132,
@@ -83,8 +76,7 @@ public sealed class EffectsStudioPreviewView : ContentView
 
         _avatarFrame.Content = _avatarGlyph;
         previewGrid.Add(_avatarFrame);
-        previewGrid.Add(_proceduralOverlay);
-        previewGrid.Add(_effectOverlay);
+        previewGrid.Add(_effectView);
 
         Content = new Border
         {
@@ -140,115 +132,18 @@ public sealed class EffectsStudioPreviewView : ContentView
             record.EffectSpeed,
             record.EffectIntensity);
 
-        var definition = PlayerEffectEngine.CreateDefinition(effect, 1.18);
-        var render = PlayerEffectEngine.CreateRenderProfile(definition);
-
-        if (render.UseLegacyImage)
-            PreviewLegacyEffect(effect);
-        else
-            PreviewProceduralEffect(definition, render);
+        _effectView.IsVisible = true;
+        _effectView.SetEffect(IdentityEffectRenderProfile.From(effect, 1.18), 1.18);
 
         _metaLabel.Text =
             $"{Display(record.EffectType, "Glow")} • {Display(record.AnimationType, "Breathing")} • " +
             $"{Display(record.PrimaryColorPresetId, "Gold")} / {Display(record.SecondaryColorPresetId, "Gold")}";
     }
 
-    void PreviewLegacyEffect(CatalogAssetDisplay effect)
-    {
-        _proceduralOverlay.CancelAnimations();
-        _proceduralOverlay.IsVisible = false;
-        _proceduralDrawable.Configure(null, null);
-        _proceduralOverlay.Invalidate();
-
-        PlayerEffectEngine.Apply(_effectOverlay, effect, 1.18);
-    }
-
-    void PreviewProceduralEffect(
-        EffectDefinitionModel definition,
-        EffectRenderProfile render)
-    {
-        _effectOverlay.CancelAnimations();
-        _effectOverlay.Source = null;
-        _effectOverlay.BackgroundColor = Colors.Transparent;
-        _effectOverlay.Shadow = null;
-        _effectOverlay.IsVisible = false;
-        _effectOverlay.Opacity = 1;
-        _effectOverlay.Scale = 1;
-        _effectOverlay.Rotation = 0;
-
-        _proceduralDrawable.Configure(definition, render);
-        _proceduralDrawable.AnimationProgress = 0;
-
-        _proceduralOverlay.CancelAnimations();
-        _proceduralOverlay.InputTransparent = true;
-        _proceduralOverlay.IsVisible = true;
-        _proceduralOverlay.BackgroundColor = PlayerEffectEngine.CreateBackgroundColor(definition, render);
-        _proceduralOverlay.Opacity = render.Opacity;
-        _proceduralOverlay.Scale = render.Scale;
-        _proceduralOverlay.Rotation = 0;
-        _proceduralOverlay.Invalidate();
-
-        StartProceduralAnimation(definition, render);
-    }
-
-    void StartProceduralAnimation(
-        EffectDefinitionModel definition,
-        EffectRenderProfile render)
-    {
-        if (definition.AnimationId == EffectAnimationId.None)
-            return;
-
-        new Animation(v =>
-        {
-            _proceduralDrawable.AnimationProgress = v;
-            _proceduralOverlay.Opacity = definition.AnimationId == EffectAnimationId.Flash && v >= 0.5
-                ? 1
-                : render.Opacity;
-            _proceduralOverlay.Rotation = definition.AnimationId is EffectAnimationId.Rotate or EffectAnimationId.Orbit
-                ? 360 * v
-                : 0;
-            _proceduralOverlay.Scale = render.Scale + ResolveProceduralScaleBoost(definition, v);
-            _proceduralOverlay.Invalidate();
-        }, 0, 1).Commit(
-            _proceduralOverlay,
-            ProceduralAnimationName,
-            16,
-            render.Duration,
-            Easing.SinInOut,
-            null,
-            () => _proceduralOverlay.IsVisible);
-    }
-
-    static double ResolveProceduralScaleBoost(
-        EffectDefinitionModel definition,
-        double progress)
-    {
-        return definition.AnimationId switch
-        {
-            EffectAnimationId.Lightning => progress < 0.5
-                ? 0.02
-                : 0.16 * definition.Intensity,
-            EffectAnimationId.Pulse or EffectAnimationId.Breathing => 0.12 * progress * definition.Intensity,
-            EffectAnimationId.Fade => 0.04 * progress * definition.Intensity,
-            EffectAnimationId.Flash => 0.10 * progress * definition.Intensity,
-            EffectAnimationId.Rotate or EffectAnimationId.Orbit => 0.05 * progress * definition.Intensity,
-            _ => 0.08 * progress * definition.Intensity
-        };
-    }
-
     void ClearPreview()
     {
-        PlayerEffectEngine.Apply(_effectOverlay, null);
-
-        _proceduralOverlay.CancelAnimations();
-        _proceduralDrawable.Configure(null, null);
-        _proceduralDrawable.AnimationProgress = 0;
-        _proceduralOverlay.BackgroundColor = Colors.Transparent;
-        _proceduralOverlay.IsVisible = false;
-        _proceduralOverlay.Opacity = 1;
-        _proceduralOverlay.Scale = 1;
-        _proceduralOverlay.Rotation = 0;
-        _proceduralOverlay.Invalidate();
+        _effectView.Clear();
+        _effectView.IsVisible = false;
     }
 
     void ApplyTheme(GalleryTheme theme)
