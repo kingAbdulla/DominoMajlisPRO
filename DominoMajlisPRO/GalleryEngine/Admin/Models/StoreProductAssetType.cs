@@ -46,7 +46,6 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.Effect or
         StoreProductAssetType.PlayerNameEffect or
         StoreProductAssetType.PlayerNameFrame or
-        StoreProductAssetType.TeamEffect or
         StoreProductAssetType.Title or
         StoreProductAssetType.Badge or
         StoreProductAssetType.SeasonReward => StoreProductOwnerScope.Player,
@@ -54,6 +53,7 @@ public static class StoreProductAssetTypeCatalog
         StoreProductAssetType.Emblem or
         StoreProductAssetType.TeamColor or
         StoreProductAssetType.EmblemBackground or
+        StoreProductAssetType.TeamEffect or
         StoreProductAssetType.TeamNameEffect or
         StoreProductAssetType.TeamNameFrame => StoreProductOwnerScope.Team,
 
@@ -104,7 +104,7 @@ public static class StoreProductAssetTypeCatalog
             return false;
         }
 
-        if (type is StoreProductAssetType.Effect or StoreProductAssetType.TeamEffect &&
+        if (type is (StoreProductAssetType.Effect or StoreProductAssetType.TeamEffect) &&
             !string.IsNullOrWhiteSpace(colorHex) &&
             !IsValidColorHex(colorHex))
         {

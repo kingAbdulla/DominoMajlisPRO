@@ -5,22 +5,6 @@ namespace DominoMajlisPRO.GalleryEngine.Services;
 
 public static class TeamEligibleAssetService
 {
-    private static readonly HashSet<string> TeamTypes =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Emblem",
-            "TeamColor",
-            "EmblemBackground",
-            "TeamEffect",
-            "TeamNameEffect",
-            "TeamNameFrame",
-            "PlayerNameEffect",
-            "PlayerNameFrame",
-            "Frame",
-            "ProfileBackground",
-            "Effect"
-        };
-
     public static Task<IReadOnlyList<TeamOwnedAssetItem>> GetEligibleAsync(
         TeamProfileModel team) =>
         GetEligibleAsync(team.TeamId, team.Player1Id,
@@ -31,33 +15,17 @@ public static class TeamEligibleAssetService
         string? player1Id,
         string? player2Id)
     {
-        var result = CreateDefaults(teamId).ToList();
-        var playerIds = new[] { player1Id, player2Id }
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Select(id => id!.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase);
+        var result =
+            CreateDefaults(teamId).ToList();
 
-        foreach (var playerId in playerIds)
-        {
-            var owned = await PlayerInventoryService.LoadOwnedAsync(playerId);
-            result.AddRange(owned
-                .Where(item => IsTeamType(item.StoreTypeId) &&
-                               !RemovedStoreAssetPolicy.IsRemoved(item.AssetId))
-                .Select(item => new TeamOwnedAssetItem
-                {
-                    TeamInventoryItemId = item.InventoryItemId,
-                    ApplicationUserId = item.ApplicationUserId?.Trim() ?? string.Empty,
-                    TeamId = teamId?.Trim() ?? string.Empty,
-                    TeamAssetId = item.AssetId,
-                    TeamAssetTypeId =
-                        StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId),
-                    IsOwned = true,
-                    AcquiredAt = item.AcquiredAt,
-                    Source = item.Source,
-                    SeasonId = item.SeasonId,
-                    CollectionId = item.CollectionId
-                }));
-        }
+        var memberAssets =
+            await TeamMemberOwnedVisualResolver.ResolveAsync(
+                teamId,
+                player1Id,
+                player2Id);
+
+        result.AddRange(
+            memberAssets.Assets.Select(asset => asset.Ownership));
 
 
         return result
@@ -91,8 +59,4 @@ public static class TeamEligibleAssetService
             };
         }
     }
-
-    private static bool IsTeamType(string? assetType) =>
-        TeamTypes.Contains(
-            StoreAssetCatalogService.CanonicalTypeId(assetType));
 }

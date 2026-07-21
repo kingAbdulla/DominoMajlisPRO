@@ -36,6 +36,13 @@ public partial class GamePage : ContentPage
     TeamIdentityModel? team2Identity;
     TaskCompletionSource<bool>? dialogCompletion;
     bool timerStarted;
+
+    sealed record MatchVictoryEvaluation(
+        bool IsCompleted,
+        int WinnerTeamNumber,
+        string WinnerName,
+        string WinnerPlayers,
+        bool HasMeles);
     // =========================
     // NEW MATCH
     // =========================
@@ -961,10 +968,7 @@ public partial class GamePage : ContentPage
                 ? $"{Team1Name.Text} ({Team1Players.Text})"
                 : $"{Team2Name.Text} ({Team2Players.Text})";
 
-        RecalculateScores();
-        RefreshRoundsHistory();
-        UpdateLastRoundCard();
-        UpdateLeaderUI();
+        await ApplyScoreMutationAsync();
     }
 
     async Task DeleteRoundAsync(RoundModel round)
@@ -987,10 +991,7 @@ public partial class GamePage : ContentPage
             r.RoundNumber = counter++;
 
         roundNumber = counter;
-        RecalculateScores();
-        RefreshRoundsHistory();
-        UpdateLastRoundCard();
-        UpdateLeaderUI();
+        await ApplyScoreMutationAsync();
     }
 
     async Task EditRoundAsync(RoundModel round)
@@ -1009,10 +1010,7 @@ public partial class GamePage : ContentPage
             return;
 
         round.Points = newPoints;
-        RecalculateScores();
-        RefreshRoundsHistory();
-        UpdateLastRoundCard();
-        UpdateLeaderUI();
+        await ApplyScoreMutationAsync();
     }
 
     void RecalculateScores()
@@ -1047,6 +1045,136 @@ public partial class GamePage : ContentPage
         UpdateLeaderUI();
         UpdateWinRate();
     }
+
+    MatchVictoryEvaluation EvaluateMatchVictory()
+    {
+        if (isLocalRules)
+        {
+            if (team1Score >= 101 && team2Score < 25)
+            {
+                return new MatchVictoryEvaluation(
+                    true,
+                    1,
+                    Team1Name.Text,
+                    Team1Players.Text,
+                    true);
+            }
+
+            if (team2Score >= 101 && team1Score < 25)
+            {
+                return new MatchVictoryEvaluation(
+                    true,
+                    2,
+                    Team2Name.Text,
+                    Team2Players.Text,
+                    true);
+            }
+        }
+
+        if (team1Score >= targetScore && team1Score > team2Score)
+        {
+            return new MatchVictoryEvaluation(
+                true,
+                1,
+                Team1Name.Text,
+                Team1Players.Text,
+                false);
+        }
+
+        if (team2Score >= targetScore && team2Score > team1Score)
+        {
+            return new MatchVictoryEvaluation(
+                true,
+                2,
+                Team2Name.Text,
+                Team2Players.Text,
+                false);
+        }
+
+        return new MatchVictoryEvaluation(
+            false,
+            0,
+            string.Empty,
+            string.Empty,
+            false);
+    }
+
+    async Task ApplyScoreMutationAsync()
+    {
+        RecalculateScores();
+
+        var victory =
+            EvaluateMatchVictory();
+
+        foreach (var round in roundsHistory)
+            round.IsMeles = false;
+
+        if (victory.IsCompleted)
+        {
+            var lastRound =
+                roundsHistory.LastOrDefault();
+
+            if (lastRound != null)
+                lastRound.IsMeles = victory.HasMeles;
+
+            RefreshRoundsHistory();
+            UpdateLastRoundCard();
+            UpdateLeaderUI();
+
+            await FinishMatch(
+                victory.WinnerName,
+                victory.WinnerPlayers,
+                victory.HasMeles);
+            return;
+        }
+
+        gameFinished = false;
+        matchSaved = false;
+        SynchronizeActiveMatchSnapshot();
+
+        await GameService.SaveMatchAsync(
+            currentMatch);
+
+        RefreshRoundsHistory();
+        UpdateLastRoundCard();
+        UpdateLeaderUI();
+    }
+
+    void SynchronizeActiveMatchSnapshot()
+    {
+        currentMatch.Team1Score =
+            team1Score;
+
+        currentMatch.Team2Score =
+            team2Score;
+
+        currentMatch.RoundNumber =
+            roundNumber;
+
+        currentMatch.RoundsHistory =
+            roundsHistory;
+
+        currentMatch.IsFinished =
+            false;
+
+        currentMatch.IsLocked =
+            false;
+
+        currentMatch.WinnerTeam =
+            string.Empty;
+
+        currentMatch.WinnerTeamName =
+            string.Empty;
+
+        currentMatch.WinnerTeamId =
+            string.Empty;
+
+        currentMatch.HasMeles =
+            false;
+
+        currentMatch.LastPlayedTime =
+            DateTime.Now;
+    }
     // =========================
     // ADD POINTS
     // =========================
@@ -1066,8 +1194,6 @@ public partial class GamePage : ContentPage
         await ShowFloatingScore(team, points);
 
         bool meles = false;
-        string winner = "";
-        string winnerPlayers = "";
         int oldTeam1 =
             team1Score;
         int oldTeam2 =
@@ -1078,10 +1204,6 @@ public partial class GamePage : ContentPage
             team1Score += points;
             Team1Score.Text =
                 team1Score.ToString();
-            winner =
-                Team1Name.Text;
-            winnerPlayers =
-                Team1Players.Text;
             // LOCAL MELES
             if (isLocalRules &&
                 team1Score >= 101 &&
@@ -1096,10 +1218,6 @@ public partial class GamePage : ContentPage
             team2Score += points;
             Team2Score.Text =
                 team2Score.ToString();
-            winner =
-                Team2Name.Text;
-            winnerPlayers =
-                Team2Players.Text;
             // LOCAL MELES
             if (isLocalRules &&
                 team2Score >= 101 &&
@@ -1170,36 +1288,7 @@ public partial class GamePage : ContentPage
                   : team1Profile?.Emblem ?? ""
           });
         roundNumber++;
-        RefreshRoundsHistory();
-        UpdateLastRoundCard();
-        UpdateLeaderUI();
-       
-        // MELES
-        if (meles)
-        {
-            await FinishMatch(
-                winner,
-                winnerPlayers,
-                true);
-            return;
-        }
-        // NORMAL WIN
-        if (team1Score >= targetScore)
-        {
-            await FinishMatch(
-                Team1Name.Text,
-                Team1Players.Text,
-                false);
-            return;
-        }
-        if (team2Score >= targetScore)
-        {
-            await FinishMatch(
-                Team2Name.Text,
-                Team2Players.Text,
-                false);
-            return;
-        }
+        await ApplyScoreMutationAsync();
 
     }
 
@@ -1701,18 +1790,10 @@ public partial class GamePage : ContentPage
             return;
 
         RoundModel lastRound = roundsHistory.Last();
-        team1Score = lastRound.Team1OldScore;
-        team2Score = lastRound.Team2OldScore;
-        Team1Score.Text = team1Score.ToString();
-        Team2Score.Text = team2Score.ToString();
         roundsHistory.Remove(lastRound);
-        roundNumber = Math.Max(1, roundNumber - 1);
-        gameFinished = false;
-        matchSaved = false;
+        roundNumber = Math.Max(1, roundsHistory.Count + 1);
 
-        RefreshRoundsHistory();
-        UpdateLastRoundCard();
-        UpdateLeaderUI();
+        await ApplyScoreMutationAsync();
         await ShowInfoDialogAsync("تم", "تم التراجع عن الجولة الأخيرة.");
     }
     // =========================

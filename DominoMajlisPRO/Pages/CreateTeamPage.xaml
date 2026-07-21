@@ -467,14 +467,14 @@
                 <VerticalStackLayout Spacing="12">
                     <Label x:Name="DialogTitleLabel" TextColor="#F2C46D" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="End" LineBreakMode="WordWrap" MaxLines="3"/>
                     <Label x:Name="DialogMessageLabel" TextColor="#F8EAD0" FontSize="13" LineBreakMode="WordWrap" HorizontalTextAlignment="End" MaxLines="8"/>
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,6,0,0">
+                    <Grid x:Name="DialogButtonsGrid" ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,6,0,0">
                         <Border x:Name="DialogCancelButton" Stroke="#6B4A1E" BackgroundColor="#15110B" StrokeShape="RoundRectangle 12" Padding="10">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnDialogCancelTapped"/>
                             </Border.GestureRecognizers>
                             <Label x:Name="DialogCancelLabel" Text="إلغاء" TextColor="#D7B66F" FontAttributes="Bold" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation"/>
                         </Border>
-                        <Border x:Name="DialogOkButton" Grid.Column="1" Stroke="#D6A642" BackgroundColor="#7E5518" StrokeShape="RoundRectangle 12" Padding="10">
+                        <Border x:Name="DialogOkButton" Grid.Column="1" Stroke="#D6A642" BackgroundColor="#7E5518" StrokeShape="RoundRectangle 12" Padding="12,10" MinimumWidthRequest="112">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnDialogOkTapped"/>
                             </Border.GestureRecognizers>

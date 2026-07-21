@@ -254,7 +254,8 @@ public class PremiumGalleryCard : ContentView
     private static TypographyIdentityPreset PresetForNameAsset(
         CatalogAssetDisplay asset)
     {
-        var preset = asset.TypographyPreset;
+        var preset = new NameTypographyIdentity(string.Empty, asset, null).ResolvePreset() ??
+            asset.TypographyPreset.Normalized();
         if (asset.AssetType is StoreProductAssetType.PlayerNameEffect or
             StoreProductAssetType.TeamNameEffect)
             preset.FrameStylePreset = "None";

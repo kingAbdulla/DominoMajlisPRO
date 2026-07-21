@@ -63,6 +63,7 @@ public partial class CreateTeamPage
     private List<OwnedCosmeticChoiceItem> _ownedTypographyChoices = new();
     private OwnedCosmeticChoiceItem? _selectedTeamNameEffect;
     private OwnedCosmeticChoiceItem? _selectedTeamNameFrame;
+    private string _currentCosmeticSection = "Frames";
 
     private async Task SyncOwnedCosmeticChoicesAsync()
     {
@@ -71,36 +72,31 @@ public partial class CreateTeamPage
 
         try
         {
-            var ownerIds = await ResolveCurrentTeamEffectOwnerIdsAsync();
-            var catalog = await StoreAssetCatalogService.LoadAsync();
+            var memberVisuals = await ResolveCurrentTeamMemberVisualsAsync();
             var choices = new List<OwnedCosmeticChoiceItem>();
 
-            foreach (var ownerId in ownerIds)
+            foreach (var memberAsset in memberVisuals.Assets)
             {
-                var inventory = await PlayerInventoryService.LoadOwnedAsync(ownerId);
-                foreach (var owned in inventory.Where(item => item.IsOwned && !item.IsExpired))
+                var typeId =
+                    StoreAssetCatalogService.CanonicalTypeId(memberAsset.Ownership.TeamAssetTypeId);
+
+                if (typeId is not ("TeamNameFrame" or "TeamNameEffect"))
                 {
-                    if (RemovedStoreAssetPolicy.IsRemoved(owned.AssetId))
-                        continue;
-
-                    var typeId = StoreAssetCatalogService.CanonicalTypeId(owned.StoreTypeId);
-                    if (typeId is not ("Frame" or "PlayerNameFrame" or "TeamNameFrame" or
-                        "PlayerNameEffect" or "TeamNameEffect"))
-                    {
-                        continue;
-                    }
-
-                    var asset = StoreAssetCatalogService.Resolve(catalog, owned.AssetId, typeId);
-                    if (asset == null || RemovedStoreAssetPolicy.IsRemoved(asset.AssetId, asset.PreviewImage))
-                        continue;
-
-                    choices.Add(new OwnedCosmeticChoiceItem(asset, ownerId));
+                    continue;
                 }
+
+                var asset = memberAsset.CatalogAsset;
+                if (asset == null ||
+                    RemovedStoreAssetPolicy.IsRemoved(asset.AssetId, asset.PreviewImage))
+                    continue;
+
+                choices.Add(new OwnedCosmeticChoiceItem(asset, memberAsset.OwnerPlayerId));
             }
 
             // Preserve purchases made before team-name assets became PlayerId-owned.
-            if (!string.IsNullOrWhiteSpace(CurrentTeam?.TeamId) && ownerIds.Count > 0)
+            if (!string.IsNullOrWhiteSpace(CurrentTeam?.TeamId) && memberVisuals.MemberPlayerIds.Count > 0)
             {
+                var catalog = await StoreAssetCatalogService.LoadAsync();
                 var legacyTeamInventory = await TeamAssetInventoryService.GetInventoryForTeamAsync(CurrentTeam.TeamId);
                 foreach (var owned in legacyTeamInventory.Where(item => item.IsOwned))
                 {
@@ -113,20 +109,17 @@ public partial class CreateTeamPage
 
                     var asset = StoreAssetCatalogService.Resolve(catalog, owned.TeamAssetId, typeId);
                     if (asset != null && !RemovedStoreAssetPolicy.IsRemoved(asset.AssetId, asset.PreviewImage))
-                        choices.Add(new OwnedCosmeticChoiceItem(asset, ownerIds[0]));
+                        choices.Add(new OwnedCosmeticChoiceItem(asset, memberVisuals.MemberPlayerIds[0]));
                 }
             }
 
             var frames = choices
-                .Where(item => item.Asset.AssetType is StoreProductAssetType.Frame or
-                    StoreProductAssetType.PlayerNameFrame or StoreProductAssetType.TeamNameFrame)
-                .Where(item => item.Asset.AssetType != StoreProductAssetType.Frame || item.HasImage)
+                .Where(item => item.Asset.AssetType == StoreProductAssetType.TeamNameFrame)
                 .GroupBy(item => $"{item.AssetType}|{item.AssetId}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
                 .Select(group => group.First())
                 .ToList();
             var typography = choices
-                .Where(item => item.Asset.AssetType is StoreProductAssetType.PlayerNameEffect or
-                    StoreProductAssetType.TeamNameEffect)
+                .Where(item => item.Asset.AssetType == StoreProductAssetType.TeamNameEffect)
                 .GroupBy(item => $"{item.AssetType}|{item.AssetId}|{item.OwnerPlayerId}", StringComparer.OrdinalIgnoreCase)
                 .Select(group => group.First())
                 .ToList();
@@ -153,16 +146,8 @@ public partial class CreateTeamPage
             return;
 
         SelectOwnedChoice(_ownedFrameChoices, selected);
-        if (selected.Asset.AssetType == StoreProductAssetType.TeamNameFrame)
-        {
-            _selectedTeamNameFrame = selected;
-            await ApplySelectedTeamTypographyPreviewAsync();
-            return;
-        }
-
-        await StoreEquipService.EquipAsync(selected.OwnerPlayerId, selected.AssetId);
-        await UpdatePreviewAvatarsAsync();
-        await ApplyPreviewNameTypographyAsync();
+        _selectedTeamNameFrame = selected;
+        await ApplySelectedTeamTypographyPreviewAsync();
     }
 
     private async void OnOwnedTypographySelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -171,15 +156,8 @@ public partial class CreateTeamPage
             return;
 
         SelectOwnedChoice(_ownedTypographyChoices, selected);
-        if (selected.Asset.AssetType == StoreProductAssetType.TeamNameEffect)
-        {
-            _selectedTeamNameEffect = selected;
-            await ApplySelectedTeamTypographyPreviewAsync();
-            return;
-        }
-
-        await StoreEquipService.EquipAsync(selected.OwnerPlayerId, selected.AssetId);
-        await ApplyPreviewNameTypographyAsync();
+        _selectedTeamNameEffect = selected;
+        await ApplySelectedTeamTypographyPreviewAsync();
     }
 
     private static void SelectOwnedChoice(
@@ -228,6 +206,7 @@ public partial class CreateTeamPage
 
     private void ShowCosmeticSection(string section)
     {
+        _currentCosmeticSection = section;
         OwnedFramesSection.IsVisible = section == "Frames";
         OwnedTypographySection.IsVisible = section == "Typography";
         EmblemBackgroundSection.IsVisible = section == "Backgrounds";

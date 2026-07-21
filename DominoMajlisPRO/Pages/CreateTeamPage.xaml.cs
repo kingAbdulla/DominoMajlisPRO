@@ -320,7 +320,12 @@ public partial class CreateTeamPage : ContentPage
         DialogMessageLabel.Text = message;
         DialogOkLabel.Text = okText;
         DialogCancelLabel.Text = cancelText ?? string.Empty;
-        DialogCancelButton.IsVisible = !string.IsNullOrWhiteSpace(cancelText);
+        var hasCancel = !string.IsNullOrWhiteSpace(cancelText);
+        DialogCancelButton.IsVisible = hasCancel;
+        DialogButtonsGrid.ColumnDefinitions[0].Width = hasCancel ? GridLength.Star : new GridLength(0);
+        DialogButtonsGrid.ColumnDefinitions[1].Width = GridLength.Star;
+        Grid.SetColumn(DialogOkButton, hasCancel ? 1 : 0);
+        Grid.SetColumnSpan(DialogOkButton, hasCancel ? 1 : 2);
 
         DialogOverlay.IsVisible = true;
         DialogOverlay.Opacity = 0;
@@ -477,6 +482,12 @@ public partial class CreateTeamPage : ContentPage
 
                 var selectedTeamId = ownerTeam?.TeamId;
 
+                var memberVisuals =
+                    await TeamMemberOwnedVisualResolver.ResolveAsync(
+                        selectedTeamId,
+                        resolvedPlayer1Id,
+                        resolvedPlayer2Id);
+
                 var inventory = (await TeamEligibleAssetService.GetEligibleAsync(
                         selectedTeamId,
                         resolvedPlayer1Id,
@@ -492,36 +503,27 @@ public partial class CreateTeamPage : ContentPage
                 var catalog = await StoreAssetCatalogService.LoadAsync();
                 var ownedTeamEffects = new List<TeamEffectCarouselItem>();
 
-                var teamEffectOwnerIds = new[]
-                    {
-                        resolvedPlayer1Id,
-                        resolvedPlayer2Id
-                    }
-                    .Where(id => !string.IsNullOrWhiteSpace(id))
-                    .Select(id => id!.Trim())
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-                foreach (var ownerPlayerId in teamEffectOwnerIds)
+                foreach (var memberAsset in memberVisuals.Assets)
                 {
-                    var playerInventory = await PlayerInventoryService.LoadOwnedAsync(ownerPlayerId);
-                    foreach (var owned in playerInventory.Where(item =>
-                                 string.Equals(StoreAssetCatalogService.CanonicalTypeId(item.StoreTypeId),
-                                     StoreProductAssetType.TeamEffect.ToString(),
-                                     StringComparison.OrdinalIgnoreCase)))
+                    if (!string.Equals(
+                            StoreAssetCatalogService.CanonicalTypeId(memberAsset.Ownership.TeamAssetTypeId),
+                            StoreProductAssetType.TeamEffect.ToString(),
+                            StringComparison.OrdinalIgnoreCase))
                     {
-                        var effect = StoreAssetCatalogService.Resolve(catalog, owned.AssetId,
-                            StoreProductAssetType.TeamEffect.ToString());
-
-                        if (effect == null)
-                            continue;
-
-                        ownedTeamEffects.Add(new TeamEffectCarouselItem(
-                            owned.AssetId,
-                            string.IsNullOrWhiteSpace(effect.DisplayName) ? owned.AssetId : effect.DisplayName,
-                            effect,
-                            ownerPlayerId));
+                        continue;
                     }
+
+                    var effect = memberAsset.CatalogAsset;
+                    if (effect == null)
+                        continue;
+
+                    ownedTeamEffects.Add(new TeamEffectCarouselItem(
+                        memberAsset.Ownership.TeamAssetId,
+                        string.IsNullOrWhiteSpace(effect.DisplayName)
+                            ? memberAsset.Ownership.TeamAssetId
+                            : effect.DisplayName,
+                        effect,
+                        memberAsset.OwnerPlayerId));
                 }
 
                 foreach (var item in inventory)
@@ -611,7 +613,7 @@ public partial class CreateTeamPage : ContentPage
                         backgroundCarouselItems = newBackgroundCarouselItems;
                         teamEffectItems = newTeamEffects;
                         TeamEffectCarousel.ItemsSource = newTeamEffects;
-                        TeamEffectSection.IsVisible = newTeamEffects.Count > 1;
+                        TeamEffectSection.IsVisible = _currentCosmeticSection == "Effects" && newTeamEffects.Count > 1;
                     });
 
                     // Restore selection after a short dispatch to avoid immediate selection events while RecyclerView updates.
@@ -1775,6 +1777,7 @@ public partial class CreateTeamPage : ContentPage
         ApplyLoadedEmblem();
         ApplyLoadedColor();
         _ = LoadOwnedTeamAssetsAsync();
+        RefreshCreateTeamVisualPipeline();
     }
 
     void ApplyLoadedEmblem()

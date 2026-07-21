@@ -17,7 +17,7 @@ public static class StoreTypeRegistry
     public static readonly StoreTypeDefinition Background = new("Background", "الخلفيات", "Backgrounds", "▣", StoreView.Backgrounds, true, true, true, true);
     public static readonly StoreTypeDefinition Frame = new("Frame", "الإطارات", "Frames", "▢", StoreView.Frames, true, true, true, false);
     public static readonly StoreTypeDefinition Badge = new("Badge", "الشارات", "Badges", "◆", StoreView.Badges, true, true, true, false);
-    public static readonly StoreTypeDefinition Emblem = new("Emblem", "الشعارات", "Emblems", "✦", StoreView.Badges, true, true, true, false);
+    public static readonly StoreTypeDefinition Emblem = new("Emblem", "الشعارات", "Emblems", "✦", StoreView.Emblems, true, true, true, false);
     public static readonly StoreTypeDefinition Effect = new("Effect", "المؤثرات", "Effects", "✨", StoreView.Effects, true, true, true, false);
     public static readonly StoreTypeDefinition Bundle = new("Bundle", "الحزم", "Bundles", "🎁", StoreView.Bundles, true, true, true, false);
     public static readonly StoreTypeDefinition Title = new("Title", "الألقاب", "Titles", "♛", StoreView.Titles, true, true, true, false);
@@ -36,7 +36,7 @@ public static class StoreTypeRegistry
 
     public static IReadOnlyList<StoreTypeDefinition> DefaultCategoryTypes { get; } =
     [
-        Avatar, Background, Frame, Title, Badge, Effect, Bundle
+        Avatar, Background, Frame, Emblem, Badge, Effect, Title, Bundle
     ];
 
     public static StoreTypeDefinition? Get(string? typeId) => Resolve(typeId);

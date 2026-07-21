@@ -88,8 +88,11 @@ public static class StoreEquipService
         SameId(storeTypeId, StoreProductAssetType.ProfileBackground.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.Frame.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.Effect.ToString()) ||
+        SameId(storeTypeId, StoreProductAssetType.TeamEffect.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.PlayerNameEffect.ToString()) ||
+        SameId(storeTypeId, StoreProductAssetType.TeamNameEffect.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.PlayerNameFrame.ToString()) ||
+        SameId(storeTypeId, StoreProductAssetType.TeamNameFrame.ToString()) ||
         SameId(storeTypeId, StoreProductAssetType.Title.ToString());
 
     private static async Task<bool> ApplyVisualAsync(string playerId, string assetId, string storeTypeId)
@@ -122,7 +125,9 @@ public static class StoreEquipService
             return;
 
         if (SameId(storeTypeId, StoreProductAssetType.Effect.ToString()) ||
-            SameId(storeTypeId, StoreProductAssetType.PlayerNameEffect.ToString()))
+            SameId(storeTypeId, StoreProductAssetType.TeamEffect.ToString()) ||
+            SameId(storeTypeId, StoreProductAssetType.PlayerNameEffect.ToString()) ||
+            SameId(storeTypeId, StoreProductAssetType.TeamNameEffect.ToString()))
             AppEvents.RaisePlayerEffectChanged(playerId);
         else
             AppEvents.RaisePlayerIdentityChanged(playerId);

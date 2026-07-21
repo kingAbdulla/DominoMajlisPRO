@@ -21,6 +21,7 @@ public partial class GalleryPage : ContentPage
     private BackgroundsSectionView? _backgroundsSection;
     private NewArrivalsSectionView? _newArrivalsFullSection;
     private NewArrivalsSectionView? _framesSection;
+    private NewArrivalsSectionView? _emblemsSection;
     private NewArrivalsSectionView? _effectsSection;
     private NewArrivalsSectionView? _titlesSection;
     private NewArrivalsSectionView? _badgesSection;
@@ -220,6 +221,28 @@ public partial class GalleryPage : ContentPage
         await SwitchStoreViewAsync(e.View);
     }
 
+    private async void OnBackClicked(object? sender, EventArgs e)
+    {
+        if (StoreNavigation.CurrentView != StoreView.Home)
+        {
+            CategoriesSection.Select(StoreView.Home);
+            await SwitchStoreViewAsync(StoreView.Home);
+            return;
+        }
+
+        try
+        {
+            if (Navigation.NavigationStack.Count > 1)
+                await Navigation.PopAsync();
+            else
+                await Shell.Current.GoToAsync("//MainPage");
+        }
+        catch (InvalidOperationException)
+        {
+            await Shell.Current.GoToAsync("//MainPage");
+        }
+    }
+
     private async Task SwitchStoreViewAsync(StoreView view)
     {
         StoreNavigation.SetAvailableItemCount(0);
@@ -281,6 +304,10 @@ public partial class GalleryPage : ContentPage
             case StoreView.Frames:
                 _framesSection ??= CreateFramesSection();
                 SelectedSectionHost.Content = _framesSection;
+                break;
+            case StoreView.Emblems:
+                _emblemsSection ??= CreateEmblemsSection();
+                SelectedSectionHost.Content = _emblemsSection;
                 break;
             case StoreView.Effects:
                 _effectsSection ??= CreateEffectsSection();
@@ -350,7 +377,13 @@ public partial class GalleryPage : ContentPage
         var section = new NewArrivalsSectionView(
             "المؤثرات",
             "EFFECTS",
-            StoreProductAssetType.Effect.ToString());
+            new[]
+            {
+                StoreProductAssetType.Effect.ToString(),
+                StoreProductAssetType.TeamEffect.ToString(),
+                StoreProductAssetType.PlayerNameEffect.ToString(),
+                StoreProductAssetType.TeamNameEffect.ToString()
+            });
         section.SetVisibleItemCount(StoreNavigationState.PageSize);
         section.AvailableItemCountChanged += (_, count) =>
             OnAvailableItemCountChanged(StoreView.Effects, count);
@@ -362,10 +395,31 @@ public partial class GalleryPage : ContentPage
         var section = new NewArrivalsSectionView(
             "الإطارات",
             "FRAMES",
-            StoreProductAssetType.Frame.ToString());
+            new[]
+            {
+                StoreProductAssetType.Frame.ToString(),
+                StoreProductAssetType.PlayerNameFrame.ToString(),
+                StoreProductAssetType.TeamNameFrame.ToString()
+            });
         section.SetVisibleItemCount(StoreNavigationState.PageSize);
         section.AvailableItemCountChanged += (_, count) =>
             OnAvailableItemCountChanged(StoreView.Frames, count);
+        return section;
+    }
+
+    private NewArrivalsSectionView CreateEmblemsSection()
+    {
+        var section = new NewArrivalsSectionView(
+            "الشعارات",
+            "EMBLEMS",
+            new[]
+            {
+                StoreProductAssetType.Emblem.ToString(),
+                StoreProductAssetType.EmblemBackground.ToString()
+            });
+        section.SetVisibleItemCount(StoreNavigationState.PageSize);
+        section.AvailableItemCountChanged += (_, count) =>
+            OnAvailableItemCountChanged(StoreView.Emblems, count);
         return section;
     }
 
@@ -388,8 +442,7 @@ public partial class GalleryPage : ContentPage
             "BADGES",
             new[]
             {
-                StoreProductAssetType.Badge.ToString(),
-                StoreProductAssetType.Emblem.ToString()
+                StoreProductAssetType.Badge.ToString()
             });
         section.SetVisibleItemCount(StoreNavigationState.PageSize);
         section.AvailableItemCountChanged += (_, count) =>
@@ -443,6 +496,9 @@ public partial class GalleryPage : ContentPage
             case StoreView.Frames:
                 _framesSection?.SetVisibleItemCount(StoreNavigation.VisibleItemCount);
                 break;
+            case StoreView.Emblems:
+                _emblemsSection?.SetVisibleItemCount(StoreNavigation.VisibleItemCount);
+                break;
             case StoreView.Effects:
                 _effectsSection?.SetVisibleItemCount(StoreNavigation.VisibleItemCount);
                 break;
@@ -469,6 +525,7 @@ public partial class GalleryPage : ContentPage
     private static string GetCategoryName(StoreView view) => view switch
     {
         StoreView.Frames => "الإطارات",
+        StoreView.Emblems => "الشعارات",
         StoreView.Titles => "الألقاب",
         StoreView.Badges => "الشارات",
         StoreView.Effects => "المؤثرات",

@@ -714,7 +714,8 @@ internal sealed class StoreProductActionSheet : Grid
                 return;
             if (_previewKind == StoreProductPreviewKind.NameTypography)
             {
-                var preset = asset.TypographyPreset;
+                var preset = new NameTypographyIdentity(string.Empty, asset, null).ResolvePreset() ??
+                    asset.TypographyPreset.Normalized();
                 if (asset.AssetType is StoreProductAssetType.PlayerNameEffect or
                     StoreProductAssetType.TeamNameEffect)
                     preset.FrameStylePreset = "None";

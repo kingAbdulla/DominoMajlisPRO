@@ -186,7 +186,10 @@ internal sealed class StoreProductPreviewOverlay : Grid
     private async Task AnimateOpenAsync(int version, StoreProductPreviewKind kind)
     {
         await Task.WhenAll(this.FadeToAsync(1, 180, Easing.CubicOut), _panel.ScaleToAsync(1, 220, Easing.CubicOut));
-        if (version != _animationVersion || _isClosing || kind != StoreProductPreviewKind.Effect) return;
+        if (version != _animationVersion ||
+            _isClosing ||
+            kind is not (StoreProductPreviewKind.Effect or StoreProductPreviewKind.NameTypography))
+            return;
         await _visualHost.ScaleToAsync(1.04, 220, Easing.SinInOut);
         await _visualHost.ScaleToAsync(1, 220, Easing.SinInOut);
     }
@@ -226,7 +229,8 @@ internal sealed class StoreProductPreviewOverlay : Grid
         StoreProductPreviewRequest request,
         CatalogAssetDisplay effect)
     {
-        var preset = effect.TypographyPreset;
+        var preset = new NameTypographyIdentity(string.Empty, effect, null).ResolvePreset() ??
+            effect.TypographyPreset.Normalized();
         if (effect.AssetType is StoreProductAssetType.PlayerNameEffect or
             StoreProductAssetType.TeamNameEffect)
             preset.FrameStylePreset = "None";

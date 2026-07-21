@@ -36,6 +36,11 @@ public sealed class SeasonContentAdminPage : ContentPage
     private readonly Picker _rewardPicker = Picker("نوع الجائزة");
     private readonly Entry _rewardAmount = Entry("قيمة الجائزة", Keyboard.Numeric);
     private readonly Picker _assetPicker = Picker("أصل منشور من المتجر");
+    private readonly Image _assetPreviewImage = new() { HeightRequest = 74, WidthRequest = 74, Aspect = Aspect.AspectFit };
+    private readonly Label _assetPreviewTitle = Label("معاينة الأصل المختار", 13, "#F2CB69", true);
+    private readonly Label _assetPreviewMeta = Label(string.Empty, 11, "#B9AE98");
+    private readonly Label _assetPreviewEmpty = Label("لا توجد أصول منشورة مطابقة لهذا النوع.", 12, "#918B80");
+    private readonly Border _assetPreviewCard;
     private readonly Picker _claimModePicker = Picker("طريقة الاستلام");
     private readonly Picker _repeatPicker = Picker("سياسة التكرار");
     private readonly VerticalStackLayout _rulesList = new() { Spacing = 10 };
@@ -56,6 +61,7 @@ public sealed class SeasonContentAdminPage : ContentPage
         Title = "إدارة محتوى الموسم";
         FlowDirection = FlowDirection.RightToLeft;
         BackgroundColor = Color.FromArgb("#050607");
+        _assetPreviewCard = BuildAssetPreviewCard();
         Build();
         Content = new ScrollView { Content = _root };
     }
@@ -114,22 +120,23 @@ public sealed class SeasonContentAdminPage : ContentPage
         var conditions = Enum.GetValues<SeasonConditionType>()
             .Where(value => value != SeasonConditionType.CustomCompositeRule)
             .ToList();
-        _conditionPicker.ItemsSource = conditions;
-        _secondConditionPicker.ItemsSource = conditions;
-        _logicalPicker.ItemsSource = Enum.GetValues<CompositeLogicalOperator>().ToList();
-        _targetPicker.ItemsSource = Enum.GetValues<SeasonTargetScope>().ToList();
-        _rewardPicker.ItemsSource = Enum.GetValues<SeasonRewardType>().ToList();
-        _claimModePicker.ItemsSource = Enum.GetValues<SeasonClaimMode>().ToList();
-        _repeatPicker.ItemsSource = Enum.GetValues<SeasonRepeatPolicy>().ToList();
+        _conditionPicker.ItemsSource = EnumChoices(conditions);
+        _secondConditionPicker.ItemsSource = EnumChoices(conditions);
+        _logicalPicker.ItemsSource = EnumChoices(Enum.GetValues<CompositeLogicalOperator>());
+        _targetPicker.ItemsSource = EnumChoices(Enum.GetValues<SeasonTargetScope>());
+        _rewardPicker.ItemsSource = EnumChoices(Enum.GetValues<SeasonRewardType>());
+        _claimModePicker.ItemsSource = EnumChoices(Enum.GetValues<SeasonClaimMode>());
+        _repeatPicker.ItemsSource = EnumChoices(Enum.GetValues<SeasonRepeatPolicy>());
         _conditionPicker.SelectedIndex = 0;
         _secondConditionPicker.SelectedIndex = 0;
-        _logicalPicker.SelectedItem = CompositeLogicalOperator.And;
-        _targetPicker.SelectedItem = SeasonTargetScope.Player;
-        _rewardPicker.SelectedItem = SeasonRewardType.Coins;
-        _claimModePicker.SelectedItem = SeasonClaimMode.ManualClaim;
-        _repeatPicker.SelectedItem = SeasonRepeatPolicy.OncePerSeason;
+        SelectValue(_logicalPicker, CompositeLogicalOperator.And);
+        SelectValue(_targetPicker, SeasonTargetScope.Player);
+        SelectValue(_rewardPicker, SeasonRewardType.Coins);
+        SelectValue(_claimModePicker, SeasonClaimMode.ManualClaim);
+        SelectValue(_repeatPicker, SeasonRepeatPolicy.OncePerSeason);
         _targetPicker.SelectedIndexChanged += (_, _) => RefreshAssetPicker();
         _rewardPicker.SelectedIndexChanged += (_, _) => RefreshAssetPicker();
+        _assetPicker.SelectedIndexChanged += (_, _) => RefreshSelectedAssetPreview();
 
         _root.Children.Add(Card(new VerticalStackLayout
         {
@@ -148,7 +155,7 @@ public sealed class SeasonContentAdminPage : ContentPage
                 Label("بداية نافذة القاعدة", 12, "#B9AE98"), _ruleStartDate,
                 Label("نهاية نافذة القاعدة", 12, "#B9AE98"), _ruleEndDate,
                 _targetPicker,
-                _rewardPicker, _rewardAmount, _assetPicker, _claimModePicker, _repeatPicker,
+                _rewardPicker, _rewardAmount, _assetPicker, _assetPreviewCard, _claimModePicker, _repeatPicker,
                 TwoButtons("حفظ كمسودة", () => SaveRuleAsync(false), "نشر القاعدة", () => SaveRuleAsync(true))
             }
         }));
@@ -395,9 +402,9 @@ public sealed class SeasonContentAdminPage : ContentPage
         try
         {
             var season = SelectedSeason();
-            var rewardType = (SeasonRewardType)(_rewardPicker.SelectedItem ?? SeasonRewardType.Coins);
+            var rewardType = SelectedValue(_rewardPicker, SeasonRewardType.Coins);
             var asset = _assetPicker.SelectedItem as CatalogAssetDisplay;
-            var firstCondition = (SeasonConditionType)(_conditionPicker.SelectedItem ?? SeasonConditionType.MatchesCompleted);
+            var firstCondition = SelectedValue(_conditionPicker, SeasonConditionType.MatchesCompleted);
             var firstThreshold = ParseNumber(_threshold.Text);
             var secondThreshold = ParseNumber(_secondThreshold.Text);
             var minimumMatches = (int)ParseNumber(_minimumMatches.Text);
@@ -419,25 +426,25 @@ public sealed class SeasonContentAdminPage : ContentPage
                 EndDateUtc = _customWindowSwitch.IsToggled
                     ? (_ruleEndDate.Date ?? DateTime.Today).AddDays(1).AddTicks(-1).ToUniversalTime()
                     : null,
-                TargetScope = (SeasonTargetScope)(_targetPicker.SelectedItem ?? SeasonTargetScope.Player),
+                TargetScope = SelectedValue(_targetPicker, SeasonTargetScope.Player),
                 RewardType = rewardType,
                 RewardAmount = UsesAmount(rewardType) ? (int)ParseNumber(_rewardAmount.Text) : null,
                 RewardAssetId = asset?.AssetId,
                 RewardStoreTypeId = asset?.AssetType.ToString(),
-                ClaimMode = (SeasonClaimMode)(_claimModePicker.SelectedItem ?? SeasonClaimMode.ManualClaim),
-                RepeatPolicy = (SeasonRepeatPolicy)(_repeatPicker.SelectedItem ?? SeasonRepeatPolicy.OncePerSeason),
+                ClaimMode = SelectedValue(_claimModePicker, SeasonClaimMode.ManualClaim),
+                RepeatPolicy = SelectedValue(_repeatPicker, SeasonRepeatPolicy.OncePerSeason),
                 MaxClaims = 1,
                 IsActive = true,
                 CompositeCondition = hasCompositeCondition
                     ? new SeasonCompositeCondition
                     {
-                        Operator = (CompositeLogicalOperator)(_logicalPicker.SelectedItem ?? CompositeLogicalOperator.And),
+                        Operator = SelectedValue(_logicalPicker, CompositeLogicalOperator.And),
                         Items =
                         {
                             new SeasonCompositeConditionItem { ConditionType = firstCondition, Threshold = firstThreshold },
                             new SeasonCompositeConditionItem
                             {
-                                ConditionType = (SeasonConditionType)(_secondConditionPicker.SelectedItem ?? SeasonConditionType.Wins),
+                                ConditionType = SelectedValue(_secondConditionPicker, SeasonConditionType.Wins),
                                 Threshold = secondThreshold
                             }
                         }
@@ -528,8 +535,8 @@ public sealed class SeasonContentAdminPage : ContentPage
 
     private void RefreshAssetPicker()
     {
-        var scope = (SeasonTargetScope)(_targetPicker.SelectedItem ?? SeasonTargetScope.Player);
-        var reward = (SeasonRewardType)(_rewardPicker.SelectedItem ?? SeasonRewardType.Coins);
+        var scope = SelectedValue(_targetPicker, SeasonTargetScope.Player);
+        var reward = SelectedValue(_rewardPicker, SeasonRewardType.Coins);
         _assetPicker.IsVisible = !UsesAmount(reward);
         _rewardAmount.IsVisible = UsesAmount(reward);
         var owner = scope == SeasonTargetScope.Team ? StoreProductOwnerScope.Team : StoreProductOwnerScope.Player;
@@ -541,6 +548,63 @@ public sealed class SeasonContentAdminPage : ContentPage
         _assetPicker.ItemsSource = filtered;
         _assetPicker.ItemDisplayBinding = new Binding(nameof(CatalogAssetDisplay.DisplayName));
         _assetPicker.SelectedIndex = filtered.Count > 0 ? 0 : -1;
+        RefreshSelectedAssetPreview();
+    }
+
+    private Border BuildAssetPreviewCard()
+    {
+        var info = new VerticalStackLayout
+        {
+            Spacing = 4,
+            VerticalOptions = LayoutOptions.Center,
+            Children = { _assetPreviewTitle, _assetPreviewMeta, _assetPreviewEmpty }
+        };
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 12,
+            FlowDirection = FlowDirection.RightToLeft
+        };
+        grid.Add(_assetPreviewImage, 0, 0);
+        grid.Add(info, 1, 0);
+
+        return Card(grid);
+    }
+
+    private void RefreshSelectedAssetPreview()
+    {
+        var usesAmount = UsesAmount(SelectedValue(_rewardPicker, SeasonRewardType.Coins));
+        _assetPreviewCard.IsVisible = !usesAmount;
+        if (usesAmount)
+            return;
+
+        if (_assetPicker.SelectedItem is not CatalogAssetDisplay asset)
+        {
+            _assetPreviewImage.IsVisible = false;
+            _assetPreviewTitle.Text = "معاينة الأصل المختار";
+            _assetPreviewMeta.Text = string.Empty;
+            _assetPreviewEmpty.IsVisible = true;
+            return;
+        }
+
+        var title = string.IsNullOrWhiteSpace(asset.ArabicDisplayName)
+            ? asset.DisplayName
+            : asset.ArabicDisplayName;
+        _assetPreviewTitle.Text = string.IsNullOrWhiteSpace(title) ? asset.AssetId : title;
+        _assetPreviewMeta.Text =
+            $"{LocalizeAssetType(asset.AssetType)} · {LocalizeOwnerScope(asset.OwnerScope)} · {LocalizeRarity(asset.Rarity)}";
+        _assetPreviewEmpty.IsVisible = false;
+
+        var hasImage = !string.IsNullOrWhiteSpace(asset.PreviewImage) &&
+                       !RemovedStoreAssetPolicy.IsRemoved(asset.PreviewImage);
+        _assetPreviewImage.IsVisible = hasImage;
+        _assetPreviewImage.Source = hasImage
+            ? InventoryDisplayResolver.ResolveOptionalImageSource(asset.PreviewImage)
+            : null;
     }
 
     private static bool UsesAmount(SeasonRewardType type) => type is SeasonRewardType.Coins or SeasonRewardType.Gems or SeasonRewardType.SeasonXP;
@@ -563,6 +627,38 @@ public sealed class SeasonContentAdminPage : ContentPage
         SeasonRewardType.Bundle => StoreProductAssetType.Bundle,
         _ => null
     };
+
+    private static string LocalizeOwnerScope(StoreProductOwnerScope scope) => scope switch
+    {
+        StoreProductOwnerScope.Team => "الفريق",
+        StoreProductOwnerScope.Player => "اللاعب",
+        _ => scope.ToString()
+    };
+
+    private static string LocalizeAssetType(StoreProductAssetType type) => type switch
+    {
+        StoreProductAssetType.Avatar => "أفاتار",
+        StoreProductAssetType.ProfileBackground => "خلفية ملف",
+        StoreProductAssetType.Frame => "إطار لاعب",
+        StoreProductAssetType.Effect => "تأثير لاعب",
+        StoreProductAssetType.PlayerNameEffect => "تأثير اسم لاعب",
+        StoreProductAssetType.PlayerNameFrame => "إطار اسم لاعب",
+        StoreProductAssetType.Title => "لقب",
+        StoreProductAssetType.Badge => "شارة",
+        StoreProductAssetType.Emblem => "شعار فريق",
+        StoreProductAssetType.TeamColor => "لون فريق",
+        StoreProductAssetType.EmblemBackground => "خلفية شعار",
+        StoreProductAssetType.TeamEffect => "تأثير فريق",
+        StoreProductAssetType.TeamNameEffect => "تأثير اسم فريق",
+        StoreProductAssetType.TeamNameFrame => "إطار اسم فريق",
+        StoreProductAssetType.Bundle => "حزمة",
+        _ => type.ToString()
+    };
+
+    private static string LocalizeRarity(string? rarity) =>
+        string.IsNullOrWhiteSpace(rarity)
+            ? "ندرة عادية"
+            : rarity.Trim();
     private static double ParseNumber(string? text) => double.TryParse(text, out var value) ? value : 0;
 
     private static Grid TwoButtons(string left, Func<Task> leftAction, string right, Func<Task> rightAction)
@@ -618,4 +714,98 @@ public sealed class SeasonContentAdminPage : ContentPage
         Title = title, FontFamily = "Tajawal-Regular", TextColor = Colors.White,
         TitleColor = Color.FromArgb("#817B70")
     };
+
+    private sealed record EnumChoice<T>(T Value, string DisplayName) where T : struct, Enum
+    {
+        public override string ToString() => DisplayName;
+    }
+
+    private static List<EnumChoice<T>> EnumChoices<T>(IEnumerable<T> values)
+        where T : struct, Enum =>
+        values.Select(value => new EnumChoice<T>(value, LocalizeEnum(value))).ToList();
+
+    private static T SelectedValue<T>(Picker picker, T fallback)
+        where T : struct, Enum =>
+        picker.SelectedItem switch
+        {
+            EnumChoice<T> choice => choice.Value,
+            T value => value,
+            _ => fallback
+        };
+
+    private static void SelectValue<T>(Picker picker, T value)
+        where T : struct, Enum
+    {
+        foreach (var item in picker.ItemsSource?.Cast<object>() ?? Enumerable.Empty<object>())
+        {
+            if (item is EnumChoice<T> choice &&
+                EqualityComparer<T>.Default.Equals(choice.Value, value))
+            {
+                picker.SelectedItem = choice;
+                return;
+            }
+        }
+
+        picker.SelectedItem = value;
+    }
+
+    private static string LocalizeEnum<T>(T value)
+        where T : struct, Enum =>
+        value switch
+        {
+            CompositeLogicalOperator.And => "كل الشروط",
+            CompositeLogicalOperator.Or => "أي شرط",
+
+            SeasonTargetScope.Player => "اللاعب",
+            SeasonTargetScope.Team => "الفريق",
+
+            SeasonConditionType.MatchesCompleted => "إكمال مباريات",
+            SeasonConditionType.Wins => "تحقيق انتصارات",
+            SeasonConditionType.ConsecutiveWins => "انتصارات متتالية",
+            SeasonConditionType.SeasonXpEarned => "جمع XP موسمي",
+            SeasonConditionType.ReachRank => "الوصول إلى رتبة",
+            SeasonConditionType.TrustScoreAtLeast => "ثقة اللاعب على الأقل",
+            SeasonConditionType.WinRateAtLeast => "نسبة الفوز على الأقل",
+            SeasonConditionType.WinsAgainstDistinctTeams => "الفوز على فرق مختلفة",
+            SeasonConditionType.PerfectMatchWin => "فوز مثالي",
+            SeasonConditionType.ComebackWin => "فوز بعد عودة",
+            SeasonConditionType.ActiveDays => "أيام نشاط",
+            SeasonConditionType.ConsecutiveActiveDays => "أيام نشاط متتالية",
+            SeasonConditionType.WeeklyMatches => "مباريات أسبوعية",
+            SeasonConditionType.WeeklyWins => "انتصارات أسبوعية",
+            SeasonConditionType.TopPlacementAtSeasonEnd => "مركز متقدم عند نهاية الموسم",
+            SeasonConditionType.ChampionAtSeasonEnd => "بطل الموسم",
+            SeasonConditionType.MvpAtSeasonEnd => "أفضل لاعب في الموسم",
+
+            SeasonRewardType.Coins => "عملات",
+            SeasonRewardType.Gems => "جواهر",
+            SeasonRewardType.SeasonXP => "XP موسمي",
+            SeasonRewardType.Avatar => "أفاتار لاعب",
+            SeasonRewardType.ProfileBackground => "خلفية ملف اللاعب",
+            SeasonRewardType.PlayerFrame => "إطار لاعب",
+            SeasonRewardType.PlayerEffect => "تأثير لاعب",
+            SeasonRewardType.PlayerNameEffect => "تأثير اسم اللاعب",
+            SeasonRewardType.PlayerNameFrame => "إطار اسم اللاعب",
+            SeasonRewardType.Title => "لقب",
+            SeasonRewardType.Badge => "شارة",
+            SeasonRewardType.Emblem => "شعار فريق",
+            SeasonRewardType.TeamLivingEmblem => "شعار حي للفريق",
+            SeasonRewardType.TeamColor => "لون الفريق",
+            SeasonRewardType.EmblemBackground => "خلفية شعار الفريق",
+            SeasonRewardType.TeamEffect => "تأثير الفريق",
+            SeasonRewardType.TeamNameEffect => "تأثير اسم الفريق",
+            SeasonRewardType.TeamNameFrame => "إطار اسم الفريق",
+            SeasonRewardType.Bundle => "حزمة",
+
+            SeasonClaimMode.AutoGrant => "منح تلقائي",
+            SeasonClaimMode.ManualClaim => "استلام يدوي",
+
+            SeasonRepeatPolicy.OncePerSeason => "مرة واحدة في الموسم",
+            SeasonRepeatPolicy.OnceEver => "مرة واحدة دائماً",
+            SeasonRepeatPolicy.Repeatable => "قابل للتكرار",
+            SeasonRepeatPolicy.Daily => "يومي",
+            SeasonRepeatPolicy.Weekly => "أسبوعي",
+
+            _ => value.ToString()
+        };
 }

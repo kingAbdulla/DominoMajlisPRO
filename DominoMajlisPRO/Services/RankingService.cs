@@ -4,6 +4,16 @@ using System.Text.Json;
 
 namespace DominoMajlisPRO.Services;
 
+public sealed record TrustEvaluationResult(
+    int PreviousTrust,
+    int NewTrust,
+    int Delta,
+    IReadOnlyList<string> EvidenceCodes,
+    string Explanation,
+    string MatchId,
+    DateTime EvaluatedAt,
+    bool IsManualReviewRequired);
+
 public static class RankingService
 {
 
@@ -1155,31 +1165,8 @@ LoadRivalriesAsync()
             team.ConsecutiveWins = 0;
         }
 
-        if (team.ConsecutiveWins >= 10)
-        {
-            team.SuspiciousScore += 10;
-        }
-
-        // =========================
-        // VERY SHORT MATCH
-        // =========================
-
         if (match.MatchDurationMinutes <= 1)
-        {
             team.ShortMatchesCount++;
-
-            team.SuspiciousScore += 5;
-        }
-
-        // =========================
-        // HIGH WIN RATE
-        // =========================
-
-        if (team.GamesPlayed >= 20 &&
-            team.WinRate >= 95)
-        {
-            team.SuspiciousScore += 15;
-        }
 
         // =========================
         // TOO MANY MELES
@@ -1190,22 +1177,77 @@ LoadRivalriesAsync()
             team.SuspiciousMelesCount++;
         }
 
-        double melesRate =
-            team.GamesPlayed == 0
-            ? 0
-            : ((double)
-                team.SuspiciousMelesCount
-                /
-                team.GamesPlayed)
-              * 100;
+        var trustEvaluation =
+            EvaluateTrustEvidence(
+                team,
+                match,
+                won);
 
-        if (melesRate > 50)
+        if (trustEvaluation.Delta < 0 &&
+            trustEvaluation.EvidenceCodes.Count > 0)
         {
-            team.SuspiciousScore += 10;
+            team.SuspiciousScore =
+                Math.Clamp(
+                    100 - trustEvaluation.NewTrust,
+                    0,
+                    100);
         }
+
         UpdateTrustScore(
     team);
 
+    }
+
+    static TrustEvaluationResult EvaluateTrustEvidence(
+        TeamProfileModel team,
+        SavedMatch match,
+        bool won)
+    {
+        List<string> evidenceCodes =
+            new();
+
+        if (match.MatchEndDate != default &&
+            match.MatchDate != default &&
+            match.MatchEndDate < match.MatchDate)
+        {
+            evidenceCodes.Add("ImpossibleRoundChronology");
+        }
+
+        if (match.IsFinished &&
+            string.IsNullOrWhiteSpace(match.WinnerTeamId))
+        {
+            evidenceCodes.Add("InvalidWinnerIdentity");
+        }
+
+        if (!string.IsNullOrWhiteSpace(match.WinnerTeamId) &&
+            !string.Equals(match.WinnerTeamId, match.Team1Id, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(match.WinnerTeamId, match.Team2Id, StringComparison.OrdinalIgnoreCase))
+        {
+            evidenceCodes.Add("InvalidParticipantIdentity");
+        }
+
+        int previousTrust =
+            Math.Clamp(team.TrustScore <= 0 ? 100 : team.TrustScore, 0, 100);
+
+        int penalty =
+            evidenceCodes.Count == 0
+                ? 0
+                : Math.Min(40, evidenceCodes.Count * 15);
+
+        int newTrust =
+            Math.Clamp(previousTrust - penalty, 0, 100);
+
+        return new TrustEvaluationResult(
+            previousTrust,
+            newTrust,
+            newTrust - previousTrust,
+            evidenceCodes,
+            evidenceCodes.Count == 0
+                ? "No trust penalty: competitive outcomes are not integrity evidence."
+                : string.Join(", ", evidenceCodes),
+            match.MatchId.ToString(),
+            DateTime.UtcNow,
+            evidenceCodes.Count > 0);
     }
 
     // =========================

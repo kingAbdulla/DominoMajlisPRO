@@ -72,9 +72,11 @@ public sealed class RuntimeNamePlateView : ContentView
         Loaded += (_, _) =>
         {
             HookEvents();
+            FitPlateToHost();
             Refresh();
         };
         Unloaded += (_, _) => UnhookEvents();
+        SizeChanged += (_, _) => FitPlateToHost();
     }
 
     public string OwnerId
@@ -140,6 +142,16 @@ public sealed class RuntimeNamePlateView : ContentView
 
     private bool SameOwner(string ownerId) =>
         string.Equals(OwnerId?.Trim(), ownerId?.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private void FitPlateToHost()
+    {
+        if (Height <= 0)
+            return;
+
+        var fitted = Math.Clamp(Height, 18, 42);
+        _plate.HeightRequest = fitted;
+        _fallback.FontSize = Math.Clamp(fitted * 0.52, 10, 18);
+    }
 
     private void Refresh()
     {

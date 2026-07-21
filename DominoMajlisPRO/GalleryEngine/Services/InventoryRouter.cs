@@ -127,9 +127,9 @@ public static class InventoryRouter
         if (assetType == StoreProductAssetType.EmblemBackground)
             return TeamRoute(canonicalTypeId, InventoryEquipTarget.EmblemBackground);
         if (assetType == StoreProductAssetType.TeamNameEffect)
-            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamNameEffect, false);
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamNameEffect, true);
         if (assetType == StoreProductAssetType.TeamNameFrame)
-            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamNameFrame, false);
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamNameFrame, true);
         if (assetType == StoreProductAssetType.Avatar)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Avatar, true);
         if (assetType == StoreProductAssetType.ProfileBackground)
@@ -143,7 +143,7 @@ public static class InventoryRouter
         if (assetType == StoreProductAssetType.PlayerNameFrame)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.PlayerNameFrame, true);
         if (assetType == StoreProductAssetType.TeamEffect)
-            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamEffect, false);
+            return PlayerRoute(canonicalTypeId, InventoryEquipTarget.TeamEffect, true);
         if (assetType == StoreProductAssetType.Title)
             return PlayerRoute(canonicalTypeId, InventoryEquipTarget.Title, true);
         if (assetType is StoreProductAssetType.Badge or StoreProductAssetType.SeasonReward or StoreProductAssetType.Bundle)
@@ -197,6 +197,31 @@ public static class InventoryRouter
             var owned = inventory.FirstOrDefault(item =>
                 item.IsOwned && !item.IsExpired &&
                 SameId(item.AssetId, product.AssetId));
+            if (owned != null && IsTeamScopedPlayerTarget(route.EquipTarget))
+            {
+                var teamId = await ResolveActiveTeamIdAsync(owner.PlayerId);
+                if (string.IsNullOrWhiteSpace(teamId))
+                {
+                    return new InventoryState(
+                        route, free, true, false,
+                        false, false, true, owner.PlayerId, null,
+                        IsAvailable(product),
+                        GetAvailabilityMessage(product));
+                }
+
+                var isEquipped = route.EquipTarget == InventoryEquipTarget.TeamEffect
+                    ? await IsTeamEffectEquippedAsync(teamId, owner.PlayerId, product.AssetId)
+                    : SameId(
+                        (await TeamAssetInventoryService.GetEquippedAsync(teamId, route.StoreTypeId))?.TeamAssetId,
+                        product.AssetId);
+
+                return new InventoryState(
+                    route, free, true, isEquipped,
+                    false, false, false, owner.PlayerId, teamId,
+                    IsAvailable(product),
+                    GetAvailabilityMessage(product));
+            }
+
             return new InventoryState(
                 route, free, owned != null, owned?.IsEquipped == true,
                 false, false, false, owner.PlayerId, null,
@@ -313,8 +338,69 @@ public static class InventoryRouter
             return await StoreEquipService.EquipAsync(playerId, assetId);
         }
 
+        if (route.EquipTarget == InventoryEquipTarget.TeamEffect)
+        {
+            var teamId = await ResolveActiveTeamIdAsync(playerId);
+            if (string.IsNullOrWhiteSpace(teamId))
+                return false;
+
+            var inventoryMarked = await PlayerInventoryService.EquipItemWithoutNotificationAsync(playerId, assetId);
+            var teamEquipped = await TeamEffectEngine.EquipAsync(playerId, teamId, assetId);
+            if (teamEquipped)
+            {
+                AppEvents.RaiseInventoryChanged(playerId);
+                AppEvents.RaiseStoreEconomyChanged(playerId);
+            }
+
+            return inventoryMarked && teamEquipped;
+        }
+
+        if (route.EquipTarget is InventoryEquipTarget.TeamNameEffect or InventoryEquipTarget.TeamNameFrame)
+        {
+            var teamId = await ResolveActiveTeamIdAsync(playerId);
+            if (string.IsNullOrWhiteSpace(teamId))
+                return false;
+
+            await PlayerInventoryService.EquipItemWithoutNotificationAsync(playerId, assetId);
+            await TeamAssetInventoryService.AddOwnedAssetAsync(
+                teamId,
+                assetId,
+                route.StoreTypeId,
+                $"Player:{playerId}");
+
+            var equipped = await TeamAssetInventoryService.EquipAsync(
+                teamId,
+                assetId,
+                route.StoreTypeId);
+
+            if (equipped)
+            {
+                AppEvents.RaiseInventoryChanged(playerId);
+                AppEvents.RaiseStoreEconomyChanged(playerId);
+                AppEvents.RaiseTeamIdentityChanged(teamId);
+            }
+
+            return equipped;
+        }
+
         return await PlayerInventoryService.EquipItemAsync(playerId, assetId);
     }
+
+    private static async Task<bool> IsTeamEffectEquippedAsync(
+        string teamId,
+        string playerId,
+        string assetId)
+    {
+        var team = await TeamProfileService.GetTeamByIdAsync(teamId);
+        return team != null &&
+               SameId(team.EquippedTeamEffectAssetId, assetId) &&
+               SameId(team.EquippedTeamEffectOwnerPlayerId, playerId);
+    }
+
+    private static bool IsTeamScopedPlayerTarget(InventoryEquipTarget target) =>
+        target is InventoryEquipTarget.TeamEffect or
+            InventoryEquipTarget.TeamNameEffect or
+            InventoryEquipTarget.TeamNameFrame;
 
     private static InventoryState EmptyState(
         InventoryRoute route,

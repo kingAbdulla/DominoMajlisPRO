@@ -322,10 +322,20 @@ public sealed class TypographyManagerPage : ContentPage
     private TypographyIdentityPreset BuildPreset(StoreProductAssetType? assetType)
     {
         var frameStyle = Selected(_framePicker);
+        var lighting = Selected(_lightingPicker);
+        var motion = Selected(_motionPicker);
+        var particles = Selected(_particlePicker);
+        var distortion = Selected(_distortionPicker);
         if (assetType is StoreProductAssetType.PlayerNameEffect or
             StoreProductAssetType.TeamNameEffect)
         {
             frameStyle = "None";
+            if (IsNone(motion) && IsNone(particles) && IsNone(distortion))
+            {
+                lighting = "MovingHighlight";
+                motion = "Breath";
+                particles = "TinySparks";
+            }
         }
 
         return new TypographyIdentityPreset
@@ -333,11 +343,11 @@ public sealed class TypographyManagerPage : ContentPage
             FontFamily = Selected(_fontPicker),
             FontSize = _fontSizeSlider.Value,
             MaterialPreset = Selected(_materialPicker),
-            LightingPreset = Selected(_lightingPicker),
+            LightingPreset = lighting,
             DepthPreset = Selected(_depthPicker),
-            MotionPreset = Selected(_motionPicker),
-            ParticlePreset = Selected(_particlePicker),
-            DistortionPreset = Selected(_distortionPicker),
+            MotionPreset = motion,
+            ParticlePreset = particles,
+            DistortionPreset = distortion,
             FrameStylePreset = frameStyle,
             FrameThickness = _thicknessSlider.Value,
             PrimaryColor = _primaryColorEntry.Text ?? "#FFD76A",
@@ -355,6 +365,9 @@ public sealed class TypographyManagerPage : ContentPage
             Brightness = _brightnessSlider.Value
         }.Normalized();
     }
+
+    private static bool IsNone(string? value) =>
+        string.Equals(value?.Trim(), "None", StringComparison.OrdinalIgnoreCase);
 
     private void ApplyPreset(TypographyIdentityPreset? source)
     {

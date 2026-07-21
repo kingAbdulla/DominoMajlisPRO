@@ -244,7 +244,7 @@ public sealed class IdentityPlateView : ContentView
 
     private void EnsureClock()
     {
-        if (_clockSubscription != null || !_animationEnabled || !IsVisible || Parent == null || !new Animation().IsEnabled)
+        if (_clockSubscription != null || !_animationEnabled || !IsVisible || Parent == null)
             return;
         _animationEpoch = -1;
         _clockSubscription = SharedAnimationClock.Subscribe(ApplyAnimationFrame);

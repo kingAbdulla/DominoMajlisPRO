@@ -174,30 +174,33 @@ public partial class CreateTeamPage
         _teamEffectVisualSyncRunning = true;
         try
         {
-            var catalog = await StoreAssetCatalogService.LoadAsync();
-            var ownerIds = await ResolveCurrentTeamEffectOwnerIdsAsync();
+            var memberVisuals = await ResolveCurrentTeamMemberVisualsAsync();
             var effects = new List<TeamEffectCarouselItem>();
 
-            foreach (var ownerId in ownerIds)
+            foreach (var memberAsset in memberVisuals.Assets)
             {
-                var owned = await PlayerInventoryService.LoadOwnedAsync(ownerId);
-                foreach (var item in owned)
+                if (!string.Equals(
+                        StoreAssetCatalogService.CanonicalTypeId(memberAsset.Ownership.TeamAssetTypeId),
+                        StoreProductAssetType.TeamEffect.ToString(),
+                        StringComparison.OrdinalIgnoreCase))
                 {
-                    var effect = ResolveTeamEffectFromCatalogForCreateTeam(catalog, item.AssetId, item.StoreTypeId);
-                    if (effect == null)
-                        continue;
-
-                    if (effects.Any(existing =>
-                            string.Equals(existing.AssetId, item.AssetId, StringComparison.OrdinalIgnoreCase) &&
-                            string.Equals(existing.OwnerPlayerId, ownerId, StringComparison.OrdinalIgnoreCase)))
-                        continue;
-
-                    effects.Add(new TeamEffectCarouselItem(
-                        item.AssetId,
-                        string.IsNullOrWhiteSpace(effect.DisplayName) ? item.AssetId : effect.DisplayName,
-                        effect,
-                        ownerId));
+                    continue;
                 }
+
+                var effect = memberAsset.CatalogAsset;
+                if (effect == null)
+                    continue;
+
+                if (effects.Any(existing =>
+                        string.Equals(existing.AssetId, memberAsset.Ownership.TeamAssetId, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(existing.OwnerPlayerId, memberAsset.OwnerPlayerId, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                effects.Add(new TeamEffectCarouselItem(
+                    memberAsset.Ownership.TeamAssetId,
+                    string.IsNullOrWhiteSpace(effect.DisplayName) ? memberAsset.Ownership.TeamAssetId : effect.DisplayName,
+                    effect,
+                    memberAsset.OwnerPlayerId));
             }
 
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -208,7 +211,7 @@ public partial class CreateTeamPage
                     : new[] { new TeamEffectCarouselItem(string.Empty, "بدون تأثير", null) }.Concat(effects).ToList();
 
                 TeamEffectCarousel.ItemsSource = teamEffectItems;
-                TeamEffectSection.IsVisible = teamEffectItems.Count > 1;
+                TeamEffectSection.IsVisible = _currentCosmeticSection == "Effects" && teamEffectItems.Count > 1;
 
                 var selected = teamEffectItems.FirstOrDefault(item =>
                                    string.Equals(item.AssetId, previousSelection, StringComparison.OrdinalIgnoreCase))
@@ -275,26 +278,38 @@ public partial class CreateTeamPage
 
     }
 
-    private static CatalogAssetDisplay? ResolveTeamEffectFromCatalogForCreateTeam(
-        IReadOnlyList<CatalogAssetDisplay> catalog,
-        string? assetId,
-        string? storeTypeId)
+    private async Task<TeamMemberOwnedVisualResolution> ResolveCurrentTeamMemberVisualsAsync()
     {
-        if (string.IsNullOrWhiteSpace(assetId))
-            return null;
+        var player1Id =
+            CurrentTeam?.Player1Id;
 
-        var canonicalTypeId = StoreAssetCatalogService.CanonicalTypeId(storeTypeId);
-        if (string.Equals(canonicalTypeId, StoreProductAssetType.TeamEffect.ToString(), StringComparison.OrdinalIgnoreCase))
-            return StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.TeamEffect.ToString());
+        var player2Id =
+            isTeamMode ? CurrentTeam?.Player2Id : null;
 
-        var legacy = StoreAssetCatalogService.Resolve(catalog, assetId, StoreProductAssetType.Effect.ToString());
-        if (legacy == null)
-            return null;
+        var entryPlayer1 =
+            await ResolvePlayerFromPreviewTextAsync(Player1Entry.Text);
 
-        return legacy.AssetType == StoreProductAssetType.TeamEffect ||
-               string.Equals(legacy.EquipTarget, "TeamEffect", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(legacy.EquipTarget, "Team", StringComparison.OrdinalIgnoreCase)
-            ? legacy
-            : null;
+        var entryPlayer2 =
+            isTeamMode
+                ? await ResolvePlayerFromPreviewTextAsync(Player2Entry.Text)
+                : null;
+
+        player1Id =
+            FirstId(player1Id, entryPlayer1?.PlayerId);
+
+        player2Id =
+            isTeamMode
+                ? FirstId(player2Id, entryPlayer2?.PlayerId)
+                : null;
+
+        return await TeamMemberOwnedVisualResolver.ResolveAsync(
+            CurrentTeam?.TeamId,
+            player1Id,
+            player2Id);
+
+        static string? FirstId(string? primary, string? secondary) =>
+            !string.IsNullOrWhiteSpace(primary)
+                ? primary
+                : secondary;
     }
 }

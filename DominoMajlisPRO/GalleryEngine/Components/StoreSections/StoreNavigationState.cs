@@ -12,6 +12,7 @@ public enum StoreView
     Avatars,
     Backgrounds,
     Frames,
+    Emblems,
     Titles,
     Badges,
     Effects,

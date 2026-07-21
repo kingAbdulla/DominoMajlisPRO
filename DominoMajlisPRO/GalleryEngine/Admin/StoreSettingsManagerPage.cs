@@ -264,6 +264,7 @@ public sealed class StoreSettingsManagerPage : ContentPage
         try
         {
             var report = await StoreResetService.ResetDeveloperStoreAsync();
+            await RefreshPublishedCountAsync();
             _status.Text =
                 $"اكتمل حذف منشورات المتجر. المنشور: {report.PublishedCount}، المسودات: {report.DraftCount}، العروض: {report.LimitedOfferCount}، الفئات: {report.CategoryCount}، المراجع اليتيمة المرصودة: {report.OrphanReferenceCount}. النسخة الاحتياطية: {report.BackupPath}. الوقت: {report.CompletedAtUtc:O}";
         }

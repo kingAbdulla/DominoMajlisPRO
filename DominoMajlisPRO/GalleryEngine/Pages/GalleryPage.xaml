@@ -17,6 +17,22 @@
                 Padding="12,12,12,108"
                 Spacing="12">
 
+                <Button
+                    x:Name="StoreBackButton"
+                    Text="‹"
+                    Clicked="OnBackClicked"
+                    FontFamily="Tajawal-Regular"
+                    FontSize="26"
+                    FontAttributes="Bold"
+                    TextColor="#FFD76A"
+                    BackgroundColor="#15120D"
+                    BorderColor="#B98A3A"
+                    BorderWidth="1"
+                    CornerRadius="16"
+                    WidthRequest="48"
+                    HeightRequest="44"
+                    HorizontalOptions="Start" />
+
                 <sections:PremiumStoreHeaderView
                     x:Name="StoreHeader"
                     SeasonSwitchRequested="OnSeasonSwitchRequested"

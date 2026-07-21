@@ -250,9 +250,17 @@ public class CategoriesSectionView : ContentView
         {
             _chips.Children.Clear();
             _chipTargets.Clear();
-            IsVisible = mapped.Count > 0;
-            if (mapped.Count > 0)
-                _chips.Children.Add(CreateChip("الكل", StoreView.Home, _selectedView == StoreView.Home));
+            IsVisible = true;
+            _chips.Children.Add(CreateChip("الكل", StoreView.Home, _selectedView == StoreView.Home));
+
+            foreach (var type in StoreTypeRegistry.DefaultCategoryTypes)
+            {
+                if (_chipTargets.Any(target => target.View == type.TargetView))
+                    continue;
+
+                _chips.Children.Add(CreateChip(type.ArabicName, type.TargetView, type.TargetView == _selectedView));
+            }
+
             foreach (var item in mapped)
             {
                 if (_chipTargets.Any(target => target.View == item.View!.Value))
