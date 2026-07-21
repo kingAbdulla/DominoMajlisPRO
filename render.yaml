@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: domino-majlis-pro-preview
+    runtime: docker
+    plan: free
+    dockerfilePath: ./DominoMajlisPRO.Api/Dockerfile
+    dockerContext: .
+    branch: agent/web-preview-foundation
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DataDirectory
+        value: /tmp/domino-majlis-preview-data

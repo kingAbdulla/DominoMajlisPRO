@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "domino-majlis-pro-preview",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-11",
+  "assets": {
+    "directory": "../WebPreview",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "domino-majlis-preview",
+      "database_id": "REPLACE_AFTER_D1_CREATION"
+    }
+  ]
+}

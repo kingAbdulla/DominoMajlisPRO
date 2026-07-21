@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DominoMajlisPRO.Cloud;
 using DominoMajlisPRO.Models;
 
 namespace DominoMajlisPRO.Services;
@@ -51,6 +52,11 @@ public static class PlayerProfileService
         await File.WriteAllTextAsync(FilePath, json);
 
         AppEvents.RaiseDataChanged();
+
+        await CloudSyncRuntime.TryUpsertManyAsync(
+            CloudResources.Players,
+            players,
+            player => player.PlayerId);
     }
 
     public static async Task<PlayerProfileModel?> GetPlayerByIdAsync(string playerId)
@@ -69,7 +75,6 @@ public static class PlayerProfileService
 
         string trimmed = playerName.Trim();
 
-        // ID-first: if the input looks like a PlayerId, try that first.
         if (trimmed.StartsWith("P", StringComparison.OrdinalIgnoreCase))
         {
             var byId = players.FirstOrDefault(x => string.Equals(x.PlayerId, trimmed, StringComparison.OrdinalIgnoreCase));
@@ -93,31 +98,30 @@ public static class PlayerProfileService
 
         var players = await LoadPlayersAsync();
 
-            string trimmed = playerName.Trim();
+        string trimmed = playerName.Trim();
 
-            PlayerProfileModel? player = null;
+        PlayerProfileModel? player = null;
 
-            // If caller passed a PlayerId, resolve by id first.
-            if (trimmed.StartsWith("P", StringComparison.OrdinalIgnoreCase))
-            {
-                player = players.FirstOrDefault(x => string.Equals(x.PlayerId, trimmed, StringComparison.OrdinalIgnoreCase));
-            }
+        if (trimmed.StartsWith("P", StringComparison.OrdinalIgnoreCase))
+        {
+            player = players.FirstOrDefault(x => string.Equals(x.PlayerId, trimmed, StringComparison.OrdinalIgnoreCase));
+        }
 
-            if (player == null)
-            {
-                string normalizedName =
-                    PlayerIdentityService.NormalizePlayerName(playerName);
+        if (player == null)
+        {
+            string normalizedName =
+                PlayerIdentityService.NormalizePlayerName(playerName);
 
-                player = players.FirstOrDefault(x =>
-                    PlayerIdentityService.NormalizePlayerName(x.PlayerName) == normalizedName);
-            }
+            player = players.FirstOrDefault(x =>
+                PlayerIdentityService.NormalizePlayerName(x.PlayerName) == normalizedName);
+        }
 
-            if (player == null)
-                return;
+        if (player == null)
+            return;
 
-            PlayerEngine.ApplyMatchResult(player, wonMatch);
+        PlayerEngine.ApplyMatchResult(player, wonMatch);
 
-            await SavePlayersAsync(players);
+        await SavePlayersAsync(players);
     }
 
     public static async Task UpdatePlayerProfileAsync(PlayerProfileModel updatedPlayer)
@@ -162,11 +166,12 @@ public static class PlayerProfileService
 
         PlayerEngine.Normalize(player);
         PlayerTimelineService.AddEvent(
-    player,
-    "تغيير الصورة الشخصية",
-    "تم اعتماد Avatar جديد",
-    "🖼",
-    "#D4AF37");
+            player,
+            "تغيير الصورة الشخصية",
+            "تم اعتماد Avatar جديد",
+            "🖼",
+            "#D4AF37");
+
         await SavePlayersAsync(players);
     }
 
@@ -214,11 +219,12 @@ public static class PlayerProfileService
         PlayerEngine.Normalize(player);
 
         PlayerTimelineService.AddEvent(
-    player,
-    "تغيير الصورة الشخصية",
-    "تم اختيار صورة من الجهاز",
-    "🖼",
-    "#D4AF37");
+            player,
+            "تغيير الصورة الشخصية",
+            "تم اختيار صورة من الجهاز",
+            "🖼",
+            "#D4AF37");
+
         await SavePlayersAsync(players);
     }
 

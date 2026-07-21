@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using DominoMajlisPRO.Cloud;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
 namespace DominoMajlisPRO
 {
     public static class MauiProgram
@@ -12,7 +15,7 @@ namespace DominoMajlisPRO
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-                    fonts.AddFont("BAUHS93.TTF","BAUHS93");
+                    fonts.AddFont("BAUHS93.TTF", "BAUHS93");
                     fonts.AddFont("CinzelDecorative-Bold.ttf", "CinzelDecorative-Bold");
                     fonts.AddFont("HARLOWSI.TTF", "HARLOWSI");
                     fonts.AddFont("Tajawal-Regular.ttf", "Tajawal-Regular");
@@ -22,11 +25,35 @@ namespace DominoMajlisPRO
                     fonts.AddFont("DG-Nemr-V.0.ttf", "DG-Nemr-V.0");
                 });
 
+            var cloudOptions = new CloudApiOptions();
+            builder.Services.AddSingleton(cloudOptions);
+            builder.Services.AddSingleton<CloudSessionStore>();
+            builder.Services.AddSingleton<CloudDeviceIdentity>();
+            builder.Services.AddSingleton<CloudSyncStateStore>();
+            builder.Services.AddSingleton(_ =>
+            {
+                var client = new HttpClient
+                {
+                    BaseAddress = new Uri(cloudOptions.BaseUrl, UriKind.Absolute),
+                    Timeout = cloudOptions.Timeout
+                };
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("DominoMajlisPRO/1.0");
+                return client;
+            });
+            builder.Services.AddSingleton<CloudApiClient>();
+            builder.Services.AddSingleton<CloudSyncCoordinator>();
+
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
-            return builder.Build();
+            var app = builder.Build();
+            var client = app.Services.GetRequiredService<CloudApiClient>();
+            var stateStore = app.Services.GetRequiredService<CloudSyncStateStore>();
+            var coordinator = app.Services.GetRequiredService<CloudSyncCoordinator>();
+            CloudSyncRuntime.Configure(client, stateStore, coordinator);
+            coordinator.StartBackgroundSync();
+            return app;
         }
     }
 }

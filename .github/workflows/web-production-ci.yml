@@ -1,0 +1,117 @@
+name: Web Production CI
+
+on:
+  push:
+    branches:
+      - agent/web-preview-foundation
+    paths:
+      - 'WebProduction/**'
+      - 'DominoMajlisPRO/Resources/Images/**'
+      - 'DominoMajlisPRO/GalleryEngine/Assets/**'
+      - '.github/workflows/web-production-ci.yml'
+  pull_request:
+    branches:
+      - agent/web-preview-foundation
+    paths:
+      - 'WebProduction/**'
+      - 'DominoMajlisPRO/Resources/Images/**'
+      - 'DominoMajlisPRO/GalleryEngine/Assets/**'
+      - '.github/workflows/web-production-ci.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build web asset bundle
+        working-directory: WebProduction
+        run: npm run build
+      - name: Validate JavaScript syntax
+        run: |
+          node --check WebProduction/scripts/sync-assets.mjs
+          node --check WebProduction/store-domain.js
+          node --check WebProduction/store-ui.js
+          node --check WebProduction/gallery-ui.js
+          node --check WebProduction/gallery-nav.js
+          node --check WebProduction/identity-runtime.js
+          node --check WebProduction/app.js
+          node --check WebProduction/sw.js
+          node --check 'WebProduction/functions/api/[[path]].js'
+      - name: Validate generated asset manifest
+        shell: bash
+        run: |
+          test -s WebProduction/assets/asset-manifest.json
+          node -e "const m=require('./WebProduction/assets/asset-manifest.json'); if(!m.count) throw new Error('No web assets were generated'); console.log('Generated assets:',m.count)"
+      - name: Validate required production files and routes
+        shell: bash
+        run: |
+          test -s WebProduction/index.html
+          test -s WebProduction/package.json
+          test -s WebProduction/styles.css
+          test -s WebProduction/store.css
+          test -s WebProduction/gallery.css
+          test -s WebProduction/identity.css
+          test -s WebProduction/store-domain.js
+          test -s WebProduction/store-ui.js
+          test -s WebProduction/gallery-ui.js
+          test -s WebProduction/gallery-nav.js
+          test -s WebProduction/identity-runtime.js
+          test -s WebProduction/app.js
+          test -s WebProduction/sw.js
+          test -s 'WebProduction/functions/api/[[path]].js'
+          grep -q 'Domino Majlis PRO' WebProduction/index.html
+          grep -q 'store-domain.js' WebProduction/index.html
+          grep -q 'store-ui.js' WebProduction/index.html
+          grep -q 'gallery-ui.js' WebProduction/index.html
+          grep -q 'gallery-nav.js' WebProduction/index.html
+          grep -q 'identity-runtime.js' WebProduction/index.html
+          grep -q 'identity.css' WebProduction/index.html
+          grep -q '/api/preview/login' WebProduction/app.js
+          grep -q '/api/preview/me/teams' WebProduction/app.js
+          grep -q '/api/v1/players' WebProduction/app.js
+          grep -q '/api/v1/matches' WebProduction/app.js
+          grep -q '/api/v1/rankings' WebProduction/app.js
+          grep -q 'function updateStatsAfterMatch' WebProduction/app.js
+          grep -q 'function rankingsView' WebProduction/app.js
+          grep -q 'function seasonInfo' WebProduction/app.js
+          grep -q 'function seasonView' WebProduction/app.js
+          grep -q 'function statisticsView' WebProduction/app.js
+          grep -q 'function badgesForTeam' WebProduction/app.js
+          grep -q 'function badgesView' WebProduction/app.js
+          grep -q 'function hallEligible' WebProduction/app.js
+          grep -q 'function hallView' WebProduction/app.js
+          grep -q 'Hall of Fame' WebProduction/app.js
+          grep -q 'badge-grid' WebProduction/styles.css
+          grep -q 'season-card' WebProduction/styles.css
+          grep -q 'hall-row' WebProduction/styles.css
+          grep -q "catalog:'store-items'" WebProduction/store-domain.js
+          grep -q "wallets:'wallets'" WebProduction/store-domain.js
+          grep -q "inventory:'inventory'" WebProduction/store-domain.js
+          grep -q 'TEAM_TYPES' WebProduction/store-domain.js
+          grep -q 'async function acquire' WebProduction/store-domain.js
+          grep -q 'async function equip' WebProduction/store-domain.js
+          grep -q 'getIdentities' WebProduction/store-domain.js
+          grep -q 'window.DominoStoreDomain' WebProduction/store-domain.js
+          grep -q 'function productCard' WebProduction/store-ui.js
+          grep -q 'function inventoryCard' WebProduction/store-ui.js
+          grep -q 'storeTeamTarget' WebProduction/store-ui.js
+          grep -q 'data-store-action' WebProduction/store-ui.js
+          grep -q 'DominoStoreUI' WebProduction/store-ui.js
+          grep -q 'store-grid' WebProduction/store.css
+          grep -q 'store-wallet' WebProduction/store.css
+          grep -q '/api/v1/store-items' WebProduction/gallery-ui.js
+          grep -q 'function loadManifest' WebProduction/gallery-ui.js
+          grep -q 'function assetUrl' WebProduction/gallery-ui.js
+          grep -q 'DominoGalleryUI' WebProduction/gallery-ui.js
+          grep -q 'gallery-grid' WebProduction/gallery.css
+          grep -q 'visual-identities' WebProduction/identity-runtime.js
+          grep -q 'function applyPlayer' WebProduction/identity-runtime.js
+          grep -q 'function applyTeams' WebProduction/identity-runtime.js
+          grep -q 'DominoIdentityRuntime' WebProduction/identity-runtime.js
+          grep -q 'identity-frame' WebProduction/identity.css
+          grep -q 'identity-team-effect' WebProduction/identity.css
+          grep -q "const PBKDF2_ITERATIONS = 100000" 'WebProduction/functions/api/[[path]].js'
+          grep -q "auth-pbkdf2-100000-v2" 'WebProduction/functions/api/[[path]].js'
