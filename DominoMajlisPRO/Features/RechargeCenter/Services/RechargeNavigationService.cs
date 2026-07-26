@@ -1,22 +1,15 @@
 using DominoMajlisPRO.Features.RechargeCenter.Pages;
+using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.Features.RechargeCenter.Services;
 
 public static class RechargeNavigationService
 {
-    private static int _isNavigating;
-
     public static async Task OpenAsync(INavigation? navigation)
     {
-        if (navigation == null || Interlocked.Exchange(ref _isNavigating, 1) == 1)
+        if (navigation == null)
             return;
-        try
-        {
-            await navigation.PushAsync(new RechargeCenterPage());
-        }
-        finally
-        {
-            Interlocked.Exchange(ref _isNavigating, 0);
-        }
+
+        await NavigationGuardService.PushOnceAsync(navigation, new RechargeCenterPage());
     }
 }
