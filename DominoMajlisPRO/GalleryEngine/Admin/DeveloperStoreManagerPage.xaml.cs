@@ -1,6 +1,7 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin;
@@ -16,11 +17,16 @@ public partial class DeveloperStoreManagerPage : ContentPage
 
         BuildSections();
         ApplyTheme();
+        IsVisible = false;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
+        if (!await DeveloperAuthorizationGuard.EnsurePageAuthorizedAsync(this, nameof(DeveloperStoreManagerPage)))
+            return;
+
+        IsVisible = true;
         GalleryThemeEngine.ThemeChanged -= OnThemeChanged;
         GalleryThemeEngine.ThemeChanged += OnThemeChanged;
         ApplyTheme();
@@ -140,6 +146,11 @@ public partial class DeveloperStoreManagerPage : ContentPage
 
     private async Task OpenSectionAsync(StoreAdminSection section)
     {
+        if (!await DeveloperAuthorizationGuard.IsAuthorizedAsync(
+                nameof(DeveloperStoreManagerPage),
+                $"Open {section.Id}"))
+            return;
+
         switch (section.Id)
         {
             case "inventory-audit":

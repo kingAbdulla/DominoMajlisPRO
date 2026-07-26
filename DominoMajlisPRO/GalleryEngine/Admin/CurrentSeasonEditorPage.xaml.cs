@@ -2,6 +2,7 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Canonical;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin;
@@ -32,11 +33,16 @@ public partial class CurrentSeasonEditorPage : ContentPage
         ConfigureFields();
         ApplyTheme();
         ClearFieldsForNewEntry();
+        IsVisible = false;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        if (!await DeveloperAuthorizationGuard.EnsurePageAuthorizedAsync(this, nameof(CurrentSeasonEditorPage)))
+            return;
+
+        IsVisible = true;
         GalleryThemeEngine.ThemeChanged -= OnThemeChanged;
         GalleryThemeEngine.ThemeChanged += OnThemeChanged;
         await RefreshPublishedCardAsync();

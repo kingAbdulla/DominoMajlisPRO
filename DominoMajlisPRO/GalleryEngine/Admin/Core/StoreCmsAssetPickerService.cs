@@ -1,3 +1,5 @@
+using DominoMajlisPRO.Services;
+
 namespace DominoMajlisPRO.GalleryEngine.Admin.Core;
 
 public enum StoreCmsAssetSection { CurrentSeason, NewArrivals, LimitedOffers, StoreCategories, Avatars, Backgrounds, Effects, Bundles }
@@ -18,6 +20,10 @@ public static class StoreCmsAssetPickerService
     }
     public static async Task<string?> ImportImageAsync(StoreCmsAssetSection section, string title)
     {
+        await DeveloperAuthorizationGuard.RequireDeveloperAsync(
+            nameof(StoreCmsAssetPickerService),
+            $"Import {section}");
+
         var result = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = title, FileTypes = FilePickerFileType.Images });
         if (result == null) return null;
         var extension = Path.GetExtension(result.FileName); var folder = GetSectionFolder(section); Directory.CreateDirectory(folder);

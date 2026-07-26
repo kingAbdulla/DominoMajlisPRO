@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
+using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin.Services;
 
@@ -19,6 +20,10 @@ public static class StoreResetService
 
     public static async Task<StoreResetReport> ResetDeveloperStoreAsync()
     {
+        await DeveloperAuthorizationGuard.RequireDeveloperAsync(
+            nameof(StoreResetService),
+            nameof(ResetDeveloperStoreAsync));
+
         var root = StoreAdminService.GetAdminStorageRoot();
         var completedAt = DateTime.UtcNow;
         var backupPath = Path.Combine(

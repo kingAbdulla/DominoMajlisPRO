@@ -2,6 +2,7 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Canonical;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin;
@@ -24,9 +25,21 @@ public partial class LimitedOffersEditorPage : ContentPage
     public LimitedOffersEditorPage()
     {
         InitializeComponent(); FlowDirection = FlowDirection.RightToLeft; ConfigureFields(); ApplyTheme(); ClearFields();
+        IsVisible = false;
     }
 
-    protected override async void OnAppearing() { base.OnAppearing(); GalleryThemeEngine.ThemeChanged -= OnThemeChanged; GalleryThemeEngine.ThemeChanged += OnThemeChanged; ApplyTheme(); await LoadAssetChoicesAsync(SelectedAssetId()); }
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        if (!await DeveloperAuthorizationGuard.EnsurePageAuthorizedAsync(this, nameof(LimitedOffersEditorPage)))
+            return;
+
+        IsVisible = true;
+        GalleryThemeEngine.ThemeChanged -= OnThemeChanged;
+        GalleryThemeEngine.ThemeChanged += OnThemeChanged;
+        ApplyTheme();
+        await LoadAssetChoicesAsync(SelectedAssetId());
+    }
     protected override void OnDisappearing() { GalleryThemeEngine.ThemeChanged -= OnThemeChanged; base.OnDisappearing(); }
 
     private void ConfigureFields()

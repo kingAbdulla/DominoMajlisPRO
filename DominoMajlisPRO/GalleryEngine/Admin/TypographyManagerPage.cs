@@ -4,6 +4,7 @@ using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin;
@@ -55,6 +56,16 @@ public sealed class TypographyManagerPage : ContentPage
         ConfigureControls();
         BuildPage();
         RefreshPreview();
+        IsVisible = false;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        if (!await DeveloperAuthorizationGuard.EnsurePageAuthorizedAsync(this, nameof(TypographyManagerPage)))
+            return;
+
+        IsVisible = true;
     }
 
     private void ConfigureControls()

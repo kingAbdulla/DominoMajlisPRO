@@ -2,6 +2,7 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Admin.Canonical;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin;
@@ -98,11 +99,16 @@ public class SpecializedStoreManagerPage : ContentPage
         ConfigureControls();
         ApplyTheme();
         ClearFields();
+        IsVisible = false;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        if (!await DeveloperAuthorizationGuard.EnsurePageAuthorizedAsync(this, GetType().Name))
+            return;
+
+        IsVisible = true;
         GalleryThemeEngine.ThemeChanged -= OnThemeChanged;
         GalleryThemeEngine.ThemeChanged += OnThemeChanged;
         await LoadAssetChoicesAsync();

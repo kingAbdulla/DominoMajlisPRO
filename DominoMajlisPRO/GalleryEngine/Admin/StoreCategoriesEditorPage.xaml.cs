@@ -1,6 +1,7 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 using DominoMajlisPRO.GalleryEngine.Admin.Canonical;
 namespace DominoMajlisPRO.GalleryEngine.Admin;
@@ -27,11 +28,16 @@ public partial class StoreCategoriesEditorPage : ContentPage
         StatusPicker.SetOptions(CanonicalStoreCatalog.PublishStates());
         ApplyTheme();
         ClearFields();
+        IsVisible = false;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
+        if (!await DeveloperAuthorizationGuard.EnsurePageAuthorizedAsync(this, nameof(StoreCategoriesEditorPage)))
+            return;
+
+        IsVisible = true;
         GalleryThemeEngine.ThemeChanged -= OnThemeChanged;
         GalleryThemeEngine.ThemeChanged += OnThemeChanged;
         ApplyTheme();

@@ -1,4 +1,5 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin;
@@ -48,11 +49,16 @@ public sealed class ArchivedStoreItemsPage : ContentPage
                 contentScroll
             }
         };
+        IsVisible = false;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        if (!await DeveloperAuthorizationGuard.EnsurePageAuthorizedAsync(this, nameof(ArchivedStoreItemsPage)))
+            return;
+
+        IsVisible = true;
         await RefreshAsync();
     }
 

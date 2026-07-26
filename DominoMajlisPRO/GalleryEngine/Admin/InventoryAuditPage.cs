@@ -36,11 +36,16 @@ public sealed class InventoryAuditPage : ContentPage
         _catalogSearch.TextChanged += (_, _) => FillCatalog();
         _assetTypePicker.SelectedIndexChanged += (_, _) => FillCatalog();
         _saveButton.Clicked += OnSaveClicked;
+        IsVisible = false;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        if (!await DeveloperAuthorizationGuard.EnsurePageAuthorizedAsync(this, nameof(InventoryAuditPage)))
+            return;
+
+        IsVisible = true;
         AppEvents.StoreProgressChanged -= OnInventoryChanged;
         AppEvents.StoreProgressChanged += OnInventoryChanged;
         AppEvents.TeamAssetsChanged -= OnTeamAssetsChanged;

@@ -43,11 +43,16 @@ public sealed class StoreSettingsManagerPage : ContentPage
         NavigationPage.SetHasNavigationBar(this, false);
         BuildPage();
         ApplyTheme();
+        IsVisible = false;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        if (!await DeveloperAuthorizationGuard.EnsurePageAuthorizedAsync(this, nameof(StoreSettingsManagerPage)))
+            return;
+
+        IsVisible = true;
         NewArrivalsAdminService.PublishedChanged -= OnPublishedContentChanged;
         LimitedOffersAdminService.PublishedChanged -= OnPublishedContentChanged;
         AvatarsAdminService.PublishedChanged -= OnPublishedContentChanged;

@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using DominoMajlisPRO.GalleryEngine.Admin.Services;
+using DominoMajlisPRO.Services;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin.Core;
 
@@ -36,6 +38,8 @@ public static class StoreCmsJsonRepository
         ArgumentNullException.ThrowIfNull(records);
 
         var filePath = Path.GetFullPath(path);
+        await EnsureDeveloperForAdminWriteAsync(filePath);
+
         var directory = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrWhiteSpace(directory))
             Directory.CreateDirectory(directory);
@@ -103,6 +107,21 @@ public static class StoreCmsJsonRepository
         using var document = await JsonDocument.ParseAsync(stream);
         if (document.RootElement.ValueKind != JsonValueKind.Array)
             throw new InvalidDataException("The temporary JSON file must contain an array.");
+    }
+
+    private static async Task EnsureDeveloperForAdminWriteAsync(string filePath)
+    {
+        var adminRoot = Path.GetFullPath(StoreAdminService.GetAdminStorageRoot());
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        if (filePath.StartsWith(adminRoot, comparison))
+        {
+            await DeveloperAuthorizationGuard.RequireDeveloperAsync(
+                "Store CMS JSON",
+                $"Write {Path.GetFileName(filePath)}");
+        }
     }
 
     private static void PreserveCorruptTarget(string filePath)

@@ -64,18 +64,17 @@ public sealed class SeasonContentAdminPage : ContentPage
         _assetPreviewCard = BuildAssetPreviewCard();
         Build();
         Content = new ScrollView { Content = _root };
+        IsVisible = false;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        var user = await ApplicationUserService.GetCurrentUserAsync();
-        if (user.Role != ApplicationUserRole.Developer)
+        if (!await DeveloperAuthorizationGuard.EnsurePageAuthorizedAsync(this, nameof(SeasonContentAdminPage)))
         {
-            _root.Children.Clear();
-            _root.Children.Add(Label("غير مصرح. هذه الصفحة متاحة للمطور فقط.", 17, "#E36D6D", true));
             return;
         }
+        IsVisible = true;
         await LoadAsync();
     }
 
