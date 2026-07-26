@@ -46,7 +46,7 @@ public sealed class HallCandidateCenterPage : ContentPage
                 18);
             await DisplayAlert("غير مصرح", "مركز المرشحين متاح للمطور فقط.", "حسناً");
             if (Navigation.NavigationStack.Count > 1)
-                await Navigation.PopAsync();
+                await DominoMajlisPRO.Services.NavigationGuardService.PopOrGoBackAsync(Navigation);
             return;
         }
 

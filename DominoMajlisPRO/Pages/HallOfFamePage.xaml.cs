@@ -201,7 +201,7 @@ public partial class HallOfFamePage : ContentPage
                 {
                     Label("مركز المرشحين", 18, Color.FromArgb(Gold), true),
                     Label("التقييم والتدقيق منفصلان عن قائمة أعضاء قاعة الأساطير.", 12, Color.FromArgb(Muted), false, TextAlignment.Center, 2),
-                    CommandButton("فتح مركز المرشحين", async () => await Navigation.PushAsync(new HallCandidateCenterPage()))
+                    CommandButton("فتح مركز المرشحين", async () => await NavigationGuardService.PushOnceAsync(Navigation, new HallCandidateCenterPage()))
                 }
             },
             22,
@@ -475,9 +475,9 @@ public partial class HallOfFamePage : ContentPage
     async void OnBackTapped(object sender, EventArgs e)
     {
         if (Navigation.NavigationStack.Count > 1)
-            await Navigation.PopAsync();
+            await NavigationGuardService.PopOrGoBackAsync(Navigation);
         else
-            await Navigation.PushAsync(new MainPage());
+            await NavigationGuardService.ResetRootAsync(new MainPage());
     }
 
     async void OnShowAllTeamsClicked(object sender, EventArgs e) =>
@@ -486,24 +486,27 @@ public partial class HallOfFamePage : ContentPage
     async void OnShowAllPlayersClicked(object sender, EventArgs e) =>
         await DisplayAlert("لاعبو قاعة الأساطير", snapshot.PlayerMembers.Count == 0 ? "لا يوجد لاعب مؤكد حالياً." : string.Join("\n", snapshot.PlayerMembers.Select((player, index) => $"#{index + 1} {player.DisplayName} | {player.Category} | {player.FinalScore:0.#}%")), "حسناً");
 
-    async void OnTeamStatisticsClicked(object sender, EventArgs e) => await Navigation.PushAsync(new TeamStatisticsPage());
-    async void OnPlayerStatisticsClicked(object sender, EventArgs e) => await Navigation.PushAsync(new PlayerStatisticsPage());
+    async void OnTeamStatisticsClicked(object sender, EventArgs e) =>
+        await NavigationGuardService.PushOnceAsync(Navigation, new TeamStatisticsPage());
+
+    async void OnPlayerStatisticsClicked(object sender, EventArgs e) =>
+        await NavigationGuardService.PushOnceAsync(Navigation, new PlayerStatisticsPage());
 
     async void OnBottomNavigation(string destination)
     {
         switch (destination)
         {
             case "HOME":
-                await Navigation.PushAsync(new MainPage());
+                await NavigationGuardService.ResetRootAsync(new MainPage());
                 break;
             case "PLAYERS":
-                await Navigation.PushAsync(new PlayerProfilesPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new PlayerProfilesPage());
                 break;
             case "GAME":
                 await OpenGameAsync();
                 break;
             case "STORE":
-                await Navigation.PushAsync(new GalleryEngine.Pages.GalleryPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new GalleryEngine.Pages.GalleryPage());
                 break;
         }
     }
@@ -516,13 +519,13 @@ public partial class HallOfFamePage : ContentPage
             .ToList();
         if (teams.Count < 2)
         {
-            await Navigation.PushAsync(new CreateTeamPage());
+            await NavigationGuardService.PushOnceAsync(Navigation, new CreateTeamPage());
             return;
         }
 
         var team1 = teams[0];
         var team2 = teams[1];
-        await Navigation.PushAsync(new GamePage(
+        await NavigationGuardService.PushOnceAsync(Navigation, new GamePage(
             team1.TeamName,
             team2.TeamName,
             $"{team1.Player1} + {team1.Player2}",
@@ -551,7 +554,7 @@ public partial class HallOfFamePage : ContentPage
                 break;
             case "ACHIEVEMENTS":
                 if (isDeveloper)
-                    await Navigation.PushAsync(new HallCandidateCenterPage());
+                    await NavigationGuardService.PushOnceAsync(Navigation, new HallCandidateCenterPage());
                 else
                     await DisplayAlert("غير مصرح", "هذه الأدوات متاحة للمطور فقط.", "حسناً");
                 break;

@@ -23,7 +23,7 @@ public partial class CertificatePage : ContentPage
     object sender,
     TappedEventArgs e)
     {
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 
     // Load Certificate
@@ -177,7 +177,7 @@ public partial class CertificatePage : ContentPage
 
         try
         {
-            await Navigation.PushAsync(new CertificatePrintPage(match), false);
+            await NavigationGuardService.PushOnceAsync(Navigation, new CertificatePrintPage(match), false);
         }
         catch
         {

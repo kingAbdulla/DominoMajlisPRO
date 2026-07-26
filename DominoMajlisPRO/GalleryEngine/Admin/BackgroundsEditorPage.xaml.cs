@@ -342,7 +342,8 @@ public partial class BackgroundsEditorPage : ContentPage
     private void ShowError(string message) { ValidationLabel.Text = message; ValidationLabel.TextColor = ErrorColor; ValidationLabel.IsVisible = true; SetMode("Error", "Missing Required", ErrorColor); }
     private void SetMode(string title, string subtitle, Color color) { ModeTitleLabel.Text = title; ModeSubtitleLabel.Text = subtitle; ModeDot.Color = color; ModeTitleLabel.TextColor = color; }
     private void OnCloseSheetClicked(object? sender, EventArgs e) => SheetOverlay.IsVisible = false;
-    private async void OnCancelClicked(object? sender, EventArgs e) { if (Navigation.NavigationStack.Count > 1) await Navigation.PopAsync(); else await Shell.Current.GoToAsync(".."); }
+    private async void OnCancelClicked(object? sender, EventArgs e) =>
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
 
     private void ApplyTheme()
     {

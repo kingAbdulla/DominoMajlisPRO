@@ -67,8 +67,9 @@ public sealed class AppStartupPage : ContentPage
         await DataMaintenanceService.RecoverIdentityFromLatestResetBackupAsync();
         bool hasActiveSession = await StartupSessionRouterService.HasActiveRegisteredSessionAsync();
 
-        Application.Current!.MainPage = hasActiveSession
-            ? new NavigationPage(new MainPage())
-            : new NavigationPage(new PremiumAuthPage());
+        NavigationGuardService.SetRoot(
+            hasActiveSession
+                ? new MainPage()
+                : new PremiumAuthPage());
     }
 }

@@ -205,7 +205,8 @@ public partial class LimitedOffersEditorPage : ContentPage
     private void OnCloseSheetClicked(object? sender, EventArgs e) => SheetOverlay.IsVisible = false;
     private void OnCloseSheetTapped(object? sender, TappedEventArgs e) => SheetOverlay.IsVisible = false;
     private void OnCancelTapped(object? sender, EventArgs e) => _ = CloseAsync();
-    private async Task CloseAsync() { if (Navigation.NavigationStack.Count > 1) await Navigation.PopAsync(); else await Shell.Current.GoToAsync(".."); }
+    private async Task CloseAsync() =>
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
 
     private bool TryParseRequiredNumbers(out int original, out int discount, out int sortOrder)
     {

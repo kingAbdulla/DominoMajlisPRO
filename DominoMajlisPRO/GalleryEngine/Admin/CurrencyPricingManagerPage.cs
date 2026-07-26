@@ -60,7 +60,7 @@ public sealed class CurrencyPricingManagerPage : ContentPage
     private void BuildPage()
     {
         var back = new Border { WidthRequest = 42, HeightRequest = 42, StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Content = new Label { Text = "‹", FontSize = 28, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } };
-        back.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PopAsync()) });
+        back.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await DominoMajlisPRO.Services.NavigationGuardService.PopOrGoBackAsync(Navigation)) });
         var heading = new VerticalStackLayout { Spacing = 1, Children = { new Label { Text = "العملات والأسعار", FontFamily = "Tajawal-Regular", FontSize = 25, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.End }, new Label { Text = "إدارة الحزم والأسعار والخصومات بدون توجيه مخزون", FontFamily = "Tajawal-Regular", FontSize = 12, HorizontalTextAlignment = TextAlignment.End } } };
         var header = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 12 }; header.Add(back, 0); header.Add(heading, 1);
         _formPanel.Content = new VerticalStackLayout { Spacing = 10, Children = { _recordsPicker, _currencyPicker, _kindPicker, _amountEntry, _priceEntry, _discountEntry, _seasonPicker, _offerPicker, _regionEntry, _validation } };

@@ -80,7 +80,7 @@ public sealed class InventoryAuditPage : ContentPage
     private View BuildPage()
     {
         var back = new Button { Text = "‹", WidthRequest = 44, HeightRequest = 44, FontSize = 26 };
-        back.Clicked += async (_, _) => await Navigation.PopAsync();
+        back.Clicked += async (_, _) => await DominoMajlisPRO.Services.NavigationGuardService.PopOrGoBackAsync(Navigation);
         var repairAll = new Button { Text = "Repair All Safe Items", BackgroundColor = Color.FromArgb("#B38B2E"), TextColor = Colors.Black };
         repairAll.Clicked += OnRepairAllClicked;
         var refresh = new Button { Text = "Refresh" };

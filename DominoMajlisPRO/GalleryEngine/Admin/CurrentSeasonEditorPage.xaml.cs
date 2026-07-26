@@ -186,7 +186,7 @@ public partial class CurrentSeasonEditorPage : ContentPage
 
     private async void OnOpenSeasonContentClicked(object? sender, EventArgs e)
     {
-        await Navigation.PushAsync(new SeasonContentAdminPage());
+        await NavigationGuardService.PushOnceAsync(Navigation, new SeasonContentAdminPage());
     }
 
     private async Task OpenDraftsSheetAsync()
@@ -550,7 +550,7 @@ public partial class CurrentSeasonEditorPage : ContentPage
     {
         if (Navigation.NavigationStack.Count > 1)
         {
-            await Navigation.PopAsync();
+            await NavigationGuardService.PopOrGoBackAsync(Navigation);
             return;
         }
 

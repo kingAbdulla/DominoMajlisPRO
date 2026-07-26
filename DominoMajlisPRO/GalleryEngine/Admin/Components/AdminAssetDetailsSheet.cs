@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin.Components;
@@ -154,7 +155,7 @@ public sealed class AdminAssetDetailsSheet : ContentPage
         string managerTitle)
     {
         var sheet = new AdminAssetDetailsSheet(record, published, managerTitle);
-        await owner.Navigation.PushModalAsync(sheet, false);
+        await NavigationGuardService.PushModalOnceAsync(owner.Navigation, sheet, false);
         return await sheet._result.Task;
     }
 
@@ -184,7 +185,7 @@ public sealed class AdminAssetDetailsSheet : ContentPage
 
         button.Clicked += async (_, _) =>
         {
-            await Navigation.PopModalAsync(false);
+            await NavigationGuardService.PopModalOrBackAsync(Navigation, false);
             _result.TrySetResult(action);
         };
 

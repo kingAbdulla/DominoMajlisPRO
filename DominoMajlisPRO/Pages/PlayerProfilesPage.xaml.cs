@@ -534,7 +534,7 @@ public partial class PlayerProfilesPage : ContentPage
             await RefreshCollectionProgressAsync();
             await LoadPlayersAsync();
 
-            await Navigation.PushAsync(
+            await NavigationGuardService.PushOnceAsync(Navigation,
                 new PlayerDetailsPage(profile.PlayerId));
         }
         catch (Exception ex)
@@ -1338,7 +1338,7 @@ public partial class PlayerProfilesPage : ContentPage
 
         detailsButton.Clicked += async (s, e) =>
         {
-            await Navigation.PushAsync(
+            await NavigationGuardService.PushOnceAsync(Navigation,
                 new PlayerDetailsPage(player.PlayerId));
         };
 
@@ -1451,7 +1451,7 @@ public partial class PlayerProfilesPage : ContentPage
 
     async void OnBackTapped(object sender, TappedEventArgs e)
     {
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 }
 

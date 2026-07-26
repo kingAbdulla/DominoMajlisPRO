@@ -92,7 +92,7 @@ public sealed class SeasonPage : ContentPage
                 BackgroundColor = Color.FromArgb("#171510"), TextColor = Color.FromArgb("#E8C86F"),
                 BorderColor = Color.FromArgb("#755313"), BorderWidth = 1, FontFamily = "Tajawal-Regular"
             };
-            archiveButton.Clicked += async (_, _) => await Navigation.PushAsync(new SeasonArchivePage());
+            archiveButton.Clicked += async (_, _) => await DominoMajlisPRO.Services.NavigationGuardService.PushOnceAsync(Navigation, new SeasonArchivePage());
             _content.Children.Add(archiveButton);
         }
         catch (Exception ex)

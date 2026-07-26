@@ -1,5 +1,6 @@
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace DominoMajlisPRO.GalleryEngine.Admin.Components;
@@ -42,7 +43,7 @@ public sealed class AdminAssetPickerSheet : ContentPage
 
         close.Clicked += async (_, _) =>
         {
-            await Navigation.PopModalAsync(false);
+            await NavigationGuardService.PopModalOrBackAsync(Navigation, false);
             _result.TrySetResult(null);
         };
 
@@ -92,7 +93,7 @@ public sealed class AdminAssetPickerSheet : ContentPage
         string title)
     {
         var sheet = new AdminAssetPickerSheet(records, title);
-        await owner.Navigation.PushModalAsync(sheet, false);
+        await NavigationGuardService.PushModalOnceAsync(owner.Navigation, sheet, false);
         return await sheet._result.Task;
     }
 
@@ -168,7 +169,7 @@ public sealed class AdminAssetPickerSheet : ContentPage
         {
             Command = new Command(async () =>
             {
-                await Navigation.PopModalAsync(false);
+                await NavigationGuardService.PopModalOrBackAsync(Navigation, false);
                 _result.TrySetResult(record);
             })
         });

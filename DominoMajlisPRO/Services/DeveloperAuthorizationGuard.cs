@@ -49,7 +49,7 @@ public static class DeveloperAuthorizationGuard
         await page.DisplayAlertAsync("غير مصرح", "هذه الصفحة متاحة للمطور فقط.", "حسناً");
 
         if (page.Navigation?.NavigationStack?.Count > 1)
-            await page.Navigation.PopAsync();
+            await NavigationGuardService.PopOrGoBackAsync(page.Navigation);
 
         return false;
     }

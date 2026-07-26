@@ -213,7 +213,7 @@ public partial class DeveloperLoginPage : ContentPage
 
         AuthenticatedToolsSection.IsVisible = true;
 
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
             new HonorsAdminPage());
     }
 
@@ -434,7 +434,7 @@ public partial class DeveloperLoginPage : ContentPage
         object sender,
         EventArgs e)
     {
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
             new HonorsAdminPage());
     }
 
@@ -442,6 +442,6 @@ public partial class DeveloperLoginPage : ContentPage
         object sender,
         EventArgs e)
     {
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 }

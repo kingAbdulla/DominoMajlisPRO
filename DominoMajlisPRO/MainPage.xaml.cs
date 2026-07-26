@@ -1586,7 +1586,7 @@ TextChangedEventArgs e)
 
             if (logoPressed)
             {
-                await Navigation.PushAsync(
+                await NavigationGuardService.PushOnceAsync(Navigation,
                     new DeveloperLoginPage());
             }
         }
@@ -1620,25 +1620,25 @@ TextChangedEventArgs e)
         object? sender,
         TappedEventArgs e)
     {
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
             new GalleryPage());
     }
 
 
     private async void GetCoins_Tapped(object sender, TappedEventArgs e)
     {
-        await Navigation.PushAsync(new RechargeCenterPage());
+        await NavigationGuardService.PushOnceAsync(Navigation, new RechargeCenterPage());
     }
 
     private async void GetGems_Tapped(object sender, TappedEventArgs e)
     {
-        await Navigation.PushAsync(new RechargeCenterPage());
+        await NavigationGuardService.PushOnceAsync(Navigation, new RechargeCenterPage());
     }
     async void OnhomeTapped(
     object? sender,
     TappedEventArgs e)
     {
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
             new MainPage());
     }
 
@@ -2711,7 +2711,7 @@ TextChangedEventArgs e)
 
         if (currentUser.Role == ApplicationUserRole.Ghost)
         {
-            await Navigation.PushAsync(new PlayerProfilesPage());
+            await NavigationGuardService.PushOnceAsync(Navigation, new PlayerProfilesPage());
             return;
         }
 
@@ -2722,12 +2722,12 @@ TextChangedEventArgs e)
         if (profile != null &&
             !string.IsNullOrWhiteSpace(profile.PlayerId))
         {
-            await Navigation.PushAsync(
+            await NavigationGuardService.PushOnceAsync(Navigation,
                 new PlayerDetailsPage(profile.PlayerId));
             return;
         }
 
-        await Navigation.PushAsync(new PlayerProfilesPage());
+        await NavigationGuardService.PushOnceAsync(Navigation, new PlayerProfilesPage());
     }
 
     async Task ShowIdentityLoginRegisterFlowAsync()

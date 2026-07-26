@@ -208,7 +208,7 @@ public sealed class PlayerStatisticsPage : ContentPage
 
         var back = StatisticsDashboardUi.CommandButton("‹");
         back.WidthRequest = 38;
-        back.Clicked += async (s, e) => await Navigation.PopAsync();
+        back.Clicked += async (s, e) => await DominoMajlisPRO.Services.NavigationGuardService.PopOrGoBackAsync(Navigation);
         Grid.SetColumn(back, 2);
         grid.Add(back);
         return grid;

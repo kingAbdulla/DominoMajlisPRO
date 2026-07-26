@@ -125,7 +125,7 @@ public class SpecializedStoreManagerPage : ContentPage
     private void BuildPage()
     {
         var back = new Border { WidthRequest = 42, HeightRequest = 42, StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Content = new Label { Text = "‹", FontSize = 28, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } };
-        back.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PopAsync()) });
+        back.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await DominoMajlisPRO.Services.NavigationGuardService.PopOrGoBackAsync(Navigation)) });
         var heading = new VerticalStackLayout { Spacing = 1, Children = { new Label { Text = _definition.Title, FontFamily = "Tajawal-Regular", FontSize = 25, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.End }, new Label { Text = _definition.Subtitle, FontFamily = "Tajawal-Regular", FontSize = 12, HorizontalTextAlignment = TextAlignment.End } } };
         var header = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 12 };
         header.Add(back, 0); header.Add(heading, 1);

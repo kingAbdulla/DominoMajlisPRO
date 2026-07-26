@@ -258,7 +258,7 @@ public partial class PlayerDetailsPage : ContentPage
         if (currentPlayer == null)
         {
             await DisplayAlert("خطأ", "لم يتم العثور على ملف اللاعب.", "حسناً");
-            await Navigation.PopAsync();
+            await NavigationGuardService.PopOrGoBackAsync(Navigation);
             return;
         }
 
@@ -643,11 +643,11 @@ public partial class PlayerDetailsPage : ContentPage
         if (Navigation.NavigationStack.Count >= 2 &&
             Navigation.NavigationStack[^2] is PlayerProfilesPage)
         {
-            await Navigation.PopAsync();
+            await NavigationGuardService.PopOrGoBackAsync(Navigation);
             return;
         }
 
-        await Navigation.PushAsync(new PlayerProfilesPage());
+        await NavigationGuardService.PushOnceAsync(Navigation, new PlayerProfilesPage());
     }
 
     static bool SameId(string? left, string? right) =>
@@ -984,7 +984,7 @@ public partial class PlayerDetailsPage : ContentPage
 
     async void OnBackTapped(object sender, TappedEventArgs e)
     {
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 
     async Task BuildIdentityHistoryAsync(PlayerProfileModel player)

@@ -74,7 +74,7 @@ public sealed class AccountRecoveryPage : ContentPage
                 PrimaryButton("الاستعادة عبر رمز البريد الإلكتروني", ShowEmailOtpRequest),
                 SecondaryButton("الاستعادة عبر Recovery Code", ShowRecoveryCodeReset),
                 SecondaryButton("الاستعادة عبر أسئلة الأمان", ShowSecurityIdentityStep),
-                GhostButton("الرجوع", async () => await Navigation.PopAsync())
+                GhostButton("الرجوع", async () => await NavigationGuardService.PopOrGoBackAsync(Navigation))
             }
         }));
     }
@@ -424,7 +424,7 @@ public sealed class AccountRecoveryPage : ContentPage
             Children =
             {
                 Info(message),
-                PrimaryButton("العودة لتسجيل الدخول", async () => await Navigation.PopAsync()),
+                PrimaryButton("العودة لتسجيل الدخول", async () => await NavigationGuardService.PopOrGoBackAsync(Navigation)),
                 GhostButton("طرق استعادة أخرى", ShowOptions)
             }
         }));

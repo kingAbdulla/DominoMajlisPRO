@@ -128,7 +128,7 @@ public partial class HistoryPage : ContentPage
 
     async void OnBackClicked(object sender, TappedEventArgs e)
     {
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 
     async void OnDeleteAllClicked(object sender, EventArgs e)
@@ -287,7 +287,7 @@ public partial class HistoryPage : ContentPage
         if (sender is Button button &&
             button.BindingContext is SavedMatch match)
         {
-            await Navigation.PushAsync(
+            await NavigationGuardService.PushOnceAsync(Navigation,
                 new MatchDetailsPage(match));
         }
     }
@@ -298,7 +298,7 @@ public partial class HistoryPage : ContentPage
             button.BindingContext is SavedMatch match &&
             !match.IsFinished)
         {
-            await Navigation.PushAsync(
+            await NavigationGuardService.PushOnceAsync(Navigation,
                 new GamePage(match));
         }
     }

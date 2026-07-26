@@ -229,7 +229,8 @@ $"{CanonicalStoreCatalog.GetSeasonDisplayName(record.SeasonId)}", TextColor = th
         InventoryDisplayResolver.ResolveOptionalImageSource(path);
     private static void SetPreview(Image image, string? path) { image.Source = ResolveImage(path); image.IsVisible = image.Source != null; }
     private void OnCloseSheetClicked(object? sender, EventArgs e) => SheetOverlay.IsVisible = false;
-    private async void OnCancelClicked(object? sender, EventArgs e) { if (Navigation.NavigationStack.Count > 1) await Navigation.PopAsync(); else await Shell.Current.GoToAsync(".."); }
+    private async void OnCancelClicked(object? sender, EventArgs e) =>
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     private void ApplyTheme()
     {
         var theme = GalleryThemeEngine.Current;

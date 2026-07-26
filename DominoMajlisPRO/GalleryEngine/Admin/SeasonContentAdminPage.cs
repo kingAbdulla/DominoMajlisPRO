@@ -233,7 +233,7 @@ public sealed class SeasonContentAdminPage : ContentPage
     }
 
     private async Task PreviewAsPlayerAsync() =>
-        await Navigation.PushAsync(new DominoMajlisPRO.GalleryEngine.Pages.SeasonPage());
+        await DominoMajlisPRO.Services.NavigationGuardService.PushOnceAsync(Navigation, new DominoMajlisPRO.GalleryEngine.Pages.SeasonPage());
 
     private async Task UnpublishSeasonAsync()
     {

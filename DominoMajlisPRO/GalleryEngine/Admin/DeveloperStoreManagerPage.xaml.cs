@@ -220,7 +220,7 @@ public partial class DeveloperStoreManagerPage : ContentPage
     {
         if (Navigation.NavigationStack.Count > 1)
         {
-            await Navigation.PopAsync();
+            await NavigationGuardService.PopOrGoBackAsync(Navigation);
             return;
         }
 

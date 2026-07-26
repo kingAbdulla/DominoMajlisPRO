@@ -60,7 +60,7 @@ internal sealed class WheelOfFortunePage : ContentPage
             TextColor = GalleryThemeEngine.Current.Gold,
             FontSize = 24
         };
-        back.Clicked += async (_, _) => await Navigation.PopAsync();
+        back.Clicked += async (_, _) => await DominoMajlisPRO.Services.NavigationGuardService.PopOrGoBackAsync(Navigation);
 
         var title = Text("عجلة الحظ");
         title.FontSize = 26;

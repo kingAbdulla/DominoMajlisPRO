@@ -121,7 +121,7 @@ public sealed class TypographyManagerPage : ContentPage
     private void BuildPage()
     {
         var back = new Button { Text = "‹", FontSize = 26, WidthRequest = 44, HeightRequest = 44, Padding = 0 };
-        back.Clicked += async (_, _) => await Navigation.PopAsync();
+        back.Clicked += async (_, _) => await DominoMajlisPRO.Services.NavigationGuardService.PopOrGoBackAsync(Navigation);
 
         var heading = new VerticalStackLayout
         {

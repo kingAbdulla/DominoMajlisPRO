@@ -150,7 +150,9 @@ public sealed class PremiumAuthPage : ContentPage
                 loginPasswordEntry,
                 loginErrorLabel,
                 PrimaryButton("دخول", async () => await LoginAsync()),
-                SecondaryButton("نسيت كلمة المرور؟", async () => await Navigation.PushAsync(new AccountRecoveryPage())),
+                SecondaryButton(
+                    "نسيت كلمة المرور؟",
+                    async () => await NavigationGuardService.PushOnceAsync(Navigation, new AccountRecoveryPage())),
                 GhostButton("الرجوع", ShowWelcome)
             }
         }));
@@ -603,7 +605,7 @@ public sealed class PremiumAuthPage : ContentPage
 
     void OpenMainPage()
     {
-        Application.Current!.MainPage = new NavigationPage(new MainPage());
+        NavigationGuardService.SetRoot(new MainPage());
     }
 
     Button LegalOpenButton() => GhostButton("قراءة سياسة الحماية والاستخدام", async () =>

@@ -50,19 +50,74 @@ public static class NavigationGuardService
         }
     }
 
-    public static async Task ResetRootAsync(Page page)
+    public static async Task PushModalOnceAsync(
+        INavigation? navigation,
+        Page page,
+        bool animated = true)
     {
+        if (navigation == null)
+            throw new InvalidOperationException("Navigation stack is not available.");
+
         await Gate.WaitAsync();
         try
         {
-            var window = Application.Current?.Windows.FirstOrDefault()
-                         ?? throw new InvalidOperationException("Application window is not available.");
+            if (navigation.ModalStack.Any(modal => modal.GetType() == page.GetType()))
+                return;
 
-            window.Page = new NavigationPage(page);
+            await navigation.PushModalAsync(page, animated);
         }
         finally
         {
             Gate.Release();
         }
     }
+
+    public static async Task PopModalOrBackAsync(INavigation? navigation, bool animated = true)
+    {
+        await Gate.WaitAsync();
+        try
+        {
+            if (navigation?.ModalStack.Count > 0)
+            {
+                await navigation.PopModalAsync(animated);
+                return;
+            }
+
+            if (navigation?.NavigationStack.Count > 1)
+            {
+                await navigation.PopAsync(animated);
+                return;
+            }
+
+            if (Shell.Current != null)
+                await Shell.Current.GoToAsync("..");
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
+    public static async Task ResetRootAsync(Page page)
+    {
+        await Gate.WaitAsync();
+        try
+        {
+            SetRoot(page);
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
+    public static void SetRoot(Page page)
+    {
+        var window = Application.Current?.Windows.FirstOrDefault()
+                     ?? throw new InvalidOperationException("Application window is not available.");
+
+        window.Page = CreateNavigationRoot(page);
+    }
+
+    public static NavigationPage CreateNavigationRoot(Page page) => new(page);
 }

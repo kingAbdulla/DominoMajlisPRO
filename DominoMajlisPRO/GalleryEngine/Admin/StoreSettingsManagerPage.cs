@@ -95,7 +95,7 @@ public sealed class StoreSettingsManagerPage : ContentPage
             CornerRadius = 14,
             FontSize = 24
         };
-        _backButton.Clicked += async (_, _) => await Navigation.PopAsync();
+        _backButton.Clicked += async (_, _) => await NavigationGuardService.PopOrGoBackAsync(Navigation);
 
         _saveButton = ActionButton("حفظ ونشر الإعدادات");
         _saveButton.Clicked += async (_, _) => await SaveAsync();
@@ -106,7 +106,8 @@ public sealed class StoreSettingsManagerPage : ContentPage
         _archiveButton = ActionButton("أرشفة جميع المنشورات الحالية");
         _archiveButton.Clicked += async (_, _) => await ArchivePublishedContentAsync();
         _archivedItemsButton = ActionButton("عرض المنشورات المؤرشفة");
-        _archivedItemsButton.Clicked += async (_, _) => await Navigation.PushAsync(new ArchivedStoreItemsPage());
+        _archivedItemsButton.Clicked += async (_, _) =>
+            await NavigationGuardService.PushOnceAsync(Navigation, new ArchivedStoreItemsPage());
         _deleteArchivedButton = ActionButton("حذف جميع المنشورات المؤرشفة نهائياً");
         _deleteArchivedButton.Clicked += async (_, _) => await DeleteArchivedContentAsync();
 

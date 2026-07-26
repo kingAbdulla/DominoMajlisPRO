@@ -9,6 +9,6 @@ public partial class PlayerProfilesPage
         // player/account names when the user presses تسجيل الدخول from the
         // Player Profiles account hub.
         await DominoMajlisPRO.Services.ApplicationUserService.LogoutAsync();
-        Application.Current!.MainPage = new NavigationPage(new PremiumAuthPage());
+        DominoMajlisPRO.Services.NavigationGuardService.SetRoot(new PremiumAuthPage());
     }
 }

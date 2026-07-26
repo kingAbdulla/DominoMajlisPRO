@@ -372,12 +372,11 @@ public partial class HonorsAdminPage : ContentPage
                 File = new ShareFile(result.BackupPath)
             });
 
-        Application.Current!.MainPage =
-            new NavigationPage(new MainPage());
+        NavigationGuardService.SetRoot(new MainPage());
     }
 
     async void OnBackImageTapped(object sender, TappedEventArgs e)
     {
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 }

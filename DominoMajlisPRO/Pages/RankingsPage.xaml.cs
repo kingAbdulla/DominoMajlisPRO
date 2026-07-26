@@ -1447,7 +1447,7 @@ public partial class RankingsPage : ContentPage
     }
 
     async void OnBackClicked(object sender, TappedEventArgs e) =>
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
 
     async void OnPlayerRankingsClicked(object sender, TappedEventArgs e) =>
         await NavigateAsync(new PlayerRankingsPage());
@@ -1467,7 +1467,7 @@ public partial class RankingsPage : ContentPage
     async Task NavigateAsync(Page page)
     {
         await this.FadeTo(0.9, 90, Easing.CubicOut);
-        await Navigation.PushAsync(page, true);
+        await NavigationGuardService.PushOnceAsync(Navigation, page, true);
         Opacity = 1;
     }
 }

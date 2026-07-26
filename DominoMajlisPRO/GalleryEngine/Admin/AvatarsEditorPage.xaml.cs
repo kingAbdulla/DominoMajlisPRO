@@ -971,7 +971,7 @@ public partial class AvatarsEditorPage : ContentPage
     private async void OnCancelClicked(object? sender, EventArgs e)
     {
         if (Navigation.NavigationStack.Count > 1)
-            await Navigation.PopAsync();
+            await NavigationGuardService.PopOrGoBackAsync(Navigation);
         else
             await Shell.Current.GoToAsync("..");
     }

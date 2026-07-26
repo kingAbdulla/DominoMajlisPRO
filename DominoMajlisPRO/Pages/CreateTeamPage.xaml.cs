@@ -1516,7 +1516,7 @@ public partial class CreateTeamPage : ContentPage
 
     async void OnBackClicked(object sender, EventArgs e)
     {
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 
     async void OnHelpClicked(object sender, EventArgs e)
@@ -1680,7 +1680,7 @@ public partial class CreateTeamPage : ContentPage
     async Task NavigateWithPolishAsync(Page page)
     {
         await this.FadeToAsync(0.88, 90, Easing.CubicOut);
-        await Navigation.PushAsync(page, true);
+        await NavigationGuardService.PushOnceAsync(Navigation, page, true);
         Opacity = 1;
     }
 

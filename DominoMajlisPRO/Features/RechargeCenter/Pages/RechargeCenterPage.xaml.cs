@@ -133,7 +133,7 @@ public partial class RechargeCenterPage : ContentPage
     private async Task GoBackAsync()
     {
         if (Navigation.NavigationStack.Count > 1)
-            await Navigation.PopAsync();
+            await DominoMajlisPRO.Services.NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 
     private async void OnHistoryClicked(object? sender, EventArgs e)

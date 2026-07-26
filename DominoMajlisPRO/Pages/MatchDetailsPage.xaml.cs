@@ -522,7 +522,7 @@ public partial class MatchDetailsPage : ContentPage
         object sender,
         EventArgs e)
     {
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 
     bool panelOpened = false;
@@ -585,7 +585,7 @@ public partial class MatchDetailsPage : ContentPage
         try
         {
             await CloseBottomSheetAsync();
-            await Navigation.PushAsync(new MatchSharePage(match, shareMode));
+            await NavigationGuardService.PushOnceAsync(Navigation, new MatchSharePage(match, shareMode));
         }
         catch
         {
@@ -790,7 +790,7 @@ public partial class MatchDetailsPage : ContentPage
         if (match == null)
             return;
 
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
             new CertificatePage(match));
     }
 }

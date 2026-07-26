@@ -1017,7 +1017,7 @@ internal sealed class StoreProductActionSheet : Grid
             "إلغاء");
 
         if (openAccountHub)
-            await page.Navigation.PushAsync(new PlayerProfilesPage());
+            await NavigationGuardService.PushOnceAsync(page.Navigation, new PlayerProfilesPage());
     }
 
     private void AttachToPage(View owner)

@@ -188,6 +188,6 @@ public partial class StatisticsPage : ContentPage
         object sender,
         EventArgs e)
     {
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 }

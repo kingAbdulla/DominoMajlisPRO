@@ -266,7 +266,7 @@ public partial class CertificatePrintPage : ContentPage
                 });
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await Navigation.PopAsync(false);
+                await NavigationGuardService.PopOrGoBackAsync(Navigation);
             });
         }
         catch
@@ -280,7 +280,7 @@ public partial class CertificatePrintPage : ContentPage
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await Navigation.PopAsync(false);
+                await NavigationGuardService.PopOrGoBackAsync(Navigation);
             });
         }
     }

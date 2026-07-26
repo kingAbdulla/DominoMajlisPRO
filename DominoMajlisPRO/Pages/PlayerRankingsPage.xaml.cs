@@ -1124,12 +1124,12 @@ public partial class PlayerRankingsPage : ContentPage
 
             if (previous is RankingsPage)
             {
-                await Navigation.PopAsync();
+                await NavigationGuardService.PopOrGoBackAsync(Navigation);
                 return;
             }
         }
 
-        await Navigation.PushAsync(new RankingsPage());
+        await NavigationGuardService.PushOnceAsync(Navigation, new RankingsPage());
     }
 
     void OnPlayersTabClicked(object sender, TappedEventArgs e)
@@ -1144,7 +1144,7 @@ public partial class PlayerRankingsPage : ContentPage
 
     async void OnBackClicked(object sender, TappedEventArgs e)
     {
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 
     static Color ParseColor(string value, string fallback)

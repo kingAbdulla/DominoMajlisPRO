@@ -1425,7 +1425,7 @@ public partial class GamePage : ContentPage
         if (continuePlaying)
             StartNewMatchSameTeams();
         else
-            await Navigation.PopAsync();
+            await NavigationGuardService.PopOrGoBackAsync(Navigation);
 
     }
     async Task<int> AwardWinnerCoinsAsync(string winnerTeamId)
@@ -1846,7 +1846,7 @@ public partial class GamePage : ContentPage
     {
         if (gameFinished || roundsHistory.Count == 0)
         {
-            await Navigation.PopAsync();
+            await NavigationGuardService.PopOrGoBackAsync(Navigation);
             return;
         }
 
@@ -1858,7 +1858,7 @@ public partial class GamePage : ContentPage
 
         if (!save)
         {
-            await Navigation.PopAsync();
+            await NavigationGuardService.PopOrGoBackAsync(Navigation);
             return;
         }
 
@@ -1873,7 +1873,7 @@ public partial class GamePage : ContentPage
         await GameService.SaveMatchAsync(currentMatch);
         AppEvents.RaiseDataChanged();
         AppEvents.RaiseMatchesChanged();
-        await Navigation.PopAsync();
+        await NavigationGuardService.PopOrGoBackAsync(Navigation);
     }
 
     async void OnAddTeam1Clicked(
