@@ -150,7 +150,7 @@ public sealed class IdentityPlateView : ContentView
         if (_text == null)
             return;
 
-        var preset = (Preset ?? TypographyIdentityPreset.CreateDefault()).Normalized();
+        var preset = NormalizeRenderablePreset((Preset ?? TypographyIdentityPreset.CreateDefault()).Normalized());
         var text = string.IsNullOrWhiteSpace(DisplayText) ? "اسم اللاعب" : DisplayText.Trim();
         var primary = Color.FromArgb(preset.PrimaryColor);
         var secondary = Color.FromArgb(preset.SecondaryColor);
@@ -274,7 +274,7 @@ public sealed class IdentityPlateView : ContentView
         _shadow.TranslationX = 0;
         _highlight.TranslationX = 0;
         _highlight.Opacity = ResolveHighlightOpacity(preset);
-        var motion = preset.MotionPreset;
+        var motion = CanonicalMotion(preset.MotionPreset);
         if (motion is "SoftShine" or "MetallicSweep" or "EnergyWave" or "Wind")
         {
             var offset = wave * 3.2 * intensity;
@@ -312,21 +312,22 @@ public sealed class IdentityPlateView : ContentView
             TranslationY = -Math.Abs(wave) * 0.8 * intensity;
         }
 
-        if (preset.LightingPreset is "MovingHighlight" or "MetallicSweep" or "LightningSweep")
+        var lighting = CanonicalLighting(preset.LightingPreset);
+        if (lighting is "MovingHighlight" or "MetallicSweep" or "LightningSweep")
         {
             _highlight.TranslationX += Math.Sin(time * 4.8) * 3.2 * intensity;
         }
-        else if (preset.LightingPreset is "Aurora" or "CosmicReflection")
+        else if (lighting is "Aurora" or "CosmicReflection")
         {
             _highlight.TranslationX += Math.Sin(time * 2.1) * 2.2 * intensity;
             _highlight.TranslationY += Math.Cos(time * 1.6) * 0.7 * intensity;
         }
-        else if (preset.LightingPreset is "FireReflection" or "IceReflection")
+        else if (lighting is "FireReflection" or "IceReflection")
         {
             _highlight.Opacity = Math.Clamp(_highlight.Opacity + Math.Abs(wave) * 0.18, 0, 0.82);
         }
 
-        var distortion = preset.DistortionPreset;
+        var distortion = CanonicalDistortion(preset.DistortionPreset);
         if (distortion != "None")
         {
             var distortionScale = distortion is "Shockwave" or "GravityLens" ? 0.018 : 0.009;
@@ -340,11 +341,104 @@ public sealed class IdentityPlateView : ContentView
             var particle = _particles[index];
             if (!particle.IsVisible) continue;
             var phase = (time * 0.58 + index * 0.31) % 1;
-            var particleMotion = ParticleMotionMultiplier(preset.ParticlePreset);
-            particle.Opacity = Math.Sin(phase * Math.PI) * ParticleOpacity(preset.ParticlePreset);
+            var particlePreset = CanonicalParticle(preset.ParticlePreset);
+            var particleMotion = ParticleMotionMultiplier(particlePreset);
+            particle.Opacity = Math.Sin(phase * Math.PI) * ParticleOpacity(particlePreset);
             particle.TranslationY = -phase * (8 + index * 3) * intensity * particleMotion.Y;
             particle.TranslationX = Math.Sin((time + index) * particleMotion.XFrequency) * particleMotion.X * intensity;
         }
+    }
+
+    private static TypographyIdentityPreset NormalizeRenderablePreset(TypographyIdentityPreset source)
+    {
+        source.MotionPreset = CanonicalMotion(source.MotionPreset);
+        source.LightingPreset = CanonicalLighting(source.LightingPreset);
+        source.ParticlePreset = CanonicalParticle(source.ParticlePreset);
+        source.DistortionPreset = CanonicalDistortion(source.DistortionPreset);
+        source.FrameStylePreset = CanonicalFrame(source.FrameStylePreset);
+        return source;
+    }
+
+    private static string CanonicalMotion(string? motion)
+    {
+        var token = motion?.Trim();
+        return token switch
+        {
+            "Breath" or "Breathing" => "Floating",
+            "SoftShine" or "Shine" => "SoftShine",
+            "Sweep" or "Metallic" => "MetallicSweep",
+            "Energy" or "EnergyWave" => "EnergyWave",
+            "Pulse" or "Heartbeat" => "Heartbeat",
+            "Shock" or "ShockPulse" => "ShockPulse",
+            "Wind" or "OrganicMotion" or "Floating" => token,
+            "Gravity" or "MagneticDrift" or "LiquidMotion" or "HeatDistortion" => token,
+            "None" or null or "" => "None",
+            _ => "SoftShine"
+        };
+    }
+
+    private static string CanonicalLighting(string? lighting)
+    {
+        var token = lighting?.Trim();
+        return token switch
+        {
+            "SoftRim" or "TopSheen" or "RoyalShine" => "RoyalShine",
+            "MovingHighlight" or "MetallicSweep" or "LightningSweep" => token,
+            "Aurora" or "CosmicReflection" => token,
+            "FireReflection" or "IceReflection" => token,
+            "EnergyCore" or "InnerGlow" => "InnerGlow",
+            "LowContrast" => "LowContrast",
+            null or "" => "SoftRim",
+            _ => "MovingHighlight"
+        };
+    }
+
+    private static string CanonicalParticle(string? particle)
+    {
+        var token = particle?.Trim();
+        return token switch
+        {
+            "Spark" or "TinySparks" or "Pixels" => "Stars",
+            "RoyalGlints" => "Stars",
+            "FireEmbers" => "Embers",
+            "LightningDust" => "Lightning",
+            "IceCrystals" or "CrystalShards" => "Snow",
+            "CosmicMotes" => "Galaxy",
+            "Runes" => "Magic",
+            "Dust" or "Smoke" or "Ash" or "Fire" or "Lightning" or "Magic" or "Snow" or
+                "Leaves" or "WaterDrops" or "Stars" or "Galaxy" or "Sand" or "Petals" or "Embers" => token,
+            "None" or null or "" => "None",
+            _ => "Stars"
+        };
+    }
+
+    private static string CanonicalDistortion(string? distortion)
+    {
+        var token = distortion?.Trim();
+        return token switch
+        {
+            "Glass" => "Refraction",
+            "Magnetic" => "Magnetic",
+            "GravityLens" => "GravityLens",
+            "Heat" or "Ripple" or "Refraction" or "Shockwave" or "ChromaticAberration" => token,
+            "None" or null or "" => "None",
+            _ => "Ripple"
+        };
+    }
+
+    private static string CanonicalFrame(string? frame)
+    {
+        var token = frame?.Trim();
+        return token switch
+        {
+            "SoftCapsule" => "Plate",
+            "GemInset" => "Royal",
+            "Ribbon" => "Arabian",
+            "Plate" or "Dragon" or "Electric" or "Flame" or "Crystal" or "Royal" or
+                "Arabian" or "Shadow" or "Cyber" or "Frozen" or "Galaxy" => token,
+            "None" or null or "" => "None",
+            _ => "Plate"
+        };
     }
 
     private static Label CreateLabel() => new()

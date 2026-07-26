@@ -422,7 +422,13 @@ public partial class CreateTeamPage : ContentPage
     async void OnTeamAssetsChanged(string teamId)
     {
         _ = teamId;
+        await RefreshSelectedTeamAssetsAsync();
+    }
+
+    private async Task RefreshSelectedTeamAssetsAsync()
+    {
         await LoadOwnedTeamAssetsAsync();
+        RefreshCreateTeamVisualPipeline();
     }
 
     async Task LoadOwnedTeamAssetsAsync()
@@ -766,7 +772,7 @@ public partial class CreateTeamPage : ContentPage
         }
 
         _ = LoadPlayersForSelectionAsync(PlayerSearchEntry.Text);
-        _ = LoadOwnedTeamAssetsAsync();
+        _ = RefreshSelectedTeamAssetsAsync();
         _ = UpdatePreviewAvatarsAsync();
         RefreshValidationPanel();
     }
@@ -1563,7 +1569,7 @@ public partial class CreateTeamPage : ContentPage
         RefreshValidationPanel();
         string activeSearch = ReferenceEquals(sender, Player2Entry) ? Player2Entry.Text ?? string.Empty : Player1Entry.Text ?? string.Empty;
         _ = LoadPlayersForSelectionAsync(activeSearch);
-        _ = LoadOwnedTeamAssetsAsync();
+        _ = RefreshSelectedTeamAssetsAsync();
     }
 
     async void OnDeleteCurrentTeamClicked(object sender, TappedEventArgs e)
@@ -1776,8 +1782,7 @@ public partial class CreateTeamPage : ContentPage
 
         ApplyLoadedEmblem();
         ApplyLoadedColor();
-        _ = LoadOwnedTeamAssetsAsync();
-        RefreshCreateTeamVisualPipeline();
+        _ = RefreshSelectedTeamAssetsAsync();
     }
 
     void ApplyLoadedEmblem()
@@ -1827,7 +1832,7 @@ public partial class CreateTeamPage : ContentPage
 
         SaveButtonText.Text = "إنشاء الفريق";
 
-        _ = LoadOwnedTeamAssetsAsync();
+        _ = RefreshSelectedTeamAssetsAsync();
         RefreshValidationPanel();
     }
 
