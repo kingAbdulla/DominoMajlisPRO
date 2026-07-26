@@ -1,4 +1,5 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
+using System.Text.Json;
 
 namespace DominoMajlisPRO.Services;
 
@@ -45,27 +46,43 @@ public static class BackupService
 
     static async Task CreateBackupFileAsync(string backupPath)
     {
-        if (File.Exists(backupPath))
-            File.Delete(backupPath);
+        string temporaryPath = $"{backupPath}.{Guid.NewGuid():N}.tmp";
 
-        using ZipArchive archive =
-            ZipFile.Open(backupPath, ZipArchiveMode.Create);
-
-        string appData = FileSystem.AppDataDirectory;
-
-        var jsonFiles =
-            Directory.GetFiles(appData, "*.json", SearchOption.TopDirectoryOnly);
-
-        foreach (var file in jsonFiles)
+        try
         {
-            string fileName = Path.GetFileName(file);
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
 
-            var entry = archive.CreateEntry(fileName);
+            using (ZipArchive archive =
+                   ZipFile.Open(temporaryPath, ZipArchiveMode.Create))
+            {
+                string appData = FileSystem.AppDataDirectory;
 
-            await using var entryStream = entry.Open();
-            await using var fileStream = File.OpenRead(file);
+                var jsonFiles =
+                    Directory.GetFiles(appData, "*.json", SearchOption.TopDirectoryOnly);
 
-            await fileStream.CopyToAsync(entryStream);
+                foreach (var file in jsonFiles)
+                {
+                    string fileName = Path.GetFileName(file);
+
+                    var entry = archive.CreateEntry(fileName);
+
+                    await using var entryStream = entry.Open();
+                    await using var fileStream = File.OpenRead(file);
+
+                    await fileStream.CopyToAsync(entryStream);
+                }
+            }
+
+            if (File.Exists(backupPath))
+                File.Delete(backupPath);
+
+            File.Move(temporaryPath, backupPath);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
         }
     }
 
@@ -78,40 +95,129 @@ public static class BackupService
             throw new Exception("ملف الاستعادة يجب أن يكون بصيغة ZIP.");
 
         string tempFolder =
-            Path.Combine(FileSystem.CacheDirectory, "restore_temp");
+            Path.Combine(FileSystem.CacheDirectory, $"restore_temp_{Guid.NewGuid():N}");
 
-        if (Directory.Exists(tempFolder))
-            Directory.Delete(tempFolder, true);
+        string? preRestoreBackupPath = null;
 
-        Directory.CreateDirectory(tempFolder);
-
-        string tempZipPath =
-            Path.Combine(tempFolder, backupFile.FileName);
-
-        await using (var sourceStream = await backupFile.OpenReadAsync())
+        try
         {
-            await using var targetStream = File.Create(tempZipPath);
-            await sourceStream.CopyToAsync(targetStream);
+            Directory.CreateDirectory(tempFolder);
+
+            string tempZipPath =
+                Path.Combine(tempFolder, Path.GetFileName(backupFile.FileName));
+
+            await using (var sourceStream = await backupFile.OpenReadAsync())
+            {
+                await using var targetStream = File.Create(tempZipPath);
+                await sourceStream.CopyToAsync(targetStream);
+            }
+
+            var restoredJsonFiles =
+                await ExtractValidatedJsonFilesAsync(tempZipPath, tempFolder);
+
+            if (restoredJsonFiles.Count == 0)
+                throw new Exception("النسخة الاحتياطية لا تحتوي على ملفات بيانات.");
+
+            preRestoreBackupPath = await CreateEmergencyBackupAsync();
+
+            string appData = FileSystem.AppDataDirectory;
+            Directory.CreateDirectory(appData);
+
+            foreach (var file in restoredJsonFiles)
+            {
+                string fileName = Path.GetFileName(file);
+                string targetPath = Path.Combine(appData, fileName);
+
+                await CopyJsonAtomicallyAsync(file, targetPath);
+            }
+        }
+        catch (Exception ex) when (!string.IsNullOrWhiteSpace(preRestoreBackupPath))
+        {
+            throw new Exception(
+                $"فشلت الاستعادة ولم يتم اعتماد النسخة الجديدة. تم إنشاء نسخة أمان قبل المحاولة: {Path.GetFileName(preRestoreBackupPath)}",
+                ex);
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+                Directory.Delete(tempFolder, true);
+        }
+    }
+
+    static async Task<IReadOnlyList<string>> ExtractValidatedJsonFilesAsync(
+        string zipPath,
+        string tempFolder)
+    {
+        var files = new List<string>();
+        using ZipArchive archive = ZipFile.OpenRead(zipPath);
+
+        foreach (var entry in archive.Entries)
+        {
+            string fileName = Path.GetFileName(entry.FullName);
+            if (string.IsNullOrWhiteSpace(fileName) ||
+                !string.Equals(fileName, entry.FullName, StringComparison.Ordinal) ||
+                !fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            string targetPath = Path.Combine(tempFolder, fileName);
+            await using (var source = entry.Open())
+            {
+                await ValidateJsonAsync(source, fileName);
+            }
+
+            await using (var source = entry.Open())
+            await using (var target = File.Create(targetPath))
+            {
+                await source.CopyToAsync(target);
+            }
+
+            files.Add(targetPath);
         }
 
-        ZipFile.ExtractToDirectory(tempZipPath, tempFolder, true);
+        return files;
+    }
 
-        var restoredJsonFiles =
-            Directory.GetFiles(tempFolder, "*.json", SearchOption.TopDirectoryOnly);
-
-        if (restoredJsonFiles.Length == 0)
-            throw new Exception("النسخة الاحتياطية لا تحتوي على ملفات بيانات.");
-
-        string appData = FileSystem.AppDataDirectory;
-
-        foreach (var file in restoredJsonFiles)
+    static async Task CopyJsonAtomicallyAsync(string sourcePath, string targetPath)
+    {
+        await using (var source = File.OpenRead(sourcePath))
         {
-            string fileName = Path.GetFileName(file);
-            string targetPath = Path.Combine(appData, fileName);
-
-            File.Copy(file, targetPath, true);
+            await ValidateJsonAsync(source, Path.GetFileName(sourcePath));
         }
 
-        Directory.Delete(tempFolder, true);
+        string temporaryPath = $"{targetPath}.{Guid.NewGuid():N}.tmp";
+        string backupPath = $"{targetPath}.bak";
+
+        try
+        {
+            await using (var source = File.OpenRead(sourcePath))
+            await using (var target = File.Create(temporaryPath))
+            {
+                await source.CopyToAsync(target);
+            }
+
+            if (File.Exists(targetPath))
+                File.Copy(targetPath, backupPath, overwrite: true);
+
+            File.Move(temporaryPath, targetPath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
+        }
+    }
+
+    static async Task ValidateJsonAsync(Stream stream, string fileName)
+    {
+        try
+        {
+            using var _ = await JsonDocument.ParseAsync(stream);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException($"ملف JSON غير صالح داخل النسخة الاحتياطية: {fileName}", ex);
+        }
     }
 }

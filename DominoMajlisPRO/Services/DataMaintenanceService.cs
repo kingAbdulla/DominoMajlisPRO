@@ -78,24 +78,79 @@ public static class DataMaintenanceService
                         continue;
 
                     string targetPath = Path.Combine(appData, fileName);
-                    await using Stream source = entry.Open();
-                    await using FileStream target = File.Create(targetPath);
-                    await source.CopyToAsync(target);
+                    await RestoreIdentityEntryAsync(entry, targetPath);
                     recovered = true;
                 }
 
                 if (recovered)
                     return true;
             }
-            catch (InvalidDataException)
+            catch (InvalidDataException ex)
             {
+                await SecurityLogService.AddAsync(
+                    "DataMaintenance",
+                    "Identity recovery backup skipped",
+                    ex.ToString(),
+                    "Warning");
             }
-            catch (IOException)
+            catch (JsonException ex)
             {
+                await SecurityLogService.AddAsync(
+                    "DataMaintenance",
+                    "Identity recovery backup skipped",
+                    ex.ToString(),
+                    "Warning");
+            }
+            catch (IOException ex)
+            {
+                await SecurityLogService.AddAsync(
+                    "DataMaintenance",
+                    "Identity recovery backup skipped",
+                    ex.ToString(),
+                    "Warning");
             }
         }
 
         return false;
+    }
+
+    static async Task RestoreIdentityEntryAsync(
+        ZipArchiveEntry entry,
+        string targetPath)
+    {
+        try
+        {
+            await using var source = entry.Open();
+            using var _ = await JsonDocument.ParseAsync(source);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException(
+                $"ملف هوية غير صالح داخل نسخة التصفير: {entry.FullName}",
+                ex);
+        }
+
+        string temporaryPath = $"{targetPath}.{Guid.NewGuid():N}.tmp";
+        string backupPath = $"{targetPath}.bak";
+
+        try
+        {
+            await using (var source = entry.Open())
+            await using (var target = File.Create(temporaryPath))
+            {
+                await source.CopyToAsync(target);
+            }
+
+            if (File.Exists(targetPath))
+                File.Copy(targetPath, backupPath, overwrite: true);
+
+            File.Move(temporaryPath, targetPath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
+        }
     }
 
     static async Task<bool> HasActiveRegisteredIdentityAsync(ZipArchive archive)
@@ -210,7 +265,7 @@ public static class DataMaintenanceService
     {
         if (!File.Exists(path))
         {
-            await File.WriteAllTextAsync(path, "[]");
+            await WriteTextAtomicallyAsync(path, "[]");
             return 1;
         }
 
@@ -218,7 +273,7 @@ public static class DataMaintenanceService
 
         if (string.IsNullOrWhiteSpace(json))
         {
-            await File.WriteAllTextAsync(path, "[]");
+            await WriteTextAtomicallyAsync(path, "[]");
             return 1;
         }
 
@@ -229,8 +284,33 @@ public static class DataMaintenanceService
         }
         catch
         {
-            await File.WriteAllTextAsync(path, "[]");
+            await WriteTextAtomicallyAsync(path, "[]");
             return 1;
+        }
+    }
+
+    static async Task WriteTextAtomicallyAsync(string path, string content)
+    {
+        Directory.CreateDirectory(
+            Path.GetDirectoryName(path)
+            ?? FileSystem.AppDataDirectory);
+
+        string temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
+        string backupPath = $"{path}.bak";
+
+        try
+        {
+            await File.WriteAllTextAsync(temporaryPath, content);
+
+            if (File.Exists(path))
+                File.Copy(path, backupPath, overwrite: true);
+
+            File.Move(temporaryPath, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
         }
     }
 }

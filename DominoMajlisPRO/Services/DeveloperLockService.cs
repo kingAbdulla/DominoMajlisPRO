@@ -43,11 +43,38 @@ public static class DeveloperLockService
     {
         await InitializeAsync();
 
-        string json =
-            await File.ReadAllTextAsync(FilePath);
+        string json;
+        try
+        {
+            json = await File.ReadAllTextAsync(FilePath);
+        }
+        catch (JsonException)
+        {
+            json = await LoadBackupJsonOrDefaultAsync();
+        }
+        catch (IOException)
+        {
+            json = await LoadBackupJsonOrDefaultAsync();
+        }
 
-        return JsonSerializer.Deserialize<DeveloperLockModel>(json)
-               ?? new DeveloperLockModel();
+        try
+        {
+            return JsonSerializer.Deserialize<DeveloperLockModel>(json)
+                   ?? new DeveloperLockModel();
+        }
+        catch (JsonException)
+        {
+            var backupJson = await LoadBackupJsonOrDefaultAsync();
+            try
+            {
+                return JsonSerializer.Deserialize<DeveloperLockModel>(backupJson)
+                       ?? new DeveloperLockModel();
+            }
+            catch (JsonException)
+            {
+                return new DeveloperLockModel();
+            }
+        }
     }
 
     public static async Task SaveAsync(DeveloperLockModel model)
@@ -60,7 +87,52 @@ public static class DeveloperLockService
                     WriteIndented = true
                 });
 
-        await File.WriteAllTextAsync(FilePath, json);
+        await WriteJsonAtomicallyAsync(FilePath, json);
+    }
+
+    static async Task<string> LoadBackupJsonOrDefaultAsync()
+    {
+        var backupPath = $"{FilePath}.bak";
+        try
+        {
+            if (File.Exists(backupPath))
+                return await File.ReadAllTextAsync(backupPath);
+        }
+        catch (IOException ex)
+        {
+            System.Diagnostics.Debug.WriteLine(ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            System.Diagnostics.Debug.WriteLine(ex);
+        }
+
+        return "{}";
+    }
+
+    static async Task WriteJsonAtomicallyAsync(string path, string json)
+    {
+        Directory.CreateDirectory(
+            Path.GetDirectoryName(path)
+            ?? FileSystem.AppDataDirectory);
+
+        string temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
+        string backupPath = $"{path}.bak";
+
+        try
+        {
+            await File.WriteAllTextAsync(temporaryPath, json);
+
+            if (File.Exists(path))
+                File.Copy(path, backupPath, overwrite: true);
+
+            File.Move(temporaryPath, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
+        }
     }
 
     public static async Task<bool> HasDeveloperAccountAsync()
