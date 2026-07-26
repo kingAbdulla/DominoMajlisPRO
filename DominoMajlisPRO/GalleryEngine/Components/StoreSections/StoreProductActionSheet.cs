@@ -2,6 +2,7 @@ using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Components;
 using DominoMajlisPRO.GalleryEngine.Models;
 using DominoMajlisPRO.GalleryEngine.Services;
+using DominoMajlisPRO.Models;
 using DominoMajlisPRO.Pages;
 using DominoMajlisPRO.Services;
 using Microsoft.Maui.Controls.Shapes;
@@ -69,6 +70,7 @@ internal sealed class StoreProductActionSheet : Grid
     private string? _inventoryCurrencyMetadata;
     private DateTime? _inventoryAvailableFrom;
     private DateTime? _inventoryAvailableUntil;
+    private string? _inventorySelectedTeamId;
     private InventoryProductContext? _inventoryContext;
     private TeamAssetPayloadModel? _teamAssetPayload;
     private CatalogAssetDisplay? _effectAsset;
@@ -310,6 +312,7 @@ internal sealed class StoreProductActionSheet : Grid
         _inventoryCurrencyMetadata = inventoryCurrencyMetadata;
         _inventoryAvailableFrom = inventoryAvailableFrom;
         _inventoryAvailableUntil = inventoryAvailableUntil;
+        _inventorySelectedTeamId = null;
         _inventoryContext = CreateInventoryContext(price);
         _teamAssetPayload = TeamAssetPayloadCatalog.Resolve(inventoryAssetId);
         _effectAsset = null;
@@ -851,11 +854,15 @@ internal sealed class StoreProductActionSheet : Grid
             _inventorySeasonId,
             _inventoryCollectionId,
             _inventoryAvailableFrom,
-            _inventoryAvailableUntil);
+            _inventoryAvailableUntil,
+            _inventorySelectedTeamId);
     }
 
     private async Task ExecuteInventoryRouterActionAsync()
     {
+        if (!await EnsureTeamContextAsync())
+            return;
+
         var result =
             await InventoryRouter.AcquireOrEquipAsync(_inventoryContext!);
         if (!result.State.IsAvailable && !result.State.IsOwned)
@@ -901,6 +908,107 @@ internal sealed class StoreProductActionSheet : Grid
                 ? "✅ مجهز"
                 : "✅ مملوك";
         }
+    }
+
+    private async Task<bool> EnsureTeamContextAsync()
+    {
+        if (_inventoryContext == null)
+            return true;
+
+        var route = InventoryRouter.Resolve(_inventoryContext);
+        if (!RequiresExplicitTeam(route))
+            return true;
+
+        var owner = await ApplicationUserService.GetCurrentStoreOwnerAsync();
+        if (owner.IsGhost ||
+            !owner.HasPlayerProfile ||
+            string.IsNullOrWhiteSpace(owner.PlayerId))
+        {
+            return true;
+        }
+
+        var state = await InventoryRouter.GetStateAsync(_inventoryContext);
+        if (!state.RequiresTeam && !string.IsNullOrWhiteSpace(state.TeamId))
+        {
+            _inventorySelectedTeamId = state.TeamId;
+            _inventoryContext = _inventoryContext with { TeamId = state.TeamId };
+            return true;
+        }
+
+        var teams = await TeamProfileService.GetTeamsByPlayerIdAsync(owner.PlayerId);
+        if (teams.Count == 0)
+            return true;
+
+        if (teams.Count == 1)
+        {
+            _inventorySelectedTeamId = teams[0].TeamId;
+            _inventoryContext = _inventoryContext with { TeamId = teams[0].TeamId };
+            return true;
+        }
+
+        var page =
+            Shell.Current?.CurrentPage ??
+            Application.Current?.Windows.FirstOrDefault()?.Page;
+        if (page == null)
+            return false;
+
+        var optionMap = new Dictionary<string, TeamProfileModel>(StringComparer.Ordinal);
+        foreach (var team in teams)
+        {
+            var title = BuildTeamOptionTitle(team);
+            var uniqueTitle = title;
+            var index = 2;
+            while (optionMap.ContainsKey(uniqueTitle))
+                uniqueTitle = $"{title} ({index++})";
+            optionMap[uniqueTitle] = team;
+        }
+
+        var selectedTitle = await page.DisplayActionSheet(
+            "اختر الفريق لهذا العنصر",
+            "إلغاء",
+            null,
+            optionMap.Keys.ToArray());
+
+        if (string.IsNullOrWhiteSpace(selectedTitle) ||
+            !optionMap.TryGetValue(selectedTitle, out var selectedTeam))
+        {
+            return false;
+        }
+
+        var verifiedTeam = await TeamProfileService.GetTeamByIdAsync(selectedTeam.TeamId);
+        if (verifiedTeam == null ||
+            !TeamEffectEngine.IsManagedBy(verifiedTeam, owner.PlayerId))
+        {
+            await ShowMessageAsync("تعذر التحقق من صلاحية هذا الفريق.");
+            return false;
+        }
+
+        _inventorySelectedTeamId = verifiedTeam.TeamId;
+        _inventoryContext = _inventoryContext with { TeamId = verifiedTeam.TeamId };
+        await RefreshInventoryStateAsync(_animationVersion, _inventoryPlayerId, _inventoryAssetId);
+        return true;
+    }
+
+    private static bool RequiresExplicitTeam(InventoryRoute route) =>
+        route.OwnerScope == InventoryOwnerScope.Team ||
+        route.EquipTarget is InventoryEquipTarget.TeamEffect or
+            InventoryEquipTarget.TeamNameEffect or
+            InventoryEquipTarget.TeamNameFrame;
+
+    private static string BuildTeamOptionTitle(TeamProfileModel team)
+    {
+        var name = string.IsNullOrWhiteSpace(team.TeamName)
+            ? team.TeamId
+            : team.TeamName.Trim();
+        var players = string.Join(
+            " + ",
+            new[] { team.Player1, team.Player2 }
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value.Trim()));
+
+        return string.IsNullOrWhiteSpace(players)
+            ? name
+            : $"{name} · {players}";
     }
 
     private bool HasTeamAssetContext() =>

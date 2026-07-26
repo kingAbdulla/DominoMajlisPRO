@@ -18,6 +18,14 @@ public static class TeamEligibleAssetService
         var result =
             CreateDefaults(teamId).ToList();
 
+        if (!string.IsNullOrWhiteSpace(teamId))
+        {
+            var teamInventory =
+                await TeamAssetInventoryService.GetInventoryForTeamAsync(teamId.Trim());
+
+            result.AddRange(teamInventory.Where(item => item.IsOwned));
+        }
+
         var memberAssets =
             await TeamMemberOwnedVisualResolver.ResolveAsync(
                 teamId,

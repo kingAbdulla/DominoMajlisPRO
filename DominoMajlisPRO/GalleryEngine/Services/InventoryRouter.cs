@@ -41,7 +41,8 @@ public sealed record InventoryProductContext(
     string? SeasonId = null,
     string? CollectionId = null,
     DateTime? AvailableFrom = null,
-    DateTime? AvailableUntil = null);
+    DateTime? AvailableUntil = null,
+    string? TeamId = null);
 
 public sealed record InventoryRoute(
     InventoryOwnerScope OwnerScope,
@@ -169,7 +170,7 @@ public static class InventoryRouter
 
         if (route.OwnerScope == InventoryOwnerScope.Team)
         {
-            var teamId = await ResolveActiveTeamIdAsync(owner.PlayerId);
+            var teamId = await ResolveActiveTeamIdAsync(owner.PlayerId, product.TeamId);
             if (string.IsNullOrWhiteSpace(teamId))
                 return new InventoryState(
                     route, free, false, false,
@@ -199,7 +200,7 @@ public static class InventoryRouter
                 SameId(item.AssetId, product.AssetId));
             if (owned != null && IsTeamScopedPlayerTarget(route.EquipTarget))
             {
-                var teamId = await ResolveActiveTeamIdAsync(owner.PlayerId);
+                var teamId = await ResolveActiveTeamIdAsync(owner.PlayerId, product.TeamId);
                 if (string.IsNullOrWhiteSpace(teamId))
                 {
                     return new InventoryState(
@@ -308,7 +309,8 @@ public static class InventoryRouter
                 changed = await EquipPlayerAssetAsync(
                     before.PlayerId!,
                     product.AssetId,
-                    before.Route);
+                    before.Route,
+                    before.TeamId);
             }
 
             if (!changed)
@@ -326,7 +328,8 @@ public static class InventoryRouter
     private static async Task<bool> EquipPlayerAssetAsync(
         string playerId,
         string assetId,
-        InventoryRoute route)
+        InventoryRoute route,
+        string? explicitTeamId)
     {
         if (route.EquipTarget is InventoryEquipTarget.Avatar or
             InventoryEquipTarget.ProfileBackground or
@@ -340,7 +343,7 @@ public static class InventoryRouter
 
         if (route.EquipTarget == InventoryEquipTarget.TeamEffect)
         {
-            var teamId = await ResolveActiveTeamIdAsync(playerId);
+            var teamId = await ResolveActiveTeamIdAsync(playerId, explicitTeamId);
             if (string.IsNullOrWhiteSpace(teamId))
                 return false;
 
@@ -357,7 +360,7 @@ public static class InventoryRouter
 
         if (route.EquipTarget is InventoryEquipTarget.TeamNameEffect or InventoryEquipTarget.TeamNameFrame)
         {
-            var teamId = await ResolveActiveTeamIdAsync(playerId);
+            var teamId = await ResolveActiveTeamIdAsync(playerId, explicitTeamId);
             if (string.IsNullOrWhiteSpace(teamId))
                 return false;
 
@@ -423,8 +426,23 @@ public static class InventoryRouter
         InventoryEquipTarget target) =>
         new(InventoryOwnerScope.Team, typeId, target, true);
 
-    private static async Task<string?> ResolveActiveTeamIdAsync(string playerId)
+    private static async Task<string?> ResolveActiveTeamIdAsync(
+        string playerId,
+        string? explicitTeamId = null)
     {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return null;
+
+        if (!string.IsNullOrWhiteSpace(explicitTeamId))
+        {
+            var selected = await TeamProfileService.GetTeamByIdAsync(explicitTeamId.Trim());
+            return selected != null &&
+                   (SameId(selected.Player1Id, playerId) ||
+                    SameId(selected.Player2Id, playerId))
+                ? selected.TeamId.Trim()
+                : null;
+        }
+
         var player = await PlayerProfileService.GetPlayerByIdAsync(playerId);
         var currentTeamIds = (player?.CurrentTeamIds ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries |

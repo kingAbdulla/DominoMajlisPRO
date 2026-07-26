@@ -19,6 +19,8 @@ public static class StoreCheckoutService
         var route = InventoryRouter.Resolve(product);
         if (route.OwnerScope == InventoryOwnerScope.Unsupported)
             return Failure("نوع هذا المنتج غير مدعوم حالياً.");
+        if (!await ValidateExplicitTeamContextAsync(product, owner.PlayerId, route))
+            return Failure("يجب اختيار فريق صالح قبل تجهيز هذا العنصر.");
         if (product.Price is null or <= 0)
             return Failure("سعر المنتج غير صالح.");
         if (!TryCurrency(product.CurrencyMetadata, out var currency))
@@ -46,17 +48,80 @@ public static class StoreCheckoutService
                 collectionId: product.CollectionId);
 
             var equipped = false;
-            if (added && route.OwnerScope == InventoryOwnerScope.Player && route.Equipable)
+            if (added && route.OwnerScope == InventoryOwnerScope.Team)
             {
-                equipped = route.EquipTarget is
-                    InventoryEquipTarget.Avatar or
-                    InventoryEquipTarget.ProfileBackground or
-                    InventoryEquipTarget.Frame or
-                    InventoryEquipTarget.Effect
-                        ? await StoreEquipService.EquipAsync(owner.PlayerId, product.AssetId)
-                        : await PlayerInventoryService.EquipItemWithoutNotificationAsync(
-                            owner.PlayerId,
-                            product.AssetId);
+                if (string.IsNullOrWhiteSpace(product.TeamId))
+                    return Failure("يجب اختيار الفريق قبل تجهيز هذا العنصر.");
+
+                await TeamAssetInventoryService.AddOwnedAssetAsync(
+                    product.TeamId,
+                    product.AssetId,
+                    route.StoreTypeId,
+                    "StorePurchase",
+                    seasonId: product.SeasonId,
+                    collectionId: product.CollectionId);
+
+                equipped = await TeamAssetInventoryService.EquipAsync(
+                    product.TeamId,
+                    product.AssetId,
+                    route.StoreTypeId);
+
+                if (equipped)
+                    AppEvents.RaiseTeamIdentityChanged(product.TeamId);
+            }
+            else if (added && route.OwnerScope == InventoryOwnerScope.Player && route.Equipable)
+            {
+                if (route.EquipTarget == InventoryEquipTarget.TeamEffect)
+                {
+                    if (string.IsNullOrWhiteSpace(product.TeamId))
+                        return Failure("يجب اختيار الفريق قبل تجهيز هذا العنصر.");
+
+                    await PlayerInventoryService.EquipItemWithoutNotificationAsync(
+                        owner.PlayerId,
+                        product.AssetId);
+
+                    equipped = await TeamEffectEngine.EquipAsync(
+                        owner.PlayerId,
+                        product.TeamId,
+                        product.AssetId);
+                }
+                else if (route.EquipTarget is InventoryEquipTarget.TeamNameEffect or InventoryEquipTarget.TeamNameFrame)
+                {
+                    if (string.IsNullOrWhiteSpace(product.TeamId))
+                        return Failure("يجب اختيار الفريق قبل تجهيز هذا العنصر.");
+
+                    await PlayerInventoryService.EquipItemWithoutNotificationAsync(
+                        owner.PlayerId,
+                        product.AssetId);
+
+                    await TeamAssetInventoryService.AddOwnedAssetAsync(
+                        product.TeamId,
+                        product.AssetId,
+                        route.StoreTypeId,
+                        $"Player:{owner.PlayerId}",
+                        seasonId: product.SeasonId,
+                        collectionId: product.CollectionId);
+
+                    equipped = await TeamAssetInventoryService.EquipAsync(
+                        product.TeamId,
+                        product.AssetId,
+                        route.StoreTypeId);
+
+                    if (equipped)
+                        AppEvents.RaiseTeamIdentityChanged(product.TeamId);
+                }
+                else
+                {
+                    equipped = route.EquipTarget is
+                        InventoryEquipTarget.Avatar or
+                        InventoryEquipTarget.ProfileBackground or
+                        InventoryEquipTarget.Frame or
+                        InventoryEquipTarget.Effect
+                            ? await StoreEquipService.EquipAsync(owner.PlayerId, product.AssetId)
+                            : await PlayerInventoryService.EquipItemWithoutNotificationAsync(
+                                owner.PlayerId,
+                                product.AssetId);
+                }
             }
 
             if (!added)
@@ -93,4 +158,25 @@ public static class StoreCheckoutService
 
     private static StoreCheckoutResult Failure(string message) =>
         new(false, message, false, false);
+
+    private static async Task<bool> ValidateExplicitTeamContextAsync(
+        InventoryProductContext product,
+        string playerId,
+        InventoryRoute route)
+    {
+        if (!RequiresTeamContext(route))
+            return true;
+
+        if (string.IsNullOrWhiteSpace(product.TeamId))
+            return false;
+
+        var team = await TeamProfileService.GetTeamByIdAsync(product.TeamId.Trim());
+        return team != null && TeamEffectEngine.IsManagedBy(team, playerId);
+    }
+
+    private static bool RequiresTeamContext(InventoryRoute route) =>
+        route.OwnerScope == InventoryOwnerScope.Team ||
+        route.EquipTarget is InventoryEquipTarget.TeamEffect or
+            InventoryEquipTarget.TeamNameEffect or
+            InventoryEquipTarget.TeamNameFrame;
 }

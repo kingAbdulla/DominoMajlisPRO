@@ -111,4 +111,24 @@ public static class TeamProfileService
             ||
             x.Player2Id == playerId);
     }
+
+    public static async Task<List<TeamProfileModel>> GetTeamsByPlayerIdAsync(
+    string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return new();
+
+        var normalizedPlayerId = playerId.Trim();
+        var teams =
+            await LoadTeamsAsync();
+
+        return teams
+            .Where(x =>
+                string.Equals(x.Player1Id, normalizedPlayerId, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.Player2Id, normalizedPlayerId, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(x => x.TeamId, StringComparer.OrdinalIgnoreCase)
+            .Select(x => x.First())
+            .OrderBy(x => x.TeamName)
+            .ToList();
+    }
 }
