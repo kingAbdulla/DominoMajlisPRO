@@ -15,6 +15,8 @@ public static class NavigationGuardService
         await Gate.WaitAsync();
         try
         {
+            AutomationIdService.Attach(page);
+
             var current = navigation.NavigationStack.LastOrDefault();
             if (current?.GetType() == page.GetType())
                 return;
@@ -61,6 +63,8 @@ public static class NavigationGuardService
         await Gate.WaitAsync();
         try
         {
+            AutomationIdService.Attach(page);
+
             if (navigation.ModalStack.Any(modal => modal.GetType() == page.GetType()))
                 return;
 
@@ -119,5 +123,9 @@ public static class NavigationGuardService
         window.Page = CreateNavigationRoot(page);
     }
 
-    public static NavigationPage CreateNavigationRoot(Page page) => new(page);
+    public static NavigationPage CreateNavigationRoot(Page page)
+    {
+        AutomationIdService.Attach(page);
+        return new NavigationPage(page);
+    }
 }
