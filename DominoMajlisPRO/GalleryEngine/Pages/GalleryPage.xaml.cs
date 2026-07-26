@@ -138,7 +138,7 @@ public partial class GalleryPage : ContentPage
         switch (e.Action)
         {
             case StoreQuickAction.WheelOfFortune:
-                await Navigation.PushAsync(new WheelOfFortunePage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new WheelOfFortunePage());
                 break;
 
             case StoreQuickAction.DailyOffers:
@@ -151,7 +151,7 @@ public partial class GalleryPage : ContentPage
                 break;
 
             case StoreQuickAction.SeasonPass:
-                await Navigation.PushAsync(new SeasonPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new SeasonPage());
                 break;
         }
     }
@@ -185,11 +185,11 @@ public partial class GalleryPage : ContentPage
     {
         try
         {
-            await Navigation.PushAsync(new PlayerProfilesPage());
+            await NavigationGuardService.PushOnceAsync(Navigation, new PlayerProfilesPage());
         }
         catch (InvalidOperationException)
         {
-            await Shell.Current.Navigation.PushAsync(new PlayerProfilesPage());
+            await NavigationGuardService.PushOnceAsync(Shell.Current.Navigation, new PlayerProfilesPage());
         }
     }
 
@@ -233,13 +233,13 @@ public partial class GalleryPage : ContentPage
         try
         {
             if (Navigation.NavigationStack.Count > 1)
-                await Navigation.PopAsync();
+                await NavigationGuardService.PopOrGoBackAsync(Navigation);
             else
-                await Shell.Current.GoToAsync("//MainPage");
+                await NavigationGuardService.ResetRootAsync(new MainPage());
         }
         catch (InvalidOperationException)
         {
-            await Shell.Current.GoToAsync("//MainPage");
+            await NavigationGuardService.ResetRootAsync(new MainPage());
         }
     }
 
@@ -535,7 +535,7 @@ public partial class GalleryPage : ContentPage
 
     private async void OnSeasonSwitchRequested(object? sender, EventArgs e)
     {
-        await Navigation.PushAsync(new CurrentSeasonEditorPage());
+        await NavigationGuardService.PushOnceAsync(Navigation, new CurrentSeasonEditorPage());
     }
 
     private async void OnCoinsRequested(object? sender, EventArgs e)

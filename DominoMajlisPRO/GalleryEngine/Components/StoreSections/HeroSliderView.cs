@@ -168,11 +168,11 @@ public class HeroSliderView : ContentView
 
         if (navigation != null)
         {
-            await navigation.PushAsync(page);
+            await NavigationGuardService.PushOnceAsync(navigation, page);
             return;
         }
 
-        await Shell.Current.Navigation.PushAsync(page);
+        await NavigationGuardService.PushOnceAsync(Shell.Current.Navigation, page);
     }
 
     private async Task RefreshDeveloperAdminButtonVisibilityAsync()
@@ -362,7 +362,9 @@ public class HeroSliderView : ContentView
         openSeason.Tapped += async (_, _) =>
         {
             var navigation = Application.Current?.Windows.FirstOrDefault()?.Page?.Navigation ?? Shell.Current.Navigation;
-            await navigation.PushAsync(new DominoMajlisPRO.GalleryEngine.Pages.SeasonPage());
+            await NavigationGuardService.PushOnceAsync(
+                navigation,
+                new DominoMajlisPRO.GalleryEngine.Pages.SeasonPage());
         };
         button.GestureRecognizers.Add(openSeason);
 

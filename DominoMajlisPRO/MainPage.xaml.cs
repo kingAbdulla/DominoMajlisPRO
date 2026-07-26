@@ -461,7 +461,7 @@ public partial class MainPage : ContentPage
         object sender,
         EventArgs e)
     {
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
             new HistoryPage());
     }
 
@@ -473,7 +473,7 @@ public partial class MainPage : ContentPage
         object sender,
         EventArgs e)
     {
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
             new HallOfFamePage());
     }
 
@@ -485,7 +485,7 @@ public partial class MainPage : ContentPage
         object sender,
         EventArgs e)
     {
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
             new RankingsPage());
     }
 
@@ -587,7 +587,7 @@ public partial class MainPage : ContentPage
 
 
 
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
     new GamePage(
         selectedTeam1.TeamName,
         selectedTeam2.TeamName,
@@ -617,7 +617,7 @@ public partial class MainPage : ContentPage
     {
         PrivacyProfileOverlay.IsVisible = false;
 
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
             new PlayerProfilesPage());
     }
     // =========================
@@ -630,7 +630,7 @@ public partial class MainPage : ContentPage
         object sender,
         EventArgs e)
     {
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
             new StatisticsPage());
     }
     //Select team
@@ -640,7 +640,7 @@ public partial class MainPage : ContentPage
     EventArgs e)
 
     {
-        await Navigation.PushAsync(
+        await NavigationGuardService.PushOnceAsync(Navigation,
             new CreateTeamPage());
     }
 

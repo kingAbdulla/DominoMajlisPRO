@@ -154,62 +154,62 @@ public partial class DeveloperStoreManagerPage : ContentPage
         switch (section.Id)
         {
             case "inventory-audit":
-                await Navigation.PushAsync(new InventoryAuditPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new InventoryAuditPage());
                 return;
             case "current-season":
-                await Navigation.PushAsync(new CurrentSeasonEditorPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new CurrentSeasonEditorPage());
                 return;
             case "new-arrivals":
-                await Navigation.PushAsync(new NewArrivalsEditorPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new NewArrivalsEditorPage());
                 return;
             case "limited-offers":
-                await Navigation.PushAsync(new LimitedOffersEditorPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new LimitedOffersEditorPage());
                 return;
             case "categories":
-                await Navigation.PushAsync(new StoreCategoriesEditorPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new StoreCategoriesEditorPage());
                 return;
             case "avatars":
-                await Navigation.PushAsync(new AvatarsEditorPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new AvatarsEditorPage());
                 return;
             case "backgrounds":
-                await Navigation.PushAsync(new BackgroundsEditorPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new BackgroundsEditorPage());
                 return;
             case "emblems":
-                await Navigation.PushAsync(new EmblemsManagerPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new EmblemsManagerPage());
                 return;
             case "emblem-backgrounds":
-                await Navigation.PushAsync(new EmblemBackgroundsManagerPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new EmblemBackgroundsManagerPage());
                 return;
             case "team-colors":
-                await Navigation.PushAsync(new TeamColorsManagerPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new TeamColorsManagerPage());
                 return;
             case "effects":
-                await Navigation.PushAsync(new EffectsManagerPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new EffectsManagerPage());
                 return;
             case "typography":
             case "name-effects":
-                await Navigation.PushAsync(new TypographyManagerPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new TypographyManagerPage());
                 return;
             case "frames":
-                await Navigation.PushAsync(new FramesManagerPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new FramesManagerPage());
                 return;
             case "titles":
-                await Navigation.PushAsync(new TitlesManagerPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new TitlesManagerPage());
                 return;
             case "bundles":
-                await Navigation.PushAsync(new BundlesManagerPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new BundlesManagerPage());
                 return;
             case "currency-pricing":
-                await Navigation.PushAsync(new CurrencyPricingManagerPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new CurrencyPricingManagerPage());
                 return;
             case "product-cards":
-                await Navigation.PushAsync(new NewArrivalsEditorPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new NewArrivalsEditorPage());
                 return;
             case "category-cards":
-                await Navigation.PushAsync(new StoreCategoriesEditorPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new StoreCategoriesEditorPage());
                 return;
             case "store-settings":
-                await Navigation.PushAsync(new StoreSettingsManagerPage());
+                await NavigationGuardService.PushOnceAsync(Navigation, new StoreSettingsManagerPage());
                 return;
         }
 
