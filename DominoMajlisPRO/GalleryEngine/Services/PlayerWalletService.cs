@@ -43,6 +43,30 @@ public static class PlayerWalletService
         finally { Gate.Release(); }
     }
 
+    public static async Task<PlayerWalletModel> SetAuthoritativeAsync(
+        string playerId,
+        int coins,
+        int gems,
+        string sourceVersion)
+    {
+        ValidatePlayerId(playerId);
+        if (coins < 0 || gems < 0) throw new ArgumentOutOfRangeException(nameof(coins), "Wallet balances cannot be negative.");
+        if (string.IsNullOrWhiteSpace(sourceVersion)) throw new ArgumentException("Source version is required.", nameof(sourceVersion));
+
+        await Gate.WaitAsync();
+        try
+        {
+            var wallets = await LoadAsync();
+            var wallet = GetOrCreate(wallets, playerId);
+            wallet.Coins = coins;
+            wallet.Gems = gems;
+            wallet.UpdatedAt = DateTime.UtcNow;
+            await SaveAsync(wallets);
+            return wallet;
+        }
+        finally { Gate.Release(); }
+    }
+
     internal static async Task<(bool Success, PlayerWalletModel Wallet)> TryDebitAsync(string playerId, StorePurchaseCurrencyType currency, int amount)
     {
         ValidatePlayerId(playerId);

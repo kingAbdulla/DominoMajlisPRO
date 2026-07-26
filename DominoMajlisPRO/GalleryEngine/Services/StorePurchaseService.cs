@@ -1,6 +1,6 @@
+using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Admin.Models;
 using DominoMajlisPRO.GalleryEngine.Admin.Services;
-using DominoMajlisPRO.GalleryEngine.Admin.Core;
 using DominoMajlisPRO.GalleryEngine.Models;
 
 namespace DominoMajlisPRO.GalleryEngine.Services;
@@ -25,7 +25,7 @@ public static class StorePurchaseService
 
             var debit = await PlayerWalletService.TryDebitAsync(playerId, item.CurrencyType, item.Price);
             if (!debit.Success)
-                return Failure("الرصيد غير كافٍ.", playerId, itemId, itemType, item.CurrencyType, item.Price, debit.Wallet);
+                return Failure("الرصيد غير كاف.", playerId, itemId, itemType, item.CurrencyType, item.Price, debit.Wallet);
 
             var purchase = new StorePurchaseRecord
             {
@@ -37,7 +37,7 @@ public static class StorePurchaseService
                 PricePaid = item.Price,
                 SourceSection = item.SourceSection
             };
-            // Resolve ApplicationUserId before acquiring the inventory gate.
+
             var appUserId = (await DominoMajlisPRO.Services.ApplicationUserService.EnsureCurrentSessionAsync()).ApplicationUserId ?? string.Empty;
             var owned = new PlayerOwnedStoreItem
             {
@@ -52,13 +52,16 @@ public static class StorePurchaseService
             };
 
             var added = await PlayerInventoryService.AddOwnedAsync(owned);
-
-            if (!added) return Failure("العنصر مملوك بالفعل.", playerId, itemId, itemType, item.CurrencyType, item.Price, debit.Wallet);
+            if (!added)
+            {
+                await RefundDebitAsync(playerId, item.CurrencyType, item.Price);
+                var restoredWallet = await PlayerWalletService.GetOrCreateAsync(playerId);
+                return Failure("تعذر تسجيل العنصر في المقتنيات، وتمت إعادة الرصيد.", playerId, itemId, itemType, item.CurrencyType, item.Price, restoredWallet);
+            }
 
             var purchases = await LoadAsync();
             purchases.Add(purchase);
             await SaveAsync(purchases);
-            // Raise events only after inventory and purchases persisted.
             DominoMajlisPRO.Services.AppEvents.RaiseStoreEconomyChanged(playerId);
             return new StorePurchaseResult
             {
@@ -73,7 +76,10 @@ public static class StorePurchaseService
                 NewGemsBalance = debit.Wallet.Gems
             };
         }
-        finally { PurchaseGate.Release(); }
+        finally
+        {
+            PurchaseGate.Release();
+        }
     }
 
     public static async Task<IReadOnlyList<StorePurchaseRecord>> LoadPlayerPurchasesAsync(string playerId)
@@ -96,6 +102,15 @@ public static class StorePurchaseService
         if (background == null) return null;
         var isFree = background.IsFree || background.CurrencyType == BackgroundCurrencyType.Free;
         return new(background.Id, DisplayTitle(background.NameAr, background.NameEn), isFree ? StorePurchaseCurrencyType.Free : background.CurrencyType == BackgroundCurrencyType.Coins ? StorePurchaseCurrencyType.Coins : StorePurchaseCurrencyType.Gems, isFree ? 0 : background.Price, "Backgrounds");
+    }
+
+    private static async Task RefundDebitAsync(string playerId, StorePurchaseCurrencyType currency, int amount)
+    {
+        if (amount <= 0) return;
+        if (currency == StorePurchaseCurrencyType.Coins)
+            await PlayerWalletService.CreditAsync(playerId, coins: amount);
+        else if (currency == StorePurchaseCurrencyType.Gems)
+            await PlayerWalletService.CreditAsync(playerId, gems: amount);
     }
 
     private static string DisplayTitle(string arabic, string english) => !string.IsNullOrWhiteSpace(arabic) ? arabic : english;

@@ -21,9 +21,6 @@ public static class RechargeWalletService
             var snapshot = snapshots.FirstOrDefault(x => Same(x.PlayerId, playerId));
             var wallet = await PlayerWalletService.GetOrCreateAsync(playerId);
 
-            if (snapshot == null && wallet.Coins == 0 && wallet.Gems == 0)
-                wallet = await PlayerWalletService.CreditAsync(playerId, coins: 125450, gems: 3250);
-
             snapshot = ToRechargeWallet(wallet.PlayerId, wallet.Coins, wallet.Gems, wallet.UpdatedAt);
             snapshots.RemoveAll(x => Same(x.PlayerId, playerId));
             snapshots.Add(snapshot);
@@ -36,13 +33,38 @@ public static class RechargeWalletService
         }
     }
 
-    public static Task<RechargeWalletModel> AddCoinsAsync(string playerId, int amount) =>
-        CreditAsync(playerId, amount, 0);
+    public static Task<RechargeWalletModel> AddPromotionalCoinsAsync(string playerId, int amount, string reason) =>
+        CreditAsync(playerId, amount, 0, reason);
 
-    public static Task<RechargeWalletModel> AddGemsAsync(string playerId, int amount) =>
-        CreditAsync(playerId, 0, amount);
+    public static Task<RechargeWalletModel> AddPromotionalGemsAsync(string playerId, int amount, string reason) =>
+        CreditAsync(playerId, 0, amount, reason);
 
-    private static async Task<RechargeWalletModel> CreditAsync(string playerId, int coins, int gems)
+    public static async Task<RechargeWalletModel> SyncAuthoritativeAsync(
+        string playerId,
+        int coins,
+        int gems,
+        string sourceVersion)
+    {
+        Validate(playerId);
+        await Gate.WaitAsync();
+        try
+        {
+            var wallet = await PlayerWalletService.SetAuthoritativeAsync(playerId, coins, gems, sourceVersion);
+            var snapshots = await StoreCmsJsonRepository.LoadListAsync<RechargeWalletModel>(StoragePath);
+            snapshots.RemoveAll(x => Same(x.PlayerId, playerId));
+            var snapshot = ToRechargeWallet(playerId, wallet.Coins, wallet.Gems, wallet.UpdatedAt);
+            snapshots.Add(snapshot);
+            await StoreCmsJsonRepository.SaveListAsync(StoragePath, snapshots);
+            AppEvents.RaiseStoreEconomyChanged(playerId);
+            return snapshot;
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
+    private static async Task<RechargeWalletModel> CreditAsync(string playerId, int coins, int gems, string reason)
     {
         Validate(playerId);
         if (coins < 0 || gems < 0) throw new ArgumentOutOfRangeException(nameof(coins));

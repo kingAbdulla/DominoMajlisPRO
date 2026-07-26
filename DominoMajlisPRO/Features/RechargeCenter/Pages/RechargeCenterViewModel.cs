@@ -65,6 +65,9 @@ public sealed class RechargeCenterViewModel : INotifyPropertyChanged
             Offers = RechargeCatalogService.VisibleOffers(Catalog).ToList();
             PaymentMethods = RechargeCatalogService.VisiblePaymentMethods(Catalog).ToList();
             Wallet = await RechargeWalletService.GetOrCreateAsync(PlayerId);
+            var walletRefresh = await RechargePurchaseService.RefreshAuthoritativeWalletAsync(PlayerId);
+            if (walletRefresh.Success && walletRefresh.Wallet != null)
+                Wallet = walletRefresh.Wallet;
             await RefreshPurchaseStateAsync();
             RaiseCatalogProperties();
             return null;
@@ -127,7 +130,7 @@ public sealed class RechargeCenterViewModel : INotifyPropertyChanged
     {
         var history = await RechargePurchaseService.GetHistoryAsync(PlayerId);
         RecentPurchases = history.Take(3).ToList();
-        TotalPurchasedGems = history.Sum(x => Math.Max(0, x.GemsGranted));
+        TotalPurchasedGems = await RechargePurchaseService.GetTotalPurchasedGemsAsync(PlayerId);
         var claimed = await RechargePurchaseService.GetClaimedRewardIdsAsync(PlayerId);
         foreach (var reward in Catalog.FirstRechargeRewards)
             reward.IsClaimed = claimed.Contains("first-recharge");

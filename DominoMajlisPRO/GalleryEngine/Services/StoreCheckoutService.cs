@@ -37,7 +37,7 @@ public static class StoreCheckoutService
                 currency,
                 product.Price.Value);
             if (!debit.Success)
-                return Failure("الرصيد غير كافٍ لإتمام الشراء.");
+                return Failure("الرصيد غير كاف لإتمام الشراء.");
 
             var added = await PlayerInventoryService.AddOwnedItemWithoutNotificationAsync(
                 owner.PlayerId,
@@ -47,11 +47,20 @@ public static class StoreCheckoutService
                 seasonId: product.SeasonId,
                 collectionId: product.CollectionId);
 
+            if (!added)
+            {
+                await RefundDebitAsync(owner.PlayerId, currency, product.Price.Value);
+                return Failure("تعذر إضافة العنصر إلى المقتنيات، وتمت إعادة الرصيد.");
+            }
+
             var equipped = false;
-            if (added && route.OwnerScope == InventoryOwnerScope.Team)
+            if (route.OwnerScope == InventoryOwnerScope.Team)
             {
                 if (string.IsNullOrWhiteSpace(product.TeamId))
+                {
+                    await RefundDebitAsync(owner.PlayerId, currency, product.Price.Value);
                     return Failure("يجب اختيار الفريق قبل تجهيز هذا العنصر.");
+                }
 
                 await TeamAssetInventoryService.AddOwnedAssetAsync(
                     product.TeamId,
@@ -69,12 +78,15 @@ public static class StoreCheckoutService
                 if (equipped)
                     AppEvents.RaiseTeamIdentityChanged(product.TeamId);
             }
-            else if (added && route.OwnerScope == InventoryOwnerScope.Player && route.Equipable)
+            else if (route.OwnerScope == InventoryOwnerScope.Player && route.Equipable)
             {
                 if (route.EquipTarget == InventoryEquipTarget.TeamEffect)
                 {
                     if (string.IsNullOrWhiteSpace(product.TeamId))
+                    {
+                        await RefundDebitAsync(owner.PlayerId, currency, product.Price.Value);
                         return Failure("يجب اختيار الفريق قبل تجهيز هذا العنصر.");
+                    }
 
                     await PlayerInventoryService.EquipItemWithoutNotificationAsync(
                         owner.PlayerId,
@@ -88,7 +100,10 @@ public static class StoreCheckoutService
                 else if (route.EquipTarget is InventoryEquipTarget.TeamNameEffect or InventoryEquipTarget.TeamNameFrame)
                 {
                     if (string.IsNullOrWhiteSpace(product.TeamId))
+                    {
+                        await RefundDebitAsync(owner.PlayerId, currency, product.Price.Value);
                         return Failure("يجب اختيار الفريق قبل تجهيز هذا العنصر.");
+                    }
 
                     await PlayerInventoryService.EquipItemWithoutNotificationAsync(
                         owner.PlayerId,
@@ -124,9 +139,6 @@ public static class StoreCheckoutService
                 }
             }
 
-            if (!added)
-                return Failure("تعذر إضافة العنصر إلى المقتنيات.");
-
             AppEvents.RaiseStoreEconomyChanged(owner.PlayerId);
             return new StoreCheckoutResult(true, "تم الشراء بنجاح.", true, equipped);
         }
@@ -154,6 +166,18 @@ public static class StoreCheckoutService
 
         currency = StorePurchaseCurrencyType.Free;
         return false;
+    }
+
+    private static async Task RefundDebitAsync(
+        string playerId,
+        StorePurchaseCurrencyType currency,
+        int amount)
+    {
+        if (amount <= 0) return;
+        if (currency == StorePurchaseCurrencyType.Coins)
+            await PlayerWalletService.CreditAsync(playerId, coins: amount);
+        else if (currency == StorePurchaseCurrencyType.Gems)
+            await PlayerWalletService.CreditAsync(playerId, gems: amount);
     }
 
     private static StoreCheckoutResult Failure(string message) =>

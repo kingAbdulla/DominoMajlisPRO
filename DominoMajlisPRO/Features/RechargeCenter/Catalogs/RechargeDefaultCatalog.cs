@@ -11,53 +11,62 @@ public static class RechargeDefaultCatalog
         {
             Packages =
             [
-                Package("gems-80", 80, 0, "$0.99", 1),
-                Package("gems-325", 325, 25, "$1.99", 2),
-                Package("gems-660", 660, 60, "$4.99", 3),
-                Package("gems-1800", 1800, 180, "$9.99", 4, popular: true),
-                Package("gems-3850", 3850, 385, "$19.99", 5, bestValue: true),
-                Package("gems-8100", 8100, 810, "$39.99", 6)
+                Package("small-gem-pack", "dmpro.gems.small", 80, 0, 1),
+                Package("medium-gem-pack", "dmpro.gems.medium", 325, 25, 2),
+                Package("large-gem-pack", "dmpro.gems.large", 660, 60, 3),
+                Package("premium-gem-pack", "dmpro.gems.premium", 1800, 180, 4, popular: true),
+                Package("royal-gem-pack", "dmpro.gems.royal", 3850, 385, 5, bestValue: true),
+                Package("legend-gem-pack", "dmpro.gems.legend", 8100, 810, 6)
             ],
             Offers =
             [
                 new RechargeOfferModel
                 {
-                    OfferId = "offer-ramadan",
-                    Title = "رمضان كريم",
-                    Subtitle = "عرض موسمي محدود",
+                    OfferId = "season-gem-bundle",
+                    InternalProductId = "season-gem-bundle",
+                    AndroidProductId = "dmpro.bundle.season_gems",
+                    FutureIosProductId = "dmpro.bundle.season_gems",
+                    Title = "Season Gem Bundle",
+                    Subtitle = "Limited seasonal bundle",
                     GemsAmount = 3300,
-                    BonusText = "+300 مكافأة",
-                    DiscountText = "خصم 40%",
-                    OldPriceText = "$24.99",
-                    NewPriceText = "$14.99",
+                    BonusText = "+300 bonus",
+                    DiscountText = "Limited",
+                    OldPriceText = "",
+                    NewPriceText = "Google Play",
                     EndsAtUtc = now.AddDays(7),
                     SortOrder = 1,
                     ThemeKey = "ruby"
                 },
                 new RechargeOfferModel
                 {
-                    OfferId = "offer-current-season",
-                    Title = "الموسم الحالي",
-                    Subtitle = "جواهر الموسم",
+                    OfferId = "current-season-pack",
+                    InternalProductId = "current-season-pack",
+                    AndroidProductId = "dmpro.bundle.current_season",
+                    FutureIosProductId = "dmpro.bundle.current_season",
+                    Title = "Current Season Pack",
+                    Subtitle = "Season gems and bonuses",
                     GemsAmount = 1980,
-                    BonusText = "+180 مكافأة",
-                    DiscountText = "خصم 30%",
-                    OldPriceText = "$14.99",
-                    NewPriceText = "$9.99",
+                    BonusText = "+180 bonus",
+                    DiscountText = "Season",
+                    OldPriceText = "",
+                    NewPriceText = "Google Play",
                     EndsAtUtc = now.AddDays(14),
                     SortOrder = 2,
                     ThemeKey = "purple"
                 },
                 new RechargeOfferModel
                 {
-                    OfferId = "offer-coins",
-                    Title = "عرض خاص",
-                    Subtitle = "باقة العملات",
+                    OfferId = "coin-support-pack",
+                    InternalProductId = "coin-support-pack",
+                    AndroidProductId = "dmpro.bundle.coins",
+                    FutureIosProductId = "dmpro.bundle.coins",
+                    Title = "Coin Support Pack",
+                    Subtitle = "Coin bundle",
                     CoinsAmount = 8000,
-                    BonusText = "+1,500 مكافأة",
-                    DiscountText = "خصم 20%",
-                    OldPriceText = "$6.99",
-                    NewPriceText = "$4.99",
+                    BonusText = "+1,500 bonus",
+                    DiscountText = "Limited",
+                    OldPriceText = "",
+                    NewPriceText = "Google Play",
                     EndsAtUtc = now.AddDays(3),
                     SortOrder = 3,
                     ThemeKey = "gold"
@@ -66,8 +75,11 @@ public static class RechargeDefaultCatalog
             VipPlan = new RechargeVipPlanModel
             {
                 PlanId = "domino-vip-monthly",
+                InternalProductId = "domino-vip-monthly",
+                AndroidProductId = "dmpro.vip.monthly",
+                FutureIosProductId = "dmpro.vip.monthly",
                 Title = "DOMINO VIP",
-                MonthlyPriceText = "$4.99 / شهر",
+                MonthlyPriceText = "Google Play",
                 DailyGems = 150,
                 MonthlyCoins = 50000,
                 XpBonusPercent = 20,
@@ -76,45 +88,56 @@ public static class RechargeDefaultCatalog
             },
             FirstRechargeRewards =
             [
-                Reward("first-avatar", "صورة رمزية حصرية", "Avatar", "🧔"),
-                Reward("first-frame", "إطار حصري", "Frame", "🖼️"),
-                Reward("first-emblem", "شعار ملكي", "Emblem", "♛"),
-                Reward("first-effect", "مؤثر بنفسجي", "Effect", "✨")
+                Reward("first-avatar", "Exclusive avatar", "Avatar", "Avatar"),
+                Reward("first-frame", "Exclusive frame", "Frame", "Frame"),
+                Reward("first-emblem", "Royal emblem", "Emblem", "Emblem"),
+                Reward("first-effect", "Purple effect", "Effect", "Effect")
             ],
             ProgressRewards =
             [
-                new RechargeProgressRewardModel { RewardId = "progress-300", RequiredGems = 300, Title = "20,000 عملة", IconKey = "🪙" },
-                new RechargeProgressRewardModel { RewardId = "progress-500", RequiredGems = 500, Title = "إطار حصري", IconKey = "🖼️" },
-                new RechargeProgressRewardModel { RewardId = "progress-1000", RequiredGems = 1000, Title = "100 جوهرة", IconKey = "💎" }
+                new RechargeProgressRewardModel { RewardId = "progress-300", RequiredGems = 300, Title = "20,000 coins", IconKey = "Coins" },
+                new RechargeProgressRewardModel { RewardId = "progress-500", RequiredGems = 500, Title = "Exclusive frame", IconKey = "Frame" },
+                new RechargeProgressRewardModel { RewardId = "progress-1000", RequiredGems = 1000, Title = "100 gems", IconKey = "Gems" }
             ],
             PaymentMethods =
             [
-                Payment("google-play", "Google Play", "▶", 1),
-                Payment("visa", "VISA", "VISA", 2),
-                Payment("mastercard", "MasterCard", "●●", 3),
-                Payment("apple-pay", "Apple Pay", "", 4),
-                Payment("zain-cash", "Zain Cash", "Zain", 5),
-                Payment("qi-card", "Qi Card", "Qi", 6)
+                Payment("google-play", "Google Play", "Play", 1, enabled: true),
+                Payment("visa", "VISA", "Card", 2, enabled: false),
+                Payment("mastercard", "MasterCard", "Card", 3, enabled: false),
+                Payment("apple-pay", "Apple Pay", "Apple", 4, enabled: false),
+                Payment("zain-cash", "Zain Cash", "Cash", 5, enabled: false),
+                Payment("qi-card", "Qi Card", "Qi", 6, enabled: false)
             ],
             FaqItems =
             [
-                Faq("كيف أستلم الجواهر؟", "تُضاف الجواهر إلى محفظتك فور اكتمال عملية الشراء التجريبية.", 1),
-                Faq("هل يمكن استرداد الأموال؟", "هذه نسخة محاكاة بلا دفع حقيقي. عند ربط بوابة الدفع ستطبق سياسة المتجر المعتمدة.", 2),
-                Faq("كم يستغرق الشحن؟", "يتم تحديث الرصيد وسجل المشتريات مباشرة بعد التأكيد.", 3)
+                Faq("How are gems delivered?", "Gems are delivered only after the backend verifies the platform transaction and grants the entitlement once.", 1),
+                Faq("Can the app collect card details?", "No. Digital purchases must use the official platform billing UI. The app never stores card numbers or CVV values.", 2),
+                Faq("Why is billing unavailable?", "Google Play products, a verification backend, and secure server credentials must be configured before real purchases can grant balance.", 3)
             ],
-            StoreVersion = "2.0.0",
+            StoreVersion = "3.0.0-commerce-safe",
             StoreId = "DM-PRO-001"
         };
     }
 
-    private static RechargePackageModel Package(string id, int gems, int bonus, string price, int order, bool popular = false, bool bestValue = false) =>
+    private static RechargePackageModel Package(
+        string internalId,
+        string platformId,
+        int gems,
+        int bonus,
+        int order,
+        bool popular = false,
+        bool bestValue = false) =>
         new()
         {
-            PackageId = id,
+            PackageId = internalId,
+            InternalProductId = internalId,
+            AndroidProductId = platformId,
+            FutureIosProductId = platformId,
             Title = $"{gems:N0} Gems",
+            Description = "Consumable gem entitlement verified by the backend.",
             GemsAmount = gems,
             BonusGems = bonus,
-            PriceText = price,
+            PriceText = "Google Play",
             SortOrder = order,
             IsMostPopular = popular,
             IsBestValue = bestValue
@@ -123,8 +146,8 @@ public static class RechargeDefaultCatalog
     private static RechargeRewardModel Reward(string id, string title, string type, string icon) =>
         new() { RewardId = id, Title = title, RewardType = type, IconKey = icon };
 
-    private static PaymentMethodModel Payment(string id, string name, string icon, int order) =>
-        new() { PaymentMethodId = id, Name = name, IconKey = icon, SortOrder = order };
+    private static PaymentMethodModel Payment(string id, string name, string icon, int order, bool enabled) =>
+        new() { PaymentMethodId = id, Name = name, IconKey = icon, SortOrder = order, IsEnabled = enabled };
 
     private static RechargeFaqItemModel Faq(string question, string answer, int order) =>
         new() { Question = question, Answer = answer, SortOrder = order };

@@ -25,7 +25,7 @@ public class StoreFooterView : ContentView
 
         grid.Add(CreateFooterItem("💎", "محتوى حصري", "غير متوفر في أي مكان آخر"), 0, 0);
         grid.Add(CreateFooterItem("🤍", "ادعم المطور", "ساعدنا لنقدم لك الأفضل"), 1, 0);
-        grid.Add(CreateFooterItem("🛡️", "آمن 100%", "حسابك وعملياتك آمنة"), 2, 0);
+        grid.Add(CreateFooterItem("🛡️", "مركز أمان الحساب", "إعدادات حماية ومراجعة"), 2, 0);
 
         _root = new Border
         {
