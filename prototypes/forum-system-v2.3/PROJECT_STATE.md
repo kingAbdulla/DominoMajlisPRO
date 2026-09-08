@@ -36,3 +36,22 @@ v2.3 is the currently approved baseline and must be preserved before the next ph
 10. Harden role/permission matrix and prepare future multi-forum administration without cross-forum data leakage.
 
 No v2.4 implementation has started at this checkpoint.
+
+
+## Roadmap correction — outgoing registry excluded
+The proposed internal outgoing-document registry (سجل الصادر) is CANCELLED and must not be implemented.
+Reason: outgoing correspondence numbering is a sensitive official process already controlled by fixed official registers at the Directorate and at each forum. This system must not generate, increment, reserve, modify, or simulate official outgoing numbers.
+
+### v2.4 approved scope
+- Document lifecycle: Draft -> Review -> Approved/Issued -> Archived, with controlled revisions and version history.
+- Immutable audit log for create/edit/approve/reject/request-change/archive/delete actions, recording actor, role, timestamp and reason where applicable.
+- Notification center with unread badge counts and role-targeted notifications.
+- Attachments/photos and a formal photo appendix in reports.
+- Distinct templates for single-activity, monthly and annual reports.
+- Configurable government/authority identity and official report header/footer.
+- Searchable archive and filters by forum, date, activity type, status and report number.
+- Official Arabic QR verification page showing verification status and core report metadata without exposing technical query strings.
+- Hardened role/permission matrix and strict forum data isolation.
+- Existing official outgoing-number fields should not become an automated registry. If retained at all, they are reference-only/manual metadata entered from the authoritative external register and must never be auto-generated or altered by workflow logic.
+
+v2.4 is approved for implementation subject to these constraints.
