@@ -222,7 +222,7 @@ button,input,select,textarea{max-width:100%}
 </style>
 </head>
 <body>
-<header><div class="brand"><div class="syslogo">MIS</div><div><h1>نظام إدارة بيانات المنتديات</h1><small>Production Web — Government MIS</small></div></div><div class="rowBtns"><span id="cloudStatusBadge" class="badge">محلي</span><button id="logoutBtn" class="ghost hidden" onclick="logout()">تسجيل الخروج</button></div></header>
+<header><div class="brand"><div class="syslogo">MIS</div><div><h1>نظام إدارة بيانات المنتديات</h1><small>Production Web — Government MIS</small></div></div><div class="rowBtns"><span id="cloudStatusBadge" class="badge">محلي</span><button id="changePasswordBtn" class="ghost hidden" onclick="openOwnPasswordChange(false)">تغيير كلمة المرور</button><button id="logoutBtn" class="ghost hidden" onclick="logout()">تسجيل الخروج</button></div></header>
 <div class="wrap">
 
 <section id="gate" class="screen active"><div class="card auth"><h2>بوابة المنتديات</h2><input id="forumCode" value="001"><p><button onclick="enterForum()">دخول</button></p><div id="gateMsg"></div></div></section>
@@ -271,9 +271,32 @@ button,input,select,textarea{max-width:100%}
 </div>
 </section>
 
-<section id="adminUsers" class="screen"><div class="head"><h2>إدارة الحسابات</h2><button class="ghost" onclick="goHome()">رجوع</button></div>
-<div class="card form"><label>اسم المستخدم<input id="newUserLogin"></label><label>الاسم الكامل<input id="newUserName"></label><label>الدور<select id="newUserRole"><option>موظف</option><option>مدير المنتدى</option><option>مدير الإدارة</option></select></label><label>المنتدى<select id="newUserForum"></select></label><div class="full"><button onclick="adminCreateUser()">إنشاء حساب تجريبي</button></div></div>
+<section id="adminUsers" class="screen"><div class="head"><div><h2>إدارة الحسابات</h2><div class="subtitle">حسابات سحابية فعلية مرتبطة بـ UserID وصلاحيات المنتدى.</div></div><button class="ghost" onclick="goHome()">رجوع</button></div>
+<div class="card form">
+<label>اسم المستخدم<input id="newUserLogin" autocomplete="off" placeholder="مثال: employee001"></label>
+<label>الاسم الكامل<input id="newUserName" autocomplete="off"></label>
+<label>الدور<select id="newUserRole" onchange="syncNewUserForumState()"><option>موظف</option><option>مدير المنتدى</option><option>مدير الإدارة</option><option>مراقب</option></select></label>
+<label>المنتدى<select id="newUserForum"></select></label>
+<label>كلمة المرور المؤقتة<input id="newUserTempPassword" type="password" autocomplete="new-password" placeholder="10 أحرف على الأقل + أحرف وأرقام"></label>
+<label>تأكيد كلمة المرور<input id="newUserTempPasswordConfirm" type="password" autocomplete="new-password"></label>
+<label><span>سياسة أول دخول</span><select id="newUserMustChange"><option value="true">إلزام المستخدم بالتغيير</option><option value="false">يمكنه الاستمرار عليها أو تغييرها لاحقاً</option></select></label>
+<label>مدة صلاحية كلمة المرور المؤقتة (يوم)<input id="newUserPasswordDays" type="number" min="1" max="30" value="7"></label>
+<div class="full"><div class="note">لا تُحفظ كلمة المرور كنص داخل النظام. بعد إنشاء الحساب لن يستطيع المطور عرضها، وإنما يمكنه إصدار كلمة مرور مؤقتة جديدة عند الحاجة.</div></div>
+<div class="full"><button onclick="adminCreateUser()">إنشاء الحساب السحابي</button></div>
+</div>
 <div class="card"><div id="adminUserList" class="adminList"></div></div></section>
+
+<div id="passwordLifecycleModal" class="modal"><div class="modalBox" style="max-width:620px">
+<div class="head"><div><h3 id="passwordLifecycleTitle">تغيير كلمة المرور</h3><div id="passwordLifecycleSubtitle" class="subtitle"></div></div><button id="passwordLifecycleClose" class="ghost" onclick="closePasswordLifecycleModal()">إغلاق</button></div>
+<input id="passwordLifecycleUserId" type="hidden"><input id="passwordLifecycleMode" type="hidden">
+<div class="form">
+<label>كلمة المرور الجديدة<input id="passwordLifecycleValue" type="password" autocomplete="new-password"></label>
+<label>تأكيد كلمة المرور<input id="passwordLifecycleConfirm" type="password" autocomplete="new-password"></label>
+<label id="passwordLifecycleForceWrap">بعد إعادة التعيين<select id="passwordLifecycleForce"><option value="true">إلزام المستخدم بالتغيير</option><option value="false">يمكنه الاستمرار عليها</option></select></label>
+<label id="passwordLifecycleDaysWrap">صلاحية المؤقتة (يوم)<input id="passwordLifecycleDays" type="number" min="1" max="30" value="7"></label>
+<div class="full note">كلمة المرور يجب أن تكون 10 أحرف على الأقل وتحتوي أحرفاً وأرقاماً.</div>
+<div class="full"><button onclick="submitPasswordLifecycle()">حفظ كلمة المرور</button></div>
+</div></div></div>
 
 <section id="adminForums" class="screen"><div class="head"><h2>إدارة المنتديات</h2><button class="ghost" onclick="goHome()">رجوع</button></div>
 <div class="card form"><label>اسم المنتدى<input id="adminForumName"></label><label>رمز البوابة<input id="adminForumCode"></label><div class="full"><button onclick="adminAddForum()">إضافة منتدى</button></div></div>
@@ -614,14 +637,20 @@ async function doLogin(){
    if(u.forumId&&selected&&canonicalForumId(u.forumId)!==canonicalForumId(selected.forumId||selected.id)){await CloudBridge.signOut();return alert("هذا الحساب غير مخول لهذا المنتدى");}
    current=u;users=CloudBridge.getProfiles();
    el("logoutBtn").classList.remove("hidden");
+   el("changePasswordBtn")?.classList.remove("hidden");
    log("تسجيل دخول سحابي",selected?.forumId||u.forumId||"DIRECTORATE",{summary:"تم تسجيل الدخول عبر قاعدة البيانات المشتركة.",source:"CloudAuthentication"});
+   const cloudProfile=CloudBridge.getProfile?.();
+   if(cloudProfile?.must_change_password){
+     openOwnPasswordChange(true);
+     return;
+   }
    goHome();
  }catch(e){
    console.error(e);
    return alert("تعذر تسجيل الدخول. تحقق من اسم المستخدم وكلمة المرور أو حالة الحساب.");
  }
 }
-async function logout(){if(cloudEnabled())try{await CloudBridge.signOut()}catch(e){console.error(e)}current=null;selected=null;el("logoutBtn").classList.add("hidden");show("gate")}
+async function logout(){if(cloudEnabled())try{await CloudBridge.signOut()}catch(e){console.error(e)}current=null;selected=null;el("logoutBtn").classList.add("hidden");el("changePasswordBtn")?.classList.add("hidden");show("gate")}
 function goHome(){updateNotificationBadges();if(has(Capability.Tech)){renderAdminDashboard();show("adminDash")}else if(has(Capability.DirectorDashboard)){renderDirectorDashboard();show("directorDash")}else{renderStandardDashboard();show("standardDash")}}
 function canCrossForumAccess(){return !!current&&(current.role==="مدير الإدارة"||current.role==="المطور")}
 function effectiveForumId(){return current?.forumId||current?.forum||selected?.forumId||selected?.id||null}
@@ -1208,13 +1237,98 @@ function directorSaveUser(userId){
   S("v29_users",users);log("تعديل إداري لمستخدم",userId,JSON.stringify({before:old,after:{role:u.role,forumId:u.forumId,status:u.status}}));renderDirectorUsers();
 }
 
-function openAdminUsers(){ if(!has(Capability.Tech))return; el("newUserForum").innerHTML=forums.filter(f=>f.active).map(f=>'<option value="'+(f.forumId||f.id)+'">'+esc(f.name)+'</option>').join(""); renderAdminUsers(); show("adminUsers"); }
-function renderAdminUsers(){el("adminUserList").innerHTML=users.map(u=>'<div class="adminRow"><div><b>'+esc(u.name)+'</b><br><small>'+esc(u.login)+'</small></div><div>'+esc(u.role)+'</div><div>'+esc((u.forumId||u.forum)?forumName(u.forumId||u.forum):"كل المنتديات")+'</div><div><button class="smallBtn '+(u.disabled?"okbtn":"mutedbtn")+'" onclick="toggleUser(\''+u.id+'\')">'+(u.disabled?"تفعيل":"تعطيل")+'</button></div></div>').join("")}
-function adminCreateUser(){
- if(!has(Capability.Tech))return;
- alert("إنشاء الحسابات في نسخة Production يتم عبر Supabase Auth بحساب مستقل وكلمة مرور مستقلة لكل مستخدم. تم تعطيل إنشاء الحساب المحلي غير الآمن.");
+function syncNewUserForumState(){
+ const role=el("newUserRole")?.value,select=el("newUserForum");
+ if(!select)return;
+ const noForum=role==="مدير الإدارة";
+ select.disabled=noForum;
+ if(noForum)select.value="";
 }
-function toggleUser(id){const u=users.find(x=>x.id===id);if(!u||u.role==="المطور")return alert("لا يمكن تعطيل حساب المطور من الـPrototype");u.disabled=!u.disabled;S("v29_users",users);log(u.disabled?"تعطيل حساب":"تفعيل حساب",u.id,u.login);renderAdminUsers()}
+function openAdminUsers(){
+ if(!has(Capability.Tech))return;
+ el("newUserForum").innerHTML='<option value="">اختر المنتدى</option>'+forums.filter(f=>f.active).map(f=>'<option value="'+(f.forumId||f.id)+'">'+esc(f.name)+'</option>').join("");
+ syncNewUserForumState();
+ renderAdminUsers();
+ show("adminUsers");
+}
+function passwordLifecycleLabel(u){
+ if(u.mustChangePassword)return '<span class="badge change">تغيير كلمة المرور مطلوب</span>';
+ return '<span class="badge approved">كلمة المرور فعالة</span>';
+}
+function renderAdminUsers(){
+ el("adminUserList").innerHTML=users.map(u=>'<div class="adminRow"><div><b>'+esc(u.name)+'</b><br><small>'+esc(u.login)+'</small><br><span class="idChip">'+esc(u.userId||u.id)+'</span></div><div>'+esc(u.role)+'<br>'+passwordLifecycleLabel(u)+'</div><div>'+esc((u.forumId||u.forum)?forumName(u.forumId||u.forum):"كل المنتديات")+'</div><div class="rowBtns">'+(u.role!=="المطور"?'<button class="smallBtn" onclick="openAdminPasswordReset(\''+(u.userId||u.id)+'\')">كلمة مرور مؤقتة</button><button class="smallBtn '+(u.disabled?"okbtn":"mutedbtn")+'" onclick="toggleUser(\''+(u.userId||u.id)+'\')">'+(u.disabled?"تفعيل":"تعطيل")+'</button>':'<span class="badge">الحساب الرئيسي</span>')+'</div></div>').join("")
+}
+async function adminCreateUser(){
+ if(!has(Capability.Tech))return;
+ const login=el("newUserLogin").value.trim(),name=el("newUserName").value.trim(),role=el("newUserRole").value,forumId=role==="مدير الإدارة"?null:el("newUserForum").value;
+ const p1=el("newUserTempPassword").value,p2=el("newUserTempPasswordConfirm").value,mustChange=el("newUserMustChange").value==="true",days=Number(el("newUserPasswordDays").value||7);
+ if(!login||!name)return alert("الاسم واسم المستخدم إلزاميان.");
+ if(!forumId&&role!=="مدير الإدارة")return alert("يجب تحديد المنتدى.");
+ if(p1!==p2)return alert("كلمتا المرور غير متطابقتين.");
+ try{
+   const result=await CloudBridge.adminUserAction("create_user",{login,fullName:name,role,forumId,temporaryPassword:p1,mustChangePassword:mustChange,validDays:days});
+   users=CloudBridge.getProfiles();
+   log("إنشاء حساب سحابي",result.user?.userId||login,{summary:"تم إنشاء الحساب "+login+" وربطه بهوية سحابية مستقلة.",source:"CloudUserAdministration"});
+   ["newUserLogin","newUserName","newUserTempPassword","newUserTempPasswordConfirm"].forEach(id=>el(id).value="");
+   renderAdminUsers();
+   alert("تم إنشاء الحساب بنجاح. سلّم كلمة المرور المؤقتة للمستخدم عبر قناة آمنة.");
+ }catch(e){console.error(e);alert("تعذر إنشاء الحساب: "+(e.message||e))}
+}
+function openAdminPasswordReset(userId){
+ if(!has(Capability.Tech))return;
+ el("passwordLifecycleMode").value="admin-reset";
+ el("passwordLifecycleUserId").value=userId;
+ el("passwordLifecycleTitle").textContent="إصدار كلمة مرور مؤقتة";
+ el("passwordLifecycleSubtitle").textContent="سيتم استبدال كلمة المرور السابقة فوراً.";
+ el("passwordLifecycleForceWrap").classList.remove("hidden");
+ el("passwordLifecycleDaysWrap").classList.remove("hidden");
+ el("passwordLifecycleClose").classList.remove("hidden");
+ el("passwordLifecycleValue").value="";el("passwordLifecycleConfirm").value="";
+ el("passwordLifecycleModal").classList.add("open");
+}
+function openOwnPasswordChange(required=false){
+ el("passwordLifecycleMode").value="self";
+ el("passwordLifecycleUserId").value=current?.userId||current?.id||"";
+ el("passwordLifecycleTitle").textContent=required?"تغيير كلمة المرور مطلوب":"تغيير كلمة المرور";
+ el("passwordLifecycleSubtitle").textContent=required?"تم تسجيل الدخول بكلمة مرور مؤقتة. يجب تعيين كلمة مرور شخصية قبل متابعة استخدام النظام.":"يمكنك تغيير كلمة المرور في أي وقت.";
+ el("passwordLifecycleForceWrap").classList.add("hidden");
+ el("passwordLifecycleDaysWrap").classList.add("hidden");
+ el("passwordLifecycleClose").classList.toggle("hidden",required);
+ el("passwordLifecycleValue").value="";el("passwordLifecycleConfirm").value="";
+ el("passwordLifecycleModal").dataset.required=required?"1":"0";
+ el("passwordLifecycleModal").classList.add("open");
+}
+function closePasswordLifecycleModal(){
+ if(el("passwordLifecycleModal").dataset.required==="1")return;
+ el("passwordLifecycleModal").classList.remove("open");
+}
+async function submitPasswordLifecycle(){
+ const mode=el("passwordLifecycleMode").value,p1=el("passwordLifecycleValue").value,p2=el("passwordLifecycleConfirm").value;
+ if(p1!==p2)return alert("كلمتا المرور غير متطابقتين.");
+ try{
+   if(mode==="admin-reset"){
+     await CloudBridge.adminUserAction("reset_password",{userId:el("passwordLifecycleUserId").value,temporaryPassword:p1,mustChangePassword:el("passwordLifecycleForce").value==="true",validDays:Number(el("passwordLifecycleDays").value||7)});
+     users=CloudBridge.getProfiles();renderAdminUsers();
+     alert("تم إصدار كلمة المرور المؤقتة بنجاح.");
+   }else{
+     await CloudBridge.changeOwnPassword(p1);
+     current=CloudBridge.legacyCurrent();users=CloudBridge.getProfiles();
+     alert("تم تغيير كلمة المرور بنجاح.");
+   }
+   el("passwordLifecycleModal").dataset.required="0";
+   el("passwordLifecycleModal").classList.remove("open");
+   if(mode==="self")goHome();
+ }catch(e){console.error(e);alert("تعذر حفظ كلمة المرور: "+(e.message||e))}
+}
+async function toggleUser(id){
+ const u=users.find(x=>(x.userId||x.id)===id);
+ if(!u||u.role==="المطور")return alert("لا يمكن تعطيل حساب المطور.");
+ try{
+   await CloudBridge.adminUserAction("toggle_user",{userId:id,disabled:!u.disabled});
+   users=CloudBridge.getProfiles();renderAdminUsers();
+   log(u.disabled?"تفعيل حساب":"تعطيل حساب",id,{summary:"تم تغيير حالة الحساب السحابي.",source:"CloudUserAdministration"});
+ }catch(e){console.error(e);alert("تعذر تغيير حالة الحساب: "+(e.message||e))}
+}
 function openAdminForums(){if(!has(Capability.Tech))return;renderAdminForums();show("adminForums")}
 function renderAdminForums(){el("adminForumList").innerHTML=forums.map(f=>'<div class="adminRow"><div><b>'+esc(f.name)+'</b><br><small>'+f.id+'</small></div><div>رمز: '+esc(f.code)+'</div><div>'+(f.active?'<span class="statusOk">فعال</span>':'<span class="statusWarn">موقوف</span>')+'</div><div><button class="smallBtn" onclick="toggleForum(\''+f.id+'\')">'+(f.active?"إيقاف":"تفعيل")+'</button></div></div>').join("")}
 function adminAddForum(){const name=el("adminForumName").value.trim(),code=el("adminForumCode").value.trim();if(!name||!code)return alert("الاسم والرمز إلزاميان");if(forums.some(f=>f.code===code))return alert("رمز المنتدى مستخدم");const id="F"+String(forums.length+1).padStart(3,"0"),forumId=canonical("FRM",id);forums.push({id,forumId,name,code,active:true,logo:"",managerName:"",managerSignature:""});S("v29_forums",forums);log("إضافة منتدى",id,name);renderAdminForums()}
