@@ -45,3 +45,18 @@ The web MIS must remain usable during temporary internet outages and synchronize
 - Add immutable audit events for conflict resolution.
 - Consider IndexedDB for larger datasets/attachments once the v1 behavior is proven.
 - Add server-side row version if timestamp-based optimistic concurrency becomes insufficient.
+
+
+## Conflict Review & Resolution — implemented
+- Conflicts are displayed side-by-side as local payload versus cloud payload.
+- Resolution is explicitly role-gated inside the sync engine, not only hidden in the UI.
+- `المطور` and `مدير الإدارة` can resolve any conflict.
+- `مدير المنتدى` can resolve non-official conflicts for the same ForumID.
+- Employees cannot resolve conflicts; they remain visible as requiring review.
+- Official records are protected from lower-level resolution:
+  - audit events are always treated as official;
+  - reports in Issued/Approved/Revoked (and Arabic equivalents) are treated as official.
+- Resolution choices:
+  - **LOCAL**: intentionally overwrite the cloud record with the local version.
+  - **CLOUD**: discard the queued local change and restore the cloud version into the scoped cache.
+- Any resolution triggers a new cloud pull so the operational UI converges on the selected version.
