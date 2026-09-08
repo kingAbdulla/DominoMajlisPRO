@@ -1,0 +1,10 @@
+{
+  "name": "نظام إدارة بيانات المنتديات",
+  "short_name": "Forum MIS",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f2f5f8",
+  "theme_color": "#0d2d49",
+  "lang": "ar",
+  "dir": "rtl"
+}
