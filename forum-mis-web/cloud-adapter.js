@@ -40,7 +40,7 @@
     // Phase 1: always load the current user's own profile first.
     const {data,error}=await client
       .from("profiles")
-      .select("auth_user_id,user_id,login,full_name,role,forum_id,status,disabled,last_login_at")
+      .select("auth_user_id,user_id,login,full_name,role,forum_id,status,disabled,last_login_at,must_change_password,password_changed_at,temporary_password_issued_at,temporary_password_expires_at,password_reset_by_user_id")
       .eq("auth_user_id",user.id)
       .maybeSingle();
 
@@ -62,13 +62,18 @@
       status:data.status,
       disabled:!!data.disabled,
       lastLoginAt:data.last_login_at,
+      mustChangePassword:!!data.must_change_password,
+      passwordChangedAt:data.password_changed_at,
+      temporaryPasswordIssuedAt:data.temporary_password_issued_at,
+      temporaryPasswordExpiresAt:data.temporary_password_expires_at,
+      passwordResetByUserId:data.password_reset_by_user_id,
       authUserId:data.auth_user_id
     }];
 
     if(["المطور","مدير الإدارة","مدير المنتدى"].includes(data.role)){
       const q=await client
         .from("profiles")
-        .select("auth_user_id,user_id,login,full_name,role,forum_id,status,disabled,last_login_at");
+        .select("auth_user_id,user_id,login,full_name,role,forum_id,status,disabled,last_login_at,must_change_password,password_changed_at,temporary_password_issued_at,temporary_password_expires_at,password_reset_by_user_id");
       if(!q.error){
         profiles=(q.data||[]).map(p=>({
           id:p.user_id,
@@ -81,6 +86,11 @@
           status:p.status,
           disabled:!!p.disabled,
           lastLoginAt:p.last_login_at,
+          mustChangePassword:!!p.must_change_password,
+          passwordChangedAt:p.password_changed_at,
+          temporaryPasswordIssuedAt:p.temporary_password_issued_at,
+          temporaryPasswordExpiresAt:p.temporary_password_expires_at,
+          passwordResetByUserId:p.password_reset_by_user_id,
           authUserId:p.auth_user_id
         }));
       } else {
