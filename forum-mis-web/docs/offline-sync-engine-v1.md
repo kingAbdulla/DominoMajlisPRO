@@ -60,3 +60,25 @@ The web MIS must remain usable during temporary internet outages and synchronize
   - **LOCAL**: intentionally overwrite the cloud record with the local version.
   - **CLOUD**: discard the queued local change and restore the cloud version into the scoped cache.
 - Any resolution triggers a new cloud pull so the operational UI converges on the selected version.
+
+
+## Offline access safety — implemented
+- The authenticated Supabase session is still required; the offline layer does not invent a local password bypass.
+- The last successfully fetched application profile may be reused during a network outage so the signed-in user can continue working.
+- Cached profile authorization is time-bounded to 7 days. Expired cached authorization is discarded and requires an online profile refresh before offline continuation.
+- Legacy un-timestamped profile cache entries are upgraded once to the bounded cache format.
+- This is a continuity mechanism, not a replacement for server-side RLS or account-disable enforcement. A remotely disabled account can remain usable offline only within the bounded authorization window; production hardening can shorten this window if the operational policy requires it.
+
+## Verification matrix — next runtime gate
+1. Online baseline: login, hydrate, verify queue empty and status = تمت المزامنة.
+2. Offline create: disconnect network, create a draft activity, verify local UI persists and queue shows CREATE/PENDING.
+3. Offline update: edit the same draft, verify queue coalesces into one CREATE carrying the newest payload/version.
+4. Reconnect: restore network, verify automatic flush, queue clears, lastSyncAt updates, and cloud row exists.
+5. Offline update of existing row: disconnect, edit an existing row, verify UPDATE/PENDING with BaseUpdatedAt.
+6. Conflict: while device A is offline, modify the same cloud row from device B; reconnect A and verify CONFLICT rather than overwrite.
+7. Role gate: employee sees conflict but cannot resolve; manager may resolve same-forum non-official conflict; director/developer may resolve all.
+8. Official record gate: issued/approved/revoked report conflict cannot be resolved by forum manager.
+9. Resolution LOCAL: authorized reviewer selects local; cloud payload becomes local payload and queue entry disappears.
+10. Resolution CLOUD: authorized reviewer selects cloud; local scoped cache reverts to cloud and queue entry disappears.
+11. Realtime convergence: after resolution, pull refreshes operational UI without reintroducing pending local work.
+12. Isolation: switch to a different UserID/ForumID and verify its scoped cache/queue cannot expose the previous scope.
