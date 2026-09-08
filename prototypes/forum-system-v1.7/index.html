@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نظام المنتديات v1.7</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--n:#143453;--b:#1f5b89;--g:#d7b65b;--bg:#f4f7fa;--bd:#d8e0e7;--txt:#16212b;--mut:#6b7785;--ok:#0d7a46;--err:#b42318}
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:var(--bg);color:var(--txt)}
+header{background:linear-gradient(135deg,var(--n),var(--b));color:#fff;padding:17px 5%;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 18px #0002}
+header h1{margin:0;font-size:21px}header small{opacity:.8}.wrap{max-width:1180px;margin:auto;padding:24px 16px}.screen{display:none}.screen.active{display:block}
+.card{background:#fff;border:1px solid var(--bd);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 8px 25px #1020300d}.auth{max-width:490px;margin:45px auto;text-align:center}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid #cad4de;border-radius:10px;background:#fff;font-size:15px;margin-top:6px}textarea{min-height:90px}
+button{border:0;border-radius:10px;padding:11px 15px;background:var(--b);color:#fff;font-weight:700;cursor:pointer}.ghost{background:#fff;color:var(--b);border:1px solid var(--b)}.danger{background:#b42318}.gold{background:#9f7a18}
+.hidden{display:none!important}.msg{margin-top:10px;font-weight:700}.ok{color:var(--ok)}.err{color:var(--err)}.badge{display:inline-block;padding:7px 12px;border-radius:999px;background:#eaf1f7;color:var(--n);font-weight:700}
+.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.kpis,.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:16px;padding:18px}.kpi span{display:block;color:var(--mut);font-size:13px}.kpi strong{font-size:28px;color:var(--n)}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:14px}.full{grid-column:1/-1}.readonly{background:#eef1f4;font-weight:700}.rowBtns{display:flex;gap:8px;flex-wrap:wrap}
+.table{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:11px;border-bottom:1px solid #e6ebf0;text-align:right}th{background:#f6f8fa;color:var(--n)}
+.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#edf3f8;font-size:12px}.note{background:#fff7d9;border:1px solid #eadb9a;padding:12px;border-radius:11px;line-height:1.7}
+.reportBox{border:1px dashed #aab7c4;padding:18px;border-radius:14px;background:#fff}.qr{display:flex;justify-content:center;margin:15px 0}
+@media(max-width:800px){.kpis,.actions,.form{grid-template-columns:1fr 1fr}}@media(max-width:520px){.kpis,.actions,.form{grid-template-columns:1fr}.head{align-items:flex-start}}
+</style>
+</head>
+<body>
+<header><div><h1>نظام إدارة بيانات المنتديات</h1><small>Prototype v1.7 — Workflow & Reporting</small></div><button id="logoutBtn" class="ghost hidden" onclick="logout()">تسجيل الخروج</button></header>
+<div class="wrap">
+<section id="gate" class="screen active"><div class="card auth"><h2>بوابة المنتديات</h2><p>أدخل رمز المنتدى</p><input id="forumCode" value="001"><button onclick="enterForum()">دخول</button><div id="gateMsg" class="msg"></div><div class="note">رمز المنتدى يحدد البوابة فقط ولا يُعد كلمة مرور.</div></div></section>
+
+<section id="login" class="screen"><div class="card auth"><div id="forumNameBadge" class="badge"></div><h2>تسجيل دخول المستخدم</h2><input id="loginName" placeholder="اسم المستخدم"><input id="loginPass" type="password" placeholder="كلمة المرور"><p><button onclick="doLogin()">دخول</button> <button class="ghost" onclick="show('gate')">رجوع</button></p><div id="loginMsg" class="msg"></div><div class="note">employee / 1234 &nbsp; | &nbsp; manager / 1234 &nbsp; | &nbsp; admin / 1234</div></div></section>
+
+<section id="dash" class="screen">
+<div class="card"><div>المنتدى الحالي</div><h2 id="dashForum"></h2><p id="dashUser"></p></div>
+<div class="kpis"><div class="kpi"><span>المعتمد</span><strong id="kApproved">0</strong></div><div class="kpi"><span>بانتظار المراجعة</span><strong id="kSubmitted">0</strong></div><div class="kpi"><span>طلبات التعديل</span><strong id="kMods">0</strong></div><div class="kpi"><span>التقارير الصادرة</span><strong id="kReports">0</strong></div></div>
+<div class="actions"><button onclick="show('add')">+ إضافة نشاط</button><button onclick="openActivities()">الأنشطة</button><button id="reviewBtn" onclick="openReviews()">المراجعات</button><button onclick="openReports()">التقارير</button></div>
+<div class="actions"><button id="modBtn" onclick="openModRequests()">طلبات التعديل</button><button id="adminBtn" class="hidden" onclick="openAdmin()">إدارة المنتديات</button></div>
+</section>
+
+<section id="add" class="screen"><div class="head"><h2>إضافة نشاط</h2><button class="ghost" onclick="dashboard()">رجوع</button></div>
+<div class="card form">
+<label>نوع النشاط<select id="type"><option>دورة</option><option>ورشة</option><option>ندوة</option><option>بطولة</option><option>حملة</option><option>زيارة</option><option>معرض</option><option>مؤتمر</option><option>نشاط علمي</option><option>نشاط ثقافي</option><option>نشاط رياضي</option></select></label>
+<label>اسم النشاط<input id="activityName"></label><label>التاريخ<input id="activityDate" type="date"></label><label>المكان<input id="location"></label>
+<label>عدد الذكور<input id="male" type="number" min="0" oninput="sumParticipants()"></label><label>عدد الإناث<input id="female" type="number" min="0" oninput="sumParticipants()"></label>
+<label>إجمالي المشاركين<input id="total" readonly class="readonly"></label><label>الفئة العمرية<select id="age"><option>أقل من 12 سنة</option><option>12–17 سنة</option><option>18–24 سنة</option><option>25–35 سنة</option><option>36 سنة فأكثر</option><option>فئات متعددة</option></select></label>
+<label>الجهة المتعاونة<input id="org"></label><label>أبرز الزوار والمسؤولين<input id="visitors"></label>
+<label class="full">وصف النشاط<textarea id="description"></textarea></label><label class="full">ملاحظات<textarea id="notes"></textarea></label>
+<div class="full rowBtns"><button onclick="saveActivity('مسودة')">حفظ كمسودة</button><button onclick="saveActivity('مرسل للمراجعة')">إرسال للمراجعة</button></div><div id="activityMsg" class="msg full"></div>
+</div></section>
+
+<section id="activities" class="screen"><div class="head"><h2>الأنشطة</h2><button class="ghost" onclick="dashboard()">رجوع</button></div><div class="card table"><table><thead><tr><th>الرقم</th><th>النشاط</th><th>التاريخ</th><th>المشاركون</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="activitiesBody"></tbody></table></div></section>
+
+<section id="reviews" class="screen"><div class="head"><h2>المراجعة والاعتماد</h2><button class="ghost" onclick="dashboard()">رجوع</button></div><div class="card table"><table><thead><tr><th>الرقم</th><th>النشاط</th><th>المشاركون</th><th>الإجراء</th></tr></thead><tbody id="reviewsBody"></tbody></table></div></section>
+
+<section id="mods" class="screen"><div class="head"><h2>طلبات تعديل السجلات المعتمدة</h2><button class="ghost" onclick="dashboard()">رجوع</button></div><div class="card table"><table><thead><tr><th>الطلب</th><th>السجل</th><th>السبب</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody id="modsBody"></tbody></table></div></section>
+
+<section id="reports" class="screen"><div class="head"><h2>التقارير</h2><button class="ghost" onclick="dashboard()">رجوع</button></div>
+<div class="card form"><label>نوع التقرير<select id="reportType"><option>تقرير نشاط واحد</option><option>تقرير شهري</option><option>تقرير سنوي</option></select></label><label>السجل (للتقرير الفردي)<select id="reportRecord"></select></label><label>الشهر<input id="reportMonth" type="month"></label><label>السنة<input id="reportYear" type="number" value="2026"></label><div class="full rowBtns"><button onclick="prepareReport()">إعداد التقرير</button></div></div>
+<div id="reportPreview" class="card hidden"></div>
+<div class="card table"><h3>سجل التقارير</h3><table><thead><tr><th>رقم التقرير</th><th>النوع</th><th>الحالة</th><th>التاريخ</th><th>الإجراءات</th></tr></thead><tbody id="reportsBody"></tbody></table></div>
+</section>
+
+<section id="admin" class="screen"><div class="head"><h2>إدارة المنتديات</h2><button class="ghost" onclick="dashboard()">رجوع</button></div><div class="card form"><label>اسم المنتدى<input id="newForumName"></label><label>رمز الدخول<input id="newForumCode"></label><div class="full"><button onclick="addForum()">+ إضافة منتدى</button></div><div id="adminMsg" class="msg full"></div></div><div class="card table"><table><thead><tr><th>ForumID</th><th>الاسم</th><th>رمز الدخول</th><th>الحالة</th></tr></thead><tbody id="forumsBody"></tbody></table></div></section>
+</div>
+
+<script>
+const seedForums=[{id:"F001",name:"منتدى الرعاية العلمية",code:"001",active:true},{id:"F002",name:"منتدى نموذجي ثانٍ",code:"002",active:true}];
+const seedUsers=[{id:"U001",login:"employee",pass:"1234",name:"موظف تجريبي",role:"موظف القسم",forum:"F001",dept:"D001"},{id:"U002",login:"manager",pass:"1234",name:"مسؤول المنتدى",role:"مسؤول المنتدى",forum:"F001",dept:null},{id:"U003",login:"admin",pass:"1234",name:"مدير النظام",role:"مدير النظام",forum:null,dept:null}];
+const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d)),save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+let forums=load("v17_forums",seedForums),users=load("v17_users",seedUsers),acts=load("v17_acts",[]),mods=load("v17_mods",[]),reports=load("v17_reports",[]),audit=load("v17_audit",[]);
+let selected=null,current=null;
+function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active")}
+function enterForum(){selected=forums.find(f=>f.code===forumCode.value.trim()&&f.active);if(!selected){gateMsg.textContent="رمز غير صحيح أو المنتدى موقوف";gateMsg.className="msg err";return}forumNameBadge.textContent=selected.name;show("login")}
+function doLogin(){const u=users.find(x=>x.login===loginName.value.trim()&&x.pass===loginPass.value);if(!u){loginMsg.textContent="بيانات الدخول غير صحيحة";loginMsg.className="msg err";return}if(u.role!=="مدير النظام"&&u.forum!==selected.id){loginMsg.textContent="هذا الحساب غير مخول لهذا المنتدى";loginMsg.className="msg err";return}current=u;logoutBtn.classList.remove("hidden");dashboard()}
+function logout(){selected=null;current=null;logoutBtn.classList.add("hidden");show("gate")}
+function scopedActs(){if(current.role==="مدير النظام")return acts;return acts.filter(a=>a.forum===current.forum&&(!current.dept||a.dept===current.dept||current.role==="مسؤول المنتدى"))}
+function scopedMods(){if(current.role==="مدير النظام")return mods;return mods.filter(m=>m.forum===current.forum)}
+function scopedReports(){if(current.role==="مدير النظام")return reports;return reports.filter(r=>r.forum===current.forum)}
+function dashboard(){const s=scopedActs();dashForum.textContent=current.role==="مدير النظام"?selected.name:forums.find(f=>f.id===current.forum).name;dashUser.textContent=current.name+" — "+current.role;kApproved.textContent=s.filter(a=>a.status==="معتمد").length;kSubmitted.textContent=s.filter(a=>a.status==="مرسل للمراجعة").length;kMods.textContent=scopedMods().filter(m=>m.status==="بانتظار الموافقة").length;kReports.textContent=scopedReports().filter(r=>r.status==="صادر").length;reviewBtn.classList.toggle("hidden",current.role==="موظف القسم");modBtn.classList.toggle("hidden",current.role==="موظف القسم");adminBtn.classList.toggle("hidden",current.role!=="مدير النظام");show("dash")}
+function sumParticipants(){total.value=Number(male.value||0)+Number(female.value||0)}
+function nextId(prefix,list){return prefix+String(list.length+1).padStart(5,"0")}
+function saveActivity(status){if(!activityName.value.trim()||!activityDate.value||!location.value.trim()){activityMsg.textContent="أدخل اسم النشاط والتاريخ والمكان";activityMsg.className="msg err";return}const forum=current.role==="مدير النظام"?selected.id:current.forum;const now=new Date().toISOString();const rec={id:"ACT-"+forum+"-"+String(acts.length+1).padStart(6,"0"),forum,dept:current.dept||"D000",type:type.value,name:activityName.value.trim(),date:activityDate.value,location:location.value,male:Number(male.value||0),female:Number(female.value||0),total:Number(male.value||0)+Number(female.value||0),age:age.value,org:org.value,visitors:visitors.value,description:description.value,notes:notes.value,status,version:"1.0",createdBy:current.id,createdAt:now};acts.push(rec);audit.push({at:now,user:current.id,action:"إنشاء نشاط",record:rec.id});save("v17_acts",acts);save("v17_audit",audit);activityMsg.textContent="تم الحفظ";activityMsg.className="msg ok";setTimeout(dashboard,250)}
+function openActivities(){const s=scopedActs();activitiesBody.innerHTML=s.length?s.map(a=>'<tr><td>'+a.id+'</td><td>'+a.name+'</td><td>'+a.date+'</td><td>'+a.total+'</td><td><span class="pill">'+a.status+'</span></td><td class="rowBtns">'+((a.status==="مسودة"||a.status==="معاد للتعديل")?'<button onclick="sendReview(\''+a.id+'\')">إرسال للمراجعة</button>':'')+(a.status==="معتمد"?'<button onclick="requestEdit(\''+a.id+'\')">طلب تعديل</button><button class="gold" onclick="startSingleReport(\''+a.id+'\')">إعداد تقرير</button>':'')+'</td></tr>').join(""):'<tr><td colspan="6">لا توجد سجلات</td></tr>';show("activities")}
+function sendReview(id){const a=acts.find(x=>x.id===id);a.status="مرسل للمراجعة";audit.push({at:new Date().toISOString(),user:current.id,action:"إرسال للمراجعة",record:id});save("v17_acts",acts);save("v17_audit",audit);openActivities()}
+function openReviews(){const s=scopedActs().filter(a=>a.status==="مرسل للمراجعة");reviewsBody.innerHTML=s.length?s.map(a=>'<tr><td>'+a.id+'</td><td>'+a.name+'</td><td>'+a.total+'</td><td><button onclick="approve(\''+a.id+'\')">اعتماد</button> <button class="danger" onclick="returnEdit(\''+a.id+'\')">إعادة</button></td></tr>').join(""):'<tr><td colspan="4">لا توجد عناصر</td></tr>';show("reviews")}
+function approve(id){const a=acts.find(x=>x.id===id);a.status="معتمد";a.approvedBy=current.id;a.approvedAt=new Date().toISOString();audit.push({at:a.approvedAt,user:current.id,action:"اعتماد",record:id});save("v17_acts",acts);save("v17_audit",audit);openReviews()}
+function returnEdit(id){const n=prompt("سبب الإعادة للتعديل:")||"";const a=acts.find(x=>x.id===id);a.status="معاد للتعديل";a.reviewNote=n;save("v17_acts",acts);openReviews()}
+function requestEdit(id){const reason=prompt("اكتب سبب طلب التعديل على السجل المعتمد:");if(!reason)return;const a=acts.find(x=>x.id===id);mods.push({id:nextId("MOD-",mods),record:id,forum:a.forum,requester:current.id,reason,status:"بانتظار الموافقة",createdAt:new Date().toISOString()});save("v17_mods",mods);alert("تم إرسال طلب التعديل للموافقة")}
+function openModRequests(){const s=scopedMods();modsBody.innerHTML=s.length?s.map(m=>'<tr><td>'+m.id+'</td><td>'+m.record+'</td><td>'+m.reason+'</td><td>'+m.status+'</td><td>'+(m.status==="بانتظار الموافقة"?'<button onclick="approveMod(\''+m.id+'\')">موافقة</button> <button class="danger" onclick="rejectMod(\''+m.id+'\')">رفض</button>':'-')+'</td></tr>').join(""):'<tr><td colspan="5">لا توجد طلبات</td></tr>';show("mods")}
+function approveMod(mid){const m=mods.find(x=>x.id===mid);m.status="موافق عليه";m.approvedBy=current.id;m.approvedAt=new Date().toISOString();const a=acts.find(x=>x.id===m.record);a.status="معاد للتعديل";a.version=(parseFloat(a.version)+0.1).toFixed(1);audit.push({at:m.approvedAt,user:current.id,action:"موافقة على طلب تعديل",record:a.id});save("v17_mods",mods);save("v17_acts",acts);save("v17_audit",audit);openModRequests()}
+function rejectMod(mid){const m=mods.find(x=>x.id===mid);m.status="مرفوض";m.approvedBy=current.id;m.approvedAt=new Date().toISOString();save("v17_mods",mods);openModRequests()}
+function openReports(){const approved=scopedActs().filter(a=>a.status==="معتمد");reportRecord.innerHTML=approved.map(a=>'<option value="'+a.id+'">'+a.id+' — '+a.name+'</option>').join("");renderReports();show("reports")}
+function startSingleReport(id){openReports();reportType.value="تقرير نشاط واحد";reportRecord.value=id;prepareReport()}
+function prepareReport(){const type=reportType.value;let selectedActs=[];if(type==="تقرير نشاط واحد"){const a=acts.find(x=>x.id===reportRecord.value);if(a)selectedActs=[a]}else if(type==="تقرير شهري"){const ym=reportMonth.value;selectedActs=scopedActs().filter(a=>a.status==="معتمد"&&a.date.startsWith(ym))}else{const y=String(reportYear.value);selectedActs=scopedActs().filter(a=>a.status==="معتمد"&&a.date.startsWith(y))}if(!selectedActs.length){alert("لا توجد بيانات معتمدة لهذا التقرير");return}const forum=forums.find(f=>f.id===selectedActs[0].forum);const totalP=selectedActs.reduce((s,a)=>s+a.total,0),males=selectedActs.reduce((s,a)=>s+a.male,0),females=selectedActs.reduce((s,a)=>s+a.female,0);const rid=nextId("RPT-",reports);const now=new Date().toISOString();const payload="FORUMSYS|"+rid+"|"+forum.id+"|APPROVED|"+now;const rep={id:rid,forum:forum.id,type,status:"صادر",createdAt:now,createdBy:current.id,activityIds:selectedActs.map(a=>a.id),totalP,males,females,payload};reports.push(rep);save("v17_reports",reports);const rows=selectedActs.map(a=>'<tr><td>'+a.id+'</td><td>'+a.name+'</td><td>'+a.date+'</td><td>'+a.total+'</td></tr>').join("");reportPreview.classList.remove("hidden");reportPreview.innerHTML='<div class="reportBox" id="printArea"><h2>تقرير رسمي</h2><p><b>رقم التقرير:</b> '+rid+'</p><p><b>الجهة:</b> '+forum.name+'</p><p><b>نوع التقرير:</b> '+type+'</p><table><thead><tr><th>السجل</th><th>النشاط</th><th>التاريخ</th><th>المشاركون</th></tr></thead><tbody>'+rows+'</tbody></table><p><b>إجمالي المشاركين:</b> '+totalP+' | <b>الذكور:</b> '+males+' | <b>الإناث:</b> '+females+'</p><div id="qrHere" class="qr"></div><p style="text-align:center;font-size:12px">QR Code للتحقق من رقم التقرير والجهة وحالة الإصدار.</p></div><div class="rowBtns"><button onclick="exportWord(\''+rid+'\')">تصدير Word</button><button onclick="exportPDF()">تصدير PDF</button><button onclick="shareReport(\''+rid+'\')">مشاركة</button></div>';setTimeout(()=>new QRCode(document.getElementById("qrHere"),{text:payload,width:150,height:150}),50);renderReports()}
+function renderReports(){const s=scopedReports();reportsBody.innerHTML=s.length?s.map(r=>'<tr><td>'+r.id+'</td><td>'+r.type+'</td><td>'+r.status+'</td><td>'+r.createdAt.slice(0,10)+'</td><td><button onclick="shareReport(\''+r.id+'\')">مشاركة</button></td></tr>').join(""):'<tr><td colspan="5">لا توجد تقارير</td></tr>'}
+function exportWord(id){const html=document.getElementById("printArea").outerHTML;const blob=new Blob(['<html dir="rtl"><meta charset="utf-8"><body>'+html+'</body></html>'],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=id+".doc";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function exportPDF(){const html=document.getElementById("printArea").outerHTML;const w=window.open("","_blank");w.document.write('<html dir="rtl"><meta charset="utf-8"><title>تقرير</title><body>'+html+'<script>window.onload=()=>window.print()<\/script></body></html>');w.document.close()}
+async function shareReport(id){const r=reports.find(x=>x.id===id);const text="تقرير "+r.id+" — "+r.type+" — حالة: "+r.status+"\n"+r.payload;if(navigator.share){try{await navigator.share({title:r.id,text})}catch(e){}}else{await navigator.clipboard.writeText(text);alert("تم نسخ بيانات التقرير للمشاركة")}}
+function openAdmin(){renderForums();show("admin")}
+function renderForums(){forumsBody.innerHTML=forums.map(f=>'<tr><td>'+f.id+'</td><td>'+f.name+'</td><td>'+f.code+'</td><td>'+(f.active?"فعال":"موقوف")+'</td></tr>').join("")}
+function addForum(){const n=newForumName.value.trim(),c=newForumCode.value.trim();if(!n||!c){adminMsg.textContent="أدخل الاسم والرمز";adminMsg.className="msg err";return}if(forums.some(f=>f.code===c)){adminMsg.textContent="الرمز مستخدم";adminMsg.className="msg err";return}forums.push({id:"F"+String(forums.length+1).padStart(3,"0"),name:n,code:c,active:true});save("v17_forums",forums);renderForums();adminMsg.textContent="تمت الإضافة";adminMsg.className="msg ok"}
+</script>
+</body></html>
