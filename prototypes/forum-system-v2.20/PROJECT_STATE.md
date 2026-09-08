@@ -28,3 +28,12 @@ v2.19 remains preserved unchanged as rollback baseline.
 
 ## Notifications
 - Stale approval notifications disappear after Issued, Rejected or Revoked states.
+
+
+## Additional full-project QA corrections
+- Fixed SLA warning expression precedence: warning now activates between 75% and 100% of SLA.
+- Added current PendingForumManager and Rejected mappings to legacy report status normalization.
+- Annual rejected/change count now uses reportYear + activityTypeFilter instead of parsing legacy scopeKey.
+- Legacy monthly/annual scopeKeyV2 normalization is activity-type aware.
+- Rejection reason is rendered inside official report metadata.
+- Logic Audit flags rejected reports without a documented reason and ambiguous old aggregate report scope.
