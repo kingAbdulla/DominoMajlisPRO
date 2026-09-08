@@ -11,6 +11,11 @@ create table if not exists public.profiles (
   status text not null default 'Active',
   disabled boolean not null default false,
   last_login_at timestamptz,
+  must_change_password boolean not null default false,
+  password_changed_at timestamptz,
+  temporary_password_issued_at timestamptz,
+  temporary_password_expires_at timestamptz,
+  password_reset_by_user_id text,
   created_at timestamptz not null default now()
 );
 
@@ -32,6 +37,13 @@ create table if not exists public.cloud_documents (
   updated_by uuid default auth.uid(),
   primary key (collection,row_id)
 );
+
+-- Password lifecycle fields for existing databases.
+alter table public.profiles add column if not exists must_change_password boolean not null default false;
+alter table public.profiles add column if not exists password_changed_at timestamptz;
+alter table public.profiles add column if not exists temporary_password_issued_at timestamptz;
+alter table public.profiles add column if not exists temporary_password_expires_at timestamptz;
+alter table public.profiles add column if not exists password_reset_by_user_id text;
 
 create index if not exists idx_cloud_documents_forum on public.cloud_documents(forum_id);
 create index if not exists idx_cloud_documents_collection on public.cloud_documents(collection);
