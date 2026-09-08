@@ -1,0 +1,9 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>التحقق من التقرير</title><style>
+body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f3f6f9;color:#17212b}.wrap{max-width:720px;margin:40px auto;padding:16px}.card{background:white;border:1px solid #d6e0e8;border-radius:18px;padding:24px;box-shadow:0 8px 24px #10203014}.ok{color:#067647;font-size:48px;text-align:center}.bad{color:#b42318}.row{padding:10px 0;border-bottom:1px solid #edf0f2}.row b{display:inline-block;min-width:140px}h1{text-align:center;color:#12324f}
+</style></head><body><div class="wrap"><div class="card"><h1>التحقق من التقرير</h1><div id="icon" class="ok">✓</div><div id="content"></div></div></div><script>
+const q=new URLSearchParams(location.search);const id=q.get("report"),forum=q.get("forum"),status=q.get("status"),version=q.get("version"),date=q.get("date");
+const valid=id&&forum&&status&&version;document.getElementById("icon").textContent=valid?"✓":"!";document.getElementById("icon").className=valid?"ok":"ok bad";
+document.getElementById("content").innerHTML=valid?
+'<div class="row"><b>الحالة:</b> '+decodeURIComponent(status)+'</div><div class="row"><b>رقم التقرير:</b> '+id+'</div><div class="row"><b>المنتدى:</b> '+forum+'</div><div class="row"><b>الإصدار:</b> '+version+'</div><div class="row"><b>تاريخ الإصدار:</b> '+(date||"-")+'</div><p style="margin-top:18px">هذه صفحة تحقق تجريبية. في النسخة السحابية النهائية سيتم جلب الحالة مباشرة من قاعدة البيانات المركزية، بحيث يظهر التقرير ملغى أو مؤرشف إذا تغيّرت حالته.</p>':
+'<p class="bad">بيانات التحقق غير مكتملة.</p>';
+</script></body></html>
