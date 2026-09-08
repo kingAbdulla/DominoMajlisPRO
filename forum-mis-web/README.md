@@ -7,3 +7,5 @@ This folder is the production web deployment target for the Government Forum MIS
 - Current persistence layer: browser localStorage (temporary)
 - Next production milestone: shared cloud database + authenticated API
 - Do not edit production data architecture here without updating PROJECT_STATE.
+
+Deployment trigger: production web initialized.
