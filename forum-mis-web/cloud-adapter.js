@@ -269,6 +269,52 @@
       if(x.status==="RETRY")scheduleFlush(RETRY_DELAYS[Math.min(x.retries-1,RETRY_DELAYS.length-1)]);
     }
   }
+  const officialRecord=item=>{
+    if(item.collection==="audit_events")return true;
+    if(item.collection!=="reports")return false;
+    const p=item.payload||{},r=item.remoteSnapshot?.payload||{};
+    const status=String(p.statusCode||p.status||r.statusCode||r.status||"");
+    return /Issued|Approved|صادر|معتمد|Revoked|ملغى/i.test(status);
+  };
+  const canResolveConflict=item=>{
+    if(!profile||!item||item.status!=="CONFLICT")return false;
+    if(["المطور","مدير الإدارة"].includes(profile.role))return true;
+    if(profile.role==="مدير المنتدى"&&!officialRecord(item)){
+      return !item.forumId||item.forumId===profile.forum_id;
+    }
+    return false;
+  };
+  async function resolveConflict(queueId,decision){
+    if(!client||!profile)throw new Error("يجب تسجيل الدخول أولاً");
+    if(!online())throw new Error("يلزم الاتصال بالإنترنت لحسم التعارض.");
+    const q=queueLoad(),item=q.find(x=>x.queueId===queueId);
+    if(!item||item.status!=="CONFLICT")throw new Error("سجل التعارض غير موجود.");
+    if(!canResolveConflict(item))throw new Error("ليست لديك صلاحية حسم هذا التعارض.");
+    if(!["LOCAL","CLOUD"].includes(decision))throw new Error("قرار حسم غير صالح.");
+
+    if(decision==="CLOUD"){
+      if(item.remoteSnapshot)updateCacheRow(item.remoteSnapshot);
+      else removeCacheRow(item.collection,item.rowId);
+      queueSave(q.filter(x=>x.queueId!==queueId));
+      metaSave({lastSyncAt:nowIso(),lastError:null});
+      emitSyncState();
+      window.dispatchEvent(new CustomEvent("forum-mis-conflict-resolved",{detail:{queueId,decision,collection:item.collection,rowId:item.rowId,official:officialRecord(item)}}));
+      window.dispatchEvent(new Event("forum-mis-cloud-pull"));
+      return {ok:true,decision};
+    }
+
+    const row={collection:item.collection,row_id:item.rowId,forum_id:item.forumId||null,owner_user_id:item.userId||null,payload:item.payload,updated_at:nowIso()};
+    const {data:saved,error}=await client.from("cloud_documents").upsert(row,{onConflict:"collection,row_id"}).select("collection,row_id,forum_id,owner_user_id,payload,updated_at").single();
+    if(error)throw error;
+    updateCacheRow(saved||row);
+    queueSave(q.filter(x=>x.queueId!==queueId));
+    metaSave({lastSyncAt:nowIso(),lastError:null});
+    emitSyncState();
+    window.dispatchEvent(new CustomEvent("forum-mis-conflict-resolved",{detail:{queueId,decision,collection:item.collection,rowId:item.rowId,official:officialRecord(item)}}));
+    window.dispatchEvent(new Event("forum-mis-cloud-pull"));
+    return {ok:true,decision};
+  }
+
   async function flushQueue(){
     if(!client||!profile||!online())return emitSyncState();
     clearTimeout(flushTimer);flushTimer=null;
@@ -301,5 +347,5 @@
   }
   window.addEventListener("online",()=>{emit("pending","بانتظار المزامنة");scheduleFlush(100)});
   window.addEventListener("offline",()=>emitSyncState());
-  window.CloudBridge={configured,init,lookupForum,signIn,signOut,hydrate,pushAll,onLocalSave,legacyCurrent,adminUserAction,changeOwnPassword,flushQueue,getSyncQueue:()=>queueLoad().slice(),getSyncState:()=>({online:online(),queue:queueLoad().slice(),meta:metaLoad(),scope:scopeId()}),getProfiles:()=>profiles.slice(),getProfile:()=>profile};
+  window.CloudBridge={configured,init,lookupForum,signIn,signOut,hydrate,pushAll,onLocalSave,legacyCurrent,adminUserAction,changeOwnPassword,flushQueue,resolveConflict,canResolveConflict,getSyncQueue:()=>queueLoad().slice(),getSyncState:()=>({online:online(),queue:queueLoad().slice(),meta:metaLoad(),scope:scopeId()}),getProfiles:()=>profiles.slice(),getProfile:()=>profile};
 })();
