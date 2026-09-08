@@ -46,7 +46,7 @@ button{border:0;border-radius:10px;padding:11px 15px;background:var(--blue);colo
 
 <section id="standardDash" class="screen"><div class="card"><h2 id="dashForum"></h2><p id="dashUser"></p></div>
 <div class="kpis"><div class="kpi"><span>الأنشطة المعتمدة</span><strong id="kApproved">0</strong></div><div class="kpi"><span>بانتظار القرار</span><strong id="kSubmitted">0</strong></div><div class="kpi"><span>مرفوض / طلب تعديل</span><strong id="kReturned">0</strong></div><div class="kpi"><span>التقارير الصادرة</span><strong id="kReports">0</strong></div></div>
-<div class="actions"><button id="addBtn" onclick="newActivity()">+ إضافة نشاط</button><button onclick="openActivities()">الأنشطة</button><button onclick="openReports()">التقارير</button><div class="notifyWrap"><button style="width:100%" onclick="openNotifications()">الإشعارات</button><span id="notifyCount" class="notifyCount hidden">0</span></div></div>
+<div class="actions"><button id="addBtn" onclick="newActivity()">+ إضافة نشاط</button><button onclick="openActivities()">الأنشطة</button><button id="reportsBtn" onclick="openReports()">التقارير</button><div class="notifyWrap"><button style="width:100%" onclick="openNotifications()">الإشعارات</button><span id="notifyCount" class="notifyCount hidden">0</span></div></div>
 <div class="actions"><button onclick="openArchive()">الأرشيف</button><button id="auditBtn" onclick="openAudit()">سجل التدقيق</button><button id="settingsBtn" onclick="openSettings()">إعدادات المنتدى</button><button id="techBtn" onclick="openTechSettings()">الإعدادات التقنية</button></div>
 </section>
 
@@ -72,7 +72,8 @@ button{border:0;border-radius:10px;padding:11px 15px;background:var(--blue);colo
 <div class="adminHero"><div><h2>لوحة إدارة النظام</h2><div>إدارة تقنية للحسابات والمنتديات وسلامة البيانات — دون التدخل في القرار الإداري</div></div><div class="tag">ADMIN • Technical Governance</div></div>
 <div class="kpis"><div class="kpi"><span>الحسابات</span><strong id="adUsers">0</strong></div><div class="kpi"><span>المنتديات</span><strong id="adForums">0</strong></div><div class="kpi"><span>إجمالي السجلات</span><strong id="adRecords">0</strong></div><div class="kpi"><span>ملاحظات سلامة البيانات</span><strong id="adIssues">0</strong></div></div>
 <div class="actions"><button onclick="openAdminUsers()">إدارة الحسابات</button><button onclick="openAdminForums()">إدارة المنتديات</button><button onclick="openDataIntegrity()">سلامة البيانات</button><button onclick="openAudit()">سجل التدقيق</button></div>
-<div class="actions"><button onclick="openSystemSecurity()">الأمان والصلاحيات التقنية</button><button onclick="openBackupCenter()">النسخ الاحتياطي</button><button onclick="openQrSettings()">إعدادات QR</button><button onclick="openAuthoritySettings()">الهوية الرسمية</button></div>
+<div class="actions"><button onclick="openActivities()">سجل الأنشطة</button><button onclick="openReports()">سجل التقارير الرسمية</button><button onclick="openSystemSecurity()">الأمان والصلاحيات التقنية</button><button onclick="openBackupCenter()">النسخ الاحتياطي</button></div>
+<div class="actions"><button onclick="openQrSettings()">إعدادات QR</button><button onclick="openAuthoritySettings()">الهوية الرسمية</button><button onclick="openPermissions()">مصفوفة الصلاحيات</button></div>
 <div class="adminGrid">
   <div class="adminPanel"><h3>حالة النظام</h3><div id="adminHealth" class="healthGrid"></div></div>
   <div class="adminPanel"><h3>آخر أحداث التدقيق</h3><div id="adminRecentAudit"></div></div>
@@ -109,8 +110,8 @@ button{border:0;border-radius:10px;padding:11px 15px;background:var(--blue);colo
 
 
 <section id="reports" class="screen">
-<div class="head"><div><h2>سجل التقارير الرسمية</h2><div class="subtitle">جميع التقارير المعدة محفوظة هنا. افتح التقرير من زر «فتح».</div></div><button class="ghost" onclick="goHome()">رجوع</button></div>
-<div class="reportsToolbar"><div><button id="newReportBtn" onclick="openReportBuilder()">+ إعداد تقرير جديد</button></div><div class="badge" id="reportRegistryCount">0 تقرير</div></div>
+<div class="head"><div><h2>سجل التقارير الرسمية</h2><div class="subtitle" id="reportRegistrySubtitle">جميع التقارير المعدة محفوظة هنا. افتح التقرير من زر «فتح».</div></div><button class="ghost" onclick="goHome()">رجوع</button></div>
+<div class="reportsToolbar"><div><button id="newReportBtn" onclick="openReportBuilder()">+ إعداد تقرير جديد</button></div><div style="display:flex;gap:8px;align-items:center"><span id="reportAccessBadge" class="badge"></span><div class="badge" id="reportRegistryCount">0 تقرير</div></div></div>
 <div class="card table"><table><thead><tr><th>رقم التقرير</th><th>المنتدى</th><th>نوع التقرير</th><th>الحالة</th><th>الإصدار</th><th>كاتب التقرير</th><th>المعتمد</th><th>الإجراءات</th></tr></thead><tbody id="reportsBody"></tbody></table></div>
 </section>
 
@@ -198,7 +199,7 @@ function logout(){current=null;selected=null;el("logoutBtn").classList.add("hidd
 function goHome(){updateNotificationBadges();if(has(Capability.Tech)){renderAdminDashboard();show("adminDash")}else if(has(Capability.DirectorDashboard)){renderDirectorDashboard();show("directorDash")}else{renderStandardDashboard();show("standardDash")}}
 function scopedActs(){if(has(Capability.ViewAll))return acts;return acts.filter(a=>(a.forumId||a.forum)===(current.forumId||current.forum))}
 function scopedReports(){if(has(Capability.ViewAll))return reports;return reports.filter(r=>(r.forumId||r.forum)===(current.forumId||current.forum))}
-function renderStandardDashboard(){const a=scopedActs().filter(x=>!x.archived),r=scopedReports().filter(x=>!x.archived);el("dashForum").textContent=current.forum?forumName(current.forum):(selected?.name||"النظام");el("dashUser").textContent=current.name+" — "+current.role+(current.validUntil?" — صلاحية حتى "+current.validUntil:"");el("kApproved").textContent=a.filter(x=>x.status==="معتمد").length;el("kSubmitted").textContent=a.filter(x=>x.status==="مرسل للمراجعة").length;el("kReturned").textContent=a.filter(x=>["مرفوض","طلب تعديل"].includes(x.status)).length;el("kReports").textContent=r.filter(x=>x.status==="صادر").length;el("addBtn").classList.toggle("hidden",!has(Capability.Create));el("auditBtn").classList.toggle("hidden",!has(Capability.Audit));el("settingsBtn").classList.toggle("hidden",!has(Capability.ForumIdentity));el("techBtn").classList.toggle("hidden",!has(Capability.Tech))}
+function renderStandardDashboard(){const a=scopedActs().filter(x=>!x.archived),r=scopedReports().filter(x=>!x.archived);el("dashForum").textContent=current.forum?forumName(current.forum):(selected?.name||"النظام");el("dashUser").textContent=current.name+" — "+current.role+(current.validUntil?" — صلاحية حتى "+current.validUntil:"");el("kApproved").textContent=a.filter(x=>x.status==="معتمد").length;el("kSubmitted").textContent=a.filter(x=>x.status==="مرسل للمراجعة").length;el("kReturned").textContent=a.filter(x=>["مرفوض","طلب تعديل"].includes(x.status)).length;el("kReports").textContent=r.filter(x=>x.status==="صادر").length;el("addBtn").classList.toggle("hidden",!has(Capability.Create));el("auditBtn").classList.toggle("hidden",!has(Capability.Audit));el("settingsBtn").classList.toggle("hidden",!has(Capability.ForumIdentity));el("techBtn").classList.toggle("hidden",!has(Capability.Tech));if(el("reportsBtn"))el("reportsBtn").classList.remove("hidden")}
 function filterDirectorActs(){const y=el("filterYear").value,m=el("filterMonth").value,t=el("filterType").value,s=el("filterStatus").value;return acts.filter(a=>!a.archived&&(!y||a.date.startsWith(y))&&(!m||a.date.slice(5,7)===m)&&(!t||a.type===t)&&(!s||a.status===s))}
 function monthGrowth(fid){const cur=acts.filter(a=>a.forum===fid&&a.date.startsWith("2026-09")&&!a.archived).length,prev=acts.filter(a=>a.forum===fid&&a.date.startsWith("2026-08")&&!a.archived).length;if(!prev)return cur?100:0;return Math.round((cur-prev)/prev*100)}
 function stats(fid,list){const x=list.filter(a=>a.forum===fid),approved=x.filter(a=>a.status==="معتمد").length,pending=x.filter(a=>a.status==="مرسل للمراجعة").length,rejected=x.filter(a=>a.status==="مرفوض").length,changes=x.filter(a=>a.status==="طلب تعديل").length,participants=x.reduce((s,a)=>s+a.total,0),male=x.reduce((s,a)=>s+a.male,0),female=x.reduce((s,a)=>s+a.female,0),partners=new Set(x.map(a=>a.org).filter(Boolean)).size,vips=x.filter(a=>a.visitors).length,issued=reports.filter(r=>r.forum===fid&&r.status==="صادر"&&!r.archived).length,pendingReports=reports.filter(r=>r.forum===fid&&r.status!=="صادر"&&!r.archived).length;return{fid,total:x.length,approved,pending,rejected,changes,participants,male,female,partners,vips,issued,pendingReports,growth:monthGrowth(fid)}}
@@ -281,9 +282,15 @@ function reopenActivity(id){const reason=prompt("سبب إعادة فتح الن
 function revokeActivity(id){const reason=prompt("سبب إلغاء الاعتماد (إلزامي):")||"";if(!reason.trim())return;const a=acts.find(x=>x.id===id);a.reviewLock=null;a.status="طلب تعديل";a.statusCode="ChangeRequested";a.decision="تم إلغاء الاعتماد";a.reason=reason;a.timeline.push({at:new Date().toISOString(),user:current.id,event:"إلغاء اعتماد النشاط",note:reason});S("v29_acts",acts);log("إلغاء اعتماد نشاط",id,reason);notify(a.createdBy,"تم إلغاء اعتماد النشاط — "+reason,id);openActivities()}
 function archiveActivity(id){if(!confirm("أرشفة النشاط؟"))return;const a=acts.find(x=>x.id===id);a.archived=true;a.timeline.push({at:new Date().toISOString(),user:current.id,event:"أرشفة النشاط",note:""});S("v29_acts",acts);log("أرشفة نشاط",id,"");openActivities()}
 function openReports(forumFilter=null){
- let r=scopedReports().filter(x=>!x.archived);if(forumFilter)r=r.filter(x=>(x.forumId||x.forum)===forumFilter);
- el("newReportBtn").classList.toggle("hidden",!has(Capability.PrepareReport));
- renderReports(r);show("reports");
+ if(!current)return show("gate");
+ let r=scopedReports().filter(x=>!x.archived);
+ if(forumFilter)r=r.filter(x=>(x.forumId||x.forum)===forumFilter);
+ const newBtn=el("newReportBtn");if(newBtn)newBtn.classList.toggle("hidden",!has(Capability.PrepareReport));
+ const editPanel=el("reportEditPanel");if(editPanel)editPanel.classList.add("hidden");
+ const builder=el("reportBuilder");if(builder)builder.classList.remove("hidden");
+ if(el("reportRegistrySubtitle"))el("reportRegistrySubtitle").textContent=has(Capability.ViewAll)?"سجل شامل للتقارير في جميع المنتديات — افتح أي تقرير من زر «فتح».":"سجل تقارير المنتدى المرتبط بحسابك — افتح التقرير من زر «فتح».";
+ renderReports(r);
+ show("reports");
 }
 function populateReportBuilder(forumFilter=null){
  const approved=scopedActs().filter(a=>a.status==="معتمد"&&!a.archived&&(forumFilter?(a.forumId||a.forum)===forumFilter:true));
@@ -359,7 +366,7 @@ function renderReport(r,arr){
  el("reportPreview").innerHTML=body+'<div class="rowBtns" style="margin-top:12px">'+((has(Capability.ApproveReport)&&r.status==="بانتظار اعتماد المدير")?'<button class="okbtn" onclick="approveReport(\''+(r.reportId||r.id)+'\')">اعتماد وإصدار التقرير</button>':'')+(has(Capability.RevokeReport)&&r.status==="صادر"?'<button class="danger" onclick="revokeReport(\''+(r.reportId||r.id)+'\')">إلغاء اعتماد التقرير</button>':'')+(r.status==="صادر"?'<button onclick="exportWord(\''+(r.reportId||r.id)+'\')">تصدير Word</button><button onclick="exportPDF()">PDF / طباعة</button><button class="gold" onclick="shareReport(\''+(r.reportId||r.id)+'\')">مشاركة التقرير</button>':'')+(has(Capability.Archive)&&r.status==="صادر"?'<button class="mutedbtn" onclick="archiveReport(\''+(r.reportId||r.id)+'\')">أرشفة</button>':'')+'</div>';
 }
 function renderReports(list=null){
- const r=list||scopedReports().filter(x=>!x.archived);el("reportRegistryCount").textContent=r.length+" تقرير";
+ const r=list||scopedReports().filter(x=>!x.archived);el("reportRegistryCount").textContent=r.length+" تقرير";if(el("reportAccessBadge"))el("reportAccessBadge").textContent=has(Capability.PrepareReport)?"يمكنك إعداد تقرير":"قراءة السجل فقط";
  el("reportsBody").innerHTML=r.length?r.map(x=>'<tr><td>'+esc(x.id)+'</td><td>'+esc(forumName(x.forumId||x.forum))+'</td><td>'+esc(x.type)+'</td><td>'+esc(x.status)+'</td><td>V'+esc(x.version)+'</td><td>'+esc(x.reportWriterName||userName(x.writerUserId||x.createdBy))+'</td><td>'+esc(x.approvedByUserId?userName(x.approvedByUserId):"-")+'</td><td><div class="rowBtns"><button onclick="viewReport(\''+(x.reportId||x.id)+'\')">فتح</button>'+(canEditReport(x)?'<button class="gold" onclick="editReport(\''+(x.reportId||x.id)+'\')">تعديل</button>':'')+(has(Capability.ApproveReport)&&x.status==="بانتظار اعتماد المدير"?'<button class="okbtn" onclick="approveReport(\''+(x.reportId||x.id)+'\')">اعتماد</button>':'')+(has(Capability.Archive)&&x.status==="صادر"?'<button class="mutedbtn" onclick="archiveReport(\''+(x.reportId||x.id)+'\')">أرشفة</button>':'')+(has(Capability.DeleteDraft)&&x.status!=="صادر"?'<button class="danger" onclick="deleteOperationalReport(\''+(x.reportId||x.id)+'\')">حذف</button>':'')+'</div></td></tr>').join(""):'<tr><td colspan="8">لا توجد تقارير حتى الآن</td></tr>';
 }
 function reportActivities(r){const ids=r?.activityIds||[];return ids.map(activityById).filter(Boolean)}
