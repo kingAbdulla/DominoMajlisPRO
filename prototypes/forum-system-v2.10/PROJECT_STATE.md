@@ -38,3 +38,16 @@ No prepared report is rendered automatically when entering registry.
 - Actionable notification inbox with urgency and direct navigation.
 - Field-by-field activity version comparison UI.
 - Functional Freeze QA matrix for every role/action.
+
+
+## Saved checkpoint — Reports Access Repair
+- v2.10 remains the approved current baseline.
+- Reports Registry access is now required for every authenticated role.
+- Employee: forum-scoped registry + PrepareReport + own pre-issue edit.
+- Forum Manager: forum-scoped registry + prepare/edit/approve.
+- Director: all-forums registry + prepare/edit/approve/revoke.
+- Viewer: all-forums read-only registry.
+- Admin: all-forums technical read-only registry; no administrative approval authority.
+- Reports button always opens the registry first; report builder and report viewer remain separate screens.
+- Admin dashboard now exposes Activity Registry and Official Reports Registry.
+- openReports() is defensive against missing controls/session state and cannot depend on a role-specific dashboard.
