@@ -222,7 +222,7 @@ button,input,select,textarea{max-width:100%}
 </style>
 </head>
 <body>
-<header><div class="brand"><div class="syslogo">MIS</div><div><h1>نظام إدارة بيانات المنتديات</h1><small>Production Web — Government MIS</small></div></div><div class="rowBtns"><span id="cloudStatusBadge" class="badge" role="button" tabindex="0" title="حالة المزامنة" onclick="manualSyncNow()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();manualSyncNow()}">محلي</span><button id="changePasswordBtn" class="ghost hidden" onclick="openOwnPasswordChange(false)">تغيير كلمة المرور</button><button id="logoutBtn" class="ghost hidden" onclick="logout()">تسجيل الخروج</button></div></header>
+<header><div class="brand"><div class="syslogo">MIS</div><div><h1>نظام إدارة بيانات المنتديات</h1><small>Production Web — Government MIS</small></div></div><div class="rowBtns"><span id="cloudStatusBadge" class="badge" role="button" tabindex="0" title="حالة المزامنة" onclick="openSyncStatusPanel()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSyncStatusPanel()}">محلي</span><button id="changePasswordBtn" class="ghost hidden" onclick="openOwnPasswordChange(false)">تغيير كلمة المرور</button><button id="logoutBtn" class="ghost hidden" onclick="logout()">تسجيل الخروج</button></div></header>
 <div class="wrap">
 
 <section id="gate" class="screen active"><div class="card auth"><h2>بوابة المنتديات</h2><input id="forumCode" value="001"><p><button onclick="enterForum()">دخول</button></p><div id="gateMsg"></div></div></section>
@@ -297,6 +297,13 @@ button,input,select,textarea{max-width:100%}
 <div class="full note">كلمة المرور يجب أن تكون 10 أحرف على الأقل وتحتوي أحرفاً وأرقاماً.</div>
 <div class="full"><button onclick="submitPasswordLifecycle()">حفظ كلمة المرور</button></div>
 </div></div></div>
+
+<div id="syncStatusModal" class="modal"><div class="modalBox" style="max-width:760px">
+<div class="head"><div><h3>حالة المزامنة</h3><div class="subtitle">Offline Sync Engine v1 — النطاق المحلي والمزامنة الآمنة مع السحابة.</div></div><button class="ghost" onclick="closeSyncStatusPanel()">إغلاق</button></div>
+<div id="syncStatusSummary" class="note" style="margin-bottom:12px"></div>
+<div id="syncStatusList" class="adminList"></div>
+<div class="rowBtns" style="margin-top:14px"><button onclick="manualSyncNow()">مزامنة الآن</button><button class="ghost" onclick="renderSyncStatusPanel()">تحديث الحالة</button></div>
+</div></div>
 
 <section id="adminForums" class="screen"><div class="head"><h2>إدارة المنتديات</h2><button class="ghost" onclick="goHome()">رجوع</button></div>
 <div class="card form"><label>اسم المنتدى<input id="adminForumName"></label><label>رمز البوابة<input id="adminForumCode"></label><div class="full"><button onclick="adminAddForum()">إضافة منتدى</button></div></div>
@@ -464,9 +471,20 @@ function setCloudStatus(status,text){
  parts.push("اضغط للمحاولة اليدوية");
  b.title=parts.join("\n");
 }
+function syncStatusArabic(status){return({PENDING:"بانتظار المزامنة",RETRY:"بانتظار إعادة المحاولة",SYNCING:"يتم الرفع",CONFLICT:"تعارض يحتاج مراجعة",FAILED:"فشل المزامنة"})[status]||status||"-"}
+function openSyncStatusPanel(){renderSyncStatusPanel();el("syncStatusModal")?.classList.add("open")}
+function closeSyncStatusPanel(){el("syncStatusModal")?.classList.remove("open")}
+function renderSyncStatusPanel(){
+ const state=window.CloudBridge?.getSyncState?.()||{online:navigator.onLine!==false,queue:[],meta:{}};
+ const q=state.queue||[],meta=state.meta||{},summary=el("syncStatusSummary"),list=el("syncStatusList");
+ if(summary)summary.innerHTML="<b>"+(state.online?"متصل بالإنترنت":"وضع دون اتصال")+"</b> — النطاق: <span class='idChip'>"+esc(state.scope||"-")+"</span>"+(meta.lastSyncAt?" — آخر مزامنة ناجحة: "+esc(new Date(meta.lastSyncAt).toLocaleString("ar-IQ")):"")+(meta.lastError?"<br>آخر خطأ: "+esc(meta.lastError):"");
+ if(!list)return;
+ if(!q.length){list.innerHTML="<div class='adminRow'><div><b>تمت المزامنة</b><br><small>لا توجد عمليات محلية معلّقة.</small></div></div>";return}
+ list.innerHTML=q.map(x=>"<div class='adminRow'><div><b>"+esc(x.collection)+"</b><br><span class='idChip'>"+esc(x.entityId||x.rowId)+"</span></div><div>"+esc(x.operation)+"<br><small>LocalVersion "+esc(x.localVersion||1)+"</small></div><div><span class='badge "+(x.status==="CONFLICT"||x.status==="FAILED"?"rejected":"change")+"'>"+esc(syncStatusArabic(x.status))+"</span><br><small>"+esc(x.lastError||"")+"</small></div></div>").join("");
+}
 async function manualSyncNow(){
  if(!window.CloudBridge?.flushQueue)return;
- try{await window.CloudBridge.flushQueue()}catch(e){console.error("Manual sync",e);alert("تعذر إكمال المزامنة الآن. ستتم إعادة المحاولة تلقائياً عند توفر الاتصال.")}
+ try{await window.CloudBridge.flushQueue();renderSyncStatusPanel()}catch(e){console.error("Manual sync",e);alert("تعذر إكمال المزامنة الآن. ستتم إعادة المحاولة تلقائياً عند توفر الاتصال.");renderSyncStatusPanel()}
 }
 function applyCloudSnapshot(snap){
  if(!snap)return;
