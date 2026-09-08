@@ -1,0 +1,40 @@
+# Forum System v2.10 — Official Report Registry & Compact A4
+
+## Corrections implemented
+- Ordinary Employee can prepare reports using PrepareReport.
+- Employee can edit only their own non-issued report using EditOwnReport.
+- Approval/issuance remains Manager/Director authority.
+- Reports button opens report registry ONLY.
+- Report creation is a separate screen opened by "+ إعداد تقرير جديد".
+- Report opening is a separate viewer screen.
+- Internal ReportId / ReportVersionId / VerificationId are hidden from normal report document and registry UI.
+- IDs remain canonical internally and in Audit/verification architecture.
+
+## Forum identity fix
+- Manager forum settings resolve by canonical ForumId from authenticated user.
+- Login through forum code 001 resolves ForumId and automatically shows the corresponding forum name.
+- Manager forum selector is locked to their own ForumId.
+- Director/Admin with broader scope can select from permitted forums.
+
+## Official report redesign
+- Removed oversized monthly/annual cover behavior.
+- Compact A4 document width and spacing.
+- Smaller official header, metadata blocks, sections, signature area and QR.
+- No raw version identifier shown.
+- Management notes and recommendations are real report fields.
+- Reports remain white/print-oriented regardless of application UI.
+- A4 print stylesheet uses real A4 page size and compact margins.
+
+## Report registry workflow
+Reports screen = registry.
+Each row exposes only applicable working actions: Open, Edit, Approve, Archive, Delete.
+No prepared report is rendered automatically when entering registry.
+
+## Next recommended AAA work
+- Report type-specific validation before save.
+- Page numbering for multi-page print/PDF.
+- Directorate-level report template and cross-forum comparison report.
+- Manager and Employee role-specific dashboards.
+- Actionable notification inbox with urgency and direct navigation.
+- Field-by-field activity version comparison UI.
+- Functional Freeze QA matrix for every role/action.
