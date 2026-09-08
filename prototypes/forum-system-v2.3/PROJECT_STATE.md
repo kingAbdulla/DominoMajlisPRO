@@ -55,3 +55,64 @@ Reason: outgoing correspondence numbering is a sensitive official process alread
 - Existing official outgoing-number fields should not become an automated registry. If retained at all, they are reference-only/manual metadata entered from the authoritative external register and must never be auto-generated or altered by workflow logic.
 
 v2.4 is approved for implementation subject to these constraints.
+
+
+## v2.4 Director Governance Upgrade — Approved
+
+### Director Role
+Director represents the Directorate Manager and is administratively above Forum Manager and below technical Admin.
+Director permissions must include:
+- View all forums and all administrative activity/report data.
+- Review, edit, approve, reject, request modification, reopen approved records, archive and revoke approval with mandatory reason.
+- View and manage administrative reports across all forums.
+- View complete immutable Audit Log.
+- Administrative user management for forum managers/employees, without access to sensitive technical system settings.
+- No ability to alter technical security, database structure, developer settings, or delete Audit Log.
+
+### Director Dashboard — Mandatory AAA Comparative Statistics
+Director must have a dedicated Directorate-level dashboard, not a copy of Forum Manager dashboard.
+The dashboard must compare all forums side-by-side using premium AAA information design.
+
+Mandatory dashboard capabilities:
+- One comparison card per forum.
+- Total activities per forum.
+- Approved / pending / rejected / modification-request counts.
+- Total participants per forum.
+- Male / female distribution.
+- Monthly and annual activity trend.
+- Reports issued / pending approval.
+- Partner organizations count.
+- Official visitors / VIP visits count.
+- Activity type distribution.
+- Current-month vs previous-month comparison.
+- Current-year vs previous-year comparison.
+- Ranking of forums by configurable metrics.
+- Highlight best-performing forum and forums needing attention.
+- Drill-down from Directorate dashboard into a specific forum.
+- Filters: year, month, date range, activity type, status.
+- Comparative charts across forums.
+- Summary row for Directorate totals.
+
+AAA design requirements:
+- Executive-grade visual hierarchy.
+- KPI cards, trend indicators, comparison bars and charts.
+- Clear Arabic RTL layout.
+- No clutter; critical exceptions and pending items surfaced first.
+- Responsive desktop/tablet/mobile presentation.
+- Director dashboard must prioritize decision-making, not data entry.
+
+### Permission Engine
+v2.4 must introduce capability-based permissions rather than scattered role checks, including:
+CanApproveActivity
+CanRejectActivity
+CanRequestModification
+CanReopenApprovedActivity
+CanApproveReport
+CanRevokeApproval
+CanViewAllForums
+CanViewDirectorDashboard
+CanViewAuditLog
+CanManageAdministrativeUsers
+CanManageTechnicalSettings
+
+This v2.4 Director Dashboard and permission model are now part of the approved roadmap.
