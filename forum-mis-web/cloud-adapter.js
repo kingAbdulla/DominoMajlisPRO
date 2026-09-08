@@ -104,6 +104,23 @@
     emit("online","سحابي متصل");
     return {profile,profiles};
   }
+  async function adminUserAction(action,payload={}){
+    if(!client||!profile)throw new Error("يجب تسجيل الدخول أولاً");
+    if(profile.role!=="المطور")throw new Error("هذه العملية مخصصة للمطور فقط");
+    const {data,error}=await client.functions.invoke("admin-users",{body:{action,...payload}});
+    if(error)throw error;
+    if(data?.error)throw new Error(data.error);
+    await loadProfile();
+    return data;
+  }
+  async function changeOwnPassword(newPassword){
+    if(!client||!profile)throw new Error("يجب تسجيل الدخول أولاً");
+    const {data,error}=await client.functions.invoke("admin-users",{body:{action:"change_own_password",newPassword}});
+    if(error)throw error;
+    if(data?.error)throw new Error(data.error);
+    await loadProfile();
+    return data;
+  }
   async function signOut(){if(client)await client.auth.signOut();profile=null;profiles=[];if(channel){await client.removeChannel(channel);channel=null}emit(configured()?"ready":"offline",configured()?"السحابة جاهزة":"محلي")}
   function legacyCurrent(){
     if(!profile)return null;return{id:profile.user_id,userId:profile.user_id,login:profile.login,name:profile.full_name,role:profile.role,forum:profile.forum_id,forumId:profile.forum_id,status:profile.status,disabled:!!profile.disabled,authUserId:profile.auth_user_id}
@@ -152,5 +169,5 @@
       .on("postgres_changes",{event:"*",schema:"public",table:"cloud_documents"},()=>{clearTimeout(pullTimer);pullTimer=setTimeout(()=>window.dispatchEvent(new Event("forum-mis-cloud-pull")),500)})
       .subscribe();
   }
-  window.CloudBridge={configured,init,lookupForum,signIn,signOut,hydrate,pushAll,onLocalSave,legacyCurrent,getProfiles:()=>profiles.slice(),getProfile:()=>profile};
+  window.CloudBridge={configured,init,lookupForum,signIn,signOut,hydrate,pushAll,onLocalSave,legacyCurrent,adminUserAction,changeOwnPassword,getProfiles:()=>profiles.slice(),getProfile:()=>profile};
 })();
