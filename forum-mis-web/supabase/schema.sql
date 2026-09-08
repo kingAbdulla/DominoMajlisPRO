@@ -43,17 +43,30 @@ alter table public.forum_directory enable row level security;
 alter table public.cloud_documents enable row level security;
 
 create or replace function public.current_app_role() returns text
-language sql stable security definer set search_path=public as $$
-  select role from public.profiles where auth_user_id=auth.uid()
-$$;
+language sql stable security definer set search_path=public as $
+  select role from public.profiles
+  where auth_user_id=auth.uid() and disabled=false and status='Active'
+  limit 1
+$;
 create or replace function public.current_app_forum() returns text
-language sql stable security definer set search_path=public as $$
-  select forum_id from public.profiles where auth_user_id=auth.uid()
-$$;
+language sql stable security definer set search_path=public as $
+  select forum_id from public.profiles
+  where auth_user_id=auth.uid() and disabled=false and status='Active'
+  limit 1
+$;
 create or replace function public.current_app_user_id() returns text
-language sql stable security definer set search_path=public as $$
-  select user_id from public.profiles where auth_user_id=auth.uid()
-$$;
+language sql stable security definer set search_path=public as $
+  select user_id from public.profiles
+  where auth_user_id=auth.uid() and disabled=false and status='Active'
+  limit 1
+$;
+
+revoke all on function public.current_app_role() from public;
+revoke all on function public.current_app_forum() from public;
+revoke all on function public.current_app_user_id() from public;
+grant execute on function public.current_app_role() to authenticated;
+grant execute on function public.current_app_forum() to authenticated;
+grant execute on function public.current_app_user_id() to authenticated;
 
 create or replace function public.lookup_forum(p_code text)
 returns table(forum_id text,name text)
@@ -64,15 +77,32 @@ $$;
 grant execute on function public.lookup_forum(text) to anon, authenticated;
 
 drop policy if exists profiles_select on public.profiles;
-create policy profiles_select on public.profiles for select to authenticated using (
- auth_user_id=auth.uid()
- or forum_id=public.current_app_forum()
- or role in ('مدير الإدارة','المطور')
- or public.current_app_role() in ('مدير الإدارة','المطور')
-);
+drop policy if exists profiles_read_own on public.profiles;
 drop policy if exists profiles_self_update on public.profiles;
-create policy profiles_self_update on public.profiles for update to authenticated
-using (auth_user_id=auth.uid()) with check (auth_user_id=auth.uid());
+
+-- A user can always read their own identity profile.
+-- Developer/Director can read the institutional directory.
+-- Forum Manager can read profiles assigned to the same ForumId.
+create policy profiles_select
+on public.profiles
+for select
+to authenticated
+using (
+  auth_user_id = auth.uid()
+  or public.current_app_role() in ('مدير الإدارة','المطور')
+  or (
+    public.current_app_role() = 'مدير المنتدى'
+    and forum_id = public.current_app_forum()
+  )
+);
+
+-- Self-update is intentionally restricted by column privileges below.
+create policy profiles_self_last_login
+on public.profiles
+for update
+to authenticated
+using (auth_user_id = auth.uid())
+with check (auth_user_id = auth.uid());
 
 drop policy if exists directory_none on public.forum_directory;
 create policy directory_admin_read on public.forum_directory for select to authenticated using (
@@ -123,7 +153,14 @@ create policy docs_delete on public.cloud_documents for delete to authenticated 
 
 revoke all on public.profiles from anon;
 revoke all on public.cloud_documents from anon;
-grant select,update on public.profiles to authenticated;
+revoke all on public.forum_directory from anon;
+
+-- Authenticated users may read profiles according to RLS.
+-- They may only update their own last_login_at column from the browser.
+revoke update on public.profiles from authenticated;
+grant select on public.profiles to authenticated;
+grant update(last_login_at) on public.profiles to authenticated;
+
 grant select,insert,update,delete on public.cloud_documents to authenticated;
 grant select on public.forum_directory to authenticated;
 
