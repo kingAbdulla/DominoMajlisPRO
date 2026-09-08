@@ -20,6 +20,18 @@
   const networkLikeError=e=>!online()||/fetch|network|offline|connection|timeout/i.test(String(e?.message||e||""));
   const safeJsonParse=(raw,fallback)=>{try{return raw?JSON.parse(raw):fallback}catch(_){return fallback}};
   const authCacheKey=authId=>"v29_cloud_profile_cache:"+String(authId||"anon");
+  const AUTH_CACHE_MAX_AGE_MS=7*24*60*60*1000;
+  const profileCacheSave=(authId,p)=>localStorage.setItem(authCacheKey(authId),JSON.stringify({cachedAt:Date.now(),profile:p}));
+  const profileCacheLoad=authId=>{
+    const raw=safeJsonParse(localStorage.getItem(authCacheKey(authId)),null);
+    if(!raw)return null;
+    if(raw.profile&&Number(raw.cachedAt)>0){
+      if(Date.now()-Number(raw.cachedAt)>AUTH_CACHE_MAX_AGE_MS){localStorage.removeItem(authCacheKey(authId));return null}
+      return raw.profile;
+    }
+    // Legacy cache entries are accepted once, then upgraded with a bounded age.
+    profileCacheSave(authId,raw);return raw;
+  };
   const scopeId=()=>String(profile?.user_id||"anon")+"::"+String(profile?.forum_id||"GLOBAL");
   const queueKey=()=>"v29_sync_queue:"+scopeId();
   const cacheKey=()=>"v29_scoped_cache:"+scopeId();
@@ -71,7 +83,7 @@
     const {data}=await client.auth.getSession();
     if(data?.session){
       try{await loadProfile();await subscribe();scheduleFlush(200)}
-      catch(e){if(!networkLikeError(e))throw e;console.warn("Cloud profile unavailable; attempting offline profile cache",e);const cached=safeJsonParse(localStorage.getItem(authCacheKey(data.session.user.id)),null);if(cached){profile=cached;profiles=[legacyProfile(cached)];emitSyncState()}else throw e}
+      catch(e){if(!networkLikeError(e))throw e;console.warn("Cloud profile unavailable; attempting offline profile cache",e);const cached=profileCacheLoad(data.session.user.id);if(cached){profile=cached;profiles=[legacyProfile(cached)];emitSyncState()}else throw e}
     }else emit("ready","السحابة جاهزة");
     return true
   }
@@ -98,7 +110,7 @@
     if(!data)throw new Error("لا يوجد ملف صلاحيات مرتبط بهذا الحساب.");
 
     profile=data;
-    localStorage.setItem(authCacheKey(user.id),JSON.stringify(data));
+    profileCacheSave(user.id,data);
 
     // Phase 2: profile directory visibility is role-scoped.
     // Do not fail login if the user cannot read other profiles.
