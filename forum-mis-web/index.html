@@ -222,7 +222,7 @@ button,input,select,textarea{max-width:100%}
 </style>
 </head>
 <body>
-<header><div class="brand"><div class="syslogo">MIS</div><div><h1>نظام إدارة بيانات المنتديات</h1><small>Production Web — Government MIS</small></div></div><div class="rowBtns"><span id="cloudStatusBadge" class="badge">محلي</span><button id="changePasswordBtn" class="ghost hidden" onclick="openOwnPasswordChange(false)">تغيير كلمة المرور</button><button id="logoutBtn" class="ghost hidden" onclick="logout()">تسجيل الخروج</button></div></header>
+<header><div class="brand"><div class="syslogo">MIS</div><div><h1>نظام إدارة بيانات المنتديات</h1><small>Production Web — Government MIS</small></div></div><div class="rowBtns"><span id="cloudStatusBadge" class="badge" role="button" tabindex="0" title="حالة المزامنة" onclick="manualSyncNow()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();manualSyncNow()}">محلي</span><button id="changePasswordBtn" class="ghost hidden" onclick="openOwnPasswordChange(false)">تغيير كلمة المرور</button><button id="logoutBtn" class="ghost hidden" onclick="logout()">تسجيل الخروج</button></div></header>
 <div class="wrap">
 
 <section id="gate" class="screen active"><div class="card auth"><h2>بوابة المنتديات</h2><input id="forumCode" value="001"><p><button onclick="enterForum()">دخول</button></p><div id="gateMsg"></div></div></section>
@@ -451,7 +451,23 @@ function purgeLegacyLocalCredentials(){
 }
 purgeLegacyLocalCredentials();
 function cloudEnabled(){return !!window.CloudBridge?.configured?.()}
-function setCloudStatus(status,text){const b=el("cloudStatusBadge");if(!b)return;b.textContent=text||status;b.className="badge "+(status==="online"?"approved":status==="error"?"rejected":"")}
+function setCloudStatus(status,text){
+ const b=el("cloudStatusBadge");if(!b)return;
+ const cls={online:"approved",error:"rejected",conflict:"rejected",pending:"change",syncing:"change",offline:"muted"}[status]||"";
+ b.textContent=text||status;b.className="badge "+cls;
+ const state=window.CloudBridge?.getSyncState?.();
+ const meta=state?.meta||{};
+ const parts=["حالة المزامنة: "+(text||status)];
+ if(state?.scope)parts.push("النطاق المحلي: "+state.scope);
+ if(meta.lastSyncAt)parts.push("آخر مزامنة ناجحة: "+new Date(meta.lastSyncAt).toLocaleString("ar-IQ"));
+ if(meta.lastError)parts.push("آخر خطأ: "+meta.lastError);
+ parts.push("اضغط للمحاولة اليدوية");
+ b.title=parts.join("\n");
+}
+async function manualSyncNow(){
+ if(!window.CloudBridge?.flushQueue)return;
+ try{await window.CloudBridge.flushQueue()}catch(e){console.error("Manual sync",e);alert("تعذر إكمال المزامنة الآن. ستتم إعادة المحاولة تلقائياً عند توفر الاتصال.")}
+}
 function applyCloudSnapshot(snap){
  if(!snap)return;
  const assign=(key,setter)=>{if(Array.isArray(snap[key])){localStorage.setItem(key,JSON.stringify(snap[key]));setter(snap[key])}};
