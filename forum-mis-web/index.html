@@ -129,6 +129,93 @@ button,input,select,textarea{max-width:100%}
   .table table:not(.responsiveTable) td::before{content:none}
 }
 
+
+/* Production Mobile Hardening — pass 2: all screens */
+*{min-width:0}
+@media(max-width:760px){
+  body{font-size:13px}
+  .execGrid,.approvalGrid,.adminGrid,.healthGrid{grid-template-columns:1fr!important}
+  .miniKpis{grid-template-columns:1fr 1fr!important}
+  .adminHero{align-items:flex-start;flex-direction:column;padding:14px;border-radius:16px}
+  .adminHero h2,.directorHero h2{font-size:20px}
+  .adminHero .tag{width:100%;text-align:center}
+  .adminPanel,.chartCard{padding:13px;border-radius:14px}
+  .chartTitle{align-items:flex-start;flex-direction:column;gap:6px}
+  .chartSvg{height:210px;overflow:visible}
+  .forumFoot{align-items:stretch;flex-direction:column}
+  .forumFoot button{width:100%}
+  .alertList .item{align-items:flex-start}
+  .approvalGrid{gap:9px}
+  .approvalTitle{flex-direction:column}
+  .approvalItem{padding:12px}
+  .notificationActions{display:grid;grid-template-columns:1fr;width:100%}
+  .notificationActions button{width:100%}
+  .adminRow,.directorUserRow{display:grid;grid-template-columns:1fr!important;gap:6px}
+  .adminRow button,.directorUserRow button,.adminRow select,.directorUserRow select{width:100%}
+  .archiveFilters{grid-template-columns:1fr!important}
+  .reportsToolbar{align-items:stretch;flex-direction:column}
+  .reportsToolbar>*{width:100%}
+  .attachmentItem{align-items:stretch;flex-direction:column}
+  .attachmentItem button{width:100%}
+  .registryHealth{align-items:stretch;flex-direction:column}
+  .registryHealth>*{width:100%}
+  .linkedEntityBox{padding:10px}
+  .entityIdentity{align-items:flex-start;flex-direction:column}
+  .entityUsage{grid-template-columns:1fr!important}
+  .item{overflow-wrap:anywhere}
+  .alertList .item{display:grid;grid-template-columns:auto 1fr}
+  .alertList .item button{grid-column:1/-1;width:100%}
+  .permissionTable{display:grid!important;grid-template-columns:160px repeat(4,130px)!important;overflow:auto;max-width:100%}
+  .permissionTable>div{padding:8px;font-size:11px}
+  .heatmapWrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+  .heatmap{grid-template-columns:120px repeat(12,38px);min-width:620px}
+  .heatCell{height:30px}
+  .multiLegend{gap:7px;font-size:10px}
+  .workflowTimeline{padding-right:18px}
+  .workflowTimeline:before{right:5px}
+  .workflowEvent:before{right:-18px}
+  .timeline{padding-right:16px}
+  .reportPaper{padding:12px 10px;box-shadow:none;border-radius:8px}
+  .reportTitle h2{font-size:17px}
+  .reportTitle h3{font-size:14px}
+  .reportTitle strong{font-size:12px}
+  .reportMeta,.detailGrid{grid-template-columns:1fr!important}
+  .reportMeta>div,.detailGrid>div{font-size:11px}
+  .reportSection h3{font-size:13px}
+  .reportSection p{font-size:12px}
+  .reportFooter{flex-direction:column;text-align:center}
+  .qrbox img{width:92px;height:92px}
+  .stamp{width:76px;height:76px}
+  .execKpis{grid-template-columns:1fr 1fr!important}
+  .execKpi strong{font-size:16px}
+  .photoGrid{grid-template-columns:1fr!important}
+  .photoItem img{height:auto;max-height:260px;object-fit:contain}
+  .versionBox{overflow-wrap:anywhere}
+  .searchResult .head{gap:6px}
+  .searchResult button{width:100%}
+  .qualityIssue{overflow-wrap:anywhere}
+  .governanceCard strong{font-size:21px}
+  .healthMeter{width:100%}
+  .geoBox>*{width:100%}
+  .conditionalBlock{padding:10px}
+  .full{grid-column:1!important}
+}
+@media(max-width:390px){
+  header{padding:8px}
+  .wrap{padding:8px 6px}
+  .card{padding:10px;border-radius:12px}
+  .brand h1{font-size:13px}
+  .brand small{font-size:9px}
+  .syslogo{width:36px;height:36px}
+  header>button{font-size:10px;padding:8px}
+  h2{font-size:18px}
+  button{font-size:11px;padding:9px 8px}
+  .miniKpis,.execKpis{grid-template-columns:1fr!important}
+  .kpi strong{font-size:20px}
+  .modal{padding:4px}
+  .modalBox{width:calc(100vw - 8px);max-height:calc(100vh - 8px);padding:10px}
+}
+
 </style>
 </head>
 <body>
@@ -1221,6 +1308,16 @@ const __origShow=typeof show==="function"?show:null;
 if(__origShow){show=function(id){const r=__origShow(id);requestAnimationFrame(enhanceMobileTables);return r}}
 document.addEventListener('DOMContentLoaded',()=>setTimeout(enhanceMobileTables,50));
 window.addEventListener('resize',()=>{if(window.innerWidth<=760)enhanceMobileTables()});
+
+function enhanceMobileUX(){
+ document.querySelectorAll('button').forEach(b=>{if(!b.getAttribute('type'))b.setAttribute('type','button')});
+ document.querySelectorAll('input,select,textarea').forEach(x=>{
+   if(!x.getAttribute('aria-label')){
+     const label=x.closest('label');if(label){const t=[...label.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent.trim()).join(' ').trim();if(t)x.setAttribute('aria-label',t)}
+   }
+ });
+}
+document.addEventListener('DOMContentLoaded',enhanceMobileUX);
 </script>
 <div id="rehabModal" class="modal"><div class="modalBox"><div class="modalHead"><h3 id="rehabModalTitle">سجل التجهيز</h3><button class="ghost" onclick="closeRehabilitationModal()">إغلاق</button></div><div id="rehabModalBody"></div><div id="rehabModalActions" class="rowBtns" style="margin-top:12px"></div></div></div>
 </body></html>
