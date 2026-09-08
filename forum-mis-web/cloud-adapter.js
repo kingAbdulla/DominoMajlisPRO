@@ -17,6 +17,7 @@
   const RETRY_DELAYS=[1500,5000,15000,30000,60000];
   const nowIso=()=>new Date().toISOString();
   const online=()=>navigator.onLine!==false;
+  const networkLikeError=e=>!online()||/fetch|network|offline|connection|timeout/i.test(String(e?.message||e||""));
   const safeJsonParse=(raw,fallback)=>{try{return raw?JSON.parse(raw):fallback}catch(_){return fallback}};
   const authCacheKey=authId=>"v29_cloud_profile_cache:"+String(authId||"anon");
   const scopeId=()=>String(profile?.user_id||"anon")+"::"+String(profile?.forum_id||"GLOBAL");
@@ -42,7 +43,7 @@
   };
   const updateCacheRow=row=>{
     const cache=cacheLoad(),k=rowKey(row.collection,row.row_id);
-    cache.rows[k]={collection:row.collection,row_id:row.row_id,forum_id:row.forum_id??null,owner_user_id:row.owner_user_id??null,payload:row.payload,updated_at:row.updated_at||nowIso()};
+    cache.rows[k]={collection:row.collection,row_id:row.row_id,forum_id:row.forum_id??null,owner_user_id:row.owner_user_id??null,payload:row.payload,updated_at:row.updated_at||null,local_version:Number(row.local_version||cache.rows[k]?.local_version||0)};
     cacheSave(cache);
   };
   const removeCacheRow=(collection,rowId)=>{const cache=cacheLoad();delete cache.rows[rowKey(collection,rowId)];cacheSave(cache)};
@@ -70,7 +71,7 @@
     const {data}=await client.auth.getSession();
     if(data?.session){
       try{await loadProfile();await subscribe();scheduleFlush(200)}
-      catch(e){console.warn("Cloud profile unavailable; attempting offline profile cache",e);const cached=safeJsonParse(localStorage.getItem(authCacheKey(data.session.user.id)),null);if(cached){profile=cached;profiles=[legacyProfile(cached)];emitSyncState()}else throw e}
+      catch(e){if(!networkLikeError(e))throw e;console.warn("Cloud profile unavailable; attempting offline profile cache",e);const cached=safeJsonParse(localStorage.getItem(authCacheKey(data.session.user.id)),null);if(cached){profile=cached;profiles=[legacyProfile(cached)];emitSyncState()}else throw e}
     }else emit("ready","السحابة جاهزة");
     return true
   }
@@ -161,7 +162,8 @@
     const loginStamp=await client.from("profiles").update({last_login_at:new Date().toISOString()}).eq("auth_user_id",data.user.id);
     if(loginStamp.error)console.warn("Last login timestamp not persisted yet:",loginStamp.error.message);
     await subscribe();
-    emit("online","سحابي متصل");
+    scheduleFlush(50);
+    emitSyncState();
     return {profile,profiles};
   }
   async function adminUserAction(action,payload={}){
@@ -196,10 +198,16 @@
       if(!online()){
         const snap=snapshotFromScopedCache();snap.v29_users=profiles;emitSyncState();return snap;
       }
+      await flushQueue();
       const {data,error}=await client.from("cloud_documents").select("collection,row_id,forum_id,owner_user_id,payload,updated_at");
       if(error)throw error;
       const cache={schema:OFFLINE_SCHEMA,rows:{},updatedAt:nowIso()};
-      for(const row of data||[])cache.rows[rowKey(row.collection,row.row_id)]={...row};
+      for(const row of data||[])cache.rows[rowKey(row.collection,row.row_id)]={...row,local_version:0};
+      for(const item of queueLoad().filter(x=>["PENDING","RETRY","FAILED","CONFLICT","SYNCING"].includes(x.status))){
+        const k=rowKey(item.collection,item.rowId);
+        if(item.operation==="DELETE")delete cache.rows[k];
+        else cache.rows[k]={collection:item.collection,row_id:item.rowId,forum_id:item.forumId||null,owner_user_id:item.userId||null,payload:item.payload,updated_at:item.baseUpdatedAt||cache.rows[k]?.updated_at||null,local_version:Number(item.localVersion||1)};
+      }
       cacheSave(cache);
       await loadProfile();
       const snap=rowsToSnapshot(data);
