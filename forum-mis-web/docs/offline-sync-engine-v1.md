@@ -82,3 +82,11 @@ The web MIS must remain usable during temporary internet outages and synchronize
 10. Resolution CLOUD: authorized reviewer selects cloud; local scoped cache reverts to cloud and queue entry disappears.
 11. Realtime convergence: after resolution, pull refreshes operational UI without reintroducing pending local work.
 12. Isolation: switch to a different UserID/ForumID and verify its scoped cache/queue cannot expose the previous scope.
+
+
+## Runtime checkpoint — 2026-09-09 02:14 (Iraq)
+- Online baseline test: PASS.
+- Verified on iPhone/Safari: employee001 session active, scope displayed as UserID + FRM-F001, sync status = "تمت المزامنة", no pending local operations, and last successful sync timestamp displayed.
+- Offline Create test: NOT YET EXECUTED. The latest screenshot still reported "متصل بالإنترنت"; therefore no offline-write result has been claimed.
+- Resume point: keep the authenticated page open, disable both Wi-Fi and cellular data without refreshing/closing Safari, create draft activity OFFLINE-TEST-001, then inspect Sync Status while still offline.
+- Expected gate: local draft persists and queue reports CREATE/PENDING ("بانتظار المزامنة"). Do not reconnect until this state is verified.
