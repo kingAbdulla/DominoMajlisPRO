@@ -480,7 +480,21 @@ function renderSyncStatusPanel(){
  if(summary)summary.innerHTML="<b>"+(state.online?"متصل بالإنترنت":"وضع دون اتصال")+"</b> — النطاق: <span class='idChip'>"+esc(state.scope||"-")+"</span>"+(meta.lastSyncAt?" — آخر مزامنة ناجحة: "+esc(new Date(meta.lastSyncAt).toLocaleString("ar-IQ")):"")+(meta.lastError?"<br>آخر خطأ: "+esc(meta.lastError):"");
  if(!list)return;
  if(!q.length){list.innerHTML="<div class='adminRow'><div><b>تمت المزامنة</b><br><small>لا توجد عمليات محلية معلّقة.</small></div></div>";return}
- list.innerHTML=q.map(x=>"<div class='adminRow'><div><b>"+esc(x.collection)+"</b><br><span class='idChip'>"+esc(x.entityId||x.rowId)+"</span></div><div>"+esc(x.operation)+"<br><small>LocalVersion "+esc(x.localVersion||1)+"</small></div><div><span class='badge "+(x.status==="CONFLICT"||x.status==="FAILED"?"rejected":"change")+"'>"+esc(syncStatusArabic(x.status))+"</span><br><small>"+esc(x.lastError||"")+"</small></div></div>").join("");
+ list.innerHTML=q.map(x=>{
+   const conflict=x.status==="CONFLICT";
+   const canResolve=conflict&&window.CloudBridge?.canResolveConflict?.(x);
+   const local=conflict?esc(JSON.stringify(x.payload??null,null,2)):"";
+   const remote=conflict?esc(JSON.stringify(x.remoteSnapshot?.payload??null,null,2)):"";
+   return "<div class='adminRow' style='"+(conflict?"grid-template-columns:1fr":"")+"'><div><b>"+esc(x.collection)+"</b><br><span class='idChip'>"+esc(x.entityId||x.rowId)+"</span> <span class='badge "+(x.status==="CONFLICT"||x.status==="FAILED"?"rejected":"change")+"'>"+esc(syncStatusArabic(x.status))+"</span><br><small>"+esc(x.operation)+" • LocalVersion "+esc(x.localVersion||1)+"</small>"+(x.lastError?"<br><small>"+esc(x.lastError)+"</small>":"")+"</div>"+(conflict?"<div class='form2' style='margin-top:10px'><div class='note'><b>النسخة المحلية</b><pre style='white-space:pre-wrap;max-height:220px;overflow:auto'>"+local+"</pre></div><div class='note'><b>نسخة السحابة</b><pre style='white-space:pre-wrap;max-height:220px;overflow:auto'>"+remote+"</pre></div></div><div class='rowBtns' style='margin-top:10px'>"+(canResolve?"<button onclick=\"resolveSyncConflict('"+esc(x.queueId)+"','LOCAL')\">اعتماد النسخة المحلية</button><button class='ghost' onclick=\"resolveSyncConflict('"+esc(x.queueId)+"','CLOUD')\">اعتماد نسخة السحابة</button>":"<span class='note'>هذا التعارض يحتاج مراجعة من مدير المنتدى أو مدير الإدارة/المطور، بحسب نوع السجل.</span>")+"</div>":"")+"</div>";
+ }).join("");
+}
+async function resolveSyncConflict(queueId,decision){
+ const label=decision==="LOCAL"?"النسخة المحلية":"نسخة السحابة";
+ if(!confirm("سيتم اعتماد "+label+" وحسم التعارض. هل تريد المتابعة؟"))return;
+ try{
+   await window.CloudBridge.resolveConflict(queueId,decision);
+   renderSyncStatusPanel();
+ }catch(e){console.error("Conflict resolution",e);alert(e?.message||"تعذر حسم التعارض.")}
 }
 async function manualSyncNow(){
  if(!window.CloudBridge?.flushQueue)return;
