@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>نظام إدارة بيانات المنتديات — مديرية الشباب والرياضة</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./cloud-config.js"></script>
+<script src="./cloud-adapter.js"></script>
 <style>
 :root{--navy:#0d2d49;--blue:#1d659a;--blue2:#4b8fbc;--gold:#c29a37;--bg:#f2f5f8;--card:#fff;--border:#d5dee7;--text:#17212b;--muted:#6b7785;--green:#087443;--red:#b42318;--amber:#a66f00;--violet:#6941c6}
 *{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text)}
@@ -219,11 +222,11 @@ button,input,select,textarea{max-width:100%}
 </style>
 </head>
 <body>
-<header><div class="brand"><div class="syslogo">MIS</div><div><h1>نظام إدارة بيانات المنتديات</h1><small>Production Web — Government MIS</small></div></div><button id="logoutBtn" class="ghost hidden" onclick="logout()">تسجيل الخروج</button></header>
+<header><div class="brand"><div class="syslogo">MIS</div><div><h1>نظام إدارة بيانات المنتديات</h1><small>Production Web — Government MIS</small></div></div><div class="rowBtns"><span id="cloudStatusBadge" class="badge">محلي</span><button id="logoutBtn" class="ghost hidden" onclick="logout()">تسجيل الخروج</button></div></header>
 <div class="wrap">
 
 <section id="gate" class="screen active"><div class="card auth"><h2>بوابة المنتديات</h2><input id="forumCode" value="001"><p><button onclick="enterForum()">دخول</button></p><div id="gateMsg"></div></div></section>
-<section id="login" class="screen"><div class="card auth"><div id="forumNameBadge" class="badge"></div><h2>تسجيل دخول المستخدم</h2><input id="loginName" placeholder="اسم المستخدم"><input id="loginPass" type="password" placeholder="كلمة المرور"><p><button onclick="doLogin()">دخول</button> <button class="ghost" onclick="show('gate')">رجوع</button></p><div class="note">employee / 1234 | manager / 1234 | director / 1234 | admin / 1234 | viewer / 1234</div></div></section>
+<section id="login" class="screen"><div class="card auth"><div id="forumNameBadge" class="badge"></div><h2>تسجيل دخول المستخدم</h2><input id="loginName" placeholder="اسم المستخدم"><input id="loginPass" type="password" placeholder="كلمة المرور"><p><button onclick="doLogin()">دخول</button> <button class="ghost" onclick="show('gate')">رجوع</button></p><div id="loginModeNote" class="note">وضع محلي مؤقت — سيتم التحويل تلقائياً إلى تسجيل الدخول السحابي بعد ربط قاعدة البيانات.</div></div></section>
 
 <section id="standardDash" class="screen"><div class="card"><h2 id="dashForum"></h2><p id="dashUser"></p></div>
 <div class="kpis"><div class="kpi"><span>الأنشطة المعتمدة</span><strong id="kApproved">0</strong></div><div class="kpi"><span>بانتظار القرار</span><strong id="kSubmitted">0</strong></div><div class="kpi"><span>مرفوض / طلب تعديل</span><strong id="kReturned">0</strong></div><div class="kpi"><span>التقارير الصادرة</span><strong id="kReports">0</strong></div></div>
@@ -279,7 +282,7 @@ button,input,select,textarea{max-width:100%}
 <section id="dataIntegrity" class="screen"><div class="head"><h2>سلامة البيانات</h2><button class="ghost" onclick="goHome()">رجوع</button></div><div class="card"><div id="integritySummary" class="healthGrid"></div></div><div class="card"><h3>الملاحظات المكتشفة</h3><div id="integrityIssues"></div></div></section>
 
 <section id="systemSecurity" class="screen"><div class="head"><h2>الأمان والسياسات التشغيلية</h2><button class="ghost" onclick="goHome()">رجوع</button></div><div class="card form"><label>مدة الجلسة بالدقائق<input id="secSessionMinutes" type="number" min="15"></label><label>مدة قفل المراجعة بالدقائق<input id="secLockMinutes" type="number" min="5"></label><label>SLA القرار الإداري بالساعات<input id="secApprovalSla" type="number" min="1"></label><label>السماح بالصلاحيات المؤقتة<select id="secTempAccess"><option value="yes">نعم</option><option value="no">لا</option></select></label><label>الحفظ التلقائي<select id="secAutosave"><option value="yes">مفعل</option><option value="no">معطل</option></select></label><label>كشف التكرار<select id="secDuplicate"><option value="yes">مفعل</option><option value="no">معطل</option></select></label><div class="full"><button onclick="saveSecuritySettings()">حفظ السياسات</button></div></div></section>
-<section id="backupCenter" class="screen"><div class="head"><h2>النسخ الاحتياطي والاستعادة</h2><button class="ghost" onclick="goHome()">رجوع</button></div><div class="card rowBtns"><button onclick="exportSystemBackup()">تصدير نسخة JSON</button><label class="ghost" style="padding:10px 14px;border-radius:10px;cursor:pointer">استيراد نسخة<input id="backupInput" type="file" accept=".json,application/json" class="hidden" onchange="importSystemBackup()"></label></div></section>
+<section id="backupCenter" class="screen"><div class="head"><h2>النسخ الاحتياطي والاستعادة</h2><button class="ghost" onclick="goHome()">رجوع</button></div><div class="card rowBtns"><button onclick="exportSystemBackup()">تصدير نسخة JSON</button><label class="ghost" style="padding:10px 14px;border-radius:10px;cursor:pointer">استيراد نسخة<input id="backupInput" type="file" accept=".json,application/json" class="hidden" onchange="importSystemBackup()"></label></div><div class="card"><div class="head"><div><h3 style="margin:0">المزامنة السحابية</h3><div id="cloudMigrationHint" class="subtitle">غير مفعلة بعد.</div></div><span id="cloudBackupStatus" class="badge">Local Cache</span></div><div class="rowBtns"><button onclick="pullCloudNow()">سحب أحدث بيانات من السحابة</button><button class="gold" onclick="pushLocalDataToCloud()">رفع البيانات المحلية الحالية للسحابة</button></div><div class="note" style="margin-top:10px">استخدم «رفع البيانات» مرة واحدة فقط بعد تجهيز مشروع Supabase والمستخدم الإداري الأول. بعد ذلك تصبح المزامنة تلقائية.</div></div></section>
 <section id="qrSettings" class="screen"><div class="head"><h2>إعدادات التحقق QR</h2><button class="ghost" onclick="goHome()">رجوع</button></div><div class="card form"><label>عنوان صفحة التحقق<input id="qrBase"></label><label>النص الظاهر تحت QR<input id="qrLabel"></label><div class="full"><button onclick="saveQrSettings()">حفظ إعدادات QR</button></div></div></section>
 
 
@@ -410,10 +413,34 @@ const defaultQrSettings={verificationBase:"https://raw.githack.com/kingAbdulla/D
 const seedUsers=[{id:"U001",login:"employee",pass:"1234",name:"موظف تجريبي",role:"موظف",forum:"F001"},{id:"U002",login:"manager",pass:"1234",name:"مسؤول المنتدى",role:"مدير المنتدى",forum:"F001"},{id:"U003",login:"director",pass:"1234",name:"مدير المديرية",role:"مدير الإدارة",forum:null},{id:"U004",login:"admin",pass:"1234",name:"المطور",role:"المطور",forum:null},{id:"U005",login:"viewer",pass:"1234",name:"مراقب تجريبي",role:"مراقب",forum:null}];
 const seedActs=[];
 const seedReports=[];
-const L=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d)),S=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const L=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d)),S=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));try{window.CloudBridge?.onLocalSave(k,v)}catch(e){console.error("Cloud write-through",e)}};
 let forums=L("v29_forums",seedForums),users=L("v29_users",seedUsers),acts=L("v29_acts",seedActs),reports=L("v29_reports",seedReports),audit=L("v29_audit",[]),notifs=L("v29_notifs",[]),authority=L("v29_authority",defaultAuthority),security=L("v29_security",defaultSecurity),qrSettings=L("v29_qr_settings",defaultQrSettings),savedFilters=L("v29_saved_filters",[]),forumProfiles=L("v29_forum_profiles",[]),rehabilitationRecords=L("v29_rehabilitation_records",[]),centralEntities=L("v29_central_entities",[]),selected=null,current=null,pendingAttachments=[],pendingLogo="",pendingSig="",autosaveTimer=null;
 const el=id=>document.getElementById(id),esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 
+function cloudEnabled(){return !!window.CloudBridge?.configured?.()}
+function setCloudStatus(status,text){const b=el("cloudStatusBadge");if(!b)return;b.textContent=text||status;b.className="badge "+(status==="online"?"approved":status==="error"?"rejected":"")}
+function applyCloudSnapshot(snap){
+ if(!snap)return;
+ const assign=(key,setter)=>{if(Array.isArray(snap[key])){localStorage.setItem(key,JSON.stringify(snap[key]));setter(snap[key])}};
+ assign("v29_forums",v=>forums=v.length?v:forums);
+ assign("v29_users",v=>users=v);
+ assign("v29_acts",v=>acts=v);
+ assign("v29_reports",v=>reports=v);
+ assign("v29_audit",v=>audit=v);
+ assign("v29_notifs",v=>notifs=v);
+ assign("v29_saved_filters",v=>savedFilters=v);
+ assign("v29_forum_profiles",v=>forumProfiles=v);
+ assign("v29_rehabilitation_records",v=>rehabilitationRecords=v);
+ assign("v29_central_entities",v=>centralEntities=v);
+ migrateIds()
+}
+async function hydrateFromCloud(){
+ if(!cloudEnabled())return false;
+ const snap=await CloudBridge.hydrate();applyCloudSnapshot(snap);return true
+}
+function localCloudSnapshot(){return{v29_forums:forums,v29_acts:acts,v29_reports:reports,v29_audit:audit,v29_notifs:notifs,v29_saved_filters:savedFilters,v29_forum_profiles:forumProfiles,v29_rehabilitation_records:rehabilitationRecords,v29_central_entities:centralEntities}}
+async function pullCloudNow(){if(!cloudEnabled())return alert("المزامنة السحابية غير مفعلة بعد.");try{await hydrateFromCloud();alert("تم سحب أحدث البيانات من السحابة.");goHome()}catch(e){console.error(e);alert("تعذر سحب البيانات: "+e.message)}}
+async function pushLocalDataToCloud(){if(!cloudEnabled())return alert("المزامنة السحابية غير مفعلة بعد.");if(!current||current.role!=="المطور")return alert("رفع البيانات الأولي للسحابة من صلاحيات Admin فقط.");if(!confirm("سيتم رفع البيانات المحلية الحالية إلى قاعدة البيانات المشتركة. متابعة؟"))return;try{await CloudBridge.pushAll(localCloudSnapshot());alert("تم رفع البيانات المحلية إلى السحابة بنجاح.")}catch(e){console.error(e);alert("فشل الرفع: "+e.message)}}
 function canonical(prefix,legacy=""){if(legacy)return prefix+"-"+String(legacy).replace(/[^A-Za-z0-9_-]/g,"");if(globalThis.crypto&&crypto.randomUUID)return prefix+"-"+crypto.randomUUID();return prefix+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,9)}
 function migrateIds(){
   forums.forEach(f=>{f.forumId=f.forumId||canonical("FRM",f.id);f.id=f.id||f.forumId;});
@@ -564,9 +591,9 @@ function entityStakeholderIds(entity){
 function notifyDownstream(entity,text,ref,options={}){notifyUsers(entityStakeholderIds(entity),text,ref,{...options,forumId:entity.forumId||entity.forum,priority:options.priority||"Action"})}
 function unread(){const uid=currentUserId();return activeNotifications().filter(n=>notificationRecipientId(n)===uid&&!n.read).length}
 function updateNotificationBadges(){const n=unread();["notifyCount","directorNotifyCount"].forEach(id=>{if(el(id)){el(id).textContent=n;el(id).classList.toggle("hidden",n===0)}})}
-function enterForum(){selected=forums.find(f=>f.code===el("forumCode").value.trim()&&f.active);if(!selected)return alert("رمز المنتدى غير صحيح");el("forumNameBadge").textContent=selected.name;show("login")}
-function doLogin(){const u=users.find(x=>x.login===el("loginName").value.trim()&&x.pass===el("loginPass").value);if(!u)return alert("بيانات الدخول غير صحيحة");if(u.disabled)return alert("هذا الحساب معطل");if(security.temporaryAccessEnabled&&u.validUntil&&new Date(u.validUntil).getTime()<Date.now())return alert("انتهت صلاحية الوصول المؤقت لهذا الحساب.");if(u.forumId&&selected&&u.forumId!==(selected.forumId||selected.id))return alert("هذا الحساب غير مخول لهذا المنتدى");current=u;u.lastLoginAt=new Date().toISOString();S("v29_users",users);el("logoutBtn").classList.remove("hidden");log("تسجيل دخول",selected.forumId||selected.id,{summary:"تم تسجيل الدخول إلى "+selected.name+" بنجاح.",source:"Authentication"});goHome()}
-function logout(){current=null;selected=null;el("logoutBtn").classList.add("hidden");show("gate")}
+async function enterForum(){const code=el("forumCode").value.trim();selected=forums.find(f=>f.code===code&&f.active);if(!selected&&cloudEnabled()){try{selected=await CloudBridge.lookupForum(code)}catch(e){console.error(e)}}if(!selected)return alert("رمز المنتدى غير صحيح");el("forumNameBadge").textContent=selected.name;show("login")}
+async function doLogin(){const login=el("loginName").value.trim(),pass=el("loginPass").value;if(cloudEnabled()){try{await CloudBridge.signIn(login,pass);await hydrateFromCloud();const u=CloudBridge.legacyCurrent();if(!u)return alert("تعذر تحميل ملف المستخدم.");if(u.forumId&&selected&&canonicalForumId(u.forumId)!==canonicalForumId(selected.forumId||selected.id))return alert("هذا الحساب غير مخول لهذا المنتدى");current=u;users=CloudBridge.getProfiles();el("logoutBtn").classList.remove("hidden");log("تسجيل دخول سحابي",selected?.forumId||u.forumId||"DIRECTORATE",{summary:"تم تسجيل الدخول عبر قاعدة البيانات المشتركة.",source:"CloudAuthentication"});goHome();return}catch(e){console.error(e);return alert("تعذر تسجيل الدخول السحابي: "+(e.message||e))}}const u=users.find(x=>x.login===login&&x.pass===pass);if(!u)return alert("بيانات الدخول غير صحيحة");if(u.disabled)return alert("هذا الحساب معطل");if(security.temporaryAccessEnabled&&u.validUntil&&new Date(u.validUntil).getTime()<Date.now())return alert("انتهت صلاحية الوصول المؤقت لهذا الحساب.");if(u.forumId&&selected&&u.forumId!==(selected.forumId||selected.id))return alert("هذا الحساب غير مخول لهذا المنتدى");current=u;u.lastLoginAt=new Date().toISOString();S("v29_users",users);el("logoutBtn").classList.remove("hidden");log("تسجيل دخول",selected.forumId||selected.id,{summary:"تم تسجيل الدخول إلى "+selected.name+" بنجاح.",source:"Authentication"});goHome()}
+async function logout(){if(cloudEnabled())try{await CloudBridge.signOut()}catch(e){console.error(e)}current=null;selected=null;el("logoutBtn").classList.add("hidden");show("gate")}
 function goHome(){updateNotificationBadges();if(has(Capability.Tech)){renderAdminDashboard();show("adminDash")}else if(has(Capability.DirectorDashboard)){renderDirectorDashboard();show("directorDash")}else{renderStandardDashboard();show("standardDash")}}
 function canCrossForumAccess(){return !!current&&(current.role==="مدير الإدارة"||current.role==="المطور")}
 function effectiveForumId(){return current?.forumId||current?.forum||selected?.forumId||selected?.id||null}
@@ -1318,6 +1345,15 @@ function enhanceMobileUX(){
  });
 }
 document.addEventListener('DOMContentLoaded',enhanceMobileUX);
+
+window.addEventListener("forum-mis-cloud-status",e=>setCloudStatus(e.detail.status,e.detail.text));
+window.addEventListener("forum-mis-cloud-pull",async()=>{if(!cloudEnabled()||!current)return;try{await hydrateFromCloud();goHome()}catch(e){console.error("Realtime hydrate",e)}});
+document.addEventListener("DOMContentLoaded",async()=>{
+ try{await window.CloudBridge?.init?.()}catch(e){console.error("Cloud init",e);setCloudStatus("error","السحابة غير متاحة")}
+ const note=el("loginModeNote");if(note)note.textContent=cloudEnabled()?"تسجيل دخول سحابي آمن — البيانات متزامنة بين الأجهزة بعد تسجيل الدخول.":"وضع محلي مؤقت — لم يتم ربط مشروع Supabase بعد.";
+ const hint=el("cloudMigrationHint");if(hint)hint.textContent=cloudEnabled()?"قاعدة البيانات السحابية مفعلة.":"أدخل Project URL وPublishable Key في cloud-config.js لتفعيل المزامنة.";
+ const bs=el("cloudBackupStatus");if(bs)bs.textContent=cloudEnabled()?"Cloud Ready":"Local Cache";
+});
 </script>
 <div id="rehabModal" class="modal"><div class="modalBox"><div class="modalHead"><h3 id="rehabModalTitle">سجل التجهيز</h3><button class="ghost" onclick="closeRehabilitationModal()">إغلاق</button></div><div id="rehabModalBody"></div><div id="rehabModalActions" class="rowBtns" style="margin-top:12px"></div></div></div>
 </body></html>
