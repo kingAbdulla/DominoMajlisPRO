@@ -35,6 +35,100 @@ button{border:0;border-radius:10px;padding:11px 15px;background:var(--blue);colo
 .heatmapWrap{overflow:auto}.heatmap{display:grid;grid-template-columns:180px repeat(12,44px);gap:5px;min-width:760px;align-items:center}.heatHead,.heatName{font-size:11px;color:#667085;text-align:center}.heatName{text-align:right;font-weight:700;color:#0d2d49}.heatCell{height:34px;border-radius:7px;display:grid;place-items:center;font-size:10px;font-weight:800;border:1px solid #e5eaf0}.multiLegend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:8px}.legendDot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:5px}.scoreBadge{display:inline-block;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800}.scoreExcellent{background:#e7f6ee;color:#087443}.scoreVeryGood{background:#eaf3ff;color:#175cd3}.scoreGood{background:#fff3d6;color:#9a6700}.scoreAttention{background:#fdecea;color:#b42318}.directorUserRow{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:center;padding:10px;border:1px solid #e8edf2;border-radius:12px;margin-bottom:8px}.idChip{font-family:monospace;font-size:10px;background:#f2f4f7;border-radius:6px;padding:3px 6px;color:#475467}.reportCover{border:1px solid #0d2d49;padding:16px 20px;text-align:center;margin-bottom:12px;background:#fbfcfd}.reportCover h1{font-size:22px;color:#0d2d49;margin:8px 0}.reportCover .period{font-size:16px;font-weight:700}.execKpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.execKpi{border:1px solid #d8dee5;border-radius:9px;padding:8px;text-align:center;background:#f8fafc}.execKpi span{display:block;color:#667085;font-size:10px}.execKpi strong{font-size:18px;color:#0d2d49}.reportsToolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.registryHealth{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.repairBadge{background:#fff3d6;color:#9a6700}.registryError{background:#fff8e7;border-right:4px solid #c29a37;padding:10px;border-radius:8px}.registryOk{background:#e7f6ee;color:#087443;padding:8px 10px;border-radius:8px;font-weight:700}.reportViewerBar{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}
 .attachmentList{display:grid;gap:8px}.attachmentItem{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid #e4e9ef;border-radius:10px;padding:9px}.attachmentMeta{font-size:11px;color:#667085}.lockedBox{background:#fff3d6;border:1px solid #f5c451;color:#7a4b00;border-radius:10px;padding:10px}.versionCompare{display:grid;grid-template-columns:1fr 1fr;gap:10px}.diffChanged{background:#fff3d6}.diffOld{color:#b42318}.diffNew{color:#087443}@media print{@page{size:A4;margin:10mm}body{background:#fff}.reportPaper{border:0;box-shadow:none;width:190mm;max-width:190mm;min-height:auto;margin:0 auto;padding:0}.reportSection,.photoItem,tr{break-inside:avoid}.reportCover{min-height:auto}.rowBtns,.reportsToolbar,.versionBox{display:none!important}} 
 @media(max-width:1080px){.forumGrid{grid-template-columns:repeat(2,1fr)}.execGrid{grid-template-columns:1fr}.filterBar{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.kpis,.actions,.form,.forumGrid,.filterBar,.reportMeta,.detailGrid{grid-template-columns:1fr 1fr}.reportTop{grid-template-columns:80px 1fr 80px}.signatures{grid-template-columns:1fr}.permissionTable{grid-template-columns:190px repeat(4,160px);overflow:auto}}@media(max-width:520px){.kpis,.actions,.form,.forumGrid,.filterBar,.reportMeta,.detailGrid{grid-template-columns:1fr}.reportTop{grid-template-columns:1fr;text-align:center}.directorHero{align-items:flex-start;flex-direction:column}}
+
+/* Production Mobile Hardening */
+html,body{max-width:100%;overflow-x:hidden}
+img,svg,canvas{max-width:100%;height:auto}
+button,input,select,textarea{max-width:100%}
+.table{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.modalBox{max-width:min(920px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto}
+.reportPaper{max-width:100%}
+@media(max-width:760px){
+  header{padding:10px 12px;gap:8px;align-items:flex-start}
+  .brand{gap:8px;min-width:0}
+  .syslogo{width:40px;height:40px;border-radius:12px;flex:0 0 auto}
+  .brand h1{font-size:15px;line-height:1.35}
+  .brand small{font-size:10px;display:block;white-space:normal}
+  header>button{padding:9px 10px;font-size:11px;flex:0 0 auto}
+  .wrap{padding:12px 8px}
+  .card{padding:13px;border-radius:14px;margin-bottom:10px}
+  .auth{margin:20px auto}
+  .head{align-items:flex-start;flex-direction:column}
+  .head>button,.head .rowBtns{width:100%}
+  .head>button{min-height:42px}
+  .subtitle{font-size:11px;line-height:1.6}
+  h1,h2,h3{overflow-wrap:anywhere}
+  h2{font-size:20px}
+  h3{font-size:16px}
+  input,select,textarea{font-size:16px;padding:11px 10px}
+  textarea{min-height:110px}
+  button{min-height:42px;padding:10px 12px;font-size:12px}
+  .kpis,.actions,.form,.forumGrid,.filterBar,.reportMeta,.detailGrid,.auditHero,.auditFilters,.institutionGrid,.governanceGrid,.globalSearchBar,.entityUsage,.execKpis{grid-template-columns:1fr!important}
+  .actions{gap:8px}
+  .actions button,.actions .notifyWrap,.actions .notifyWrap button{width:100%}
+  .kpi{padding:14px}
+  .kpi strong{font-size:23px}
+  .rowBtns{display:grid;grid-template-columns:1fr;gap:7px;width:100%}
+  .rowBtns button{width:100%}
+  .tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .tab{width:100%}
+  .gallery img{width:calc(50% - 5px);height:110px}
+  .forumLogo,.sigImg{width:78px;height:78px}
+  .notificationCard{grid-template-columns:1fr}
+  .notificationCard button{width:100%}
+  .auditEvent{grid-template-columns:1fr;gap:5px}
+  .permissionTable{display:block;overflow-x:auto}
+  .versionCompare{grid-template-columns:1fr}
+  .geoBox{grid-template-columns:1fr}
+  .relationRow{grid-template-columns:1fr;gap:5px}
+  .relationRow button{width:100%}
+  .entityIdentity{align-items:flex-start}
+  .reportViewerBar{align-items:stretch;flex-direction:column}
+  .reportViewerBar button{width:100%}
+  .reportTop{grid-template-columns:1fr;text-align:center}
+  .reportTop>div{justify-self:center}
+  .reportCover{min-height:auto;padding:18px 12px}
+  .reportSection{padding:10px}
+  .signatures{grid-template-columns:1fr}
+  .directorHero{align-items:flex-start;flex-direction:column;padding:14px}
+  .directorHero .tag{width:100%;text-align:center}
+  .forumCard{min-width:0}
+  .recordActions{display:grid;grid-template-columns:1fr 1fr}
+  .recordActions button{width:100%}
+  .approvalItem,.approvalCard{min-width:0}
+  .approvalHero{grid-template-columns:1fr 1fr!important}
+  .entityCard,.recordCard,.searchResult{overflow:hidden}
+  .entityCode,.idChip{max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-block}
+  .modal{padding:8px}
+  .modalBox{width:calc(100vw - 16px);max-width:none;max-height:calc(100vh - 16px);padding:13px;border-radius:14px}
+}
+@media(max-width:520px){
+  .tabs{grid-template-columns:1fr}
+  .approvalHero{grid-template-columns:1fr!important}
+  .gallery img{width:100%;height:150px}
+  .recordActions{grid-template-columns:1fr}
+  .badge{font-size:10px}
+  .note{font-size:12px}
+}
+/* Turn data tables into readable record cards on phones */
+@media(max-width:760px){
+  .table table{min-width:0;width:100%}
+  .table thead{display:none}
+  .table table,.table tbody,.table tr,.table td{display:block;width:100%}
+  .table tr{background:#fff;border:1px solid #dfe6ed;border-radius:12px;padding:8px;margin-bottom:10px}
+  .table td{border:0;border-bottom:1px solid #edf1f4;padding:8px 6px;display:grid;grid-template-columns:minmax(92px,38%) 1fr;gap:8px;text-align:right}
+  .table td:last-child{border-bottom:0}
+  .table td::before{content:attr(data-label);font-weight:800;color:var(--navy);font-size:11px}
+  .table td:empty::after{content:"—";color:#98a2b3}
+  /* Tables without data-label stay horizontally scrollable instead of breaking */
+  .table table:not(.responsiveTable){min-width:680px}
+  .table table:not(.responsiveTable) thead{display:table-header-group}
+  .table table:not(.responsiveTable),.table table:not(.responsiveTable) tbody{display:table}
+  .table table:not(.responsiveTable) tr{display:table-row;background:transparent;border:0;padding:0;margin:0}
+  .table table:not(.responsiveTable) td{display:table-cell;width:auto;border-bottom:1px solid #e5eaf0;padding:9px;text-align:right}
+  .table table:not(.responsiveTable) td::before{content:none}
+}
+
 </style>
 </head>
 <body>
@@ -1112,6 +1206,21 @@ function saveAuthoritySettings(){
 
 function openTechSettings(){if(!has(Capability.Tech))return;show("techSettings")}
 function openPermissions(){const roles=["موظف","مدير المنتدى","مدير الإدارة","المطور","مراقب"],caps=[["إنشاء نشاط",Capability.Create],["تعديل نشاط المنتدى",Capability.EditForum],["تعديل أي منتدى",Capability.EditAny],["اعتماد النشاط",Capability.ApproveActivity],["رفض النشاط",Capability.RejectActivity],["طلب تعديل",Capability.RequestChange],["إعادة فتح النشاط",Capability.Reopen],["إلغاء اعتماد النشاط",Capability.Revoke],["الأرشفة",Capability.Archive],["الاستعادة",Capability.Restore],["إعداد تقرير",Capability.PrepareReport],["تعديل تقريري قبل الاعتماد",Capability.EditOwnReport],["اعتماد التقرير",Capability.ApproveReport],["إلغاء اعتماد التقرير",Capability.RevokeReport],["عرض كل المنتديات",Capability.ViewAll],["Director Dashboard",Capability.DirectorDashboard],["Audit Log",Capability.Audit],["إدارة المستخدمين إدارياً",Capability.AdminUsers],["هوية المنتدى",Capability.ForumIdentity],["حذف سجل غير معتمد",Capability.DeleteDraft],["حذف نهائي من الأرشيف",Capability.DeleteArchivedPermanent],["الإعدادات التقنية",Capability.Tech]];let h='<div class="h">الصلاحية</div>'+roles.map(r=>'<div class="h">'+r+'</div>').join("");caps.forEach(([name,c])=>{h+='<div>'+name+'</div>'+roles.map(r=>'<div class="'+((Permissions[r]||[]).includes(c)?"yes":"no")+'">'+((Permissions[r]||[]).includes(c)?"نعم":"لا")+'</div>').join("")});el("permissionMatrix").innerHTML=h;show("permissions")}
+
+function enhanceMobileTables(){
+ document.querySelectorAll('.table table').forEach(table=>{
+   const headers=[...table.querySelectorAll('thead th')].map(x=>x.textContent.trim());
+   if(!headers.length)return;
+   table.classList.add('responsiveTable');
+   table.querySelectorAll('tbody tr').forEach(tr=>{
+     [...tr.children].forEach((td,i)=>{if(td.tagName==='TD'&&headers[i])td.setAttribute('data-label',headers[i])})
+   })
+ })
+}
+const __origShow=typeof show==="function"?show:null;
+if(__origShow){show=function(id){const r=__origShow(id);requestAnimationFrame(enhanceMobileTables);return r}}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(enhanceMobileTables,50));
+window.addEventListener('resize',()=>{if(window.innerWidth<=760)enhanceMobileTables()});
 </script>
 <div id="rehabModal" class="modal"><div class="modalBox"><div class="modalHead"><h3 id="rehabModalTitle">سجل التجهيز</h3><button class="ghost" onclick="closeRehabilitationModal()">إغلاق</button></div><div id="rehabModalBody"></div><div id="rehabModalActions" class="rowBtns" style="margin-top:12px"></div></div></div>
 </body></html>
