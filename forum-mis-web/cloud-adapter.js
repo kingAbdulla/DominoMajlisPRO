@@ -34,12 +34,60 @@
   }
   async function loadProfile(){
     if(!client)return null;
-    const {data:{user}}=await client.auth.getUser();if(!user)return null;
-    const {data,error}=await client.from("profiles").select("*").eq("auth_user_id",user.id).single();
-    if(error)throw new Error("لا يوجد ملف صلاحيات مرتبط بالحساب: "+error.message);
+    const {data:{user}}=await client.auth.getUser();
+    if(!user)return null;
+
+    // Phase 1: always load the current user's own profile first.
+    const {data,error}=await client
+      .from("profiles")
+      .select("auth_user_id,user_id,login,full_name,role,forum_id,status,disabled,last_login_at")
+      .eq("auth_user_id",user.id)
+      .maybeSingle();
+
+    if(error)throw new Error("تعذر تحميل ملف صلاحيات الحساب: "+error.message);
+    if(!data)throw new Error("لا يوجد ملف صلاحيات مرتبط بهذا الحساب.");
+
     profile=data;
-    const all=await client.from("profiles").select("auth_user_id,user_id,login,full_name,role,forum_id,status,disabled,last_login_at");
-    profiles=(all.data||[]).map(p=>({id:p.user_id,userId:p.user_id,login:p.login,name:p.full_name,role:p.role,forum:p.forum_id,forumId:p.forum_id,status:p.status,disabled:!!p.disabled,lastLoginAt:p.last_login_at,authUserId:p.auth_user_id}));
+
+    // Phase 2: profile directory visibility is role-scoped.
+    // Do not fail login if the user cannot read other profiles.
+    profiles=[{
+      id:data.user_id,
+      userId:data.user_id,
+      login:data.login,
+      name:data.full_name,
+      role:data.role,
+      forum:data.forum_id,
+      forumId:data.forum_id,
+      status:data.status,
+      disabled:!!data.disabled,
+      lastLoginAt:data.last_login_at,
+      authUserId:data.auth_user_id
+    }];
+
+    if(["المطور","مدير الإدارة","مدير المنتدى"].includes(data.role)){
+      const q=await client
+        .from("profiles")
+        .select("auth_user_id,user_id,login,full_name,role,forum_id,status,disabled,last_login_at");
+      if(!q.error){
+        profiles=(q.data||[]).map(p=>({
+          id:p.user_id,
+          userId:p.user_id,
+          login:p.login,
+          name:p.full_name,
+          role:p.role,
+          forum:p.forum_id,
+          forumId:p.forum_id,
+          status:p.status,
+          disabled:!!p.disabled,
+          lastLoginAt:p.last_login_at,
+          authUserId:p.auth_user_id
+        }));
+      } else {
+        console.warn("Profile directory is restricted by RLS:",q.error.message);
+      }
+    }
+
     return profile
   }
   async function signIn(login,password){
@@ -50,7 +98,8 @@
     if(error)throw error;
     await loadProfile();
     if(profile.disabled||profile.status==="Disabled"){await client.auth.signOut();throw new Error("هذا الحساب معطل")}
-    await client.from("profiles").update({last_login_at:new Date().toISOString()}).eq("auth_user_id",data.user.id);
+    const loginStamp=await client.from("profiles").update({last_login_at:new Date().toISOString()}).eq("auth_user_id",data.user.id);
+    if(loginStamp.error)console.warn("Last login timestamp not persisted yet:",loginStamp.error.message);
     await subscribe();
     emit("online","سحابي متصل");
     return {profile,profiles};
