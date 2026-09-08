@@ -76,9 +76,69 @@ function scopedActs(){if(current.role==="مدير النظام")return acts;retu
 function scopedMods(){if(current.role==="مدير النظام")return mods;return mods.filter(m=>m.forum===current.forum)}
 function scopedReports(){if(current.role==="مدير النظام")return reports;return reports.filter(r=>r.forum===current.forum)}
 function dashboard(){const s=scopedActs();dashForum.textContent=current.role==="مدير النظام"?selected.name:forums.find(f=>f.id===current.forum).name;dashUser.textContent=current.name+" — "+current.role;kApproved.textContent=s.filter(a=>a.status==="معتمد").length;kSubmitted.textContent=s.filter(a=>a.status==="مرسل للمراجعة").length;kMods.textContent=scopedMods().filter(m=>m.status==="بانتظار الموافقة").length;kReports.textContent=scopedReports().filter(r=>r.status==="صادر").length;reviewBtn.classList.toggle("hidden",current.role==="موظف القسم");modBtn.classList.toggle("hidden",current.role==="موظف القسم");adminBtn.classList.toggle("hidden",current.role!=="مدير النظام");show("dash")}
-function sumParticipants(){total.value=Number(male.value||0)+Number(female.value||0)}
+function sumParticipants(){
+  const maleInput=document.getElementById("male");
+  const femaleInput=document.getElementById("female");
+  const totalInput=document.getElementById("total");
+  totalInput.value=Number(maleInput.value||0)+Number(femaleInput.value||0);
+}
 function nextId(prefix,list){return prefix+String(list.length+1).padStart(5,"0")}
-function saveActivity(status){if(!activityName.value.trim()||!activityDate.value||!location.value.trim()){activityMsg.textContent="أدخل اسم النشاط والتاريخ والمكان";activityMsg.className="msg err";return}const forum=current.role==="مدير النظام"?selected.id:current.forum;const now=new Date().toISOString();const rec={id:"ACT-"+forum+"-"+String(acts.length+1).padStart(6,"0"),forum,dept:current.dept||"D000",type:type.value,name:activityName.value.trim(),date:activityDate.value,location:location.value,male:Number(male.value||0),female:Number(female.value||0),total:Number(male.value||0)+Number(female.value||0),age:age.value,org:org.value,visitors:visitors.value,description:description.value,notes:notes.value,status,version:"1.0",createdBy:current.id,createdAt:now};acts.push(rec);audit.push({at:now,user:current.id,action:"إنشاء نشاط",record:rec.id});save("v17_acts",acts);save("v17_audit",audit);activityMsg.textContent="تم الحفظ";activityMsg.className="msg ok";setTimeout(dashboard,250)}
+function saveActivity(status){
+  const activityNameInput=document.getElementById("activityName");
+  const activityDateInput=document.getElementById("activityDate");
+  const locationInput=document.getElementById("location");
+  const typeInput=document.getElementById("type");
+  const maleInput=document.getElementById("male");
+  const femaleInput=document.getElementById("female");
+  const ageInput=document.getElementById("age");
+  const orgInput=document.getElementById("org");
+  const visitorsInput=document.getElementById("visitors");
+  const descriptionInput=document.getElementById("description");
+  const notesInput=document.getElementById("notes");
+  const activityMsgEl=document.getElementById("activityMsg");
+
+  if(!activityNameInput.value.trim()||!activityDateInput.value||!locationInput.value.trim()){
+    activityMsgEl.textContent="أدخل اسم النشاط والتاريخ والمكان";
+    activityMsgEl.className="msg err";
+    return;
+  }
+
+  const forum=current.role==="مدير النظام"?selected.id:current.forum;
+  const now=new Date().toISOString();
+  const maleCount=Number(maleInput.value||0);
+  const femaleCount=Number(femaleInput.value||0);
+
+  const rec={
+    id:"ACT-"+forum+"-"+String(acts.length+1).padStart(6,"0"),
+    forum,
+    dept:current.dept||"D000",
+    type:typeInput.value,
+    name:activityNameInput.value.trim(),
+    date:activityDateInput.value,
+    location:locationInput.value.trim(),
+    male:maleCount,
+    female:femaleCount,
+    total:maleCount+femaleCount,
+    age:ageInput.value,
+    org:orgInput.value.trim(),
+    visitors:visitorsInput.value.trim(),
+    description:descriptionInput.value.trim(),
+    notes:notesInput.value.trim(),
+    status,
+    version:"1.0",
+    createdBy:current.id,
+    createdAt:now
+  };
+
+  acts.push(rec);
+  audit.push({at:now,user:current.id,action:"إنشاء نشاط",record:rec.id});
+  save("v17_acts",acts);
+  save("v17_audit",audit);
+
+  activityMsgEl.textContent=status==="مرسل للمراجعة"?"تم حفظ النشاط وإرساله للمراجعة":"تم حفظ النشاط كمسودة";
+  activityMsgEl.className="msg ok";
+  setTimeout(dashboard,500);
+}
 function openActivities(){const s=scopedActs();activitiesBody.innerHTML=s.length?s.map(a=>'<tr><td>'+a.id+'</td><td>'+a.name+'</td><td>'+a.date+'</td><td>'+a.total+'</td><td><span class="pill">'+a.status+'</span></td><td class="rowBtns">'+((a.status==="مسودة"||a.status==="معاد للتعديل")?'<button onclick="sendReview(\''+a.id+'\')">إرسال للمراجعة</button>':'')+(a.status==="معتمد"?'<button onclick="requestEdit(\''+a.id+'\')">طلب تعديل</button><button class="gold" onclick="startSingleReport(\''+a.id+'\')">إعداد تقرير</button>':'')+'</td></tr>').join(""):'<tr><td colspan="6">لا توجد سجلات</td></tr>';show("activities")}
 function sendReview(id){const a=acts.find(x=>x.id===id);a.status="مرسل للمراجعة";audit.push({at:new Date().toISOString(),user:current.id,action:"إرسال للمراجعة",record:id});save("v17_acts",acts);save("v17_audit",audit);openActivities()}
 function openReviews(){const s=scopedActs().filter(a=>a.status==="مرسل للمراجعة");reviewsBody.innerHTML=s.length?s.map(a=>'<tr><td>'+a.id+'</td><td>'+a.name+'</td><td>'+a.total+'</td><td><button onclick="approve(\''+a.id+'\')">اعتماد</button> <button class="danger" onclick="returnEdit(\''+a.id+'\')">إعادة</button></td></tr>').join(""):'<tr><td colspan="4">لا توجد عناصر</td></tr>';show("reviews")}
