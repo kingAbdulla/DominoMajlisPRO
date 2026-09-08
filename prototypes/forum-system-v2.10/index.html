@@ -296,7 +296,7 @@ function populateReportBuilder(forumFilter=null){
 }
 function openReportBuilder(forumFilter=null){if(!has(Capability.PrepareReport))return alert("لا تملك صلاحية إعداد التقارير.");populateReportBuilder(forumFilter);el("reportEditPanel").classList.add("hidden");el("reportBuilder").classList.remove("hidden");show("reportBuilderScreen")}
 function startSingleReport(id){openReportBuilder();el("reportType").value="تقرير نشاط واحد";el("reportRecord").value=id}
-function reportKey(t,arr){if(t==="تقرير نشاط واحد")return "ACT:"+arr[0].id;if(t==="تقرير شهري")return "MONTH:"+el("reportMonth").value;return "YEAR:"+el("reportYear").value}
+function reportKey(t,arr){if(t==="تقرير نشاط واحد")return "ACT:"+(arr[0].activityId||arr[0].id);if(t==="تقرير شهري")return "MONTH:"+el("reportMonth").value;return "YEAR:"+el("reportYear").value}
 function prepareReport(){
  if(!has(Capability.PrepareReport))return alert("لا تملك صلاحية إعداد التقارير.");
  let arr=[];const t=el("reportType").value;
@@ -321,8 +321,26 @@ function reportFooterBlock(r,forum,url,qr){
  return '<div class="signatures"><div class="sigbox"><b>كاتب التقرير</b><br><br>'+esc(r.reportWriterName||userName(r.writerUserId||r.createdBy))+'</div><div class="sigbox"><b>مدير المنتدى</b><br>'+(forum.managerSignature?'<img class="sigImg" src="'+forum.managerSignature+'"><br>':'<br><br>')+esc(r.managerName||forum.managerName||"")+'</div><div class="sigbox"><b>الختم الرسمي</b><br><br>________________</div></div><div class="qrbox"><img src="'+qr+'"><div><b>'+esc(qrSettings.label||defaultQrSettings.label)+'</b></div></div><div class="reportFooter"><span>رقم التقرير: '+esc(r.id)+'</span><span>'+esc(authority.footer||"نسخة إلكترونية رسمية قابلة للتحقق")+'</span><span>الإصدار V'+esc(r.version)+'</span></div>';
 }
 function renderSingleActivityTemplate(r,arr,forum,url,qr){
- const a=arr[0],m=a?.male||0,f=a?.female||0,tot=m+f;
- return '<div id="printArea" class="reportPaper">'+commonReportHeader(r,forum,"تقرير نشاط رسمي")+commonReportMeta(r,forum)+'<div class="reportSection"><h3>بيانات النشاط</h3><div class="detailGrid"><div><b>رقم سجل النشاط:</b> '+esc(a.id)+'</div><div><b>اسم النشاط:</b> '+esc(a.name)+'</div><div><b>نوع النشاط:</b> '+esc(a.type)+'</div><div><b>تاريخ التنفيذ:</b> '+a.date+'</div><div><b>وقت التنفيذ:</b> '+esc(a.time||"-")+'</div><div><b>مكان التنفيذ:</b> '+esc(a.location)+'</div><div><b>اسم القاعة:</b> '+esc(a.hallName||"-")+'</div><div><b>مسؤول النشاط:</b> '+esc(a.activityOwner||"-")+'</div><div><b>مدخل البيانات:</b> '+esc(a.dataEntryName||userName(a.dataEntryUserId||a.createdBy))+'</div><div><b>الفئة العمرية:</b> '+esc(a.age)+'</div><div><b>الجهة المتعاونة:</b> '+esc(a.org||"-")+'</div><div><b>الزوار والمسؤولون:</b> '+esc(a.visitors||"-")+'</div><div><b>رقم الكتاب:</b> '+esc(a.letterNo||"-")+'</div><div><b>تاريخ الكتاب:</b> '+esc(a.letterDate||"-")+'</div></div></div><div class="reportSection"><h3>أعداد المشاركين</h3><div class="execKpis"><div class="execKpi"><span>الذكور</span><strong>'+m+'</strong></div><div class="execKpi"><span>الإناث</span><strong>'+f+'</strong></div><div class="execKpi"><span>الإجمالي</span><strong>'+tot+'</strong></div><div class="execKpi"><span>حالة النشاط</span><strong>'+esc(a.status)+'</strong></div></div></div><div class="reportSection"><h3>هدف النشاط</h3><p>'+esc(a.objective||"-")+'</p></div><div class="reportSection"><h3>وصف التنفيذ</h3><p>'+esc(a.description||"-")+'</p></div><div class="reportSection"><h3>المخرجات والنتائج</h3><p>'+esc(a.outcomes||"-")+'</p></div><div class="reportSection"><h3>التوصيات</h3><p>'+esc(r.reportRecommendations||a.recommendations||"-")+'</p></div>'+(r.managementNotes?'<div class="reportSection"><h3>ملاحظات الإدارة</h3><p>'+esc(r.managementNotes)+'</p></div>':'')'+((a.images||[]).length?'<div class="reportSection"><h3>ملحق الصور التوثيقية</h3><div class="photoAppendix">'+a.images.map((img,i)=>'<div class="photoItem"><img src="'+img+'"><small>صورة '+(i+1)+' — '+esc(a.name)+' — '+a.date+' — '+esc(a.location)+'</small></div>').join("")+'</div></div>':'')+reportFooterBlock(r,forum,url,qr)+'</div>';
+ const a=arr[0],m=a?.male||0,f=a?.female||0,tot=m+f,images=(a.attachments||[]).filter(x=>x.isCurrent!==false&&x.category==="صورة");
+ const photoAppendix=images.length?'<div class="reportSection"><h3>الصور التوثيقية</h3><div class="photoAppendix">'+images.map((img,i)=>'<div class="photoItem"><img src="'+img.data+'"><small>صورة '+(i+1)+' — '+esc(a.name)+' — '+esc(a.date)+' — '+esc(a.location)+'</small></div>').join("")+'</div></div>':'';
+ const notes=r.managementNotes?'<div class="reportSection"><h3>ملاحظات الإدارة</h3><p>'+esc(r.managementNotes)+'</p></div>':'';
+ return '<div id="printArea" class="reportPaper">'+commonReportHeader(r,forum,"تقرير نشاط رسمي")+commonReportMeta(r,forum)
+ +'<div class="reportSection"><h3>بيانات النشاط</h3><div class="detailGrid">'
+ +'<div><b>رقم سجل النشاط:</b> '+esc(a.id)+'</div><div><b>اسم النشاط:</b> '+esc(a.name)+'</div>'
+ +'<div><b>نوع النشاط:</b> '+esc(a.type)+'</div><div><b>تاريخ التنفيذ:</b> '+esc(a.date)+'</div>'
+ +'<div><b>وقت التنفيذ:</b> '+esc(a.time||"-")+'</div><div><b>مكان التنفيذ:</b> '+esc(a.location)+'</div>'
+ +'<div><b>اسم القاعة:</b> '+esc(a.hallName||"-")+'</div><div><b>مسؤول النشاط:</b> '+esc(a.activityOwner||"-")+'</div>'
+ +'<div><b>مدخل البيانات:</b> '+esc(a.dataEntryName||userName(a.dataEntryUserId||a.createdBy))+'</div><div><b>الفئة العمرية:</b> '+esc(a.age)+'</div>'
+ +'<div><b>الجهة المتعاونة:</b> '+esc(a.org||"-")+'</div><div><b>الزوار والمسؤولون:</b> '+esc(a.visitors||"-")+'</div>'
+ +'<div><b>رقم الكتاب:</b> '+esc(a.letterNo||"-")+'</div><div><b>تاريخ الكتاب:</b> '+esc(a.letterDate||"-")+'</div>'
+ +'</div></div>'
+ +'<div class="reportSection"><h3>أعداد المشاركين</h3><div class="execKpis"><div class="execKpi"><span>الذكور</span><strong>'+m+'</strong></div><div class="execKpi"><span>الإناث</span><strong>'+f+'</strong></div><div class="execKpi"><span>الإجمالي</span><strong>'+tot+'</strong></div><div class="execKpi"><span>حالة النشاط</span><strong>'+esc(a.status)+'</strong></div></div></div>'
+ +'<div class="reportSection"><h3>هدف النشاط</h3><p>'+esc(a.objective||"-")+'</p></div>'
+ +'<div class="reportSection"><h3>وصف التنفيذ</h3><p>'+esc(a.description||"-")+'</p></div>'
+ +'<div class="reportSection"><h3>المخرجات والنتائج</h3><p>'+esc(a.outcomes||"-")+'</p></div>'
+ +notes
+ +'<div class="reportSection"><h3>التوصيات</h3><p>'+esc(r.reportRecommendations||a.recommendations||"-")+'</p></div>'
+ +photoAppendix+reportFooterBlock(r,forum,url,qr)+'</div>';
 }
 function renderMonthlyTemplate(r,arr,forum,url,qr){
  const m=arr.reduce((s,a)=>s+a.male,0),f=arr.reduce((s,a)=>s+a.female,0),tot=m+f,types={};arr.forEach(a=>types[a.type]=(types[a.type]||0)+1);const topType=Object.entries(types).sort((a,b)=>b[1]-a[1])[0]?.[0]||"-",top=arr.slice().sort((a,b)=>b.total-a.total)[0],partners=new Set(arr.map(a=>a.org).filter(Boolean)).size,vips=arr.filter(a=>a.visitors).length;
