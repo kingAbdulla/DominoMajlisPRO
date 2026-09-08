@@ -226,7 +226,7 @@ button,input,select,textarea{max-width:100%}
 <div class="wrap">
 
 <section id="gate" class="screen active"><div class="card auth"><h2>بوابة المنتديات</h2><input id="forumCode" value="001"><p><button onclick="enterForum()">دخول</button></p><div id="gateMsg"></div></div></section>
-<section id="login" class="screen"><div class="card auth"><div id="forumNameBadge" class="badge"></div><h2>تسجيل دخول المستخدم</h2><input id="loginName" placeholder="اسم المستخدم"><input id="loginPass" type="password" placeholder="كلمة المرور"><p><button onclick="doLogin()">دخول</button> <button class="ghost" onclick="show('gate')">رجوع</button></p><div id="loginModeNote" class="note">وضع محلي مؤقت — سيتم التحويل تلقائياً إلى تسجيل الدخول السحابي بعد ربط قاعدة البيانات.</div></div></section>
+<section id="login" class="screen"><div class="card auth"><div id="forumNameBadge" class="badge"></div><h2>تسجيل دخول المستخدم</h2><input id="loginName" placeholder="اسم المستخدم" autocomplete="username" autocapitalize="none" spellcheck="false"><input id="loginPass" type="password" placeholder="كلمة المرور" autocomplete="current-password"><p><button onclick="doLogin()">دخول</button> <button class="ghost" onclick="show('gate')">رجوع</button></p><div id="loginModeNote" class="note">استخدم اسم المستخدم وكلمة المرور الخاصة بحسابك. لا توجد كلمات مرور افتراضية أو مشتركة.</div></div></section>
 
 <section id="standardDash" class="screen"><div class="card"><h2 id="dashForum"></h2><p id="dashUser"></p></div>
 <div class="kpis"><div class="kpi"><span>الأنشطة المعتمدة</span><strong id="kApproved">0</strong></div><div class="kpi"><span>بانتظار القرار</span><strong id="kSubmitted">0</strong></div><div class="kpi"><span>مرفوض / طلب تعديل</span><strong id="kReturned">0</strong></div><div class="kpi"><span>التقارير الصادرة</span><strong id="kReports">0</strong></div></div>
@@ -410,13 +410,23 @@ const RoleIds={"موظف":"ROL-EMPLOYEE","مدير المنتدى":"ROL-FORUM-MA
 const defaultAuthority={country:"جمهورية العراق",ministry:"",directorate:"مديرية الشباب والرياضة",address:"",contact:"",email:"",footer:"نسخة إلكترونية رسمية قابلة للتحقق"};
 const defaultSecurity={sessionMinutes:120,temporaryAccessEnabled:true,autosaveEnabled:true,duplicateDetectionEnabled:true,reviewLockMinutes:30,notificationRetentionDays:30,approvalSlaHours:48};
 const defaultQrSettings={verificationBase:"https://raw.githack.com/kingAbdulla/DominoMajlisPRO/main/prototypes/forum-system-v2.23/verify.html",label:"امسح الرمز للتحقق من صحة الوثيقة"};
-const seedUsers=[{id:"U001",login:"employee",pass:"1234",name:"موظف تجريبي",role:"موظف",forum:"F001"},{id:"U002",login:"manager",pass:"1234",name:"مسؤول المنتدى",role:"مدير المنتدى",forum:"F001"},{id:"U003",login:"director",pass:"1234",name:"مدير المديرية",role:"مدير الإدارة",forum:null},{id:"U004",login:"admin",pass:"1234",name:"المطور",role:"المطور",forum:null},{id:"U005",login:"viewer",pass:"1234",name:"مراقب تجريبي",role:"مراقب",forum:null}];
+const seedUsers=[];
 const seedActs=[];
 const seedReports=[];
 const L=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d)),S=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));try{window.CloudBridge?.onLocalSave(k,v)}catch(e){console.error("Cloud write-through",e)}};
-let forums=L("v29_forums",seedForums),users=L("v29_users",seedUsers),acts=L("v29_acts",seedActs),reports=L("v29_reports",seedReports),audit=L("v29_audit",[]),notifs=L("v29_notifs",[]),authority=L("v29_authority",defaultAuthority),security=L("v29_security",defaultSecurity),qrSettings=L("v29_qr_settings",defaultQrSettings),savedFilters=L("v29_saved_filters",[]),forumProfiles=L("v29_forum_profiles",[]),rehabilitationRecords=L("v29_rehabilitation_records",[]),centralEntities=L("v29_central_entities",[]),selected=null,current=null,pendingAttachments=[],pendingLogo="",pendingSig="",autosaveTimer=null;
+let forums=L("v29_forums",seedForums),users=[],acts=L("v29_acts",seedActs),reports=L("v29_reports",seedReports),audit=L("v29_audit",[]),notifs=L("v29_notifs",[]),authority=L("v29_authority",defaultAuthority),security=L("v29_security",defaultSecurity),qrSettings=L("v29_qr_settings",defaultQrSettings),savedFilters=L("v29_saved_filters",[]),forumProfiles=L("v29_forum_profiles",[]),rehabilitationRecords=L("v29_rehabilitation_records",[]),centralEntities=L("v29_central_entities",[]),selected=null,current=null,pendingAttachments=[],pendingLogo="",pendingSig="",autosaveTimer=null;
 const el=id=>document.getElementById(id),esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 
+function purgeLegacyLocalCredentials(){
+ try{
+   const old=JSON.parse(localStorage.getItem("v29_users")||"[]");
+   if(Array.isArray(old)&&old.length){
+     const sanitized=old.map(u=>{const x={...u};delete x.pass;delete x.password;delete x.passwordHash;return x});
+     localStorage.setItem("v29_users",JSON.stringify(sanitized));
+   }
+ }catch(e){console.warn("Legacy credential purge",e)}
+}
+purgeLegacyLocalCredentials();
 function cloudEnabled(){return !!window.CloudBridge?.configured?.()}
 function setCloudStatus(status,text){const b=el("cloudStatusBadge");if(!b)return;b.textContent=text||status;b.className="badge "+(status==="online"?"approved":status==="error"?"rejected":"")}
 function applyCloudSnapshot(snap){
@@ -445,7 +455,7 @@ function canonical(prefix,legacy=""){if(legacy)return prefix+"-"+String(legacy).
 function migrateIds(){
   forums.forEach(f=>{f.forumId=f.forumId||canonical("FRM",f.id);f.id=f.id||f.forumId;});
   const forumCanonical=v=>{if(!v)return null;const f=forums.find(x=>x.forumId===v||x.id===v);return f?.forumId||v};
-  users.forEach(u=>{u.userId=u.userId||canonical("USR",u.id);u.roleId=u.roleId||RoleIds[u.role]||canonical("ROL",u.role);u.forumId=forumCanonical(u.forumId||u.forum);u.forum=u.forumId;u.departmentId=u.departmentId||null;u.createdAt=u.createdAt||"2026-01-01T00:00:00";u.createdByUserId=u.createdByUserId||"SYSTEM";u.status=u.disabled?"Disabled":"Active";u.lastLoginAt=u.lastLoginAt||null;u.id=u.id||u.userId;});
+  users.forEach(u=>{delete u.pass;delete u.password;delete u.passwordHash;u.userId=u.userId||canonical("USR",u.id);u.roleId=u.roleId||RoleIds[u.role]||canonical("ROL",u.role);u.forumId=forumCanonical(u.forumId||u.forum);u.forum=u.forumId;u.departmentId=u.departmentId||null;u.createdAt=u.createdAt||"2026-01-01T00:00:00";u.createdByUserId=u.createdByUserId||"SYSTEM";u.status=u.disabled?"Disabled":"Active";u.lastLoginAt=u.lastLoginAt||null;u.id=u.id||u.userId;});
   const userCanonical=v=>{if(!v)return null;const u=users.find(x=>x.userId===v||x.id===v);return u?.userId||v};
   acts.forEach(a=>{a.activityId=a.activityId||canonical("ACT",a.id);a.forumId=forumCanonical(a.forumId||a.forum);a.forum=a.forumId;a.dataEntryUserId=userCanonical(a.dataEntryUserId||a.createdBy);a.createdBy=a.dataEntryUserId;a.responsibleUserId=userCanonical(a.responsibleUserId)||null;a.supportEntityId=a.supportEntityId||((a.activitySupported==="yes"||a.supportEntityName)?canonical("SUP",a.activityId||a.id):null);a.officialVisitorId=a.officialVisitorId||((a.visitors||a.visitorJobTitle)?canonical("VIS",a.activityId||a.id):null);a.rehabilitationRecordIds=(a.rehabilitationRecordIds||[]).filter(Boolean);a.version=a.version||"1.0";a.versionId=a.versionId||canonical("ACV",a.activityId+"-"+a.version);a.id=a.id||a.activityId;});
   const activityCanonical=v=>{const a=acts.find(x=>x.activityId===v||x.id===v);return a?.activityId||v};
@@ -592,7 +602,25 @@ function notifyDownstream(entity,text,ref,options={}){notifyUsers(entityStakehol
 function unread(){const uid=currentUserId();return activeNotifications().filter(n=>notificationRecipientId(n)===uid&&!n.read).length}
 function updateNotificationBadges(){const n=unread();["notifyCount","directorNotifyCount"].forEach(id=>{if(el(id)){el(id).textContent=n;el(id).classList.toggle("hidden",n===0)}})}
 async function enterForum(){const code=el("forumCode").value.trim();selected=forums.find(f=>f.code===code&&f.active);if(!selected&&cloudEnabled()){try{selected=await CloudBridge.lookupForum(code)}catch(e){console.error(e)}}if(!selected)return alert("رمز المنتدى غير صحيح");el("forumNameBadge").textContent=selected.name;show("login")}
-async function doLogin(){const login=el("loginName").value.trim(),pass=el("loginPass").value;if(cloudEnabled()){try{await CloudBridge.signIn(login,pass);await hydrateFromCloud();const u=CloudBridge.legacyCurrent();if(!u)return alert("تعذر تحميل ملف المستخدم.");if(u.forumId&&selected&&canonicalForumId(u.forumId)!==canonicalForumId(selected.forumId||selected.id))return alert("هذا الحساب غير مخول لهذا المنتدى");current=u;users=CloudBridge.getProfiles();el("logoutBtn").classList.remove("hidden");log("تسجيل دخول سحابي",selected?.forumId||u.forumId||"DIRECTORATE",{summary:"تم تسجيل الدخول عبر قاعدة البيانات المشتركة.",source:"CloudAuthentication"});goHome();return}catch(e){console.error(e);return alert("تعذر تسجيل الدخول السحابي: "+(e.message||e))}}const u=users.find(x=>x.login===login&&x.pass===pass);if(!u)return alert("بيانات الدخول غير صحيحة");if(u.disabled)return alert("هذا الحساب معطل");if(security.temporaryAccessEnabled&&u.validUntil&&new Date(u.validUntil).getTime()<Date.now())return alert("انتهت صلاحية الوصول المؤقت لهذا الحساب.");if(u.forumId&&selected&&u.forumId!==(selected.forumId||selected.id))return alert("هذا الحساب غير مخول لهذا المنتدى");current=u;u.lastLoginAt=new Date().toISOString();S("v29_users",users);el("logoutBtn").classList.remove("hidden");log("تسجيل دخول",selected.forumId||selected.id,{summary:"تم تسجيل الدخول إلى "+selected.name+" بنجاح.",source:"Authentication"});goHome()}
+async function doLogin(){
+ const login=el("loginName").value.trim(),pass=el("loginPass").value;
+ if(!login||!pass)return alert("يرجى إدخال اسم المستخدم وكلمة المرور.");
+ if(!cloudEnabled())return alert("تسجيل الدخول السحابي غير متاح حالياً. لا يسمح النظام بتسجيل دخول محلي أو بكلمة مرور افتراضية.");
+ try{
+   await CloudBridge.signIn(login,pass);
+   await hydrateFromCloud();
+   const u=CloudBridge.legacyCurrent();
+   if(!u)return alert("تعذر تحميل ملف المستخدم.");
+   if(u.forumId&&selected&&canonicalForumId(u.forumId)!==canonicalForumId(selected.forumId||selected.id)){await CloudBridge.signOut();return alert("هذا الحساب غير مخول لهذا المنتدى");}
+   current=u;users=CloudBridge.getProfiles();
+   el("logoutBtn").classList.remove("hidden");
+   log("تسجيل دخول سحابي",selected?.forumId||u.forumId||"DIRECTORATE",{summary:"تم تسجيل الدخول عبر قاعدة البيانات المشتركة.",source:"CloudAuthentication"});
+   goHome();
+ }catch(e){
+   console.error(e);
+   return alert("تعذر تسجيل الدخول. تحقق من اسم المستخدم وكلمة المرور أو حالة الحساب.");
+ }
+}
 async function logout(){if(cloudEnabled())try{await CloudBridge.signOut()}catch(e){console.error(e)}current=null;selected=null;el("logoutBtn").classList.add("hidden");show("gate")}
 function goHome(){updateNotificationBadges();if(has(Capability.Tech)){renderAdminDashboard();show("adminDash")}else if(has(Capability.DirectorDashboard)){renderDirectorDashboard();show("directorDash")}else{renderStandardDashboard();show("standardDash")}}
 function canCrossForumAccess(){return !!current&&(current.role==="مدير الإدارة"||current.role==="المطور")}
@@ -1350,7 +1378,7 @@ window.addEventListener("forum-mis-cloud-status",e=>setCloudStatus(e.detail.stat
 window.addEventListener("forum-mis-cloud-pull",async()=>{if(!cloudEnabled()||!current)return;try{await hydrateFromCloud();goHome()}catch(e){console.error("Realtime hydrate",e)}});
 document.addEventListener("DOMContentLoaded",async()=>{
  try{await window.CloudBridge?.init?.()}catch(e){console.error("Cloud init",e);setCloudStatus("error","السحابة غير متاحة")}
- const note=el("loginModeNote");if(note)note.textContent=cloudEnabled()?"تسجيل دخول سحابي آمن — البيانات متزامنة بين الأجهزة بعد تسجيل الدخول.":"وضع محلي مؤقت — لم يتم ربط مشروع Supabase بعد.";
+ const note=el("loginModeNote");if(note)note.textContent=cloudEnabled()?"تسجيل دخول سحابي آمن — استخدم بيانات حسابك الشخصية.":"تسجيل الدخول غير متاح حتى يكتمل اتصال قاعدة البيانات السحابية.";
  const hint=el("cloudMigrationHint");if(hint)hint.textContent=cloudEnabled()?"قاعدة البيانات السحابية مفعلة.":"أدخل Project URL وPublishable Key في cloud-config.js لتفعيل المزامنة.";
  const bs=el("cloudBackupStatus");if(bs)bs.textContent=cloudEnabled()?"Cloud Ready":"Local Cache";
 });
