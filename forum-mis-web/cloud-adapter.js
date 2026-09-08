@@ -12,7 +12,53 @@
     v29_saved_filters:{collection:"saved_filters",id:["savedFilterId","id"],forum:["forumId"],owner:["ownerUserId"]}
   };
   const REVERSE=Object.fromEntries(Object.entries(MAP).map(([k,v])=>[v.collection,k]));
-  let client=null,profile=null,profiles=[],channel=null,pullTimer=null,writeTimers=new Map(),hydrating=false;
+  let client=null,profile=null,profiles=[],channel=null,pullTimer=null,writeTimers=new Map(),hydrating=false,flushTimer=null;
+  const OFFLINE_SCHEMA=1;
+  const RETRY_DELAYS=[1500,5000,15000,30000,60000];
+  const nowIso=()=>new Date().toISOString();
+  const online=()=>navigator.onLine!==false;
+  const safeJsonParse=(raw,fallback)=>{try{return raw?JSON.parse(raw):fallback}catch(_){return fallback}};
+  const authCacheKey=authId=>"v29_cloud_profile_cache:"+String(authId||"anon");
+  const scopeId=()=>String(profile?.user_id||"anon")+"::"+String(profile?.forum_id||"GLOBAL");
+  const queueKey=()=>"v29_sync_queue:"+scopeId();
+  const cacheKey=()=>"v29_scoped_cache:"+scopeId();
+  const syncMetaKey=()=>"v29_sync_meta:"+scopeId();
+  const queueLoad=()=>safeJsonParse(localStorage.getItem(queueKey()),[]);
+  const queueSave=q=>localStorage.setItem(queueKey(),JSON.stringify(q));
+  const cacheLoad=()=>safeJsonParse(localStorage.getItem(cacheKey()),{schema:OFFLINE_SCHEMA,rows:{},updatedAt:null});
+  const cacheSave=x=>localStorage.setItem(cacheKey(),JSON.stringify({...x,schema:OFFLINE_SCHEMA,updatedAt:nowIso()}));
+  const metaLoad=()=>safeJsonParse(localStorage.getItem(syncMetaKey()),{lastSyncAt:null,lastError:null});
+  const metaSave=patch=>{const next={...metaLoad(),...patch};localStorage.setItem(syncMetaKey(),JSON.stringify(next));return next};
+  const rowKey=(collection,rowId)=>collection+"::"+String(rowId);
+  const samePayload=(a,b)=>JSON.stringify(a??null)===JSON.stringify(b??null);
+  const emitSyncState=(forced=null)=>{
+    const q=queueLoad(),conflicts=q.filter(x=>x.status==="CONFLICT").length,pending=q.filter(x=>x.status==="PENDING"||x.status==="RETRY").length,failed=q.filter(x=>x.status==="FAILED").length,meta=metaLoad();
+    if(forced){emit(forced.status,forced.text);return}
+    if(!online()){emit("offline","وضع دون اتصال"+(pending?" • "+pending+" بانتظار المزامنة":""));return}
+    if(conflicts){emit("conflict","تعارض يحتاج مراجعة • "+conflicts);return}
+    if(failed){emit("error","فشل المزامنة • "+failed);return}
+    if(pending){emit("pending","بانتظار المزامنة • "+pending);return}
+    emit("online","تمت المزامنة"+(meta.lastSyncAt?" • "+new Date(meta.lastSyncAt).toLocaleTimeString("ar-IQ",{hour:"2-digit",minute:"2-digit"}):""))
+  };
+  const updateCacheRow=row=>{
+    const cache=cacheLoad(),k=rowKey(row.collection,row.row_id);
+    cache.rows[k]={collection:row.collection,row_id:row.row_id,forum_id:row.forum_id??null,owner_user_id:row.owner_user_id??null,payload:row.payload,updated_at:row.updated_at||nowIso()};
+    cacheSave(cache);
+  };
+  const removeCacheRow=(collection,rowId)=>{const cache=cacheLoad();delete cache.rows[rowKey(collection,rowId)];cacheSave(cache)};
+  const cacheRowsForCollection=collection=>Object.values(cacheLoad().rows||{}).filter(r=>r.collection===collection);
+  const enqueueOperation=op=>{
+    let q=queueLoad();
+    const same=q.find(x=>x.collection===op.collection&&x.rowId===op.rowId&&["PENDING","RETRY"].includes(x.status));
+    if(same){
+      if(same.operation==="CREATE"&&op.operation==="UPDATE") op.operation="CREATE";
+      if(op.operation==="DELETE"&&same.operation==="CREATE"){q=q.filter(x=>x!==same);queueSave(q);emitSyncState();return}
+      Object.assign(same,op,{queueId:same.queueId,status:"PENDING",retries:0,lastError:null,timestamp:nowIso()});
+    }else q.push({queueId:crypto.randomUUID?crypto.randomUUID():"Q-"+Date.now()+"-"+Math.random().toString(36).slice(2),status:"PENDING",retries:0,lastError:null,...op,timestamp:op.timestamp||nowIso()});
+    queueSave(q);emitSyncState();
+  };
+  const snapshotFromScopedCache=()=>rowsToSnapshot(Object.values(cacheLoad().rows||{}));
+
   const pick=(o,keys)=>{for(const k of keys||[])if(o&&o[k])return o[k];return null};
   const slug=v=>String(v||"").trim().toLowerCase().replace(/[^a-z0-9._-]/g,"-");
   const emailForLogin=login=>String(login||"").includes("@")?String(login).trim():slug(login)+"@"+(cfg.loginDomain||"forum-mis.local");
@@ -22,8 +68,10 @@
     if(!configured()){emit("offline","محلي");return false}
     client=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     const {data}=await client.auth.getSession();
-    if(data?.session){await loadProfile();await subscribe()}
-    emit(data?.session?"online":"ready",data?.session?"سحابي متصل":"السحابة جاهزة");
+    if(data?.session){
+      try{await loadProfile();await subscribe();scheduleFlush(200)}
+      catch(e){console.warn("Cloud profile unavailable; attempting offline profile cache",e);const cached=safeJsonParse(localStorage.getItem(authCacheKey(data.session.user.id)),null);if(cached){profile=cached;profiles=[legacyProfile(cached)];emitSyncState()}else throw e}
+    }else emit("ready","السحابة جاهزة");
     return true
   }
   async function lookupForum(code){
@@ -32,6 +80,7 @@
     if(error)throw error;const r=Array.isArray(data)?data[0]:data;
     return r?{forumId:r.forum_id,id:r.forum_id,name:r.name,code:String(code),active:true}:null
   }
+  const legacyProfile=p=>({id:p.user_id,userId:p.user_id,login:p.login,name:p.full_name,role:p.role,forum:p.forum_id,forumId:p.forum_id,status:p.status,disabled:!!p.disabled,lastLoginAt:p.last_login_at,mustChangePassword:!!p.must_change_password,passwordChangedAt:p.password_changed_at,temporaryPasswordIssuedAt:p.temporary_password_issued_at,temporaryPasswordExpiresAt:p.temporary_password_expires_at,passwordResetByUserId:p.password_reset_by_user_id,authUserId:p.auth_user_id});
   async function loadProfile(){
     if(!client)return null;
     const {data:{user}}=await client.auth.getUser();
@@ -48,6 +97,7 @@
     if(!data)throw new Error("لا يوجد ملف صلاحيات مرتبط بهذا الحساب.");
 
     profile=data;
+    localStorage.setItem(authCacheKey(user.id),JSON.stringify(data));
 
     // Phase 2: profile directory visibility is role-scoped.
     // Do not fail login if the user cannot read other profiles.
@@ -143,41 +193,105 @@
   async function hydrate(){
     if(!client||!profile)return null;hydrating=true;
     try{
+      if(!online()){
+        const snap=snapshotFromScopedCache();snap.v29_users=profiles;emitSyncState();return snap;
+      }
       const {data,error}=await client.from("cloud_documents").select("collection,row_id,forum_id,owner_user_id,payload,updated_at");
       if(error)throw error;
+      const cache={schema:OFFLINE_SCHEMA,rows:{},updatedAt:nowIso()};
+      for(const row of data||[])cache.rows[rowKey(row.collection,row.row_id)]={...row};
+      cacheSave(cache);
       await loadProfile();
       const snap=rowsToSnapshot(data);
       snap.v29_users=profiles;
+      metaSave({lastSyncAt:nowIso(),lastError:null});
+      emitSyncState();
       return snap;
+    }catch(e){
+      const cached=Object.values(cacheLoad().rows||{});
+      if(cached.length){console.warn("Cloud hydrate failed; using scoped offline cache",e);const snap=rowsToSnapshot(cached);snap.v29_users=profiles;emit("offline","وضع دون اتصال • بيانات محلية");return snap}
+      throw e;
     }finally{hydrating=false}
   }
   function rowFromItem(map,item){
     const rowId=pick(item,map.id);if(!rowId)return null;
     return{collection:map.collection,row_id:String(rowId),forum_id:pick(item,map.forum)||null,owner_user_id:pick(item,map.owner)||null,payload:item,updated_at:new Date().toISOString()}
   }
+  function buildQueueOps(key,value){
+    const map=MAP[key],items=Array.isArray(value)?value:[value],nextRows=items.map(x=>rowFromItem(map,x)).filter(Boolean);
+    const cached=cacheRowsForCollection(map.collection),cachedById=new Map(cached.map(r=>[String(r.row_id),r])),nextById=new Map(nextRows.map(r=>[String(r.row_id),r]));
+    const userId=profile?.user_id||null;
+    for(const row of nextRows){
+      const prev=cachedById.get(String(row.row_id));
+      if(prev&&samePayload(prev.payload,row.payload))continue;
+      const localVersion=Number(prev?.local_version||0)+1;
+      const operation=prev?"UPDATE":"CREATE";
+      enqueueOperation({operation,collection:row.collection,rowId:String(row.row_id),entityId:String(row.row_id),forumId:row.forum_id||profile?.forum_id||null,userId,localVersion,baseUpdatedAt:prev?.updated_at||null,payload:row.payload});
+      updateCacheRow({...row,updated_at:prev?.updated_at||null,local_version:localVersion});
+    }
+    for(const prev of cached){
+      if(nextById.has(String(prev.row_id)))continue;
+      enqueueOperation({operation:"DELETE",collection:prev.collection,rowId:String(prev.row_id),entityId:String(prev.row_id),forumId:prev.forum_id||profile?.forum_id||null,userId,localVersion:Number(prev.local_version||0)+1,baseUpdatedAt:prev.updated_at||null,payload:null});
+      removeCacheRow(prev.collection,prev.row_id);
+    }
+  }
+  async function processQueueItem(item){
+    const q=queueLoad(),target=q.find(x=>x.queueId===item.queueId);if(!target)return;
+    target.status="SYNCING";queueSave(q);emit("syncing","يتم الرفع");
+    try{
+      const {data:remote,error:readError}=await client.from("cloud_documents").select("collection,row_id,forum_id,owner_user_id,payload,updated_at").eq("collection",item.collection).eq("row_id",item.rowId).maybeSingle();
+      if(readError)throw readError;
+      const base=item.baseUpdatedAt?new Date(item.baseUpdatedAt).getTime():null,remoteTime=remote?.updated_at?new Date(remote.updated_at).getTime():null;
+      const concurrent=!!remote && ((item.operation==="CREATE") || (base!==null&&remoteTime!==base));
+      if(concurrent&&!samePayload(remote?.payload,item.payload)){
+        target.status="CONFLICT";target.remoteSnapshot=remote;target.lastError="تم تعديل السجل على جهاز آخر بعد النسخة المحلية.";queueSave(q);emitSyncState();return;
+      }
+      if(item.operation==="DELETE"){
+        if(remote){const {error}=await client.from("cloud_documents").delete().eq("collection",item.collection).eq("row_id",item.rowId);if(error)throw error}
+        removeCacheRow(item.collection,item.rowId);
+      }else{
+        const row={collection:item.collection,row_id:item.rowId,forum_id:item.forumId||null,owner_user_id:item.userId||null,payload:item.payload,updated_at:nowIso()};
+        const {data:saved,error}=await client.from("cloud_documents").upsert(row,{onConflict:"collection,row_id"}).select("collection,row_id,forum_id,owner_user_id,payload,updated_at").single();
+        if(error)throw error;updateCacheRow(saved||row);
+      }
+      const fresh=queueLoad().filter(x=>x.queueId!==item.queueId);queueSave(fresh);metaSave({lastSyncAt:nowIso(),lastError:null});emitSyncState();
+    }catch(e){
+      const fresh=queueLoad(),x=fresh.find(v=>v.queueId===item.queueId);if(!x)return;
+      x.retries=Number(x.retries||0)+1;x.lastError=e?.message||String(e);x.status=x.retries>=RETRY_DELAYS.length?"FAILED":"RETRY";queueSave(fresh);metaSave({lastError:x.lastError});emitSyncState();
+      if(x.status==="RETRY")scheduleFlush(RETRY_DELAYS[Math.min(x.retries-1,RETRY_DELAYS.length-1)]);
+    }
+  }
+  async function flushQueue(){
+    if(!client||!profile||!online())return emitSyncState();
+    clearTimeout(flushTimer);flushTimer=null;
+    const q=queueLoad().filter(x=>["PENDING","RETRY"].includes(x.status));
+    for(const item of q){if(!online())break;await processQueueItem(item)}
+    emitSyncState();
+  }
+  function scheduleFlush(delay=300){clearTimeout(flushTimer);flushTimer=setTimeout(()=>flushQueue().catch(e=>{console.error("Queue flush",e);metaSave({lastError:e?.message||String(e)});emitSyncState()}),delay)}
   async function syncStore(key,value){
     if(!client||!profile||hydrating||!MAP[key])return;
-    const map=MAP[key],items=Array.isArray(value)?value:[value],rows=items.map(x=>rowFromItem(map,x)).filter(Boolean);
-    if(!rows.length)return;
-    const {error}=await client.from("cloud_documents").upsert(rows,{onConflict:"collection,row_id"});
-    if(error){console.error("Cloud sync",key,error);emit("error","خطأ مزامنة");return}
-    emit("online","تمت المزامنة")
+    buildQueueOps(key,value);
+    if(online())scheduleFlush(50);else emitSyncState();
   }
   function onLocalSave(key,value){
     if(!configured()||!client||!profile||!MAP[key]||hydrating)return;
     clearTimeout(writeTimers.get(key));
-    writeTimers.set(key,setTimeout(()=>syncStore(key,value),350))
+    writeTimers.set(key,setTimeout(()=>syncStore(key,value),250))
   }
   async function pushAll(snapshot){
     if(!client||!profile)throw new Error("يجب تسجيل الدخول سحابياً أولاً");
-    for(const key of Object.keys(MAP)){if(snapshot[key])await syncStore(key,snapshot[key])}
+    for(const key of Object.keys(MAP)){if(snapshot[key]!==undefined)buildQueueOps(key,snapshot[key])}
+    if(online())await flushQueue();else emitSyncState();
     return true
   }
   async function subscribe(){
     if(!client||!profile||channel)return;
     channel=client.channel("forum-mis-live")
-      .on("postgres_changes",{event:"*",schema:"public",table:"cloud_documents"},()=>{clearTimeout(pullTimer);pullTimer=setTimeout(()=>window.dispatchEvent(new Event("forum-mis-cloud-pull")),500)})
+      .on("postgres_changes",{event:"*",schema:"public",table:"cloud_documents"},()=>{clearTimeout(pullTimer);pullTimer=setTimeout(async()=>{await flushQueue();if(!queueLoad().some(x=>["PENDING","RETRY","SYNCING"].includes(x.status)))window.dispatchEvent(new Event("forum-mis-cloud-pull"))},500)})
       .subscribe();
   }
-  window.CloudBridge={configured,init,lookupForum,signIn,signOut,hydrate,pushAll,onLocalSave,legacyCurrent,adminUserAction,changeOwnPassword,getProfiles:()=>profiles.slice(),getProfile:()=>profile};
+  window.addEventListener("online",()=>{emit("pending","بانتظار المزامنة");scheduleFlush(100)});
+  window.addEventListener("offline",()=>emitSyncState());
+  window.CloudBridge={configured,init,lookupForum,signIn,signOut,hydrate,pushAll,onLocalSave,legacyCurrent,adminUserAction,changeOwnPassword,flushQueue,getSyncQueue:()=>queueLoad().slice(),getSyncState:()=>({online:online(),queue:queueLoad().slice(),meta:metaLoad(),scope:scopeId()}),getProfiles:()=>profiles.slice(),getProfile:()=>profile};
 })();
