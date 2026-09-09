@@ -167,7 +167,6 @@ drop policy if exists docs_select on public.cloud_documents;
 create policy docs_select on public.cloud_documents for select to authenticated using (
  public.current_app_role() in ('مدير الإدارة','المطور')
  or forum_id=public.current_app_forum()
- or owner_user_id=public.current_app_user_id()
  or (collection='central_entities')
 );
 
