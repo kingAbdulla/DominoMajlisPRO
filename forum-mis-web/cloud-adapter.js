@@ -239,7 +239,7 @@
       for(const item of queueLoad().filter(x=>["PENDING","RETRY","FAILED","CONFLICT","SYNCING"].includes(x.status))){
         const k=rowKey(item.collection,item.rowId);
         if(item.operation==="DELETE")delete cache.rows[k];
-        else cache.rows[k]={collection:item.collection,row_id:item.rowId,forum_id:item.forumId||null,owner_user_id:item.userId||null,payload:item.payload,updated_at:item.baseUpdatedAt||cache.rows[k]?.updated_at||null,local_version:Number(item.localVersion||1)};
+        else cache.rows[k]={collection:item.collection,row_id:item.rowId,forum_id:item.forumId||null,owner_user_id:(item.ownerUserId??item.userId)||null,payload:item.payload,updated_at:item.baseUpdatedAt||cache.rows[k]?.updated_at||null,local_version:Number(item.localVersion||1)};
       }
       cacheSave(cache);
       await loadProfile();
@@ -272,12 +272,12 @@
       const localVersion=Number(prev?.local_version||0)+1;
       const operation=prev?"UPDATE":"CREATE";
       const effectiveOwner=row.owner_user_id||prev?.owner_user_id||userId;
-      enqueueOperation({operation,collection:row.collection,rowId:String(row.row_id),entityId:String(row.row_id),forumId:row.forum_id||prev?.forum_id||profile?.forum_id||null,userId:effectiveOwner,actorUserId:userId,localVersion,baseUpdatedAt:prev?.updated_at||null,payload:row.payload});
+      enqueueOperation({operation,collection:row.collection,rowId:String(row.row_id),entityId:String(row.row_id),forumId:row.forum_id||prev?.forum_id||profile?.forum_id||null,ownerUserId:effectiveOwner,actorUserId:userId,localVersion,baseUpdatedAt:prev?.updated_at||null,payload:row.payload});
       updateCacheRow({...row,updated_at:prev?.updated_at||null,local_version:localVersion});
     }
     for(const prev of cached){
       if(nextById.has(String(prev.row_id)))continue;
-      enqueueOperation({operation:"DELETE",collection:prev.collection,rowId:String(prev.row_id),entityId:String(prev.row_id),forumId:prev.forum_id||profile?.forum_id||null,userId:prev.owner_user_id||userId,actorUserId:userId,localVersion:Number(prev.local_version||0)+1,baseUpdatedAt:prev.updated_at||null,payload:null});
+      enqueueOperation({operation:"DELETE",collection:prev.collection,rowId:String(prev.row_id),entityId:String(prev.row_id),forumId:prev.forum_id||profile?.forum_id||null,ownerUserId:prev.owner_user_id||userId,actorUserId:userId,localVersion:Number(prev.local_version||0)+1,baseUpdatedAt:prev.updated_at||null,payload:null});
       removeCacheRow(prev.collection,prev.row_id);
     }
   }
@@ -304,7 +304,7 @@
         if(remote){const {error}=await client.from("cloud_documents").delete().eq("collection",item.collection).eq("row_id",item.rowId);if(error)throw error}
         removeCacheRow(item.collection,item.rowId);
       }else{
-        const row={collection:item.collection,row_id:item.rowId,forum_id:item.forumId||null,owner_user_id:item.userId||null,payload:item.payload,updated_at:nowIso()};
+        const row={collection:item.collection,row_id:item.rowId,forum_id:item.forumId||null,owner_user_id:(item.ownerUserId??item.userId)||null,payload:item.payload,updated_at:nowIso()};
         const {data:saved,error}=await client.from("cloud_documents").upsert(row,{onConflict:"collection,row_id"}).select("collection,row_id,forum_id,owner_user_id,payload,updated_at").single();
         if(error)throw error;updateCacheRow(saved||row);
       }
@@ -349,7 +349,7 @@
       return {ok:true,decision};
     }
 
-    const row={collection:item.collection,row_id:item.rowId,forum_id:item.forumId||null,owner_user_id:item.userId||null,payload:item.payload,updated_at:nowIso()};
+    const row={collection:item.collection,row_id:item.rowId,forum_id:item.forumId||null,owner_user_id:(item.ownerUserId??item.userId)||null,payload:item.payload,updated_at:nowIso()};
     const {data:saved,error}=await client.from("cloud_documents").upsert(row,{onConflict:"collection,row_id"}).select("collection,row_id,forum_id,owner_user_id,payload,updated_at").single();
     if(error)throw error;
     updateCacheRow(saved||row);
