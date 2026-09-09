@@ -278,7 +278,7 @@
   }
   async function processQueueItem(item){
     const q=queueLoad(),target=q.find(x=>x.queueId===item.queueId);if(!target)return;
-    target.status="SYNCING";queueSave(q);emit("syncing","يتم الرفع");
+    target.status="SYNCING";target.syncStartedAt=nowIso();queueSave(q);emit("syncing","يتم الرفع");
     try{
       const {data:remote,error:readError}=await client.from("cloud_documents").select("collection,row_id,forum_id,owner_user_id,payload,updated_at").eq("collection",item.collection).eq("row_id",item.rowId).maybeSingle();
       if(readError)throw readError;
@@ -298,7 +298,7 @@
       const fresh=queueLoad().filter(x=>x.queueId!==item.queueId);queueSave(fresh);metaSave({lastSyncAt:nowIso(),lastError:null});emitSyncState();
     }catch(e){
       const fresh=queueLoad(),x=fresh.find(v=>v.queueId===item.queueId);if(!x)return;
-      x.retries=Number(x.retries||0)+1;x.lastError=e?.message||String(e);x.status=x.retries>=RETRY_DELAYS.length?"FAILED":"RETRY";queueSave(fresh);metaSave({lastError:x.lastError});emitSyncState();
+      x.retries=Number(x.retries||0)+1;x.lastError=e?.message||String(e);x.status=x.retries>=RETRY_DELAYS.length?"FAILED":"RETRY";delete x.syncStartedAt;queueSave(fresh);metaSave({lastError:x.lastError});emitSyncState();
       if(x.status==="RETRY")scheduleFlush(RETRY_DELAYS[Math.min(x.retries-1,RETRY_DELAYS.length-1)]);
     }
   }
