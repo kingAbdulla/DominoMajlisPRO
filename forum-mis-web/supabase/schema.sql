@@ -121,6 +121,25 @@ create policy directory_admin_read on public.forum_directory for select to authe
  public.current_app_role() in ('مدير الإدارة','المطور') or forum_id=public.current_app_forum()
 );
 
+-- Remove legacy/temporary policy names before installing the canonical policy set.
+drop policy if exists cloud_documents_developer_select on public.cloud_documents;
+drop policy if exists cloud_documents_developer_insert on public.cloud_documents;
+drop policy if exists cloud_documents_developer_update on public.cloud_documents;
+drop policy if exists cloud_documents_developer_delete on public.cloud_documents;
+drop policy if exists cloud_documents_director_select on public.cloud_documents;
+drop policy if exists cloud_documents_director_insert on public.cloud_documents;
+drop policy if exists cloud_documents_director_update on public.cloud_documents;
+drop policy if exists cloud_documents_director_delete on public.cloud_documents;
+drop policy if exists cloud_documents_manager_select on public.cloud_documents;
+drop policy if exists cloud_documents_manager_insert on public.cloud_documents;
+drop policy if exists cloud_documents_manager_update on public.cloud_documents;
+drop policy if exists cloud_documents_manager_delete on public.cloud_documents;
+drop policy if exists cloud_documents_employee_select on public.cloud_documents;
+drop policy if exists cloud_documents_employee_insert on public.cloud_documents;
+drop policy if exists cloud_documents_employee_update on public.cloud_documents;
+drop policy if exists cloud_documents_employee_delete on public.cloud_documents;
+drop policy if exists cloud_documents_viewer_select on public.cloud_documents;
+
 drop policy if exists docs_select on public.cloud_documents;
 create policy docs_select on public.cloud_documents for select to authenticated using (
  public.current_app_role() in ('مدير الإدارة','المطور')
