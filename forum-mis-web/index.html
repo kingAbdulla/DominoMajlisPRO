@@ -677,7 +677,7 @@ function entityStakeholderIds(entity){
 function notifyDownstream(entity,text,ref,options={}){notifyUsers(entityStakeholderIds(entity),text,ref,{...options,forumId:entity.forumId||entity.forum,priority:options.priority||"Action"})}
 function unread(){const uid=currentUserId();return activeNotifications().filter(n=>notificationRecipientId(n)===uid&&!n.read).length}
 function updateNotificationBadges(){const n=unread();["notifyCount","directorNotifyCount"].forEach(id=>{if(el(id)){el(id).textContent=n;el(id).classList.toggle("hidden",n===0)}})}
-async function enterForum(){const code=el("forumCode").value.trim();selected=forums.find(f=>f.code===code&&f.active);if(!selected&&cloudEnabled()){try{selected=await CloudBridge.lookupForum(code)}catch(e){console.error(e)}}if(!selected)return alert("رمز المنتدى غير صحيح");el("forumNameBadge").textContent=selected.name;show("login")}
+async function enterForum(){const code=el("forumCode").value.trim();selected=null;if(!code)return alert("أدخل رمز المنتدى.");if(cloudEnabled()){try{selected=await CloudBridge.lookupForum(code)}catch(e){console.error(e);return alert("تعذر التحقق من رمز المنتدى من قاعدة البيانات السحابية.")}}else selected=forums.find(f=>f.code===code&&f.active)||null;if(!selected)return alert("رمز المنتدى غير صحيح أو أن المنتدى غير فعال.");el("forumNameBadge").textContent=selected.name;show("login")}
 async function doLogin(){
  const login=el("loginName").value.trim(),pass=el("loginPass").value;
  if(!login||!pass)return alert("يرجى إدخال اسم المستخدم وكلمة المرور.");
