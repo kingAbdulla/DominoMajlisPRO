@@ -457,6 +457,11 @@ function purgeLegacyLocalCredentials(){
  }catch(e){console.warn("Legacy credential purge",e)}
 }
 purgeLegacyLocalCredentials();
+const CLOUD_WORKING_KEYS=["v29_users","v29_acts","v29_reports","v29_audit","v29_notifs","v29_saved_filters","v29_forum_profiles","v29_rehabilitation_records","v29_central_entities"];
+function clearCloudWorkingSet(){
+ for(const k of CLOUD_WORKING_KEYS)localStorage.removeItem(k);
+ users=[];acts=[];reports=[];audit=[];notifs=[];savedFilters=[];forumProfiles=[];rehabilitationRecords=[];centralEntities=[];
+}
 function cloudEnabled(){return !!window.CloudBridge?.configured?.()}
 function setCloudStatus(status,text){
  const b=el("cloudStatusBadge");if(!b)return;
@@ -698,7 +703,14 @@ async function doLogin(){
    return alert("تعذر تسجيل الدخول. تحقق من اسم المستخدم وكلمة المرور أو حالة الحساب.");
  }
 }
-async function logout(){if(cloudEnabled())try{await CloudBridge.signOut()}catch(e){console.error(e)}current=null;selected=null;el("logoutBtn").classList.add("hidden");el("changePasswordBtn")?.classList.add("hidden");show("gate")}
+async function logout(){
+ if(cloudEnabled())try{await CloudBridge.signOut()}catch(e){console.error(e)}
+ clearCloudWorkingSet();
+ current=null;selected=null;
+ el("logoutBtn").classList.add("hidden");
+ el("changePasswordBtn")?.classList.add("hidden");
+ show("gate")
+}
 function goHome(){updateNotificationBadges();if(has(Capability.Tech)){renderAdminDashboard();show("adminDash")}else if(has(Capability.DirectorDashboard)){renderDirectorDashboard();show("directorDash")}else{renderStandardDashboard();show("standardDash")}}
 function canCrossForumAccess(){return !!current&&(current.role==="مدير الإدارة"||current.role==="المطور")}
 function effectiveForumId(){return current?.forumId||current?.forum||selected?.forumId||selected?.id||null}
