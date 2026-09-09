@@ -498,7 +498,7 @@ async function resolveSyncConflict(queueId,decision){
 }
 async function manualSyncNow(){
  if(!window.CloudBridge?.flushQueue)return;
- try{await window.CloudBridge.flushQueue();renderSyncStatusPanel()}catch(e){console.error("Manual sync",e);alert("تعذر إكمال المزامنة الآن. ستتم إعادة المحاولة تلقائياً عند توفر الاتصال.");renderSyncStatusPanel()}
+ try{await window.CloudBridge.flushQueue({retryFailed:true});renderSyncStatusPanel()}catch(e){console.error("Manual sync",e);alert("تعذر إكمال المزامنة الآن. ستتم إعادة المحاولة تلقائياً عند توفر الاتصال.");renderSyncStatusPanel()}
 }
 function applyCloudSnapshot(snap){
  if(!snap)return;
