@@ -216,7 +216,7 @@
     await loadProfile();
     return data;
   }
-  async function signOut(){if(client)await client.auth.signOut();profile=null;profiles=[];if(channel){await client.removeChannel(channel);channel=null}emit(configured()?"ready":"offline",configured()?"السحابة جاهزة":"محلي")}
+  async function signOut(){clearTimeout(flushTimer);flushTimer=null;clearTimeout(pullTimer);pullTimer=null;for(const t of writeTimers.values())clearTimeout(t);writeTimers.clear();if(channel&&client){await client.removeChannel(channel);channel=null}if(client)await client.auth.signOut();profile=null;profiles=[];emit(configured()?"ready":"offline",configured()?"السحابة جاهزة":"محلي")}
   function legacyCurrent(){
     if(!profile)return null;return{id:profile.user_id,userId:profile.user_id,login:profile.login,name:profile.full_name,role:profile.role,forum:profile.forum_id,forumId:profile.forum_id,status:profile.status,disabled:!!profile.disabled,authUserId:profile.auth_user_id}
   }
@@ -285,6 +285,8 @@
     const q=queueLoad(),target=q.find(x=>x.queueId===item.queueId);if(!target)return;
     target.status="SYNCING";target.syncStartedAt=nowIso();queueSave(q);emit("syncing","يتم الرفع");
     try{
+      if(item.userId&&item.userId!==profile.user_id)throw new Error("تم رفض عملية مزامنة لا تخص المستخدم الحالي.");
+      if(item.forumId&&profile.forum_id&&item.forumId!==profile.forum_id&&!["المطور","مدير الإدارة"].includes(profile.role))throw new Error("تم رفض عملية مزامنة خارج نطاق المنتدى الحالي.");
       const {data:remote,error:readError}=await client.from("cloud_documents").select("collection,row_id,forum_id,owner_user_id,payload,updated_at").eq("collection",item.collection).eq("row_id",item.rowId).maybeSingle();
       if(readError)throw readError;
       const base=item.baseUpdatedAt?new Date(item.baseUpdatedAt).getTime():null,remoteTime=remote?.updated_at?new Date(remote.updated_at).getTime():null;
