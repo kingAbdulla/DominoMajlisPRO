@@ -176,6 +176,11 @@ grant update(last_login_at) on public.profiles to authenticated;
 grant select,insert,update,delete on public.cloud_documents to authenticated;
 grant select on public.forum_directory to authenticated;
 
+-- Edge Functions using SUPABASE_SERVICE_ROLE_KEY require explicit table privileges.
+grant select,insert,update,delete on public.profiles to service_role;
+grant select,insert,update,delete on public.cloud_documents to service_role;
+grant select,insert,update,delete on public.forum_directory to service_role;
+
 -- Realtime for cross-device synchronization.
 do $$ begin
   alter publication supabase_realtime add table public.cloud_documents;
