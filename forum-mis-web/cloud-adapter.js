@@ -129,6 +129,7 @@
 
     if(error)throw new Error("تعذر تحميل ملف صلاحيات الحساب: "+error.message);
     if(!data)throw new Error("لا يوجد ملف صلاحيات مرتبط بهذا الحساب.");
+    if(data.disabled||data.status!=="Active")throw new Error("هذا الحساب غير فعال");
 
     profile=data;
     profileCacheSave(user.id,data);
@@ -190,8 +191,7 @@
     const email=emailForLogin(login);
     const {data,error}=await client.auth.signInWithPassword({email,password});
     if(error)throw error;
-    await loadProfile();
-    if(profile.disabled||profile.status==="Disabled"){await client.auth.signOut();throw new Error("هذا الحساب معطل")}
+    try{await loadProfile()}catch(e){await client.auth.signOut();throw e}
     const loginStamp=await client.from("profiles").update({last_login_at:new Date().toISOString()}).eq("auth_user_id",data.user.id);
     if(loginStamp.error)console.warn("Last login timestamp not persisted yet:",loginStamp.error.message);
     await subscribe();
