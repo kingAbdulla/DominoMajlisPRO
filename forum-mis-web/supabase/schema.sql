@@ -50,28 +50,49 @@ create index if not exists idx_cloud_documents_collection on public.cloud_docume
 create index if not exists idx_cloud_documents_owner on public.cloud_documents(owner_user_id);
 create index if not exists idx_profiles_forum on public.profiles(forum_id);
 
+-- Server-authoritative synchronization metadata.
+-- Client timestamps must never be authoritative for optimistic concurrency.
+create or replace function public.set_cloud_document_server_metadata()
+returns trigger
+language plpgsql
+security invoker
+set search_path=public
+as $
+begin
+  new.updated_at := now();
+  new.updated_by := auth.uid();
+  return new;
+end;
+$;
+
+drop trigger if exists trg_cloud_documents_server_metadata on public.cloud_documents;
+create trigger trg_cloud_documents_server_metadata
+before insert or update on public.cloud_documents
+for each row execute function public.set_cloud_document_server_metadata();
+
+
 alter table public.profiles enable row level security;
 alter table public.forum_directory enable row level security;
 alter table public.cloud_documents enable row level security;
 
 create or replace function public.current_app_role() returns text
-language sql stable security definer set search_path=public as $
+language sql stable security definer set search_path=public as $$
   select role from public.profiles
   where auth_user_id=auth.uid() and disabled=false and status='Active'
   limit 1
-$;
+$$;
 create or replace function public.current_app_forum() returns text
-language sql stable security definer set search_path=public as $
+language sql stable security definer set search_path=public as $$
   select forum_id from public.profiles
   where auth_user_id=auth.uid() and disabled=false and status='Active'
   limit 1
-$;
+$$;
 create or replace function public.current_app_user_id() returns text
-language sql stable security definer set search_path=public as $
+language sql stable security definer set search_path=public as $$
   select user_id from public.profiles
   where auth_user_id=auth.uid() and disabled=false and status='Active'
   limit 1
-$;
+$$;
 
 revoke all on function public.current_app_role() from public;
 revoke all on function public.current_app_forum() from public;
