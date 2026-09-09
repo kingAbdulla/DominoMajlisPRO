@@ -13,6 +13,7 @@ header{position:sticky;top:0;z-index:12;background:linear-gradient(135deg,var(--
 .brand{display:flex;align-items:center;gap:12px}.syslogo{width:50px;height:50px;border-radius:15px;background:#ffffff18;border:1px solid #ffffff30;display:grid;place-items:center;font-weight:900}.brand h1{margin:0;font-size:20px}.brand small{opacity:.8}
 .wrap{max-width:1380px;margin:auto;padding:22px 15px}.screen{display:none}.screen.active{display:block}
 .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 9px 28px #1020300d}.auth{max-width:500px;margin:50px auto;text-align:center}
+.portalShell{max-width:820px;margin:48px auto}.portalHero{text-align:center;margin-bottom:18px}.portalHero h2{margin:0 0 8px;color:var(--navy);font-size:28px}.portalHero p{margin:0;color:var(--muted);font-size:14px}.portalGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:20px}.portalChoice{background:#fff;color:var(--navy);border:1px solid var(--border);border-radius:18px;padding:22px;text-align:right;box-shadow:0 8px 24px #1020300a;transition:.18s ease}.portalChoice:hover{transform:translateY(-2px);border-color:#9db7cc;box-shadow:0 12px 30px #10203012}.portalChoice strong{display:block;font-size:18px;margin-bottom:6px}.portalChoice span{display:block;color:var(--muted);font-size:12px;line-height:1.7}.portalChoice .portalIcon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#edf4fa;color:var(--blue);margin-bottom:12px;font-weight:900}.portalChoice.central{background:linear-gradient(135deg,#103d63,#1f6f9f);color:#fff;border-color:transparent}.portalChoice.central span{color:#dceaf5}.portalChoice.central .portalIcon{background:#ffffff1f;color:#fff}.forumGatePanel{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}.loginContext{margin:0 auto 14px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.contextPill{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;background:#edf3f8;color:var(--navy);font-size:12px;font-weight:800}.contextPill.central{background:#e8f2fb;color:#134e78}@media(max-width:700px){.portalGrid{grid-template-columns:1fr}.portalShell{margin:24px auto}}
 input,select,textarea{width:100%;padding:11px 12px;border:1px solid #cbd5df;border-radius:10px;background:#fff;font-size:14px;margin-top:6px}textarea{min-height:90px;resize:vertical}
 button{border:0;border-radius:10px;padding:11px 15px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}.ghost{background:#fff;color:var(--blue);border:1px solid var(--blue)}.danger{background:var(--red)}.warn{background:var(--amber)}.gold{background:var(--gold)}.okbtn{background:var(--green)}.mutedbtn{background:#667085}.violet{background:var(--violet)}.hidden{display:none!important}
 .head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}.subtitle{color:var(--muted);font-size:13px}.note{background:#fff8de;border:1px solid #eadb9a;padding:12px;border-radius:11px}
@@ -225,8 +226,8 @@ button,input,select,textarea{max-width:100%}
 <header><div class="brand"><div class="syslogo">MIS</div><div><h1>نظام إدارة بيانات المنتديات</h1><small>Production Web — Government MIS</small></div></div><div class="rowBtns"><span id="cloudStatusBadge" class="badge" role="button" tabindex="0" title="حالة المزامنة" onclick="openSyncStatusPanel()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSyncStatusPanel()}">محلي</span><button id="changePasswordBtn" class="ghost hidden" onclick="openOwnPasswordChange(false)">تغيير كلمة المرور</button><button id="logoutBtn" class="ghost hidden" onclick="logout()">تسجيل الخروج</button></div></header>
 <div class="wrap">
 
-<section id="gate" class="screen active"><div class="card auth"><h2>بوابة المنتديات</h2><input id="forumCode" value="001"><p><button onclick="enterForum()">دخول</button></p><div id="gateMsg"></div></div></section>
-<section id="login" class="screen"><div class="card auth"><div id="forumNameBadge" class="badge"></div><h2>تسجيل دخول المستخدم</h2><input id="loginName" placeholder="اسم المستخدم" autocomplete="username" autocapitalize="none" spellcheck="false"><input id="loginPass" type="password" placeholder="كلمة المرور" autocomplete="current-password"><p><button onclick="doLogin()">دخول</button> <button class="ghost" onclick="show('gate')">رجوع</button></p><div id="loginModeNote" class="note">استخدم اسم المستخدم وكلمة المرور الخاصة بحسابك. لا توجد كلمات مرور افتراضية أو مشتركة.</div></div></section>
+<section id="gate" class="screen active"><div class="card portalShell"><div class="portalHero"><h2>بوابة الدخول الموحدة</h2><p>اختر نطاق العمل الصحيح قبل تسجيل الدخول. رمز المنتدى يحدد بوابة المنتدى فقط ولا يمنح صلاحيات إدارية.</p></div><div class="portalGrid"><button class="portalChoice" onclick="openForumPortal()"><span class="portalIcon">F</span><strong>بوابة المنتديات</strong><span>للموظفين ومديري المنتديات. يتطلب رمز المنتدى مثل 001 ثم بيانات الحساب الشخصية.</span></button><button class="portalChoice central" onclick="openDirectoratePortal()"><span class="portalIcon">D</span><strong>بوابة المديرية</strong><span>لمدير المديرية والمطور. دخول مركزي مستقل ولا يرتبط بأي رمز منتدى.</span></button></div><div id="forumGatePanel" class="forumGatePanel hidden"><div class="contextPill">نطاق: منتدى محدد</div><input id="forumCode" value="001" inputmode="numeric" autocomplete="off" placeholder="رمز المنتدى"><p><button onclick="enterForum()">متابعة إلى تسجيل الدخول</button> <button class="ghost" onclick="closeForumPortal()">إلغاء</button></p><div id="gateMsg"></div></div></div></section>
+<section id="login" class="screen"><div class="card auth"><div class="loginContext"><span id="loginScopeBadge" class="contextPill"></span><span id="forumNameBadge" class="badge"></span></div><h2 id="loginTitle">تسجيل دخول المستخدم</h2><input id="loginName" placeholder="اسم المستخدم" autocomplete="username" autocapitalize="none" spellcheck="false"><input id="loginPass" type="password" placeholder="كلمة المرور" autocomplete="current-password"><p><button onclick="doLogin()">دخول</button> <button class="ghost" onclick="returnToGate()">رجوع</button></p><div id="loginModeNote" class="note">استخدم اسم المستخدم وكلمة المرور الخاصة بحسابك. لا توجد كلمات مرور افتراضية أو مشتركة.</div></div></section>
 
 <section id="standardDash" class="screen"><div class="card"><h2 id="dashForum"></h2><p id="dashUser"></p></div>
 <div class="kpis"><div class="kpi"><span>الأنشطة المعتمدة</span><strong id="kApproved">0</strong></div><div class="kpi"><span>بانتظار القرار</span><strong id="kSubmitted">0</strong></div><div class="kpi"><span>مرفوض / طلب تعديل</span><strong id="kReturned">0</strong></div><div class="kpi"><span>التقارير الصادرة</span><strong id="kReports">0</strong></div></div>
@@ -444,7 +445,7 @@ const seedUsers=[];
 const seedActs=[];
 const seedReports=[];
 const L=(k,d)=>{try{const raw=localStorage.getItem(k);return raw===null?d:JSON.parse(raw)}catch(e){console.error("Local data parse failed",k,e);return d}},S=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.error("Local save failed",k,e);alert("تعذر الحفظ المحلي على هذا الجهاز. تحقق من مساحة التخزين ثم أعد المحاولة.");throw e}try{window.CloudBridge?.onLocalSave(k,v)}catch(e){console.error("Cloud write-through",e)}};
-let forums=L("v29_forums",seedForums),users=[],acts=L("v29_acts",seedActs),reports=L("v29_reports",seedReports),audit=L("v29_audit",[]),notifs=L("v29_notifs",[]),authority=L("v29_authority",defaultAuthority),security=L("v29_security",defaultSecurity),qrSettings=L("v29_qr_settings",defaultQrSettings),savedFilters=L("v29_saved_filters",[]),forumProfiles=L("v29_forum_profiles",[]),rehabilitationRecords=L("v29_rehabilitation_records",[]),centralEntities=L("v29_central_entities",[]),selected=null,current=null,pendingAttachments=[],pendingLogo="",pendingSig="",autosaveTimer=null;
+let forums=L("v29_forums",seedForums),users=[],acts=L("v29_acts",seedActs),reports=L("v29_reports",seedReports),audit=L("v29_audit",[]),notifs=L("v29_notifs",[]),authority=L("v29_authority",defaultAuthority),security=L("v29_security",defaultSecurity),qrSettings=L("v29_qr_settings",defaultQrSettings),savedFilters=L("v29_saved_filters",[]),forumProfiles=L("v29_forum_profiles",[]),rehabilitationRecords=L("v29_rehabilitation_records",[]),centralEntities=L("v29_central_entities",[]),selected=null,current=null,portalMode=null,pendingAttachments=[],pendingLogo="",pendingSig="",autosaveTimer=null;
 const el=id=>document.getElementById(id),esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 
 function purgeLegacyLocalCredentials(){
@@ -677,17 +678,29 @@ function entityStakeholderIds(entity){
 function notifyDownstream(entity,text,ref,options={}){notifyUsers(entityStakeholderIds(entity),text,ref,{...options,forumId:entity.forumId||entity.forum,priority:options.priority||"Action"})}
 function unread(){const uid=currentUserId();return activeNotifications().filter(n=>notificationRecipientId(n)===uid&&!n.read).length}
 function updateNotificationBadges(){const n=unread();["notifyCount","directorNotifyCount"].forEach(id=>{if(el(id)){el(id).textContent=n;el(id).classList.toggle("hidden",n===0)}})}
-async function enterForum(){const code=el("forumCode").value.trim();selected=null;if(!code)return alert("أدخل رمز المنتدى.");if(cloudEnabled()){try{selected=await CloudBridge.lookupForum(code)}catch(e){console.error(e);return alert("تعذر التحقق من رمز المنتدى من قاعدة البيانات السحابية.")}}else selected=forums.find(f=>f.code===code&&f.active)||null;if(!selected)return alert("رمز المنتدى غير صحيح أو أن المنتدى غير فعال.");el("forumNameBadge").textContent=selected.name;show("login")}
+function openForumPortal(){portalMode="forum";selected=null;el("forumGatePanel")?.classList.remove("hidden");el("gateMsg").textContent="";el("forumCode")?.focus()}
+function closeForumPortal(){portalMode=null;selected=null;el("forumGatePanel")?.classList.add("hidden");el("gateMsg").textContent=""}
+function openDirectoratePortal(){portalMode="directorate";selected=null;el("forumNameBadge").textContent="";el("loginScopeBadge").textContent="بوابة المديرية المركزية";el("loginScopeBadge").className="contextPill central";el("loginTitle").textContent="تسجيل دخول الإدارة المركزية";show("login")}
+function returnToGate(){selected=null;portalMode=null;el("loginName").value="";el("loginPass").value="";el("forumNameBadge").textContent="";el("forumGatePanel")?.classList.add("hidden");show("gate")}
+async function enterForum(){const code=el("forumCode").value.trim();portalMode="forum";selected=null;if(!code)return alert("أدخل رمز المنتدى.");if(cloudEnabled()){try{selected=await CloudBridge.lookupForum(code)}catch(e){console.error(e);return alert("تعذر التحقق من رمز المنتدى من قاعدة البيانات السحابية.")}}else selected=forums.find(f=>f.code===code&&f.active)||null;if(!selected)return alert("رمز المنتدى غير صحيح أو أن المنتدى غير فعال.");el("forumNameBadge").textContent=selected.name;el("loginScopeBadge").textContent="بوابة المنتدى • الرمز "+code;el("loginScopeBadge").className="contextPill";el("loginTitle").textContent="تسجيل دخول "+selected.name;show("login")}
 async function doLogin(){
  const login=el("loginName").value.trim(),pass=el("loginPass").value;
  if(!login||!pass)return alert("يرجى إدخال اسم المستخدم وكلمة المرور.");
+ if(!portalMode)return alert("اختر بوابة الدخول أولاً.");
  if(!cloudEnabled())return alert("تسجيل الدخول السحابي غير متاح حالياً. لا يسمح النظام بتسجيل دخول محلي أو بكلمة مرور افتراضية.");
  try{
    await CloudBridge.signIn(login,pass);
    await hydrateFromCloud();
    const u=CloudBridge.legacyCurrent();
    if(!u)return alert("تعذر تحميل ملف المستخدم.");
-   if(u.forumId&&selected&&canonicalForumId(u.forumId)!==canonicalForumId(selected.forumId||selected.id)){await CloudBridge.signOut();return alert("هذا الحساب غير مخول لهذا المنتدى");}
+   const centralRole=["مدير الإدارة","المطور"].includes(u.role);
+   if(portalMode==="forum"){
+     if(centralRole||!u.forumId){await CloudBridge.signOut();return alert("هذا حساب إداري مركزي. استخدم بوابة المديرية بدلاً من رمز المنتدى.")}
+     if(!selected||canonicalForumId(u.forumId)!==canonicalForumId(selected.forumId||selected.id)){await CloudBridge.signOut();return alert("هذا الحساب غير مخول لهذا المنتدى.")}
+   }else if(portalMode==="directorate"){
+     if(!centralRole){await CloudBridge.signOut();return alert("هذا الحساب مرتبط بمنتدى. استخدم بوابة المنتديات ورمز المنتدى المخصص له.")}
+     selected=null;
+   }
    current=u;users=CloudBridge.getProfiles();
    el("logoutBtn").classList.remove("hidden");
    el("changePasswordBtn")?.classList.remove("hidden");
@@ -706,7 +719,7 @@ async function doLogin(){
 async function logout(){
  if(cloudEnabled())try{await CloudBridge.signOut()}catch(e){console.error(e)}
  clearCloudWorkingSet();
- current=null;selected=null;
+ current=null;selected=null;portalMode=null;
  el("logoutBtn").classList.add("hidden");
  el("changePasswordBtn")?.classList.add("hidden");
  show("gate")
@@ -1591,7 +1604,8 @@ document.addEventListener("DOMContentLoaded",async()=>{
      await hydrateFromCloud();
      current=window.CloudBridge.legacyCurrent();
      users=window.CloudBridge.getProfiles?.()||users;
-     if(current?.forumId)selected=forumById(current.forumId)||selected;
+     portalMode=current?.forumId?"forum":"directorate";
+     if(current?.forumId)selected=forumById(current.forumId)||selected;else selected=null;
      el("logoutBtn")?.classList.remove("hidden");
      el("changePasswordBtn")?.classList.remove("hidden");
      const cloudProfile=window.CloudBridge.getProfile?.();
