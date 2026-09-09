@@ -267,12 +267,13 @@
       if(prev&&samePayload(prev.payload,row.payload))continue;
       const localVersion=Number(prev?.local_version||0)+1;
       const operation=prev?"UPDATE":"CREATE";
-      enqueueOperation({operation,collection:row.collection,rowId:String(row.row_id),entityId:String(row.row_id),forumId:row.forum_id||profile?.forum_id||null,userId,localVersion,baseUpdatedAt:prev?.updated_at||null,payload:row.payload});
+      const effectiveOwner=row.owner_user_id||prev?.owner_user_id||userId;
+      enqueueOperation({operation,collection:row.collection,rowId:String(row.row_id),entityId:String(row.row_id),forumId:row.forum_id||prev?.forum_id||profile?.forum_id||null,userId:effectiveOwner,actorUserId:userId,localVersion,baseUpdatedAt:prev?.updated_at||null,payload:row.payload});
       updateCacheRow({...row,updated_at:prev?.updated_at||null,local_version:localVersion});
     }
     for(const prev of cached){
       if(nextById.has(String(prev.row_id)))continue;
-      enqueueOperation({operation:"DELETE",collection:prev.collection,rowId:String(prev.row_id),entityId:String(prev.row_id),forumId:prev.forum_id||profile?.forum_id||null,userId,localVersion:Number(prev.local_version||0)+1,baseUpdatedAt:prev.updated_at||null,payload:null});
+      enqueueOperation({operation:"DELETE",collection:prev.collection,rowId:String(prev.row_id),entityId:String(prev.row_id),forumId:prev.forum_id||profile?.forum_id||null,userId:prev.owner_user_id||userId,actorUserId:userId,localVersion:Number(prev.local_version||0)+1,baseUpdatedAt:prev.updated_at||null,payload:null});
       removeCacheRow(prev.collection,prev.row_id);
     }
   }
@@ -375,6 +376,15 @@
     for(const item of q){if(!online())break;await processQueueItem(item)}
     emitSyncState();
   }
+  async function retryFailedQueue(){
+    const q=queueLoad();let changed=false;
+    for(const item of q){
+      if(item.status==="FAILED"){item.status="RETRY";item.retries=0;item.lastError=null;changed=true}
+    }
+    if(changed)queueSave(q);
+    await flushQueue();
+    return {retried:changed};
+  }
   function scheduleFlush(delay=300){clearTimeout(flushTimer);flushTimer=setTimeout(()=>flushQueue().catch(e=>{console.error("Queue flush",e);metaSave({lastError:e?.message||String(e)});emitSyncState()}),delay)}
   async function syncStore(key,value){
     if(!client||!profile||hydrating||!MAP[key])return;
@@ -400,5 +410,5 @@
   }
   window.addEventListener("online",()=>{emit("pending","بانتظار المزامنة");scheduleFlush(100)});
   window.addEventListener("offline",()=>emitSyncState());
-  window.CloudBridge={configured,init,lookupForum,signIn,signOut,hydrate,pushAll,onLocalSave,legacyCurrent,adminUserAction,changeOwnPassword,flushQueue,resolveConflict,canResolveConflict,getSyncQueue:()=>queueLoad().slice(),getSyncState:()=>({online:online(),queue:queueLoad().slice(),meta:metaLoad(),scope:scopeId()}),getProfiles:()=>profiles.slice(),getProfile:()=>profile};
+  window.CloudBridge={configured,init,lookupForum,signIn,signOut,hydrate,pushAll,onLocalSave,legacyCurrent,adminUserAction,changeOwnPassword,flushQueue,retryFailedQueue,resolveConflict,canResolveConflict,getSyncQueue:()=>queueLoad().slice(),getSyncState:()=>({online:online(),queue:queueLoad().slice(),meta:metaLoad(),scope:scopeId()}),getProfiles:()=>profiles.slice(),getProfile:()=>profile};
 })();
