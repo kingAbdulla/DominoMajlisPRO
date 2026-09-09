@@ -222,7 +222,7 @@
       }
       cacheSave(cache);
       await loadProfile();
-      const snap=rowsToSnapshot(data);
+      const snap=rowsToSnapshot(Object.values(cache.rows||{}));
       snap.v29_users=profiles;
       metaSave({lastSyncAt:nowIso(),lastError:null});
       emitSyncState();
