@@ -109,6 +109,52 @@ language sql stable security definer set search_path=public as $$
 $$;
 grant execute on function public.lookup_forum(text) to anon, authenticated;
 
+-- Developer-only authoritative forum directory management.
+-- forum_directory is the source of truth for access-code routing and active state.
+create or replace function public.manage_forum_directory(
+  p_action text,
+  p_forum_id text,
+  p_code text default null,
+  p_name text default null,
+  p_active boolean default null
+)
+returns table(forum_id text,code text,name text,active boolean)
+language plpgsql
+security definer
+set search_path=public
+as $function$
+begin
+  if public.current_app_role() <> 'المطور' then
+    raise exception 'FORBIDDEN';
+  end if;
+
+  if p_action = 'UPSERT' then
+    if nullif(trim(p_forum_id),'') is null or nullif(trim(p_code),'') is null or nullif(trim(p_name),'') is null then
+      raise exception 'INVALID_FORUM_DATA';
+    end if;
+    insert into public.forum_directory(forum_id,code,name,active)
+    values(trim(p_forum_id),trim(p_code),trim(p_name),coalesce(p_active,true))
+    on conflict (forum_id) do update
+      set code=excluded.code,name=excluded.name,active=excluded.active;
+  elsif p_action = 'SET_ACTIVE' then
+    update public.forum_directory
+       set active=coalesce(p_active,active)
+     where forum_directory.forum_id=p_forum_id;
+    if not found then raise exception 'FORUM_NOT_FOUND'; end if;
+  else
+    raise exception 'INVALID_ACTION';
+  end if;
+
+  return query
+  select f.forum_id,f.code,f.name,f.active
+  from public.forum_directory f
+  where f.forum_id=p_forum_id;
+end;
+$function$;
+
+revoke all on function public.manage_forum_directory(text,text,text,text,boolean) from public;
+grant execute on function public.manage_forum_directory(text,text,text,text,boolean) to authenticated;
+
 drop policy if exists profiles_select on public.profiles;
 drop policy if exists profiles_read_own on public.profiles;
 drop policy if exists profiles_self_update on public.profiles;
