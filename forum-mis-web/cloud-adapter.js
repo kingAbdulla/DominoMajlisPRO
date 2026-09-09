@@ -27,6 +27,7 @@
     if(!raw)return null;
     if(raw.profile&&Number(raw.cachedAt)>0){
       if(Date.now()-Number(raw.cachedAt)>AUTH_CACHE_MAX_AGE_MS){localStorage.removeItem(authCacheKey(authId));return null}
+      if(raw.profile.disabled||raw.profile.status!=="Active"){localStorage.removeItem(authCacheKey(authId));return null}
       return raw.profile;
     }
     // Legacy cache entries are accepted once, then upgraded with a bounded age.
@@ -129,7 +130,11 @@
 
     if(error)throw new Error("تعذر تحميل ملف صلاحيات الحساب: "+error.message);
     if(!data)throw new Error("لا يوجد ملف صلاحيات مرتبط بهذا الحساب.");
-    if(data.disabled||data.status!=="Active")throw new Error("هذا الحساب غير فعال");
+    if(data.disabled||data.status!=="Active"){
+      profile=null;profiles=[];
+      await client.auth.signOut();
+      throw new Error("هذا الحساب غير فعال");
+    }
 
     profile=data;
     profileCacheSave(user.id,data);
