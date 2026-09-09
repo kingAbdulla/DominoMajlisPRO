@@ -288,17 +288,30 @@
       const {data:remote,error:readError}=await client.from("cloud_documents").select("collection,row_id,forum_id,owner_user_id,payload,updated_at").eq("collection",item.collection).eq("row_id",item.rowId).maybeSingle();
       if(readError)throw readError;
       const base=item.baseUpdatedAt?new Date(item.baseUpdatedAt).getTime():null,remoteTime=remote?.updated_at?new Date(remote.updated_at).getTime():null;
-      const concurrent=!!remote && ((item.operation==="CREATE") || (base!==null&&remoteTime!==base));
-      if(concurrent&&!samePayload(remote?.payload,item.payload)){
+      const conflictWith=(message)=>{
         const latest=queueLoad(),conflict=latest.find(x=>x.queueId===item.queueId);
         if(conflict){
           conflict.status="CONFLICT";
-          conflict.remoteSnapshot=remote;
-          conflict.lastError="تم تعديل السجل على جهاز آخر بعد النسخة المحلية.";
+          conflict.remoteSnapshot=remote||null;
+          conflict.lastError=message;
           delete conflict.syncStartedAt;
           queueSave(latest);
         }
-        emitSyncState();return;
+        emitSyncState();
+      };
+      if(item.operation==="CREATE"&&remote){
+        if(!samePayload(remote.payload,item.payload)){conflictWith("يوجد سجل سحابي بنفس المعرّف ومحتوى مختلف.");return}
+        updateCacheRow(remote);
+        const fresh=queueLoad().filter(x=>x.queueId!==item.queueId);queueSave(fresh);metaSave({lastSyncAt:nowIso(),lastError:null});emitSyncState();return;
+      }
+      if(item.operation==="UPDATE"){
+        if(!remote){conflictWith("تم حذف السجل سحابياً بعد النسخة المحلية.");return}
+        const baselineMissing=base===null||!Number.isFinite(base)||!Number.isFinite(remoteTime);
+        if((baselineMissing||remoteTime!==base)&&!samePayload(remote.payload,item.payload)){conflictWith("تم تعديل السجل على جهاز آخر بعد النسخة المحلية.");return}
+      }
+      if(item.operation==="DELETE"&&remote){
+        const baselineMissing=base===null||!Number.isFinite(base)||!Number.isFinite(remoteTime);
+        if(baselineMissing||remoteTime!==base){conflictWith("تغيّر السجل سحابياً قبل تنفيذ الحذف المحلي.");return}
       }
       if(item.operation==="DELETE"){
         if(remote){const {error}=await client.from("cloud_documents").delete().eq("collection",item.collection).eq("row_id",item.rowId);if(error)throw error}
@@ -349,10 +362,16 @@
       return {ok:true,decision};
     }
 
-    const row={collection:item.collection,row_id:item.rowId,forum_id:item.forumId||null,owner_user_id:(item.ownerUserId??item.userId)||null,payload:item.payload,updated_at:nowIso()};
-    const {data:saved,error}=await client.from("cloud_documents").upsert(row,{onConflict:"collection,row_id"}).select("collection,row_id,forum_id,owner_user_id,payload,updated_at").single();
-    if(error)throw error;
-    updateCacheRow(saved||row);
+    if(item.operation==="DELETE"){
+      const {error}=await client.from("cloud_documents").delete().eq("collection",item.collection).eq("row_id",item.rowId);
+      if(error)throw error;
+      removeCacheRow(item.collection,item.rowId);
+    }else{
+      const row={collection:item.collection,row_id:item.rowId,forum_id:item.forumId||null,owner_user_id:(item.ownerUserId??item.userId)||null,payload:item.payload,updated_at:nowIso()};
+      const {data:saved,error}=await client.from("cloud_documents").upsert(row,{onConflict:"collection,row_id"}).select("collection,row_id,forum_id,owner_user_id,payload,updated_at").single();
+      if(error)throw error;
+      updateCacheRow(saved||row);
+    }
     queueSave(q.filter(x=>x.queueId!==queueId));
     metaSave({lastSyncAt:nowIso(),lastError:null});
     emitSyncState();
