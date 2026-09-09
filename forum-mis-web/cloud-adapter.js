@@ -250,7 +250,11 @@
       return snap;
     }catch(e){
       const cached=Object.values(cacheLoad().rows||{});
-      if(cached.length){console.warn("Cloud hydrate failed; using scoped offline cache",e);const snap=rowsToSnapshot(cached);snap.v29_users=profiles;emit("offline","وضع دون اتصال • بيانات محلية");return snap}
+      if(networkLikeError(e)&&cached.length){
+        console.warn("Cloud hydrate failed due to connectivity; using scoped offline cache",e);
+        const snap=rowsToSnapshot(cached);snap.v29_users=profiles;emit("offline","وضع دون اتصال • بيانات محلية");return snap
+      }
+      // Authorization/RLS/server validation errors must never be converted into offline access.
       throw e;
     }finally{hydrating=false}
   }
