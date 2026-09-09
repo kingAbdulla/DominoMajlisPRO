@@ -208,6 +208,19 @@
     await loadProfile();
     return data;
   }
+  async function manageForumDirectory(action,payload={}){
+    if(!client||!profile)throw new Error("يجب تسجيل الدخول أولاً");
+    if(profile.role!=="المطور")throw new Error("هذه العملية مخصصة للمطور فقط");
+    const {data,error}=await client.rpc("manage_forum_directory",{
+      p_action:action,
+      p_forum_id:payload.forumId||null,
+      p_code:payload.code||null,
+      p_name:payload.name||null,
+      p_active:payload.active??null
+    });
+    if(error)throw error;
+    return Array.isArray(data)?data[0]:data;
+  }
   async function changeOwnPassword(newPassword){
     if(!client||!profile)throw new Error("يجب تسجيل الدخول أولاً");
     const {data,error}=await client.functions.invoke("admin-users",{body:{action:"change_own_password",newPassword}});
@@ -433,5 +446,5 @@
   }
   window.addEventListener("online",()=>{emit("pending","بانتظار المزامنة");scheduleFlush(100)});
   window.addEventListener("offline",()=>emitSyncState());
-  window.CloudBridge={configured,init,lookupForum,signIn,signOut,hydrate,pushAll,onLocalSave,legacyCurrent,adminUserAction,changeOwnPassword,flushQueue,retryFailedQueue,resolveConflict,canResolveConflict,getSyncQueue:()=>queueLoad().slice(),getSyncState:()=>({online:online(),queue:queueLoad().slice(),meta:metaLoad(),scope:scopeId()}),getProfiles:()=>profiles.slice(),getProfile:()=>profile};
+  window.CloudBridge={configured,init,lookupForum,signIn,signOut,hydrate,pushAll,onLocalSave,legacyCurrent,adminUserAction,manageForumDirectory,changeOwnPassword,flushQueue,retryFailedQueue,resolveConflict,canResolveConflict,getSyncQueue:()=>queueLoad().slice(),getSyncState:()=>({online:online(),queue:queueLoad().slice(),meta:metaLoad(),scope:scopeId()}),getProfiles:()=>profiles.slice(),getProfile:()=>profile};
 })();
