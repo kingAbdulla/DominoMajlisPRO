@@ -62,11 +62,16 @@
   const cacheRowsForCollection=collection=>Object.values(cacheLoad().rows||{}).filter(r=>r.collection===collection);
   const enqueueOperation=op=>{
     let q=queueLoad();
-    const same=q.find(x=>x.collection===op.collection&&x.rowId===op.rowId&&["PENDING","RETRY"].includes(x.status));
+    const same=q.find(x=>x.collection===op.collection&&x.rowId===op.rowId&&["PENDING","RETRY","FAILED","CONFLICT"].includes(x.status));
     if(same){
       if(same.operation==="CREATE"&&op.operation==="UPDATE") op.operation="CREATE";
       if(op.operation==="DELETE"&&same.operation==="CREATE"){q=q.filter(x=>x!==same);queueSave(q);emitSyncState();return}
-      Object.assign(same,op,{queueId:same.queueId,status:"PENDING",retries:0,lastError:null,timestamp:nowIso()});
+      if(same.status==="CONFLICT"){
+        const remoteSnapshot=same.remoteSnapshot,lastError=same.lastError;
+        Object.assign(same,op,{queueId:same.queueId,status:"CONFLICT",remoteSnapshot,lastError,timestamp:nowIso()});
+      }else{
+        Object.assign(same,op,{queueId:same.queueId,status:"PENDING",retries:0,lastError:null,timestamp:nowIso()});
+      }
     }else q.push({queueId:crypto.randomUUID?crypto.randomUUID():"Q-"+Date.now()+"-"+Math.random().toString(36).slice(2),status:"PENDING",retries:0,lastError:null,...op,timestamp:op.timestamp||nowIso()});
     queueSave(q);emitSyncState();
   };
