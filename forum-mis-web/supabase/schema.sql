@@ -175,7 +175,11 @@ drop policy if exists docs_insert on public.cloud_documents;
 create policy docs_insert on public.cloud_documents for insert to authenticated with check (
  public.current_app_role() in ('مدير الإدارة','المطور')
  or (
-   public.current_app_role()='مدير المنتدى' and forum_id=public.current_app_forum()
+   public.current_app_role()='مدير المنتدى'
+   and (
+     forum_id=public.current_app_forum()
+     or (forum_id is null and collection='central_entities')
+   )
  )
  or (
    public.current_app_role()='موظف'
