@@ -443,7 +443,7 @@ const defaultQrSettings={verificationBase:"https://raw.githack.com/kingAbdulla/D
 const seedUsers=[];
 const seedActs=[];
 const seedReports=[];
-const L=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d)),S=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));try{window.CloudBridge?.onLocalSave(k,v)}catch(e){console.error("Cloud write-through",e)}};
+const L=(k,d)=>{try{const raw=localStorage.getItem(k);return raw===null?d:JSON.parse(raw)}catch(e){console.error("Local data parse failed",k,e);return d}},S=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.error("Local save failed",k,e);alert("تعذر الحفظ المحلي على هذا الجهاز. تحقق من مساحة التخزين ثم أعد المحاولة.");throw e}try{window.CloudBridge?.onLocalSave(k,v)}catch(e){console.error("Cloud write-through",e)}};
 let forums=L("v29_forums",seedForums),users=[],acts=L("v29_acts",seedActs),reports=L("v29_reports",seedReports),audit=L("v29_audit",[]),notifs=L("v29_notifs",[]),authority=L("v29_authority",defaultAuthority),security=L("v29_security",defaultSecurity),qrSettings=L("v29_qr_settings",defaultQrSettings),savedFilters=L("v29_saved_filters",[]),forumProfiles=L("v29_forum_profiles",[]),rehabilitationRecords=L("v29_rehabilitation_records",[]),centralEntities=L("v29_central_entities",[]),selected=null,current=null,pendingAttachments=[],pendingLogo="",pendingSig="",autosaveTimer=null;
 const el=id=>document.getElementById(id),esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 
