@@ -28,6 +28,12 @@ function validatePassword(password: string) {
     && /\d/.test(password);
 }
 
+function normalizeValidDays(value: unknown) {
+  const parsed = Number(value ?? 7);
+  if (!Number.isFinite(parsed)) return 7;
+  return Math.min(30, Math.max(1, Math.trunc(parsed)));
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -64,6 +70,10 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
+
+    if (callerProfile.disabled || callerProfile.status !== "Active") {
+      return json({ error: "هذا الحساب غير فعال." }, 403);
+    }
 
     if (action === "change_own_password") {
       const newPassword = String(body?.newPassword ?? "");
@@ -102,12 +112,21 @@ Deno.serve(async (req) => {
       const forumId = body?.forumId ? String(body.forumId) : null;
       const temporaryPassword = String(body?.temporaryPassword ?? "");
       const mustChangePassword = body?.mustChangePassword !== false;
-      const validDays = Math.min(30, Math.max(1, Number(body?.validDays ?? 7)));
+      const validDays = normalizeValidDays(body?.validDays);
 
       if (!validateLogin(login)) return json({ error: "اسم المستخدم يجب أن يكون 3-40 حرفاً إنكليزياً/رقماً ويمكن استخدام . _ -" }, 400);
       if (!fullName) return json({ error: "الاسم الكامل إلزامي." }, 400);
       if (!allowedRoles.has(role)) return json({ error: "الدور غير مسموح." }, 400);
       if (role !== "مدير الإدارة" && !forumId) return json({ error: "يجب تحديد المنتدى لهذا الدور." }, 400);
+      if (forumId) {
+        const { data: forum, error: forumError } = await admin
+          .from("forum_directory")
+          .select("forum_id,active")
+          .eq("forum_id", forumId)
+          .maybeSingle();
+        if (forumError) throw forumError;
+        if (!forum || !forum.active) return json({ error: "المنتدى المحدد غير موجود أو غير فعال." }, 400);
+      }
       if (!validatePassword(temporaryPassword)) {
         return json({ error: "كلمة المرور المؤقتة يجب أن تكون 10 أحرف على الأقل وتحتوي أحرفاً وأرقاماً." }, 400);
       }
@@ -159,7 +178,7 @@ Deno.serve(async (req) => {
       const targetUserId = String(body?.userId ?? "");
       const temporaryPassword = String(body?.temporaryPassword ?? "");
       const mustChangePassword = body?.mustChangePassword !== false;
-      const validDays = Math.min(30, Math.max(1, Number(body?.validDays ?? 7)));
+      const validDays = normalizeValidDays(body?.validDays);
 
       if (!targetUserId) return json({ error: "معرف المستخدم مطلوب." }, 400);
       if (!validatePassword(temporaryPassword)) {
