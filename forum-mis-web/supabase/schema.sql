@@ -57,13 +57,13 @@ returns trigger
 language plpgsql
 security invoker
 set search_path=public
-as $
+as $function$
 begin
   new.updated_at := now();
   new.updated_by := auth.uid();
   return new;
 end;
-$;
+$function$;
 
 drop trigger if exists trg_cloud_documents_server_metadata on public.cloud_documents;
 create trigger trg_cloud_documents_server_metadata
@@ -112,6 +112,7 @@ grant execute on function public.lookup_forum(text) to anon, authenticated;
 drop policy if exists profiles_select on public.profiles;
 drop policy if exists profiles_read_own on public.profiles;
 drop policy if exists profiles_self_update on public.profiles;
+drop policy if exists profiles_self_last_login on public.profiles;
 
 -- A user can always read their own identity profile.
 -- Developer/Director can read the institutional directory.
@@ -138,6 +139,7 @@ using (auth_user_id = auth.uid())
 with check (auth_user_id = auth.uid());
 
 drop policy if exists directory_none on public.forum_directory;
+drop policy if exists directory_admin_read on public.forum_directory;
 create policy directory_admin_read on public.forum_directory for select to authenticated using (
  public.current_app_role() in ('مدير الإدارة','المطور') or forum_id=public.current_app_forum()
 );
