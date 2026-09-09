@@ -285,7 +285,15 @@
       const base=item.baseUpdatedAt?new Date(item.baseUpdatedAt).getTime():null,remoteTime=remote?.updated_at?new Date(remote.updated_at).getTime():null;
       const concurrent=!!remote && ((item.operation==="CREATE") || (base!==null&&remoteTime!==base));
       if(concurrent&&!samePayload(remote?.payload,item.payload)){
-        target.status="CONFLICT";target.remoteSnapshot=remote;target.lastError="تم تعديل السجل على جهاز آخر بعد النسخة المحلية.";queueSave(q);emitSyncState();return;
+        const latest=queueLoad(),conflict=latest.find(x=>x.queueId===item.queueId);
+        if(conflict){
+          conflict.status="CONFLICT";
+          conflict.remoteSnapshot=remote;
+          conflict.lastError="تم تعديل السجل على جهاز آخر بعد النسخة المحلية.";
+          delete conflict.syncStartedAt;
+          queueSave(latest);
+        }
+        emitSyncState();return;
       }
       if(item.operation==="DELETE"){
         if(remote){const {error}=await client.from("cloud_documents").delete().eq("collection",item.collection).eq("row_id",item.rowId);if(error)throw error}
@@ -348,9 +356,21 @@
     return {ok:true,decision};
   }
 
-  async function flushQueue(){
+  async function flushQueue(options={}){
     if(!client||!profile||!online())return emitSyncState();
     clearTimeout(flushTimer);flushTimer=null;
+    if(options.retryFailed){
+      const all=queueLoad();let changed=false;
+      for(const x of all){
+        if(x.status==="FAILED"){
+          x.status="RETRY";
+          x.retries=0;
+          x.lastError=null;
+          changed=true;
+        }
+      }
+      if(changed)queueSave(all);
+    }
     const q=queueLoad().filter(x=>["PENDING","RETRY"].includes(x.status));
     for(const item of q){if(!online())break;await processQueueItem(item)}
     emitSyncState();
