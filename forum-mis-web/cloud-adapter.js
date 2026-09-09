@@ -36,7 +36,23 @@
   const queueKey=()=>"v29_sync_queue:"+scopeId();
   const cacheKey=()=>"v29_scoped_cache:"+scopeId();
   const syncMetaKey=()=>"v29_sync_meta:"+scopeId();
-  const queueLoad=()=>safeJsonParse(localStorage.getItem(queueKey()),[]);
+  const queueLoad=()=>{
+    const q=safeJsonParse(localStorage.getItem(queueKey()),[]);
+    let changed=false;
+    const now=Date.now();
+    for(const item of q){
+      if(item?.status==="SYNCING"){
+        const started=Date.parse(item.syncStartedAt||item.timestamp||0);
+        if(!Number.isFinite(started)||now-started>120000){
+          item.status="RETRY";
+          item.lastError=item.lastError||"تم استرداد عملية مزامنة توقفت قبل اكتمالها.";
+          changed=true;
+        }
+      }
+    }
+    if(changed)localStorage.setItem(queueKey(),JSON.stringify(q));
+    return q;
+  };
   const queueSave=q=>localStorage.setItem(queueKey(),JSON.stringify(q));
   const cacheLoad=()=>safeJsonParse(localStorage.getItem(cacheKey()),{schema:OFFLINE_SCHEMA,rows:{},updatedAt:null});
   const cacheSave=x=>localStorage.setItem(cacheKey(),JSON.stringify({...x,schema:OFFLINE_SCHEMA,updatedAt:nowIso()}));
