@@ -216,7 +216,7 @@
     await loadProfile();
     return data;
   }
-  async function signOut(){if(client)await client.auth.signOut();profile=null;profiles=[];if(channel){await client.removeChannel(channel);channel=null}emit(configured()?"ready":"offline",configured()?"السحابة جاهزة":"محلي")}
+  async function signOut(){clearTimeout(flushTimer);flushTimer=null;clearTimeout(pullTimer);pullTimer=null;for(const t of writeTimers.values())clearTimeout(t);writeTimers.clear();if(channel&&client){await client.removeChannel(channel);channel=null}if(client)await client.auth.signOut();profile=null;profiles=[];hydrating=false;emit(configured()?"ready":"offline",configured()?"السحابة جاهزة":"محلي")}
   function legacyCurrent(){
     if(!profile)return null;return{id:profile.user_id,userId:profile.user_id,login:profile.login,name:profile.full_name,role:profile.role,forum:profile.forum_id,forumId:profile.forum_id,status:profile.status,disabled:!!profile.disabled,authUserId:profile.auth_user_id}
   }
