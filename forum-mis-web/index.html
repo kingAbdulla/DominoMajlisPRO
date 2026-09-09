@@ -1412,7 +1412,36 @@ function openSystemSecurity(){if(!has(Capability.Tech))return;el("secSessionMinu
 function saveSecuritySettings(){security={...security,sessionMinutes:Number(el("secSessionMinutes").value||120),reviewLockMinutes:Number(el("secLockMinutes").value||30),approvalSlaHours:Number(el("secApprovalSla").value||48),temporaryAccessEnabled:el("secTempAccess").value==="yes",autosaveEnabled:el("secAutosave").value==="yes",duplicateDetectionEnabled:el("secDuplicate").value==="yes"};S("v29_security",security);log("تعديل سياسات تشغيلية","SECURITY",JSON.stringify(security));alert("تم حفظ السياسات.")}
 function openBackupCenter(){if(has(Capability.Tech))show("backupCenter")}
 function exportSystemBackup(){const payload={schema:"forum-mis-v2.9",exportedAt:new Date().toISOString(),forums,users,acts,reports,audit,notifs,authority,security,qrSettings,savedFilters,forumProfiles,rehabilitationRecords,centralEntities};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="forum-mis-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();log("تصدير نسخة احتياطية","BACKUP","")}
-function importSystemBackup(){const file=el("backupInput").files[0];if(!file)return;const r=new FileReader();r.onload=e=>{try{const p=JSON.parse(e.target.result);if(p.schema!=="forum-mis-v2.9")return alert("ملف النسخة غير متوافق.");if(!confirm("سيتم استبدال بيانات هذه النسخة المحلية. متابعة؟"))return;for(const [k,v] of Object.entries({forums:p.forums||[],users:p.users||[],acts:p.acts||[],reports:p.reports||[],audit:p.audit||[],notifs:p.notifs||[],authority:p.authority||defaultAuthority,security:p.security||defaultSecurity,qr_settings:p.qrSettings||defaultQrSettings,saved_filters:p.savedFilters||[],forum_profiles:p.forumProfiles||[],rehabilitation_records:p.rehabilitationRecords||[],central_entities:p.centralEntities||[]}))localStorage.setItem("v29_"+k,JSON.stringify(v));alert("تمت الاستعادة. ستعاد تحميل الصفحة.");location.reload()}catch(err){alert("تعذر قراءة ملف النسخة الاحتياطية.")}};r.readAsText(file)}
+function importSystemBackup(){
+ if(!has(Capability.Tech))return alert("استعادة النسخة الاحتياطية من صلاحيات المطور فقط.");
+ const file=el("backupInput").files[0];if(!file)return;
+ const r=new FileReader();
+ r.onload=e=>{try{
+   const p=JSON.parse(e.target.result);
+   if(p.schema!=="forum-mis-v2.9")return alert("ملف النسخة غير متوافق.");
+   if(!confirm("سيتم استبدال بيانات هذه النسخة المحلية وإدراج التغييرات القابلة للمزامنة في قائمة الانتظار. متابعة؟"))return;
+   const restored={
+     forums:p.forums||[],
+     acts:p.acts||[],
+     reports:p.reports||[],
+     audit:p.audit||[],
+     notifs:p.notifs||[],
+     authority:p.authority||defaultAuthority,
+     security:p.security||defaultSecurity,
+     qr_settings:p.qrSettings||defaultQrSettings,
+     saved_filters:p.savedFilters||[],
+     forum_profiles:p.forumProfiles||[],
+     rehabilitation_records:p.rehabilitationRecords||[],
+     central_entities:p.centralEntities||[]
+   };
+   for(const [k,v] of Object.entries(restored))S("v29_"+k,v);
+   // Authentication users are cloud-managed and are never recreated from a browser backup.
+   localStorage.removeItem("v29_users");
+   alert("تمت الاستعادة محلياً. ستتم مزامنة البيانات المسموح بها وفق الصلاحيات، ثم ستعاد تحميل الصفحة.");
+   location.reload();
+ }catch(err){console.error("Backup import",err);alert("تعذر قراءة ملف النسخة الاحتياطية.")}};
+ r.readAsText(file)
+}
 function openQrSettings(){if(!has(Capability.Tech))return;el("qrBase").value=qrSettings.verificationBase;el("qrLabel").value=qrSettings.label;show("qrSettings")}
 function saveQrSettings(){qrSettings={verificationBase:el("qrBase").value.trim(),label:el("qrLabel").value.trim()};S("v29_qr_settings",qrSettings);log("تعديل إعدادات QR","QR",qrSettings.verificationBase);alert("تم حفظ إعدادات QR.")}
 
