@@ -1584,7 +1584,20 @@ document.addEventListener('DOMContentLoaded',enhanceMobileUX);
 window.addEventListener("forum-mis-cloud-status",e=>setCloudStatus(e.detail.status,e.detail.text));
 window.addEventListener("forum-mis-cloud-pull",async()=>{if(!cloudEnabled()||!current)return;try{await hydrateFromCloud();goHome()}catch(e){console.error("Realtime hydrate",e)}});
 document.addEventListener("DOMContentLoaded",async()=>{
- try{await window.CloudBridge?.init?.()}catch(e){console.error("Cloud init",e);setCloudStatus("error","السحابة غير متاحة")}
+ try{
+   await window.CloudBridge?.init?.();
+   const restored=window.CloudBridge?.legacyCurrent?.();
+   if(restored){
+     await hydrateFromCloud();
+     current=window.CloudBridge.legacyCurrent();
+     users=window.CloudBridge.getProfiles?.()||users;
+     if(current?.forumId)selected=forumById(current.forumId)||selected;
+     el("logoutBtn")?.classList.remove("hidden");
+     el("changePasswordBtn")?.classList.remove("hidden");
+     const cloudProfile=window.CloudBridge.getProfile?.();
+     if(cloudProfile?.must_change_password)openOwnPasswordChange(true);else goHome();
+   }
+ }catch(e){console.error("Cloud init",e);setCloudStatus("error","السحابة غير متاحة")}
  const note=el("loginModeNote");if(note)note.textContent=cloudEnabled()?"تسجيل دخول سحابي آمن — استخدم بيانات حسابك الشخصية.":"تسجيل الدخول غير متاح حتى يكتمل اتصال قاعدة البيانات السحابية.";
  const hint=el("cloudMigrationHint");if(hint)hint.textContent=cloudEnabled()?"قاعدة البيانات السحابية مفعلة.":"أدخل Project URL وPublishable Key في cloud-config.js لتفعيل المزامنة.";
  const bs=el("cloudBackupStatus");if(bs)bs.textContent=cloudEnabled()?"Cloud Ready":"Local Cache";
